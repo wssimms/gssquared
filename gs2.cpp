@@ -88,6 +88,15 @@ void init_cpus() {
     }
 }
 
+/**
+ * This group of routines implement reused addressing mode calculations.
+ *
+ */
+
+/**
+ * Set the N and Z flags based on the value. Used by all arithmetic instructions, as well
+ * as load instructions.
+ */
 inline void set_n_z_flags(cpu_state *cpu, uint8_t value) {
     cpu->Z = (value == 0);
     cpu->N = (value & 0x80) != 0;
@@ -111,8 +120,30 @@ inline void add_and_set_flags(cpu_state *cpu, uint8_t N) {
             << "  S: " << int_to_hex(cpu->a_lo) << "  C: " << int_to_hex(cpu->C) << "  V: " << int_to_hex(cpu->V) ;
 }
 
+
 /**
- * Handle addressing modes - different ways of fetching data for operations
+ * Good discussion of branch instructions:
+ * https://www.masswerk.at/6502/6502_instruction_set.html#BCC
+ */
+inline void branch_if(cpu_state *cpu, uint8_t N, bool condition) {
+    uint16_t oaddr = cpu->pc;
+    uint16_t taddr = oaddr + N;
+    if (DEBUG) std::cout << " => $" << int_to_hex(taddr);
+
+    if (condition) {
+        cpu->pc = cpu->pc + N;
+        // branch taken uses another clock to update the PC
+        incr_cycles(cpu); 
+        /* If a branch is taken and the target is on a different page, this adds another CPU cycle (4 in total). */
+        if ((oaddr & 0xFF00) != (taddr & 0xFF00)) {
+            incr_cycles(cpu);
+        }
+        if (DEBUG) std::cout << " (taken)";
+    }
+}
+
+/**
+ * Loading data for various addressing modes.
  */
 inline uint8_t get_operand_immediate(cpu_state *cpu) {
     uint8_t N = read_byte_from_pc(cpu);
@@ -125,6 +156,12 @@ inline uint8_t get_operand_zeropage(cpu_state *cpu) {
     uint8_t N = read_byte(cpu, zpaddr);
     if (DEBUG) std::cout << " #$" << int_to_hex(N) ;
     return N;
+}
+
+inline void store_operand_zeropage(cpu_state *cpu, uint8_t N) {
+    uint8_t zpaddr = read_byte_from_pc(cpu);
+    write_byte(cpu, zpaddr, N);
+    if (DEBUG) std::cout << " $" << int_to_hex(zpaddr)  << "   [#" << int_to_hex(N)  << "]";
 }
 
 inline uint8_t get_operand_zeropage_x(cpu_state *cpu) {
@@ -169,6 +206,12 @@ inline uint8_t get_operand_absolute(cpu_state *cpu) {
     return N;
 }
 
+inline void store_operand_absolute(cpu_state *cpu, uint8_t N) {
+    uint16_t abs_addr = read_word_from_pc(cpu);
+    write_byte(cpu, abs_addr, N);
+    if (DEBUG) std::cout << " $" << int_to_hex(abs_addr) << "   [#" << int_to_hex(N) << "]";
+}
+
 inline uint8_t get_operand_absolute_x(cpu_state *cpu) {
     uint16_t addr = read_word_from_pc(cpu);
     uint16_t taddr = addr + cpu->x_lo;
@@ -185,6 +228,11 @@ inline uint8_t get_operand_absolute_y(cpu_state *cpu) {
     return N;
 }
 
+inline uint8_t get_operand_relative(cpu_state *cpu) {
+    uint8_t N = read_byte_from_pc(cpu);
+    if (DEBUG) std::cout << " #$" << int_to_hex(N);
+    return N;
+}
 
 
 int execute_next_6502(cpu_state *cpu) {
@@ -217,7 +265,6 @@ int execute_next_6502(cpu_state *cpu) {
         /* ADC --------------------------------- */
         case OP_ADC_IMM: /* ADC Immediate */
             {
-                uint8_t M = cpu->a_lo; // save old value for display purposes below
                 uint8_t N = get_operand_immediate(cpu);
                 add_and_set_flags(cpu, N);                    
             }
@@ -225,20 +272,60 @@ int execute_next_6502(cpu_state *cpu) {
 
         case OP_ADC_ZP: /* ADC ZP */
             {
-                uint8_t M = cpu->a_lo;
                 uint8_t N = get_operand_zeropage(cpu);
                 add_and_set_flags(cpu, N);
             }
             break;
 
+        case OP_ADC_ZP_X: /* ADC ZP, X */
+            {
+                uint8_t N = get_operand_zeropage_x(cpu);
+                add_and_set_flags(cpu, N);
+            }
+            break;
+
+        case OP_ADC_ABS: /* ADC Absolute */
+            {
+                uint8_t N = get_operand_absolute(cpu);
+                add_and_set_flags(cpu, N);
+            }
+            break;
+
+        case OP_ADC_ABS_X: /* ADC Absolute, X */
+            {
+                uint8_t N = get_operand_absolute_x(cpu);
+                add_and_set_flags(cpu, N);
+            }
+            break;
+
+        case OP_ADC_ABS_Y: /* ADC Absolute, Y */
+            {
+                uint8_t N = get_operand_absolute_y(cpu);
+                add_and_set_flags(cpu, N);
+            }
+            break;
+
+        case OP_ADC_IND_X: /* ADC (Indirect, X) */
+            {
+                uint8_t N = get_operand_zeropage_indirect_x(cpu);
+                add_and_set_flags(cpu, N);
+            }
+            break;
+
+        case OP_ADC_IND_Y: /* ADC (Indirect), Y */
+            {
+                uint8_t N = get_operand_zeropage_indirect_y(cpu);
+                add_and_set_flags(cpu, N);
+            }
+            break;
 
     /* AND --------------------------------- */
 
         case OP_AND_IMM: /* AND Immediate */
             {
                 uint8_t N = get_operand_immediate(cpu);
-                cpu->a_lo &= N;
-                set_n_z_flags(cpu, cpu->a_lo);
+                cpu->a_lo &= N; // replace with an and_and_set_flags 
+                set_n_z_flags(cpu, cpu->a_lo); 
             }
             break;
 
@@ -298,7 +385,64 @@ int execute_next_6502(cpu_state *cpu) {
             }
             break;
 
-        /* DE(xy) --------------------------------- */
+    /* Branching --------------------------------- */
+        case OP_BCC_REL: /* BCC Relative */
+            {
+                uint8_t N = get_operand_relative(cpu);
+                branch_if(cpu, N, cpu->C == 0);
+            }
+            break;
+
+        case OP_BCS_REL: /* BCS Relative */
+            {
+                uint8_t N = get_operand_relative(cpu);
+                branch_if(cpu, N, cpu->C == 1);
+            }
+            break;
+
+        case OP_BEQ_REL: /* BEQ Relative */
+            {
+                uint8_t N = get_operand_relative(cpu);
+                branch_if(cpu, N, cpu->Z == 1);
+            }
+            break;
+
+        case OP_BNE_REL: /* BNE Relative */
+            {
+                uint8_t N = get_operand_relative(cpu);
+                branch_if(cpu, N, cpu->Z == 0);
+            }
+            break;
+
+        case OP_BMI_REL: /* BMI Relative */
+            {
+                uint8_t N = get_operand_relative(cpu);
+                branch_if(cpu, N, cpu->N == 1);
+            }
+            break;
+
+        case OP_BPL_REL: /* BPL Relative */
+            {
+                uint8_t N = get_operand_relative(cpu);
+                branch_if(cpu, N, cpu->N == 0);
+            }
+            break;
+
+        case OP_BVC_REL: /* BVC Relative */
+            {
+                uint8_t N = get_operand_relative(cpu);
+                branch_if(cpu, N, cpu->V == 0);
+            }
+            break;
+
+        case OP_BVS_REL: /* BVS Relative */
+            {
+                uint8_t N = get_operand_relative(cpu);
+                branch_if(cpu, N, cpu->V == 1);
+            }
+            break;
+
+    /* DE(xy) --------------------------------- */
         case OP_DEX_IMP: /* DEX Implied */
             {
                 cpu->x_lo --;
@@ -316,7 +460,7 @@ int execute_next_6502(cpu_state *cpu) {
             break;
 
 
-        /* EOR --------------------------------- */
+    /* EOR --------------------------------- */
 
         case OP_EOR_IMM: /* EOR Immediate */
             {
@@ -606,17 +750,13 @@ int execute_next_6502(cpu_state *cpu) {
         /* STA --------------------------------- */
         case OP_STA_ZP: /* STA Zero Page */
             {
-                uint8_t zpaddr = read_byte_from_pc(cpu);
-                write_byte(cpu, zpaddr, cpu->a_lo);
-                if (DEBUG) std::cout << " $" << int_to_hex(zpaddr)  << "   [#" << int_to_hex(cpu->a_lo)  << "]";
+                store_operand_zeropage(cpu, cpu->a_lo);
             }
             break;
 
         case OP_STA_ABS: /* STA Absolute */
             {
-                uint16_t abs_addr = read_word_from_pc(cpu);
-                write_byte(cpu, abs_addr, cpu->a_lo);
-                if (DEBUG) std::cout << " $" << int_to_hex(abs_addr) << "   [#" << int_to_hex(cpu->a_lo) << "]";
+                store_operand_absolute(cpu, cpu->a_lo);
             }
             break;
 
