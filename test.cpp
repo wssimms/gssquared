@@ -135,6 +135,9 @@ void demo_ram() {
             OP_LDX_ABS, 0x35, 0x12, // 4 cycles
             OP_LDY_ABS, 0x35, 0x12, // 4 cycles
 
+            OP_CLC_IMP,
+            OP_BCC_REL, 0x02,
+
             OP_BRK_IMP,            // 7 cycles
             OP_JMP_ABS, 0x00, 0x01, // 3 cycles
         },
