@@ -105,7 +105,7 @@ inline void add_and_set_flags(cpu_state *cpu, uint8_t N) {
     uint8_t S8 = (uint8_t) S;
     cpu->a_lo = S8;
     cpu->C = (S & 0x0100) >> 8;
-    cpu->V =  !((M ^ N) & 0x80) && ((M ^ S8) & 0x80); // from 6502.org article
+    cpu->V =  !((M ^ N) & 0x80) && ((M ^ S8) & 0x80); // from 6502.org article https://www.righto.com/2012/12/the-6502-overflow-flag-explained.html?m=1
     set_n_z_flags(cpu, cpu->a_lo);
     if (DEBUG) std::cout << "   M: " << int_to_hex(M) << "  N: " << int_to_hex(N) 
             << "  S: " << int_to_hex(cpu->a_lo) << "  C: " << int_to_hex(cpu->C) << "  V: " << int_to_hex(cpu->V) ;
@@ -218,7 +218,6 @@ int execute_next_6502(cpu_state *cpu) {
         case OP_ADC_IMM: /* ADC Immediate */
             {
                 uint8_t M = cpu->a_lo; // save old value for display purposes below
-
                 uint8_t N = get_operand_immediate(cpu);
                 add_and_set_flags(cpu, N);                    
             }
@@ -227,12 +226,8 @@ int execute_next_6502(cpu_state *cpu) {
         case OP_ADC_ZP: /* ADC ZP */
             {
                 uint8_t M = cpu->a_lo;
-
                 uint8_t N = get_operand_zeropage(cpu);
                 add_and_set_flags(cpu, N);
-
-/*                 if (DEBUG) std::cout << "ADC $" << int_to_hex(N) << "   M: " << int_to_hex(M) << "  N: " << int_to_hex(N) 
-                    << "  S: " << int_to_hex(cpu->a_lo) << "  C: " << int_to_hex(cpu->C) << "  V: " << int_to_hex(cpu->V) << std::endl; */
             }
             break;
 
@@ -244,7 +239,6 @@ int execute_next_6502(cpu_state *cpu) {
                 uint8_t N = get_operand_immediate(cpu);
                 cpu->a_lo &= N;
                 set_n_z_flags(cpu, cpu->a_lo);
-                /* if (DEBUG) std::cout << "AND #$" << int_to_hex(N) << std::endl; */
             }
             break;
 
@@ -253,98 +247,63 @@ int execute_next_6502(cpu_state *cpu) {
                 uint8_t N = get_operand_zeropage(cpu);
                 cpu->a_lo &= N;
                 set_n_z_flags(cpu, cpu->a_lo);
-                if (DEBUG) std::cout << "   [#" << int_to_hex(cpu->a_lo)  << "]" ;
             }
             break;
 
         case OP_AND_ZP_X: /* AND Zero Page, X */
             {
                 uint8_t N = get_operand_zeropage_x(cpu);
-
-                uint8_t addr, taddr;
-                addr = read_byte_from_pc(cpu);
-                taddr =  (addr + cpu->x_lo) & 0xFF;
-                cpu->a_lo &= read_byte(cpu, taddr);
+                cpu->a_lo &= N;
                 set_n_z_flags(cpu, cpu->a_lo);
-                if (DEBUG) std::cout << "AND $" << int_to_hex(addr) << ",X   [#" << int_to_hex(cpu->a_lo)  << "] <- $" << int_to_hex(taddr);
             }
             break;
 
         case OP_AND_ABS: /* AND Absolute */
             {
-                uint16_t abs_addr = read_word_from_pc(cpu);
-                cpu->a_lo &= read_byte(cpu, abs_addr);
+                uint8_t N = get_operand_absolute(cpu);
+                cpu->a_lo &= N;
                 set_n_z_flags(cpu, cpu->a_lo);
-
-                if (DEBUG) std::cout << "AND $" << int_to_hex(abs_addr) << "   [#" << int_to_hex(cpu->a_lo) << "]";
             }
             break;
         
         case OP_AND_ABS_X: /* AND Absolute, X */
             {
-                uint16_t addr,taddr;
-                addr = read_word_from_pc(cpu);
-                taddr = addr + cpu->x_lo;
-                cpu->a_lo &= read_byte(cpu, taddr);
+                uint8_t N = get_operand_absolute_x(cpu);
+                cpu->a_lo &= N;
                 set_n_z_flags(cpu, cpu->a_lo);
-
-                if (DEBUG) std::cout << "AND $" << int_to_hex(addr) << ",X   [#" << int_to_hex(cpu->a_lo) << "] <- $" << int_to_hex(taddr);
             }
             break;
 
         case OP_AND_ABS_Y: /* AND Absolute, Y */
             {
-                uint16_t addr,taddr;
-                addr = read_word_from_pc(cpu);
-                taddr = addr + cpu->y_lo;
-                cpu->a_lo &= read_byte(cpu, taddr);
+                uint8_t N = get_operand_absolute_y(cpu);
+                cpu->a_lo &= N;
                 set_n_z_flags(cpu, cpu->a_lo);
-
-                if (DEBUG) std::cout << "AND $" << int_to_hex(addr) << ",Y   [#" << int_to_hex(cpu->a_lo) << "] <- $" << int_to_hex(taddr);
             }
             break;
 
         case OP_AND_IND_X: /* AND (Indirect, X) */
             {
-                uint8_t addr;
-                uint8_t taddr;
-                uint16_t indir;
-
-                addr = read_byte_from_pc(cpu);
-                taddr = addr + cpu->x_lo;
-                indir = read_word(cpu, taddr);
-                cpu->a_lo &= read_byte(cpu, indir);
+                uint8_t N = get_operand_zeropage_indirect_x(cpu);
+                cpu->a_lo &= N;
                 set_n_z_flags(cpu, cpu->a_lo);
-
-                if (DEBUG) std::cout << "AND ($" << int_to_hex(addr) << ",X)   [#" << int_to_hex(cpu->a_lo) << "] <- $" << int_to_hex(indir) << " <- $" << int_to_hex(taddr);
             }
             break;
 
         case OP_AND_IND_Y: /* AND (Indirect), Y */
             {
-                uint8_t addr;
-                uint16_t taddr;
-                uint16_t indir;
-
-                addr = read_byte_from_pc(cpu);
-                taddr = read_word(cpu, addr);
-                indir = taddr + cpu->y_lo;
-                
-                cpu->a_lo &= read_byte(cpu, indir);
+                uint8_t N = get_operand_zeropage_indirect_y(cpu);
+                cpu->a_lo &= N;
                 set_n_z_flags(cpu, cpu->a_lo);
-
-                if (DEBUG) std::cout << "AND ($" << int_to_hex(addr) << "),Y   [#" << int_to_hex(cpu->a_lo) << "] <- $" << int_to_hex(indir) << " <- $" << int_to_hex(taddr);
             }
             break;
 
         /* DE(xy) --------------------------------- */
-
         case OP_DEX_IMP: /* DEX Implied */
             {
                 cpu->x_lo --;
                 incr_cycles(cpu);
                 set_n_z_flags(cpu, cpu->x_lo);
-                /* if (DEBUG) std::cout << "DEX"; */
             }
             break;
 
@@ -353,7 +312,6 @@ int execute_next_6502(cpu_state *cpu) {
                 cpu->y_lo --;
                 incr_cycles(cpu);
                 set_n_z_flags(cpu, cpu->y_lo);
-                /* if (DEBUG) std::cout << "DEY"; */
             }
             break;
 
@@ -365,7 +323,6 @@ int execute_next_6502(cpu_state *cpu) {
                 uint8_t N = get_operand_immediate(cpu);
                 cpu->a_lo ^= N;
                 set_n_z_flags(cpu, cpu->a_lo);
-                /* if (DEBUG) std::cout << "EOR #$" << int_to_hex(N); */
             }
             break;
 
@@ -374,7 +331,6 @@ int execute_next_6502(cpu_state *cpu) {
                 uint8_t N = get_operand_zeropage(cpu);
                 cpu->a_lo ^= N;
                 set_n_z_flags(cpu, cpu->a_lo);
-                /* if (DEBUG) std::cout << "EOR $" << int_to_hex(zpaddr) << "   [#" << int_to_hex(cpu->a_lo)  << "]"; */
             }
             break;
 
@@ -383,7 +339,6 @@ int execute_next_6502(cpu_state *cpu) {
                 uint8_t N = get_operand_zeropage_x(cpu);
                 cpu->a_lo ^= N;
                 set_n_z_flags(cpu, cpu->a_lo);
-                /* if (DEBUG) std::cout << "EOR $" << int_to_hex(zpaddr) << ",X   [#" << int_to_hex(cpu->a_lo)  << "] <- $" << int_to_hex(taddr); */
             }
             break;
 
@@ -392,8 +347,6 @@ int execute_next_6502(cpu_state *cpu) {
                 uint8_t N = get_operand_absolute(cpu);
                 cpu->a_lo ^= N;
                 set_n_z_flags(cpu, cpu->a_lo);
-
-                /* if (DEBUG) std::cout << "EOR $" << int_to_hex(abs_addr) << "   [#" << int_to_hex(cpu->a_lo) << "]"; */
             }
             break;
         
@@ -402,8 +355,6 @@ int execute_next_6502(cpu_state *cpu) {
                 uint8_t N = get_operand_absolute_x(cpu);
                 cpu->a_lo ^= N;
                 set_n_z_flags(cpu, cpu->a_lo);
-
-                /* if (DEBUG) std::cout << "EOR $" << int_to_hex(addr) << ",X   [#" << int_to_hex(cpu->a_lo) << "] <- $" << int_to_hex(taddr); */
             }
             break;
 
@@ -412,8 +363,6 @@ int execute_next_6502(cpu_state *cpu) {
                 uint8_t N = get_operand_absolute_y(cpu);
                 cpu->a_lo ^= N;
                 set_n_z_flags(cpu, cpu->a_lo);
-
-                /* if (DEBUG) std::cout << "EOR $" << int_to_hex(addr) << ",Y   [#" << int_to_hex(cpu->a_lo) << "] <- $" << int_to_hex(taddr); */
             }
             break;
 
@@ -422,8 +371,6 @@ int execute_next_6502(cpu_state *cpu) {
                 uint8_t N = get_operand_zeropage_indirect_x(cpu);
                 cpu->a_lo ^= N;
                 set_n_z_flags(cpu, cpu->a_lo);
-
-                /* if (DEBUG) std::cout << "EOR ($" << int_to_hex(addr) << ",X)   [#" << int_to_hex(cpu->a_lo) << "] <- $" << int_to_hex(indir) << " <- $" << int_to_hex(taddr); */
             }
             break;
 
@@ -432,8 +379,6 @@ int execute_next_6502(cpu_state *cpu) {
                 uint8_t N = get_operand_zeropage_indirect_y(cpu);
                 cpu->a_lo ^= N;
                 set_n_z_flags(cpu, cpu->a_lo);
-
-                /* if (DEBUG) std::cout << "EOR ($" << int_to_hex(addr) << "),Y   [#" << int_to_hex(cpu->a_lo) << "] <- $" << int_to_hex(indir) << " <- $" << int_to_hex(taddr); */
             }
             break;
 
@@ -444,7 +389,6 @@ int execute_next_6502(cpu_state *cpu) {
                 cpu->x_lo ++;
                 incr_cycles(cpu);
                 set_n_z_flags(cpu, cpu->x_lo);
-                /* if (DEBUG) std::cout << "INX"; */
             }
             break;
 
@@ -453,12 +397,8 @@ int execute_next_6502(cpu_state *cpu) {
                 cpu->y_lo ++;
                 incr_cycles(cpu);
                 set_n_z_flags(cpu, cpu->y_lo);
-                /* if (DEBUG) std::cout << "INY"; */
             }
             break;
-
-
-
 
         /* LDA --------------------------------- */
 
@@ -466,7 +406,6 @@ int execute_next_6502(cpu_state *cpu) {
             {
                 cpu->a_lo = get_operand_immediate(cpu);
                 set_n_z_flags(cpu, cpu->a_lo);
-                /* if (DEBUG) std::cout << "LDA #$" << int_to_hex(cpu->a_lo); */
             }
             break;
 
@@ -474,7 +413,6 @@ int execute_next_6502(cpu_state *cpu) {
             {
                 cpu->a_lo =  get_operand_zeropage(cpu);
                 set_n_z_flags(cpu, cpu->a_lo);
-                /* if (DEBUG) std::cout << "LDA $" << int_to_hex(zpaddr) << "   [#" << int_to_hex(cpu->a_lo)  << "]"; */
             }
             break;
 
@@ -510,7 +448,6 @@ int execute_next_6502(cpu_state *cpu) {
             {
                 cpu->a_lo = get_operand_zeropage_indirect_x(cpu);
                 set_n_z_flags(cpu, cpu->a_lo);
-/*                 if (DEBUG) std::cout << "LDA ($" << int_to_hex(addr) << ",X)   [#" << int_to_hex(cpu->a_lo) << "] <- $" << int_to_hex(indir) << " <- $" << int_to_hex(taddr); */
             }
             break;
 
@@ -518,7 +455,6 @@ int execute_next_6502(cpu_state *cpu) {
             {
                 cpu->a_lo = get_operand_zeropage_indirect_y(cpu);
                 set_n_z_flags(cpu, cpu->a_lo);
-/*                 if (DEBUG) std::cout << "LDA ($" << int_to_hex(addr) << "),Y   [#" << int_to_hex(cpu->a_lo) << "] <- $" << int_to_hex(indir) << " <- $" << int_to_hex(taddr); */
             }
             break;
 
@@ -566,7 +502,6 @@ int execute_next_6502(cpu_state *cpu) {
                 uint8_t N = get_operand_immediate(cpu);
                 cpu->y_lo = N;
                 set_n_z_flags(cpu, cpu->y_lo);
-                /* if (DEBUG) std::cout << "LDY #$" << int_to_hex(cpu->y_lo); */
             }
             break;
         
@@ -609,7 +544,6 @@ int execute_next_6502(cpu_state *cpu) {
                 uint8_t N = get_operand_immediate(cpu);
                 cpu->a_lo |= N;
                 set_n_z_flags(cpu, cpu->a_lo);
-                /* if (DEBUG) std::cout << "ORA #$" << int_to_hex(N); */
             }
             break;
 
@@ -618,7 +552,6 @@ int execute_next_6502(cpu_state *cpu) {
                 uint8_t N = get_operand_zeropage(cpu);
                 cpu->a_lo |= N;
                 set_n_z_flags(cpu, cpu->a_lo);
-                /* if (DEBUG) std::cout << "ORA $" << int_to_hex(zpaddr) << "   [#" << int_to_hex(cpu->a_lo)  << "]"; */
             }
             break;
 
@@ -627,7 +560,6 @@ int execute_next_6502(cpu_state *cpu) {
                 uint8_t N = get_operand_zeropage_x(cpu);
                 cpu->a_lo |= N;
                 set_n_z_flags(cpu, cpu->a_lo);
-                /* if (DEBUG) std::cout << "ORA $" << int_to_hex(zpaddr) << ",X   [#" << int_to_hex(cpu->a_lo)  << "] <- $" << int_to_hex(taddr); */
             }
             break;
 
@@ -636,7 +568,6 @@ int execute_next_6502(cpu_state *cpu) {
                 uint8_t N = get_operand_absolute(cpu);
                 cpu->a_lo |= N;
                 set_n_z_flags(cpu, cpu->a_lo);
-                /* if (DEBUG) std::cout << "ORA $" << int_to_hex(abs_addr) << "   [#" << int_to_hex(cpu->a_lo) << "]"; */
             }
             break;
         
@@ -645,7 +576,6 @@ int execute_next_6502(cpu_state *cpu) {
                 uint8_t N = get_operand_absolute_x(cpu);
                 cpu->a_lo |= N;
                 set_n_z_flags(cpu, cpu->a_lo);
-                /* if (DEBUG) std::cout << "LDA $" << int_to_hex(addr) << ",X   [#" << int_to_hex(cpu->a_lo) << "] <- $" << int_to_hex(taddr); */
             }
             break;
 
@@ -654,7 +584,6 @@ int execute_next_6502(cpu_state *cpu) {
                 uint8_t N = get_operand_absolute_y(cpu);
                 cpu->a_lo |= N;
                 set_n_z_flags(cpu, cpu->a_lo);
-                /* if (DEBUG) std::cout << "LDA $" << int_to_hex(addr) << ",X   [#" << int_to_hex(cpu->a_lo) << "] <- $" << int_to_hex(taddr); */
             }
             break;
 
@@ -663,7 +592,6 @@ int execute_next_6502(cpu_state *cpu) {
                 uint8_t N = get_operand_zeropage_indirect_x(cpu);
                 cpu->a_lo |= N;
                 set_n_z_flags(cpu, cpu->a_lo);
-/*                 if (DEBUG) std::cout << "ORA ($" << int_to_hex(addr) << ",X)   [#" << int_to_hex(cpu->a_lo) << "] <- $" << int_to_hex(indir) << " <- $" << int_to_hex(taddr); */
             }
             break;
 
@@ -672,8 +600,6 @@ int execute_next_6502(cpu_state *cpu) {
                 uint8_t N = get_operand_zeropage_indirect_y(cpu);
                 cpu->a_lo |= N;
                 set_n_z_flags(cpu, cpu->a_lo);
-
-                /* if (DEBUG) std::cout << "ORA ($" << int_to_hex(addr) << "),Y   [#" << int_to_hex(cpu->a_lo) << "] <- $" << int_to_hex(indir) << " <- $" << int_to_hex(taddr); */
             }
             break;
 
@@ -733,7 +659,6 @@ int execute_next_6502(cpu_state *cpu) {
             {
                 exit_code = 1;
                 cpu->pc = read_word(cpu, BRK_VECTOR);
-                /* if (DEBUG) std::cout << "BRK"; */
             }
             break;
 
@@ -759,21 +684,18 @@ int execute_next_6502(cpu_state *cpu) {
         case OP_CLC_IMP: /* CLC Implied */
             {
                 cpu->C = 0;
-                /* if (DEBUG) std::cout << "CLC"; */
             }
             break;
 
         case OP_CLI_IMP: /* CLI Implied */
             {
                 cpu->I = 0;
-                /* if (DEBUG) std::cout << "CLI"; */
             }
             break;
 
         case OP_CLV_IMP: /* CLV */
             {
                 cpu->V = 0;
-                /* if (DEBUG) std::cout << "CLV"; */
             }
             break;
 
@@ -781,14 +703,12 @@ int execute_next_6502(cpu_state *cpu) {
         case OP_SEC_IMP: /* SEC Implied */
             {
                 cpu->C = 1;
-                /* if (DEBUG) std::cout << "SEC"; */
             }
             break;
 
         case OP_SEI_IMP: /* SEI Implied */
             {
                 cpu->I = 1;
-                /* if (DEBUG) std::cout << "SEI"; */
             }
             break;
 
