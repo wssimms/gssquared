@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstdio>
 #include <unistd.h>
 #include <sstream>
 #include <iomanip>
@@ -80,13 +81,13 @@ uint64_t get_current_time_in_microseconds() {
         std::chrono::high_resolution_clock::now().time_since_epoch()).count();
 }
 
-void init_cpus() {
+void init_cpus() { // this is the same as a power-on event.
     for (int i = 0; i < MAX_CPUS; i++) {
         init_memory(&CPUs[i]);
 
         CPUs[i].boot_time = get_current_time_in_microseconds();
         CPUs[i].pc = 0x0100;
-        CPUs[i].sp = 0;
+        CPUs[i].sp = rand() & 0xFF; // simulate a random stack pointer
         CPUs[i].a = 0;
         CPUs[i].x = 0;
         CPUs[i].y = 0;
@@ -141,8 +142,7 @@ inline void add_and_set_flags(cpu_state *cpu, uint8_t N) {
     cpu->C = (S & 0x0100) >> 8;
     cpu->V =  !((M ^ N) & 0x80) && ((M ^ S8) & 0x80); // from 6502.org article https://www.righto.com/2012/12/the-6502-overflow-flag-explained.html?m=1
     set_n_z_flags(cpu, cpu->a_lo);
-    if (DEBUG) std::cout << "   M: " << int_to_hex(M) << "  N: " << int_to_hex(N) 
-            << "  S: " << int_to_hex(cpu->a_lo) << "  C: " << int_to_hex(cpu->C) << "  V: " << int_to_hex(cpu->V) ;
+    if (DEBUG) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  C: %02X  V: %02X", M, N, cpu->a_lo, cpu->C, cpu->V);
 }
 
 // see https://www.righto.com/2012/12/the-6502-overflow-flag-explained.html?m=1
@@ -159,8 +159,7 @@ inline uint8_t subtract_core(cpu_state *cpu, uint8_t M, uint8_t N, uint8_t C) {
     cpu->C = (S & 0x0100) >> 8;
     cpu->V =  !((M ^ N1) & 0x80) && ((M ^ S8) & 0x80);
     set_n_z_flags(cpu, S8);
-    if (DEBUG) std::cout << "   M: " << int_to_hex(M) << "  N: " << int_to_hex(N) 
-            << "  S: " << int_to_hex(S8) << "  C: " << int_to_hex(cpu->C) << "  V: " << int_to_hex(cpu->V) ;
+    if (DEBUG) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  C: %02X  V: %02X", M, N, cpu->a_lo, cpu->C, cpu->V);
     return S8;
 }
 
@@ -183,7 +182,7 @@ inline void compare_and_set_flags(cpu_state *cpu, uint8_t M, uint8_t N) {
 inline void branch_if(cpu_state *cpu, uint8_t N, bool condition) {
     uint16_t oaddr = cpu->pc;
     uint16_t taddr = oaddr + N;
-    if (DEBUG) std::cout << " => $" << int_to_hex(taddr);
+    if (DEBUG) fprintf(stdout, " => $%04X", taddr);
 
     if (condition) {
         cpu->pc = cpu->pc + N;
@@ -193,7 +192,7 @@ inline void branch_if(cpu_state *cpu, uint8_t N, bool condition) {
         if ((oaddr & 0xFF00) != (taddr & 0xFF00)) {
             incr_cycles(cpu);
         }
-        if (DEBUG) std::cout << " (taken)";
+        if (DEBUG) fprintf(stdout, " (taken)");
     }
 }
 
@@ -214,27 +213,27 @@ inline void branch_if(cpu_state *cpu, uint8_t N, bool condition) {
 /* These also generate the disassembly output - the operand address and mode */
 inline zpaddr_t get_operand_address_zeropage(cpu_state *cpu) {
     zpaddr_t zpaddr = read_byte_from_pc(cpu);
-    if (DEBUG) std::cout << " $" << int_to_hex(zpaddr) ;
+    if (DEBUG) fprintf(stdout, " $%02X", zpaddr);
     return zpaddr;
 }
 
 inline zpaddr_t get_operand_address_zeropage_x(cpu_state *cpu) {
     zpaddr_t zpaddr = read_byte_from_pc(cpu);
     zpaddr_t taddr = zpaddr + cpu->x_lo; // make sure it wraps.
-    if (DEBUG) std::cout << " $" << int_to_hex(zpaddr) << ",X" ;
+    if (DEBUG) fprintf(stdout, " $%02X,X", zpaddr);
     return taddr;
 }
 
 inline zpaddr_t get_operand_address_zeropage_y(cpu_state *cpu) {
     zpaddr_t zpaddr = read_byte_from_pc(cpu);
     zpaddr_t taddr = zpaddr + cpu->y_lo; // make sure it wraps.
-    if (DEBUG) std::cout << " $" << int_to_hex(zpaddr) << ",Y" ;
+    if (DEBUG) fprintf(stdout, " $%02X,Y", zpaddr);
     return taddr;
 }
 
 inline absaddr_t get_operand_address_absolute(cpu_state *cpu) {
     absaddr_t addr = read_word_from_pc(cpu);
-    if (DEBUG) std::cout << " $" << int_to_hex(addr) ;
+    if (DEBUG) fprintf(stdout, " $%04X", addr);
     return addr;
 }
 
@@ -244,7 +243,7 @@ inline absaddr_t get_operand_address_absolute_x(cpu_state *cpu) {
     if ((addr & 0xFF00) != (taddr & 0xFF00)) {
         incr_cycles(cpu);
     }
-    if (DEBUG) std::cout << " $" << int_to_hex(addr) << ",X" ; // can add effective address here.
+    if (DEBUG) fprintf(stdout, " $%04X,X", addr); // can add effective address here.
     return taddr;
 }
 
@@ -254,14 +253,14 @@ inline absaddr_t get_operand_address_absolute_y(cpu_state *cpu) {
     if ((addr & 0xFF00) != (taddr & 0xFF00)) {
         incr_cycles(cpu);
     }
-    if (DEBUG) std::cout << " $" << int_to_hex(addr) << ",Y" ;
+    if (DEBUG) fprintf(stdout, " $%04X,Y", addr); // can add effective address here.
     return taddr;
 }
 
 inline uint16_t get_operand_address_indirect_x(cpu_state *cpu) {
     zpaddr_t zpaddr = read_byte_from_pc(cpu);
     absaddr_t taddr = read_word(cpu,zpaddr + cpu->x_lo);
-    if (DEBUG) std::cout << " ($" << int_to_hex(zpaddr) << ",X)  -> $" << int_to_hex(taddr) ;
+    if (DEBUG) fprintf(stdout, " ($%02X,X)  -> $%04X", zpaddr, taddr);
     return taddr;
 }
 
@@ -273,7 +272,7 @@ inline absaddr_t get_operand_address_indirect_y(cpu_state *cpu) {
     if ((iaddr & 0xFF00) != (taddr & 0xFF00)) {
         incr_cycles(cpu);
     }
-    if (DEBUG) std::cout << " ($" << int_to_hex(zpaddr) << "),Y  -> $" << int_to_hex(taddr) ;
+    if (DEBUG) fprintf(stdout, " ($%02X),Y  -> $%04X", zpaddr, taddr);
     return taddr;
 }
 
@@ -281,117 +280,117 @@ inline absaddr_t get_operand_address_indirect_y(cpu_state *cpu) {
 
 inline byte_t get_operand_immediate(cpu_state *cpu) {
     byte_t N = read_byte_from_pc(cpu);
-    if (DEBUG) std::cout << " #$" << int_to_hex(N) ;
+    if (DEBUG) fprintf(stdout, " #$%02X", N);
     return N;
 }
 
 inline byte_t get_operand_zeropage(cpu_state *cpu) {
     zpaddr_t addr = get_operand_address_zeropage(cpu);
     byte_t N = read_byte(cpu, addr);
-    if (DEBUG) std::cout << " -> #$" << int_to_hex(N) ;
+    if (DEBUG) fprintf(stdout, " -> #$%02X", N);
     return N;
 }
 
 inline void store_operand_zeropage(cpu_state *cpu, byte_t N) {
     zpaddr_t addr = get_operand_address_zeropage(cpu);
     write_byte(cpu, addr, N);
-    if (DEBUG) std::cout  << "   [#" << int_to_hex(N)  << "]";
+    if (DEBUG) fprintf(stdout, "   [#%02X] -> $%02X", N, addr);
 }
 
 inline byte_t get_operand_zeropage_x(cpu_state *cpu) {
     zpaddr_t addr = get_operand_address_zeropage_x(cpu);
     byte_t N = read_byte(cpu, addr);
-    if (DEBUG) std::cout << " [#" << int_to_hex(N)  << "] <- $" << int_to_hex((zpaddr_t)addr);
+    if (DEBUG) fprintf(stdout, " [#%02X] <- $%02X", N, addr);
     return N;
 }
 
 inline void store_operand_zeropage_x(cpu_state *cpu, byte_t N) {
     zpaddr_t addr = get_operand_address_zeropage_x(cpu);
     write_byte(cpu, addr, N);
-    if (DEBUG) std::cout << "  [#" << int_to_hex(N)  << "] -> $" << int_to_hex((zpaddr_t)addr);
+    if (DEBUG) fprintf(stdout, "  [#%02X] -> $%02X", N, addr);
 }
 
 inline byte_t get_operand_zeropage_y(cpu_state *cpu) {
     zpaddr_t zpaddr = get_operand_address_zeropage_y(cpu);
     byte_t N = read_byte(cpu, zpaddr);
-    if (DEBUG) std::cout << "   [#" << int_to_hex(N)  << "] <- $" << int_to_hex(zpaddr);
+    if (DEBUG) fprintf(stdout, "   [#%02X] <- $%02X", N, zpaddr);
     return N;
 }
 
 inline void store_operand_zeropage_y(cpu_state *cpu, byte_t N) {
     zpaddr_t zpaddr = get_operand_address_zeropage_y(cpu);
     write_byte(cpu, zpaddr, N);
-    if (DEBUG) std::cout << "  [#" << int_to_hex(N)  << "] -> $" << int_to_hex(zpaddr);
+    if (DEBUG) fprintf(stdout, "  [#%02X] -> $%02X", N, zpaddr);
 }
 
 inline byte_t get_operand_zeropage_indirect_x(cpu_state *cpu) {
     absaddr_t taddr = get_operand_address_indirect_x(cpu);
     byte_t N = read_byte(cpu, taddr);
-    if (DEBUG) std::cout << "  [#" << int_to_hex(N) << "] <- $" << int_to_hex(taddr);
+    if (DEBUG) fprintf(stdout, "  [#%02X] <- $%04X", N, taddr);
     return N;
 }
 
 inline void store_operand_zeropage_indirect_x(cpu_state *cpu, byte_t N) {
     absaddr_t taddr = get_operand_address_indirect_x(cpu);
     write_byte(cpu, taddr, N);
-    if (DEBUG) std::cout << "   [#" << int_to_hex(N) << "] <- $" << int_to_hex(taddr);
+    if (DEBUG) fprintf(stdout, "   [#%02X] <- $%04X", N, taddr);
 }
 
 inline byte_t get_operand_zeropage_indirect_y(cpu_state *cpu) {
     absaddr_t addr = get_operand_address_indirect_y(cpu);
     byte_t N = read_byte(cpu, addr);
-    if (DEBUG) std::cout << "  [#" << int_to_hex(N) << "] <- $" << int_to_hex(addr);
+    if (DEBUG) fprintf(stdout, "  [#%02X] <- $%04X", N, addr);
     return N;
 }
 
 inline void store_operand_zeropage_indirect_y(cpu_state *cpu, byte_t N) {
     absaddr_t addr = get_operand_address_indirect_y(cpu);
     write_byte(cpu, addr, N);
-    if (DEBUG) std::cout << "   [#" << int_to_hex(N) << "] -> $" << int_to_hex(addr);
+    if (DEBUG) fprintf(stdout, "   [#%02X] -> $%04X", N, addr);
 }
 
 inline byte_t get_operand_absolute(cpu_state *cpu) {
     absaddr_t addr = get_operand_address_absolute(cpu);
     byte_t N = read_byte(cpu, addr);
-    if (DEBUG) std::cout << "   [#" << int_to_hex(N) << "]";
+    if (DEBUG) fprintf(stdout, "   [#%02X] <- $%04X", N, addr);
     return N;
 }
 
 inline void store_operand_absolute(cpu_state *cpu, byte_t N) {
     absaddr_t addr = get_operand_address_absolute(cpu);
     write_byte(cpu, addr, N);
-    if (DEBUG) std::cout << "   [#" << int_to_hex(N) << "]";
+    if (DEBUG) fprintf(stdout, "   [#%02X] <- $%04X", N, addr);
 }
 
 inline byte_t get_operand_absolute_x(cpu_state *cpu) {
     absaddr_t addr = get_operand_address_absolute_x(cpu);
     byte_t N = read_byte(cpu, addr);
-    if (DEBUG) std::cout << "   [#" << int_to_hex(N) << "] <- $" << int_to_hex(addr);
+    if (DEBUG) fprintf(stdout, "   [#%02X] <- $%04X", N, addr);
     return N;
 }
 
 inline void store_operand_absolute_x(cpu_state *cpu, byte_t N) {
     absaddr_t addr = get_operand_address_absolute_x(cpu);
     write_byte(cpu, addr, N);
-    if (DEBUG) std::cout << "   [#" << int_to_hex(N) << "] -> $" << int_to_hex(addr);
+    if (DEBUG) fprintf(stdout, "   [#%02X] -> $%04X", N, addr);
 }
 
 inline byte_t get_operand_absolute_y(cpu_state *cpu) {
     absaddr_t addr = get_operand_address_absolute_y(cpu);
     byte_t N = read_byte(cpu, addr);
-    if (DEBUG) std::cout << "   [#" << int_to_hex(N) << "] <- $" << int_to_hex(addr);
+    if (DEBUG) fprintf(stdout, "   [#%02X] <- $%04X", N, addr);
     return N;
 }
 
 inline void store_operand_absolute_y(cpu_state *cpu, byte_t N) {
     absaddr_t addr = get_operand_address_absolute_y(cpu);
     write_byte(cpu, addr, N);
-    if (DEBUG) std::cout << "   [#" << int_to_hex(N) << "] -> $" << int_to_hex(addr);
+    if (DEBUG) fprintf(stdout, "   [#%02X] -> $%04X", N, addr);
 }
 
 inline byte_t get_operand_relative(cpu_state *cpu) {
     byte_t N = read_byte_from_pc(cpu);
-    if (DEBUG) std::cout << " #$" << int_to_hex(N);
+    if (DEBUG) fprintf(stdout, " #$%02X", N);
     return N;
 }
 
@@ -400,27 +399,27 @@ inline void op_transfer_to_x(cpu_state *cpu, byte_t N) {
     cpu->x_lo = N;
     set_n_z_flags(cpu, cpu->x_lo);
     incr_cycles(cpu);
-    if (DEBUG) std::cout << "[#$" << int_to_hex(N) << "] -> X";
+    if (DEBUG) fprintf(stdout, "[#$%02X] -> X", N);
 }
 
 inline void op_transfer_to_y(cpu_state *cpu, byte_t N) {
     cpu->y_lo = N;
     set_n_z_flags(cpu, cpu->y_lo);
     incr_cycles(cpu);
-    if (DEBUG) std::cout << "[#$" << int_to_hex(N) << "] -> Y";
+    if (DEBUG) fprintf(stdout, "[#$%02X] -> Y", N);
 }
 
 inline void op_transfer_to_a(cpu_state *cpu, byte_t N) {
     cpu->a_lo = N;
     set_n_z_flags(cpu, cpu->a_lo);
     incr_cycles(cpu);
-    if (DEBUG) std::cout << "[#$" << int_to_hex(N) << "] -> A";
+    if (DEBUG) fprintf(stdout, "[#$%02X] -> A", N);
 }
 
 inline void op_transfer_to_s(cpu_state *cpu, byte_t N) {
     cpu->sp = N;
     incr_cycles(cpu);
-    if (DEBUG) std::cout << "[#$" << int_to_hex(N) << "] -> S";
+    if (DEBUG) fprintf(stdout, "[#$%02X] -> S", N);
 }
 
 /**
@@ -432,30 +431,30 @@ inline void dec_operand(cpu_state *cpu, absaddr_t addr) {
     incr_cycles(cpu);
     write_byte(cpu, addr, N);
     set_n_z_flags(cpu, N);
-    if (DEBUG) std::cout << "   [#" << int_to_hex(N) << "]";
+    if (DEBUG) fprintf(stdout, "   [#%02X]", N);
 }
 
 inline void dec_operand_zeropage(cpu_state *cpu) {
     zpaddr_t zpaddr = get_operand_address_zeropage(cpu);
-    if (DEBUG) std::cout << " $" << int_to_hex(zpaddr) ;
+    if (DEBUG) fprintf(stdout, " $%02X", zpaddr);
     dec_operand(cpu, zpaddr);
 }
 
 inline void dec_operand_zeropage_x(cpu_state *cpu) {
     zpaddr_t zpaddr = get_operand_address_zeropage_x(cpu);
-    if (DEBUG) std::cout << " $" << int_to_hex(zpaddr) ;
+    if (DEBUG) fprintf(stdout, " $%02X", zpaddr);
     dec_operand(cpu, zpaddr);
 }
 
 inline void dec_operand_absolute(cpu_state *cpu) {
     absaddr_t addr = get_operand_address_absolute(cpu);
-    if (DEBUG) std::cout << " $" << int_to_hex(addr) ;
+    if (DEBUG) fprintf(stdout, " $%04X", addr);
     dec_operand(cpu, addr);
 }
 
 inline void dec_operand_absolute_x(cpu_state *cpu) {
     absaddr_t addr = get_operand_address_absolute_x(cpu);
-    if (DEBUG) std::cout << " $" << int_to_hex(addr) ;
+    if (DEBUG) fprintf(stdout, " $%04X", addr);
     dec_operand(cpu, addr);
 }
 
@@ -465,7 +464,7 @@ inline byte_t logical_shift_right(cpu_state *cpu, byte_t N) {
     N = N >> 1;
     cpu->C = C;
     set_n_z_flags(cpu, N);
-    if (DEBUG) std::cout << " [#" << int_to_hex(N) << "]";
+    if (DEBUG) fprintf(stdout, " [#%02X]", N);
     return N;
 }
 
@@ -473,7 +472,7 @@ inline byte_t logical_shift_right_addr(cpu_state *cpu, absaddr_t addr) {
     byte_t N = read_byte(cpu, addr);
     byte_t result = logical_shift_right(cpu, N);
     write_byte(cpu, addr, result);
-    if (DEBUG) std::cout << " -> $" << int_to_hex(addr);
+    if (DEBUG) fprintf(stdout, " -> $%04X", addr);
     return result;
 }
 
@@ -482,7 +481,7 @@ inline byte_t arithmetic_shift_left(cpu_state *cpu, byte_t N) {
     N = N << 1;
     cpu->C = C;
     set_n_z_flags(cpu, N);
-    if (DEBUG) std::cout << " [#" << int_to_hex(N) << "]";
+    if (DEBUG) fprintf(stdout, " [#%02X]", N);
     return N;
 }
 
@@ -490,50 +489,65 @@ inline byte_t arithmetic_shift_left_addr(cpu_state *cpu, absaddr_t addr) {
     byte_t N = read_byte(cpu, addr);
     byte_t result = arithmetic_shift_left(cpu, N);
     write_byte(cpu, addr, result);
-    if (DEBUG) std::cout << " -> $" << int_to_hex(addr);
+    if (DEBUG) fprintf(stdout, " -> $%04X", addr);
     return result;
 }
 
 inline void push_byte(cpu_state *cpu, byte_t N) {
-    write_byte(cpu, cpu->sp, N);
+    write_byte(cpu, 0x0100 + cpu->sp, N);
     cpu->sp--;
     incr_cycles(cpu);
-    if (DEBUG) std::cout << " [#" << int_to_hex(N) << "] -> S[" << int_to_hex((uint8_t) (cpu->sp + 1)) << "]";
+    if (DEBUG) fprintf(stdout, " [#%02X] -> S[0x01 %02X]", N, cpu->sp + 1);
+}
+
+inline byte_t pop_byte(cpu_state *cpu) {
+    cpu->sp++;
+    byte_t N = read_byte(cpu, 0x0100 + cpu->sp);
+    incr_cycles(cpu);
+    if (DEBUG) fprintf(stdout, " [#%02X] <- S[0x01 %02X]", N, cpu->sp - 1);
+    return N;
 }
 
 inline void push_word(cpu_state *cpu, word_t N) {
-    write_byte(cpu, cpu->sp, (N & 0xFF00) >> 8);
-    write_byte(cpu, cpu->sp - 1, N & 0x00FF);
+    write_byte(cpu, 0x0100 + cpu->sp, (N & 0xFF00) >> 8);
+    write_byte(cpu, 0x0100 + cpu->sp - 1, N & 0x00FF);
     cpu->sp -= 2;
     incr_cycles(cpu);
-    if (DEBUG) std::cout << " [#" << int_to_hex(N) << "] -> S[" << int_to_hex((uint8_t) (cpu->sp + 1)) << "]";
+    if (DEBUG) fprintf(stdout, " [#%04X] -> S[0x01 %02X]", N, cpu->sp + 1);
 }
 
+inline absaddr_t pop_word(cpu_state *cpu) {
+    absaddr_t N = read_word(cpu, 0x0100 + cpu->sp + 1);
+    cpu->sp += 2;
+    incr_cycles(cpu);
+    if (DEBUG) fprintf(stdout, " [#%04X] <- S[0x01 %02X]", N, cpu->sp - 1);
+    return N;
+}
 
 int execute_next_6502(cpu_state *cpu) {
     int exit_code = 0;
 
     if (DEBUG) {
         uint64_t current_time = get_current_time_in_microseconds();
-        std::cout << "[ " << cpu->cycles << " ]";
+        fprintf(stdout, "[ %llu ]", cpu->cycles);
         uint64_t elapsed_time = current_time - cpu->boot_time;
-        std::cout << "[eTime: " << elapsed_time << "] ";
+        fprintf(stdout, "[eTime: %llu] ", elapsed_time);
         float_t cycles_per_second = (cpu->cycles * 1000000000.0) / (elapsed_time * 1000.0);
-        std::cout << "[eHz: " << cycles_per_second << "] ";
+        fprintf(stdout, "[eHz: %.0f] ", cycles_per_second);
     }
 
     if ( DEBUG == 0  && cpu->cycles > (10 * HZ_RATE) ) { // should take about 10 seconds.
         uint64_t current_time = get_current_time_in_microseconds();
         uint64_t elapsed_time = current_time - cpu->boot_time;
-        std::cout << "[eTime: " << elapsed_time << "] ";
+        fprintf(stdout, "[eTime: %llu] ", elapsed_time);
         float_t cycles_per_second = (cpu->cycles * 1000000000.0) / (elapsed_time * 1000.0);
-        std::cout << "[eHz: " << cycles_per_second << "] ";
+        fprintf(stdout, "[eHz: %f] ", cycles_per_second);
         exit(0);
     }
 
-    if (DEBUG) std::cout << int_to_hex(cpu->pc); // so PC is correct.
+    if (DEBUG) fprintf(stdout, "%04X: ", cpu->pc); // so PC is correct.
     opcode_t opcode = read_byte_from_pc(cpu);
-    if (DEBUG) std::cout << ": "  << get_opcode_name(opcode);
+    if (DEBUG) fprintf(stdout, "%s", get_opcode_name(opcode));
 
     switch (opcode) {
 
@@ -1223,6 +1237,33 @@ int execute_next_6502(cpu_state *cpu) {
             }
             break;
 
+    /* Stack operations --------------------------------- */
+
+        case OP_PHA_IMP: /* PHA Implied */
+            {
+                push_byte(cpu, cpu->a_lo);
+            }
+            break;
+
+        case OP_PHP_IMP: /* PHP Implied */
+            {
+                push_byte(cpu, (cpu->p | 0b00110000)); // break flag and bit 5 set to 1.
+            }
+            break;
+
+        case OP_PLP_IMP: /* PLP Implied */
+            {
+                cpu->p = pop_byte(cpu);
+            }
+            break;
+
+        case OP_PLA_IMP: /* PLA Implied */
+            {
+                cpu->a_lo = pop_byte(cpu);
+                set_n_z_flags(cpu, cpu->a_lo);
+            }
+            break;
+
         /* SBC --------------------------------- */
         case OP_SBC_IMM: /* SBC Immediate */
             {
@@ -1413,14 +1454,42 @@ int execute_next_6502(cpu_state *cpu) {
         case OP_JMP_ABS: /* JMP Absolute */
             {
                 cpu->pc = read_word_from_pc(cpu);
-                if (DEBUG) std::cout << " $" << int_to_hex(cpu->pc);
+                if (DEBUG) fprintf(stdout, "$%04X", cpu->pc);
+            }
+            break;
+
+        case OP_JMP_IND: /* JMP (Indirect) */
+            {
+                absaddr_t addr = get_operand_absolute(cpu);
+                absaddr_t indiraddr = read_word(cpu, addr);
+                cpu->pc = indiraddr;
+                if (DEBUG) fprintf(stdout, "$%04X", cpu->pc);
+            }
+            break;
+
+        /* JSR --------------------------------- */
+        case OP_JSR_ABS: /* JSR Absolute */
+            {
+                absaddr_t addr = get_operand_address_absolute(cpu);
+                push_word(cpu, cpu->pc -1); // return address pushed is last byte of JSR instruction
+                cpu->pc = addr;
+                if (DEBUG) fprintf(stdout, "$%04X", cpu->pc);
+            }
+            break;
+
+        /* RTS --------------------------------- */
+        case OP_RTS_IMP: /* RTS */
+            {
+                cpu->pc = pop_word(cpu);
+                cpu->pc++;
+                if (DEBUG) fprintf(stdout, "$%04X", cpu->pc);
             }
             break;
 
         /* NOP --------------------------------- */
         case OP_NOP_IMP: /* NOP */
             {
-                if (DEBUG) std::cout << "NOP";
+                /* if (DEBUG) std::cout << "NOP"; */
                 incr_cycles(cpu);
             }
             break;
@@ -1481,10 +1550,10 @@ int execute_next_6502(cpu_state *cpu) {
 
 
         default:
-            std::cout << "Unknown opcode: 0x" << int_to_hex(opcode);
+            fprintf(stdout, "Unknown opcode: 0x%02X", opcode);
             exit(1);
     }
-    if (DEBUG) std::cout << std::endl;
+    if (DEBUG) fprintf(stdout, "\n");
 
     return exit_code;
 }
