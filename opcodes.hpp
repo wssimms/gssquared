@@ -172,10 +172,12 @@
 #define OP_PHA_IMP 0x48
 #define OP_PHX_IMP 0xDA
 #define OP_PHY_IMP 0x5A
+#define OP_PHP_IMP 0x08
 
 #define OP_PLA_IMP 0x68
 #define OP_PLX_IMP 0xFA
 #define OP_PLY_IMP 0x7A
+#define OP_PLP_IMP 0x28
 
 #define OP_ROL_ACC 0x2A
 #define OP_ROL_ZP 0x26
