@@ -81,12 +81,16 @@ uint64_t get_current_time_in_microseconds() {
         std::chrono::high_resolution_clock::now().time_since_epoch()).count();
 }
 
+void cpu_reset(cpu_state *cpu) {
+    cpu->pc = read_word(cpu, RESET_VECTOR);
+}
+
 void init_cpus() { // this is the same as a power-on event.
     for (int i = 0; i < MAX_CPUS; i++) {
         init_memory(&CPUs[i]);
 
         CPUs[i].boot_time = get_current_time_in_microseconds();
-        CPUs[i].pc = 0x0100;
+        CPUs[i].pc = 0x0400;
         CPUs[i].sp = rand() & 0xFF; // simulate a random stack pointer
         CPUs[i].a = 0;
         CPUs[i].x = 0;
@@ -122,10 +126,27 @@ inline void set_n_z_flags(cpu_state *cpu, uint8_t value) {
     cpu->N = (value & 0x80) != 0;
 }
 
-inline void set_n_z_v_flags(cpu_state *cpu, uint8_t value) {
-    cpu->Z = (value == 0);
-    cpu->N = (value & 0x80) != 0;
-    cpu->V = (value & 0x40) != 0;
+inline void set_n_z_v_flags(cpu_state *cpu, uint8_t value, uint8_t N) {
+    cpu->Z = (value == 0); // is A & M zero?
+    cpu->N = (N & 0x80) != 0; // is M7 set?
+    cpu->V = (N & 0x40) != 0; // is M6 set?
+}
+
+/**
+ * Convert a binary-coded decimal byte to an integer.
+ * Each nibble represents a decimal digit (0-9).
+ */
+inline uint8_t bcd_to_int(byte_t bcd) {
+    return ((bcd >> 4) * 10) + (bcd & 0x0F);
+}
+
+/**
+ * Convert an integer (0-99) to binary-coded decimal format.
+ * Returns a byte with each nibble representing a decimal digit.
+ */
+inline byte_t int_to_bcd(uint8_t n) {
+    uint8_t n1 = n % 100;
+    return ((n1 / 10) << 4) | (n1 % 10);
 }
 
 
@@ -135,14 +156,24 @@ inline void set_n_z_v_flags(cpu_state *cpu, uint8_t value) {
  * N: number being added to accumulator
  */
 inline void add_and_set_flags(cpu_state *cpu, uint8_t N) {
-    uint8_t M = cpu->a_lo;
-    uint32_t S = M + N + (cpu->C);
-    uint8_t S8 = (uint8_t) S;
-    cpu->a_lo = S8;
-    cpu->C = (S & 0x0100) >> 8;
-    cpu->V =  !((M ^ N) & 0x80) && ((M ^ S8) & 0x80); // from 6502.org article https://www.righto.com/2012/12/the-6502-overflow-flag-explained.html?m=1
-    set_n_z_flags(cpu, cpu->a_lo);
-    if (DEBUG) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  C: %02X  V: %02X", M, N, cpu->a_lo, cpu->C, cpu->V);
+    if (cpu->D == 0) {  // binary mode
+        uint8_t M = cpu->a_lo;
+        uint32_t S = M + N + (cpu->C);
+        uint8_t S8 = (uint8_t) S;
+        cpu->a_lo = S8;
+        cpu->C = (S & 0x0100) >> 8;
+        cpu->V =  !((M ^ N) & 0x80) && ((M ^ S8) & 0x80); // from 6502.org article https://www.righto.com/2012/12/the-6502-overflow-flag-explained.html?m=1
+        set_n_z_flags(cpu, cpu->a_lo);
+        if (DEBUG) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  C: %02X  V: %02X", M, N, cpu->a_lo, cpu->C, cpu->V);
+    } else {              // decimal mode
+        uint8_t M = bcd_to_int(cpu->a_lo);
+        uint8_t N1 = bcd_to_int(N);
+        uint8_t S8 = M + N1 + cpu->C;
+        cpu->a_lo = int_to_bcd(S8);
+        cpu->C = (S8 > 99);
+        set_n_z_flags(cpu, cpu->a_lo);
+        if (DEBUG) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  C: %02X  V: %02X", M, N, cpu->a_lo, cpu->C, cpu->V);
+    }
 }
 
 // see https://www.righto.com/2012/12/the-6502-overflow-flag-explained.html?m=1
@@ -159,20 +190,56 @@ inline uint8_t subtract_core(cpu_state *cpu, uint8_t M, uint8_t N, uint8_t C) {
     cpu->C = (S & 0x0100) >> 8;
     cpu->V =  !((M ^ N1) & 0x80) && ((M ^ S8) & 0x80);
     set_n_z_flags(cpu, S8);
-    if (DEBUG) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  C: %02X  V: %02X", M, N, cpu->a_lo, cpu->C, cpu->V);
+    if (DEBUG) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  C: %01X  V: %01X Z: %01X", M, N, S8, cpu->C, cpu->V, cpu->Z);
     return S8;
 }
 
 inline void subtract_and_set_flags(cpu_state *cpu, uint8_t N) {
-    cpu->a_lo = subtract_core(cpu, cpu->a_lo, N, cpu->C);
+    uint8_t C = cpu->C;
+
+    if (cpu->D == 0) {
+        uint8_t M = cpu->a_lo;
+
+        uint8_t N1 = N ^ 0xFF;
+        uint32_t S = M + N1 + C;
+        uint8_t S8 = (uint8_t) S;
+        cpu->C = (S & 0x0100) >> 8;
+        cpu->V =  !((M ^ N1) & 0x80) && ((M ^ S8) & 0x80);
+        cpu->a_lo = S8; // store the result in the accumulator. I accidentally deleted this before.
+        set_n_z_flags(cpu, S8);
+        if (DEBUG) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  Z:%01X C:%01X N:%01X V:%01X ", M, N, S8, cpu->Z, cpu->C, cpu->N, cpu->V);
+    } else {
+        uint8_t M = bcd_to_int(cpu->a_lo);
+        uint8_t N1 = bcd_to_int(N);
+        int8_t S8 = M - N1 - !C;
+        if (S8 < 0) {
+            S8 += 100;
+            cpu->C = 0; // c = 0 indicates a borrow in subtraction
+        } else {
+            cpu->C = 1;
+        }
+        cpu->a_lo = int_to_bcd(S8);
+        set_n_z_flags(cpu, cpu->a_lo);
+        if (DEBUG) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  Z:%01X C:%01X N:%01X V:%01X ", M, N, S8, cpu->Z, cpu->C, cpu->N, cpu->V);
+    }
 }
 
-/** Identical algorithm to subtraction mostly.
+/** nearly Identical algorithm to subtraction mostly.
  * Compares are the same as SBC with the carry flag assumed to be 1.
  * does not store the result in the accumulator
+ * ALSO DOES NOT SET the V flag
  */
 inline void compare_and_set_flags(cpu_state *cpu, uint8_t M, uint8_t N) {
-    uint8_t dummy = subtract_core(cpu, M, N, 1);
+    uint8_t C = 1;
+    uint8_t N1 = N ^ 0xFF;
+    uint32_t S = M + N1 + C;
+    uint8_t S8 = (uint8_t) S;
+    cpu->C = (S & 0x0100) >> 8;
+    //cpu->V =  !((M ^ N1) & 0x80) && ((M ^ S8) & 0x80);
+    set_n_z_flags(cpu, S8);
+    //if (DEBUG) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  C: %01X  V: %01X Z: %01X", M, N, S8, cpu->C, cpu->V, cpu->Z);
+    if (DEBUG) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  Z:%01X C:%01X N:%01X V:%01X ", M, N, S8, cpu->Z, cpu->C, cpu->N, cpu->V);
+
 }
 
 /**
@@ -181,11 +248,16 @@ inline void compare_and_set_flags(cpu_state *cpu, uint8_t M, uint8_t N) {
  */
 inline void branch_if(cpu_state *cpu, uint8_t N, bool condition) {
     uint16_t oaddr = cpu->pc;
-    uint16_t taddr = oaddr + N;
+    uint16_t taddr = oaddr + (int8_t) N;
     if (DEBUG) fprintf(stdout, " => $%04X", taddr);
 
     if (condition) {
-        cpu->pc = cpu->pc + N;
+        if ((oaddr-2) == taddr) { // this test should back up 2 bytes.. so the infinite branch is actually bxx FE.
+            fprintf(stdout, "JUMP TO SELF INFINITE LOOP Branch $%04X -> %01X\n", taddr, condition);
+            exit(1);
+        }
+
+        cpu->pc = cpu->pc + (int8_t) N;
         // branch taken uses another clock to update the PC
         incr_cycles(cpu); 
         /* If a branch is taken and the target is on a different page, this adds another CPU cycle (4 in total). */
@@ -237,6 +309,13 @@ inline absaddr_t get_operand_address_absolute(cpu_state *cpu) {
     return addr;
 }
 
+inline absaddr_t get_operand_address_absolute_indirect(cpu_state *cpu) {
+    absaddr_t addr = read_word_from_pc(cpu);
+    absaddr_t taddr = read_word(cpu, addr);
+    if (DEBUG) fprintf(stdout, " ($%04X) -> $%04X", addr, taddr);
+    return taddr;
+}
+
 inline absaddr_t get_operand_address_absolute_x(cpu_state *cpu) {
     absaddr_t addr = read_word_from_pc(cpu);
     absaddr_t taddr = addr + cpu->x_lo;
@@ -259,7 +338,7 @@ inline absaddr_t get_operand_address_absolute_y(cpu_state *cpu) {
 
 inline uint16_t get_operand_address_indirect_x(cpu_state *cpu) {
     zpaddr_t zpaddr = read_byte_from_pc(cpu);
-    absaddr_t taddr = read_word(cpu,zpaddr + cpu->x_lo);
+    absaddr_t taddr = read_word(cpu,(uint8_t)(zpaddr + cpu->x_lo)); // make sure it wraps.
     if (DEBUG) fprintf(stdout, " ($%02X,X)  -> $%04X", zpaddr, taddr);
     return taddr;
 }
@@ -458,6 +537,41 @@ inline void dec_operand_absolute_x(cpu_state *cpu) {
     dec_operand(cpu, addr);
 }
 
+/**
+ * Increment an operand.
+ */
+inline void inc_operand(cpu_state *cpu, absaddr_t addr) {
+    byte_t N = read_byte(cpu, addr);
+    N++;
+    incr_cycles(cpu);
+    write_byte(cpu, addr, N);
+    set_n_z_flags(cpu, N);
+    if (DEBUG) fprintf(stdout, "   [#%02X]", N);
+}
+
+inline void inc_operand_zeropage(cpu_state *cpu) {
+    zpaddr_t zpaddr = get_operand_address_zeropage(cpu);
+    if (DEBUG) fprintf(stdout, " $%02X", zpaddr);
+    inc_operand(cpu, zpaddr);
+}
+
+inline void inc_operand_zeropage_x(cpu_state *cpu) {
+    zpaddr_t zpaddr = get_operand_address_zeropage_x(cpu);
+    if (DEBUG) fprintf(stdout, " $%02X", zpaddr);
+    inc_operand(cpu, zpaddr);
+}
+
+inline void inc_operand_absolute(cpu_state *cpu) {
+    absaddr_t addr = get_operand_address_absolute(cpu);
+    if (DEBUG) fprintf(stdout, " $%04X", addr);
+    inc_operand(cpu, addr);
+}
+
+inline void inc_operand_absolute_x(cpu_state *cpu) {
+    absaddr_t addr = get_operand_address_absolute_x(cpu);
+    if (DEBUG) fprintf(stdout, " $%04X", addr);
+    inc_operand(cpu, addr);
+}
 
 inline byte_t logical_shift_right(cpu_state *cpu, byte_t N) {
     uint8_t C = N & 0x01;
@@ -493,15 +607,52 @@ inline byte_t arithmetic_shift_left_addr(cpu_state *cpu, absaddr_t addr) {
     return result;
 }
 
+
+inline byte_t rotate_right(cpu_state *cpu, byte_t N) {
+    uint8_t C = N & 0x01;
+    N = N >> 1;
+    N |= (cpu->C << 7);
+    cpu->C = C;
+    set_n_z_flags(cpu, N);
+    if (DEBUG) fprintf(stdout, " [#%02X]", N);
+    return N;
+}
+
+inline byte_t rotate_right_addr(cpu_state *cpu, absaddr_t addr) {
+    byte_t N = read_byte(cpu, addr);
+    byte_t result = rotate_right(cpu, N);
+    write_byte(cpu, addr, result);
+    if (DEBUG) fprintf(stdout, " -> $%04X", addr);
+    return result;
+}
+
+inline byte_t rotate_left(cpu_state *cpu, byte_t N) {
+    uint8_t C = ((N & 0x80) != 0);
+    N = N << 1;
+    N |= cpu->C;
+    cpu->C = C;
+    set_n_z_flags(cpu, N);
+    if (DEBUG) fprintf(stdout, " [#%02X]", N);
+    return N;
+}
+
+inline byte_t rotate_left_addr(cpu_state *cpu, absaddr_t addr) {
+    byte_t N = read_byte(cpu, addr);
+    byte_t result = rotate_left(cpu, N);
+    write_byte(cpu, addr, result);
+    if (DEBUG) fprintf(stdout, " -> $%04X", addr);
+    return result;
+}
+
 inline void push_byte(cpu_state *cpu, byte_t N) {
     write_byte(cpu, 0x0100 + cpu->sp, N);
-    cpu->sp--;
+    cpu->sp = (uint8_t)(cpu->sp - 1);
     incr_cycles(cpu);
     if (DEBUG) fprintf(stdout, " [#%02X] -> S[0x01 %02X]", N, cpu->sp + 1);
 }
 
 inline byte_t pop_byte(cpu_state *cpu) {
-    cpu->sp++;
+    cpu->sp = (uint8_t)(cpu->sp + 1);
     byte_t N = read_byte(cpu, 0x0100 + cpu->sp);
     incr_cycles(cpu);
     if (DEBUG) fprintf(stdout, " [#%02X] <- S[0x01 %02X]", N, cpu->sp - 1);
@@ -511,14 +662,14 @@ inline byte_t pop_byte(cpu_state *cpu) {
 inline void push_word(cpu_state *cpu, word_t N) {
     write_byte(cpu, 0x0100 + cpu->sp, (N & 0xFF00) >> 8);
     write_byte(cpu, 0x0100 + cpu->sp - 1, N & 0x00FF);
-    cpu->sp -= 2;
+    cpu->sp = (uint8_t)(cpu->sp - 2);
     incr_cycles(cpu);
     if (DEBUG) fprintf(stdout, " [#%04X] -> S[0x01 %02X]", N, cpu->sp + 1);
 }
 
 inline absaddr_t pop_word(cpu_state *cpu) {
     absaddr_t N = read_word(cpu, 0x0100 + cpu->sp + 1);
-    cpu->sp += 2;
+    cpu->sp = (uint8_t)(cpu->sp + 2);
     incr_cycles(cpu);
     if (DEBUG) fprintf(stdout, " [#%04X] <- S[0x01 %02X]", N, cpu->sp - 1);
     return N;
@@ -544,6 +695,8 @@ int execute_next_6502(cpu_state *cpu) {
         fprintf(stdout, "[eHz: %f] ", cycles_per_second);
         exit(0);
     }
+
+    if (DEBUG) fprintf(stdout, " | PC: $%04X, A: $%02X, X: $%02X, Y: $%02X, P: $%02X, S: $%02X || ", cpu->pc, cpu->a_lo, cpu->x_lo, cpu->y_lo, cpu->p, cpu->sp);
 
     if (DEBUG) fprintf(stdout, "%04X: ", cpu->pc); // so PC is correct.
     opcode_t opcode = read_byte_from_pc(cpu);
@@ -978,7 +1131,32 @@ int execute_next_6502(cpu_state *cpu) {
             }
             break;
 
-        /* IN(xy) --------------------------------- */
+    /* INC --------------------------------- */
+        case OP_INC_ZP: /* INC Zero Page */
+            {
+                inc_operand_zeropage(cpu);
+            }
+            break;
+
+        case OP_INC_ZP_X: /* INC Zero Page, X */
+            {
+                inc_operand_zeropage_x(cpu);
+            }
+            break;
+
+        case OP_INC_ABS: /* INC Absolute */
+            {
+                inc_operand_absolute(cpu);
+            }
+            break;
+
+        case OP_INC_ABS_X: /* INC Absolute, X */
+            {
+                inc_operand_absolute_x(cpu);
+            }
+            break;
+
+    /* IN(xy) --------------------------------- */
 
         case OP_INX_IMP: /* INX Implied */
             {
@@ -996,7 +1174,7 @@ int execute_next_6502(cpu_state *cpu) {
             }
             break;
 
-        /* LDA --------------------------------- */
+    /* LDA --------------------------------- */
 
         case OP_LDA_IMM: /* LDA Immediate */
             {
@@ -1133,7 +1311,7 @@ int execute_next_6502(cpu_state *cpu) {
             }
             break;
 
-    /* Logical operations --------------------------------- */
+    /* LSR  --------------------------------- */
 
         case OP_LSR_ACC: /* LSR Accumulator */
             {
@@ -1247,13 +1425,13 @@ int execute_next_6502(cpu_state *cpu) {
 
         case OP_PHP_IMP: /* PHP Implied */
             {
-                push_byte(cpu, (cpu->p | 0b00110000)); // break flag and bit 5 set to 1.
+                push_byte(cpu, (cpu->p | (FLAG_B | FLAG_UNUSED))); // break flag and Unused bit set to 1.
             }
             break;
 
         case OP_PLP_IMP: /* PLP Implied */
             {
-                cpu->p = pop_byte(cpu);
+                cpu->p = pop_byte(cpu) & ~FLAG_B; // break flag is cleared.
             }
             break;
 
@@ -1261,6 +1439,78 @@ int execute_next_6502(cpu_state *cpu) {
             {
                 cpu->a_lo = pop_byte(cpu);
                 set_n_z_flags(cpu, cpu->a_lo);
+            }
+            break;
+    /* ROL --------------------------------- */
+
+        case OP_ROL_ACC: /* ROL Accumulator */
+            {
+                byte_t N = cpu->a_lo;
+                cpu->a_lo = rotate_left(cpu, N);
+            }
+            break;
+
+        case OP_ROL_ZP: /* ROL Zero Page */
+            {
+                absaddr_t addr = get_operand_address_zeropage(cpu);
+                rotate_left_addr(cpu, addr);
+            }
+            break;
+
+        case OP_ROL_ZP_X: /* ROL Zero Page, X */
+            {
+                absaddr_t addr = get_operand_address_zeropage_x(cpu);
+                rotate_left_addr(cpu, addr);
+            }
+            break;
+
+        case OP_ROL_ABS: /* ROL Absolute */
+            {
+                absaddr_t addr = get_operand_address_absolute(cpu);
+                rotate_left_addr(cpu, addr);
+            }
+            break;
+
+        case OP_ROL_ABS_X: /* ROL Absolute, X */
+            {
+                absaddr_t addr = get_operand_address_absolute_x(cpu);
+                rotate_left_addr(cpu, addr);
+            }
+            break;
+
+    /* ROR --------------------------------- */
+        case OP_ROR_ACC: /* ROR Accumulator */
+            {
+                byte_t N = cpu->a_lo;
+                cpu->a_lo = rotate_right(cpu, N);
+            }
+            break;
+
+        case OP_ROR_ZP: /* ROR Zero Page */
+            {
+                absaddr_t addr = get_operand_address_zeropage(cpu);
+                rotate_right_addr(cpu, addr);
+            }
+            break;
+
+        case OP_ROR_ZP_X: /* ROR Zero Page, X */
+            {
+                absaddr_t addr = get_operand_address_zeropage_x(cpu);
+                rotate_right_addr(cpu, addr);
+            }
+            break;
+
+        case OP_ROR_ABS: /* ROR Absolute */
+            {
+                absaddr_t addr = get_operand_address_absolute(cpu);
+                rotate_right_addr(cpu, addr);
+            }
+            break;
+
+        case OP_ROR_ABS_X: /* ROR Absolute, X */
+            {
+                absaddr_t addr = get_operand_address_absolute_x(cpu);
+                rotate_right_addr(cpu, addr);
             }
             break;
 
@@ -1445,25 +1695,34 @@ int execute_next_6502(cpu_state *cpu) {
         /* BRK --------------------------------- */
         case OP_BRK_IMP: /* BRK */
             {
-                exit_code = 1;
+                //exit_code = 1;
+                
+                push_word(cpu, cpu->pc+1); // pc of BRK plus 1 - leaves room for BRK 'mark'
+                push_byte(cpu, cpu->p | FLAG_B | FLAG_UNUSED); // break flag and Unused bit set to 1.
+                cpu->p |= FLAG_I; // interrupt disable flag set to 1.
                 cpu->pc = read_word(cpu, BRK_VECTOR);
+                if (DEBUG) fprintf(stdout, " => $%04X", cpu->pc);
             }
             break;
 
         /* JMP --------------------------------- */
         case OP_JMP_ABS: /* JMP Absolute */
             {
+                absaddr_t thisaddr = cpu->pc-1;
                 cpu->pc = read_word_from_pc(cpu);
-                if (DEBUG) fprintf(stdout, "$%04X", cpu->pc);
+                if (thisaddr == cpu->pc) {
+                    fprintf(stdout, " JUMP TO SELF INFINITE LOOP JMP $%04X\n", cpu->pc);
+                    exit(1);
+                }
+                if (DEBUG) fprintf(stdout, " $%04X", cpu->pc);
             }
             break;
 
         case OP_JMP_IND: /* JMP (Indirect) */
             {
-                absaddr_t addr = get_operand_absolute(cpu);
-                absaddr_t indiraddr = read_word(cpu, addr);
-                cpu->pc = indiraddr;
-                if (DEBUG) fprintf(stdout, "$%04X", cpu->pc);
+                absaddr_t addr = get_operand_address_absolute_indirect(cpu);
+                cpu->pc = addr;
+                if (DEBUG) fprintf(stdout, " -> [$%04X]", addr);
             }
             break;
 
@@ -1474,6 +1733,19 @@ int execute_next_6502(cpu_state *cpu) {
                 push_word(cpu, cpu->pc -1); // return address pushed is last byte of JSR instruction
                 cpu->pc = addr;
                 if (DEBUG) fprintf(stdout, "$%04X", cpu->pc);
+            }
+            break;
+
+        /* RTI --------------------------------- */
+        case OP_RTI_IMP: /* RTI */
+            {
+                // pop status register "ignore B | unused" which I think means don't change them.
+                byte_t oldp = cpu->p & (FLAG_B | FLAG_UNUSED);
+                byte_t p = pop_byte(cpu) & ~(FLAG_B | FLAG_UNUSED);
+                cpu->p = p | oldp;
+
+                cpu->pc = pop_word(cpu);
+                if (DEBUG) fprintf(stdout, "$%04X %02X", cpu->pc, cpu->p);
             }
             break;
 
@@ -1496,6 +1768,18 @@ int execute_next_6502(cpu_state *cpu) {
 
 
         /* Flags ---------------------------------  */
+
+        case OP_CLD_IMP: /* CLD Implied */
+            {
+                cpu->D = 0;
+            }
+            break;
+
+        case OP_SED_IMP: /* SED Implied */
+            {
+                cpu->D = 1;
+            }
+            break;
 
         case OP_CLC_IMP: /* CLC Implied */
             {
@@ -1534,7 +1818,7 @@ int execute_next_6502(cpu_state *cpu) {
             {
                 byte_t N = get_operand_zeropage(cpu);
                 byte_t temp = cpu->a_lo & N;
-                set_n_z_v_flags(cpu, temp);
+                set_n_z_v_flags(cpu, temp, N);
             }
             break;
 
@@ -1542,12 +1826,19 @@ int execute_next_6502(cpu_state *cpu) {
             {
                 byte_t N = get_operand_absolute(cpu);
                 byte_t temp = cpu->a_lo & N;
-                set_n_z_v_flags(cpu, temp);
+                set_n_z_v_flags(cpu, temp, N);
             }
             break;
 
-       /* End of Opcodes -------------------------- */
+        /* End of Opcodes -------------------------- */
 
+        /* Fake opcodes for testing -------------------------- */
+
+        case OP_HLT_IMP: /* HLT */
+            {
+                exit_code = 1;
+            }
+            break;
 
         default:
             fprintf(stdout, "Unknown opcode: 0x%02X", opcode);
@@ -1560,7 +1851,7 @@ int execute_next_6502(cpu_state *cpu) {
 
 void run_cpus(void) {
     cpu_state *cpu = &CPUs[0];
-    cpu->pc = read_word(cpu, RESET_VECTOR);
+    //cpu->pc = read_word(cpu, RESET_VECTOR);
     while (1) {
         if (execute_next_6502(cpu) > 0) {
             break;
@@ -1574,8 +1865,37 @@ int main() {
 
     std::cout << "Booting GSSquared!" << std::endl;
     init_cpus();
-    demo_ram();
-    /* run_cpus(); */
+
+    if (0) {
+        // this is the one test system.
+        demo_ram();
+    }
+
+    if (1) {
+        // read file 6502_65C02_functional_tests/bin_files/6502_functional_test.bin into a 64k byte array
+
+        uint8_t *memory_chunk = (uint8_t *)malloc(65536); // Allocate 64KB memory chunk
+        if (memory_chunk == NULL) {
+            fprintf(stderr, "Failed to allocate memory\n");
+            exit(1);
+        }
+
+        FILE* file = fopen("6502_65C02_functional_tests/bin_files/6502_functional_test.bin", "rb");
+        if (file == NULL) {
+            fprintf(stderr, "Failed to open file\n");
+            exit(1);
+        }
+        fread(memory_chunk, 1, 65536, file);
+        fclose(file);
+        for (uint64_t i = 0; i < 65536; i++) {
+            raw_memory_write(&CPUs[0], i, memory_chunk[i]);
+        }
+    }
+
+//    cpu_reset(&CPUs[0]);
+
+    run_cpus();
+
     debug_dump_memory(&CPUs[0], 0x1230, 0x123F);
     return 0;
 }

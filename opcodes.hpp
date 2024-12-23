@@ -244,4 +244,6 @@
 #define OP_TXS_IMP 0x9A
 #define OP_TYA_IMP 0x98
 
+#define OP_HLT_IMP 0xFF
+
 const char *get_opcode_name(uint8_t);

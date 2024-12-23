@@ -190,6 +190,37 @@ void demo_ram() {
 
             OP_CLC_IMP,
             OP_BCS_REL, 0x02,
+
+            OP_SED_IMP,
+            OP_SEC_IMP,
+            OP_LDA_IMM, 0x58,
+            OP_ADC_IMM, 0x46,
+
+            OP_CLC_IMP,
+            OP_LDA_IMM, 0x12,
+            OP_ADC_IMM, 0x34,
+
+            OP_CLC_IMP,
+            OP_LDA_IMM, 0x81,
+            OP_ADC_IMM, 0x92,
+
+            OP_SEC_IMP,
+            OP_LDA_IMM, 0x00,
+            OP_SBC_IMM, 0x01,
+
+            OP_SEC_IMP,
+            OP_LDA_IMM, 0x46,
+            OP_SBC_IMM, 0x12,
+
+            OP_SEC_IMP,
+            OP_LDA_IMM, 0x40,
+            OP_SBC_IMM, 0x13,
+
+            OP_CLC_IMP,
+            OP_LDA_IMM, 0x32,
+            OP_SBC_IMM, 0x02,
+
+            OP_HLT_IMP,
             OP_RTS_IMP,
 
             OP_BRK_IMP,            // 7 cycles

@@ -259,7 +259,7 @@ const char * opcode_names[256] = {
     NULL, /* fc */
     "SBC", /* fd */
     "INC", /* fe */
-    NULL /* ff */
+    "HLT" /* ff */
 } ;
 
 const char *get_opcode_name(uint8_t opcode) {
