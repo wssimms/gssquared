@@ -100,7 +100,7 @@ struct cpu_state {
             uint8_t I : 1;  /* Interrupt Disable Flag */
             uint8_t D : 1;  /* Decimal Mode Flag */
             uint8_t B : 1;  /* Break Command Flag */
-            uint8_t _ : 1;  /* Unused bit */
+            uint8_t _unused : 1;  /* Unused bit */
             uint8_t V : 1;  /* Overflow Flag */
             uint8_t N : 1;  /* Negative Flag */
         };
@@ -113,5 +113,14 @@ struct cpu_state {
     uint64_t cycle_duration_ticks;    
     unsigned int free_run = 0;
 };
+
+#define FLAG_C        0b00000001 /* 0x01 */
+#define FLAG_Z        0b00000010 /* 0x02 */
+#define FLAG_I        0b00000100 /* 0x04 */
+#define FLAG_D        0b00001000 /* 0x08 */
+#define FLAG_B        0b00010000 /* 0x10 */
+#define FLAG_UNUSED   0b00100000 /* 0x20 */
+#define FLAG_V        0b01000000 /* 0x40 */
+#define FLAG_N        0b10000000 /* 0x80 */
 
 extern struct cpu_state CPUs[MAX_CPUS];
