@@ -4,7 +4,7 @@
 
 #include "gs2.hpp"
 #include "memoryspecs.hpp"
-
+#include "types.hpp"
 #define MAX_CPUS 1
 
 struct memory_page {
