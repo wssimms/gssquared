@@ -5,6 +5,7 @@
 #include "../gs2.hpp"
 #include "../types.hpp"
 #include "../devices/keyboard.hpp"
+#include "../memory.hpp"
 
 // Apple II+ Character Set (7x8 pixels)
 // Characters 0x20 through 0x7F
@@ -32,14 +33,35 @@ void load_character_rom() {
     fclose(rom);
 }
 
+uint16_t TEXT_PAGE_1_TABLE[24] = {
+    0x0400,
+    0x0480,
+    0x0500,
+    0x0580,
+    0x0600,
+    0x0680,
+    0x0700,
+    0x0780,
 
-/**
- * 0x0400 - 0000 0000 0000    0x0427: line 1
- * 0x0480 - 0010 0000 0000    0x04A7: line 2
- * 0x0428 - 0001 1010 1100    0x044F: line 9
- * 0x04A8 - 0010 1010 1100    0x04CF: line 10
- * 0x0450 - 0010 0101 0000    0x0477: line 17
- */
+    0x0428,
+    0x04A8,
+    0x0528,
+    0x05A8,
+    0x0628,
+    0x06A8,
+    0x0728,
+    0x07A8,
+
+    0x0450,
+    0x04D0,
+    0x0550,
+    0x05D0,
+    0x0650,
+    0x06D0,
+    0x0750,
+    0x07D0,
+};
+
 
 #ifdef USE_SDL2
 
@@ -112,7 +134,7 @@ uint64_t init_display() {
     return 0;
 }
 
-void render_character(int x, int y, uint8_t character) {
+void render_character(int x, int y, uint8_t character, bool flash_state) {
     // Bounds checking
     if (x < 0 || x >= 40 || y < 0 || y >= 24) {
         return;
@@ -135,13 +157,25 @@ void render_character(int x, int y, uint8_t character) {
         return;
     }
 
+    bool inverse = false;
+    // Check if top two bits are 0 (0x00-0x3F range)
+    if ((character & 0xC0) == 0) {
+        inverse = true;
+    } else if (((character & 0xC0) == 0x40)) {
+        inverse = flash_state;
+    }
+    
+    // For inverse text, use black on white instead of white on black
+    uint32_t fg_color = inverse ? 0x00000000 : 0xFFFFFFFF;
+    uint32_t bg_color = inverse ? 0xFFFFFFFF : 0x00000000;
+
     // Draw the character bitmap into the texture
     uint32_t* texturePixels = (uint32_t*)pixels;
     for (int row = 0; row < 8; row++) {
         uint8_t rowBits = charBitmap[row];
         for (int col = 0; col < 7; col++) {
             bool pixel = rowBits & (1 << (6 - col));
-            uint32_t color = pixel ? 0xFFFFFFFF : 0x00000000;
+            uint32_t color = pixel ? fg_color : bg_color;
             texturePixels[row * (pitch/4) + col] = color;
         }
     }
@@ -150,7 +184,31 @@ void render_character(int x, int y, uint8_t character) {
     display_was_updated = 1;
 }
 
-void update_display() {
+void update_flash_state(cpu_state *cpu) {
+    // 2 times per second (every 30 frames), the state of flashing characters (those matching 0b01xxxxxx) must be reversed.
+    static int flash_counter = 0;
+    static bool flash_state = false;
+    flash_counter++;
+    if (flash_counter > 30) {
+        flash_counter = 0;
+        flash_state = !flash_state;
+    }
+
+    for (int x = 0; x < 40; x++) {
+        for (int y = 0; y < 24; y++) {
+            uint16_t addr = TEXT_PAGE_1_TABLE[y] + x;
+            uint8_t character = raw_memory_read(cpu, addr);
+            if ((character & 0b11000000) == 0x40) {
+                render_character(x, y, character, flash_state);
+            }
+        }
+    }
+
+    display_was_updated = 1;
+
+}
+
+void update_display(cpu_state *cpu) {
     SDL_Event event;
     while(SDL_PollEvent(&event)) {
         if(event.type == SDL_QUIT) {
@@ -158,8 +216,28 @@ void update_display() {
             // set some flag to exit
         }
         if (event.type == SDL_KEYDOWN) {
+            // Ignore if only shift is pressed
+            uint16_t mod = event.key.keysym.mod;
             uint8_t key = event.key.keysym.sym;
-            kb_key_pressed(key);
+            
+            if (mod & KMOD_SHIFT) {
+                fprintf(stdout, "shift key pressed: %02X\n", key);
+                if (key == 0xE1) return;
+                kb_key_pressed(key);
+                return;
+            }
+
+            if (mod & KMOD_CTRL) {
+                // Convert lowercase to control code (0x01-0x1A)
+                if (key >= 'a' && key <= 'z') {
+                    key = key - 'a' + 1;
+                    kb_key_pressed(key);
+                    fprintf(stdout, "control key pressed: %02X\n", key);
+                }
+            } 
+            else {
+                kb_key_pressed(key);
+            }
             fprintf(stdout, "key pressed: %02X\n", key);
         }
     }
@@ -212,6 +290,6 @@ void txt_memory_write(uint16_t address, uint8_t value) {
         return;
     }
 
-    render_character(x_loc, y_loc, value);
+    render_character(x_loc, y_loc, value, false);
 }
 
