@@ -1,0 +1,217 @@
+#include <cstdio>
+#include <unistd.h>
+#include <cstdlib>
+
+#include "../gs2.hpp"
+#include "../types.hpp"
+#include "../devices/keyboard.hpp"
+
+// Apple II+ Character Set (7x8 pixels)
+// Characters 0x20 through 0x7F
+#define CHAR_GLYPHS_COUNT 256
+#define CHAR_GLYPHS_SIZE 8
+
+// The Character ROM contains 256 entries (total of 2048 bytes).
+// Each character is 8 bytes, each byte is 1 row of pixels.
+uint8_t APPLE2_FONT[CHAR_GLYPHS_COUNT * CHAR_GLYPHS_SIZE];
+
+void load_character_rom() {
+    FILE* rom = fopen("roms/apple2_plus/Apple II Character ROM - 341-0036.bin", "rb");
+    if (!rom) {
+        fprintf(stderr, "Error: Could not open character ROM file\n");
+        exit(1);
+    }
+
+    // Read the entire 2KB ROM file
+    if (fread((void*)APPLE2_FONT, 1, CHAR_GLYPHS_COUNT * CHAR_GLYPHS_SIZE, rom) != CHAR_GLYPHS_COUNT * CHAR_GLYPHS_SIZE) {
+        fprintf(stderr, "Error: Could not read character ROM file\n");
+        fclose(rom);
+        exit(1);
+    }
+
+    fclose(rom);
+}
+
+
+/**
+ * 0x0400 - 0000 0000 0000    0x0427: line 1
+ * 0x0480 - 0010 0000 0000    0x04A7: line 2
+ * 0x0428 - 0001 1010 1100    0x044F: line 9
+ * 0x04A8 - 0010 1010 1100    0x04CF: line 10
+ * 0x0450 - 0010 0101 0000    0x0477: line 17
+ */
+
+#ifdef USE_SDL2
+
+#include <SDL2/SDL.h>
+
+SDL_Surface* winSurface = NULL;
+SDL_Window* window = NULL;
+
+SDL_Renderer* renderer = nullptr;
+SDL_Texture* screenTexture = nullptr;
+
+int display_was_updated = 0;
+
+uint64_t init_display() {
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        fprintf(stderr, "Error initializing SDL: %s\n", SDL_GetError());
+        return 1;
+    }
+
+    const int SCALE = 4;
+    const int BASE_WIDTH = 280;
+    const int BASE_HEIGHT = 192;
+    
+    window = SDL_CreateWindow(
+        "Apple ][ Emulator", 
+        SDL_WINDOWPOS_UNDEFINED, 
+        SDL_WINDOWPOS_UNDEFINED, 
+        BASE_WIDTH * SCALE, 
+        BASE_HEIGHT * SCALE, 
+        SDL_WINDOW_SHOWN
+    );
+
+    if (!window) {
+        fprintf(stderr, "Error creating window: %s\n", SDL_GetError());
+        return 1;
+    }
+
+    // Create renderer with nearest-neighbor scaling (sharp pixels)
+    renderer = SDL_CreateRenderer(window, -1, 
+        SDL_RENDERER_ACCELERATED /* | SDL_RENDERER_PRESENTVSYNC */);
+    
+    if (!renderer) {
+        fprintf(stderr, "Error creating renderer: %s\n", SDL_GetError());
+        return 1;
+    }
+
+    // Set scaling quality to nearest neighbor for sharp pixels
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
+    
+    // Create the screen texture
+    screenTexture = SDL_CreateTexture(renderer,
+        SDL_PIXELFORMAT_RGBA8888,
+        SDL_TEXTUREACCESS_STREAMING,
+        280, 192);
+
+    if (!screenTexture) {
+        fprintf(stderr, "Error creating screen texture: %s\n", SDL_GetError());
+        return 1;
+    }
+
+    // Clear the texture to black
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+    SDL_RenderPresent(renderer);
+
+    SDL_RaiseWindow(window);
+
+    load_character_rom();
+
+    return 0;
+}
+
+void render_character(int x, int y, uint8_t character) {
+    // Bounds checking
+    if (x < 0 || x >= 40 || y < 0 || y >= 24) {
+        return;
+    }
+
+    // Calculate font offset (8 bytes per character, starting at 0x20)
+    const uint8_t* charBitmap = &APPLE2_FONT[character * 8];
+
+    SDL_Rect updateRect = {
+        x * 7,    // X position (7 pixels per character)
+        y * 8,    // Y position (8 pixels per character)
+        7,        // Width of character
+        8         // Height of character
+    };
+
+    void* pixels;
+    int pitch;
+    if (SDL_LockTexture(screenTexture, &updateRect, &pixels, &pitch) < 0) {
+        fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
+        return;
+    }
+
+    // Draw the character bitmap into the texture
+    uint32_t* texturePixels = (uint32_t*)pixels;
+    for (int row = 0; row < 8; row++) {
+        uint8_t rowBits = charBitmap[row];
+        for (int col = 0; col < 7; col++) {
+            bool pixel = rowBits & (1 << (6 - col));
+            uint32_t color = pixel ? 0xFFFFFFFF : 0x00000000;
+            texturePixels[row * (pitch/4) + col] = color;
+        }
+    }
+
+    SDL_UnlockTexture(screenTexture);
+    display_was_updated = 1;
+}
+
+void update_display() {
+    SDL_Event event;
+    while(SDL_PollEvent(&event)) {
+        if(event.type == SDL_QUIT) {
+            fprintf(stdout, "quit received, shutting down\n");
+            // set some flag to exit
+        }
+        if (event.type == SDL_KEYDOWN) {
+            uint8_t key = event.key.keysym.sym;
+            kb_key_pressed(key);
+            fprintf(stdout, "key pressed: %02X\n", key);
+        }
+    }
+
+    if (display_was_updated) {
+        SDL_RenderCopy(renderer, screenTexture, NULL, NULL);
+        SDL_RenderPresent(renderer);
+        display_was_updated = 0;
+    }
+}
+
+void free_display() {
+    if (screenTexture) SDL_DestroyTexture(screenTexture);
+    if (renderer) SDL_DestroyRenderer(renderer);
+    if (window) SDL_DestroyWindow(window);
+    SDL_Quit();
+}
+
+#endif
+
+// write a character to the display memory based on the text page memory address.
+// converts address to an X,Y coordinate then calls render_character to do it.
+void txt_memory_write(uint16_t address, uint8_t value) {
+    // Strict bounds checking for text page 1
+    if (address < 0x400 || address >= 0x800) {
+        return;
+    }
+
+    // Convert text memory address to screen coordinates
+    uint16_t addr_rel = address - 0x400;
+    
+    // Each superrow is 128 bytes apart
+    uint8_t superrow = addr_rel >> 7;      // Divide by 128 to get 0 or 1
+    uint8_t superoffset = addr_rel & 0x7F; // Get offset within the 128-byte block
+    
+    uint8_t subrow = superoffset / 40;     // Each row is 40 characters
+    uint8_t charoffset = superoffset % 40;
+    
+    // Calculate final screen position
+    uint8_t y_loc = (subrow * 8) + superrow; // Each superrow contains 8 rows
+    uint8_t x_loc = charoffset;
+
+    printf("Address: $%04X -> x:%d, y:%d (value: $%02X)\n", 
+           address, x_loc, y_loc, value); // Debug output
+
+    // Extra bounds verification
+    if (x_loc >= 40 || y_loc >= 24) {
+        printf("Invalid coordinates calculated: x=%d, y=%d from addr=$%04X\n", 
+               x_loc, y_loc, address);
+        return;
+    }
+
+    render_character(x_loc, y_loc, value);
+}
+
