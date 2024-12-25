@@ -1,6 +1,7 @@
 #pragma once
 
-#define DEBUG 1
+// Values can be 0 - no debug, 1 - instruction decode, 2- detailed decode.
+#define DEBUG 2
 
 #include <cstdint>
 #include <iostream>
