@@ -10,5 +10,19 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # Set the compiler to Clang++
 set(CMAKE_CXX_COMPILER clang++)
 
+# Find SDL2 package
+find_package(SDL2 REQUIRED)
+
 # Add the executable
-add_executable(gs2 gs2.cpp bus.cpp clock.cpp debug.cpp cpu.cpp memory.cpp opcodes.cpp test.cpp)
+add_executable(gs2 gs2.cpp bus.cpp clock.cpp debug.cpp cpu.cpp memory.cpp opcodes.cpp test.cpp display/text_40x24.cpp devices/keyboard.cpp
+    devices/keyboard.hpp)
+
+# Include SDL2 headers
+include_directories(${SDL2_INCLUDE_DIRS} /opt/homebrew/Cellar/sdl2/2.30.10/include)
+
+# Link SDL2 and required frameworks
+target_link_libraries(gs2 PRIVATE 
+    ${SDL2_LIBRARIES}
+    "-framework OpenGL" 
+    "-framework Cocoa"
+)
