@@ -26,17 +26,35 @@ void raw_memory_write_word(cpu_state *cpu, uint16_t address, uint16_t value) {
 
 uint8_t read_memory(cpu_state *cpu, uint16_t address) {
     incr_cycles(cpu);
-    return cpu->memory->pages[address / GS2_PAGE_SIZE]->data[address % GS2_PAGE_SIZE];
+    uint8_t typ = cpu->memory->page_info[address / GS2_PAGE_SIZE].type;
+    if (typ == MEM_ROM || typ == MEM_RAM) {
+        return cpu->memory->pages[address / GS2_PAGE_SIZE]->data[address % GS2_PAGE_SIZE];
+    }
+    // IO - call the memory bus dispatcher thingy.
+    return memory_bus_read(address);
 }
 
 void write_memory(cpu_state *cpu, uint16_t address, uint8_t value) {
     incr_cycles(cpu);
+    uint8_t typ = cpu->memory->page_info[address / GS2_PAGE_SIZE].type;
+
+    // if ROM don't write
+    if (typ == MEM_ROM) {
+        return;
+    }
+    // if IO, only call the memory bus dispatcher thingy
+    if (typ == MEM_IO) {
+        memory_bus_write(address, value);
+        return;
+    }
+    // if RAM, write
     cpu->memory->pages[address / GS2_PAGE_SIZE]->data[address % GS2_PAGE_SIZE] = value;
+    memory_bus_write(address, value); // catch writes to video memory.
 }
 
 uint8_t read_byte(cpu_state *cpu, uint16_t address) {
     uint8_t value = read_memory(cpu, address);
-    memory_bus_read(address, value);
+    //memory_bus_read(address, value);
     return value;
 }
 
@@ -52,14 +70,14 @@ uint16_t read_word_from_pc(cpu_state *cpu) {
 
 void write_byte(cpu_state *cpu, uint16_t address, uint8_t value) {
     write_memory(cpu, address, value);
-    memory_bus_write(address, value);
+    //memory_bus_write(address, value);
 }
 
 void write_word(cpu_state *cpu, uint16_t address, uint16_t value) {
     write_byte(cpu, address, value & 0xFF);
-    memory_bus_write(address, value);
+    //memory_bus_write(address, value);
     write_byte(cpu, address + 1, value >> 8);
-    memory_bus_write(address + 1, value >> 8);
+    //memory_bus_write(address + 1, value >> 8);
 }
 
 void store_byte(cpu_state *cpu, uint16_t address, uint8_t value) {
