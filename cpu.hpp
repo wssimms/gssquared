@@ -26,8 +26,8 @@ struct memory_page_info {
 };
 
 struct memory_map {
-    memory_page_info page_info[RAM_SIZE / GS2_PAGE_SIZE];
-    memory_page *pages[RAM_SIZE / GS2_PAGE_SIZE];
+    memory_page_info page_info[MEMORY_SIZE / GS2_PAGE_SIZE];
+    memory_page *pages[MEMORY_SIZE / GS2_PAGE_SIZE];
 };
 
 struct cpu_state {
@@ -106,6 +106,7 @@ struct cpu_state {
         };
         uint8_t p;  /* Processor Status Register */
     };
+    uint8_t halt = 0;
     uint64_t cycles; /* Number of cycles since reset */
     memory_map *memory;
     uint64_t last_tick;
