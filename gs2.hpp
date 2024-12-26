@@ -1,6 +1,6 @@
-/**
- * nothing here yet
- */
+#pragma once
+
+#include "cpu.hpp"
 
 #define USE_SDL2 1
 
@@ -10,3 +10,4 @@
 #define RESET_VECTOR 0xFFFC
 
 void run_cpus(void) ;
+void cpu_reset(cpu_state *cpu) ;

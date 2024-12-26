@@ -119,10 +119,6 @@ uint64_t get_current_time_in_microseconds() {
         std::chrono::high_resolution_clock::now().time_since_epoch()).count();
 }
 
-void cpu_reset(cpu_state *cpu) {
-    cpu->pc = read_word(cpu, RESET_VECTOR);
-}
-
 void init_cpus() { // this is the same as a power-on event.
     for (int i = 0; i < MAX_CPUS; i++) {
         init_memory(&CPUs[i]);
