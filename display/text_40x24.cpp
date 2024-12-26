@@ -6,7 +6,7 @@
 #include "../types.hpp"
 #include "../devices/keyboard.hpp"
 #include "../memory.hpp"
-
+#include "../debug.hpp"
 // Apple II+ Character Set (7x8 pixels)
 // Characters 0x20 through 0x7F
 #define CHAR_GLYPHS_COUNT 256
@@ -212,19 +212,39 @@ void update_display(cpu_state *cpu) {
     SDL_Event event;
     while(SDL_PollEvent(&event)) {
         if(event.type == SDL_QUIT) {
-            fprintf(stdout, "quit received, shutting down\n");
-            // set some flag to exit
+            if (DEBUG(DEBUG_GUI)) fprintf(stdout, "quit received, shutting down\n");
+            cpu->halt = HLT_USER;
+            continue;
         }
         if (event.type == SDL_KEYDOWN) {
             // Ignore if only shift is pressed
             uint16_t mod = event.key.keysym.mod;
-            uint8_t key = event.key.keysym.sym;
+            SDL_Keycode key = event.key.keysym.sym;
             
             if (mod & KMOD_SHIFT) {
-                fprintf(stdout, "shift key pressed: %02X\n", key);
-                if (key == 0xE1) return;
-                kb_key_pressed(key);
-                return;
+                if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "shift key pressed: %08X\n", key);
+                if ((key == SDLK_LSHIFT) || (key == SDLK_RSHIFT)) return;
+                if (key == SDLK_EQUALS) kb_key_pressed('+');
+                else if (key == SDLK_MINUS) kb_key_pressed('_');
+                else if (key == SDLK_1) kb_key_pressed('!');
+                else if (key == SDLK_2) kb_key_pressed('@');
+                else if (key == SDLK_3) kb_key_pressed('#');
+                else if (key == SDLK_4) kb_key_pressed('$');
+                else if (key == SDLK_5) kb_key_pressed('%');
+                else if (key == SDLK_6) kb_key_pressed('^');
+                else if (key == SDLK_7) kb_key_pressed('&');
+                else if (key == SDLK_8) kb_key_pressed('*');
+                else if (key == SDLK_9) kb_key_pressed('(');
+                else if (key == SDLK_0) kb_key_pressed(')');
+                else if (key == SDLK_QUOTE) kb_key_pressed('"');
+                else if (key == SDLK_SEMICOLON) kb_key_pressed(':');
+                else if (key == SDLK_COMMA) kb_key_pressed('<');
+                else if (key == SDLK_PERIOD) kb_key_pressed('>');
+                else if (key == SDLK_SLASH) kb_key_pressed('?');
+                else {
+                    kb_key_pressed(key);
+                }
+                continue;
             }
 
             if (mod & KMOD_CTRL) {
@@ -232,13 +252,13 @@ void update_display(cpu_state *cpu) {
                 if (key >= 'a' && key <= 'z') {
                     key = key - 'a' + 1;
                     kb_key_pressed(key);
-                    fprintf(stdout, "control key pressed: %02X\n", key);
+                    if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "control key pressed: %08X\n", key);
                 }
             } 
             else {
                 kb_key_pressed(key);
             }
-            fprintf(stdout, "key pressed: %02X\n", key);
+            if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "key pressed: %08X\n", key);
         }
     }
 
@@ -280,12 +300,12 @@ void txt_memory_write(uint16_t address, uint8_t value) {
     uint8_t y_loc = (subrow * 8) + superrow; // Each superrow contains 8 rows
     uint8_t x_loc = charoffset;
 
-    printf("Address: $%04X -> x:%d, y:%d (value: $%02X)\n", 
+    if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Address: $%04X -> x:%d, y:%d (value: $%02X)\n", 
            address, x_loc, y_loc, value); // Debug output
 
     // Extra bounds verification
     if (x_loc >= 40 || y_loc >= 24) {
-        printf("Invalid coordinates calculated: x=%d, y=%d from addr=$%04X\n", 
+        if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Invalid coordinates calculated: x=%d, y=%d from addr=$%04X\n", 
                x_loc, y_loc, address);
         return;
     }
