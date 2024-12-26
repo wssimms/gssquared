@@ -7,6 +7,7 @@
 #include "../devices/keyboard.hpp"
 #include "../memory.hpp"
 #include "../debug.hpp"
+
 // Apple II+ Character Set (7x8 pixels)
 // Characters 0x20 through 0x7F
 #define CHAR_GLYPHS_COUNT 256
@@ -209,58 +210,6 @@ void update_flash_state(cpu_state *cpu) {
 }
 
 void update_display(cpu_state *cpu) {
-    SDL_Event event;
-    while(SDL_PollEvent(&event)) {
-        if(event.type == SDL_QUIT) {
-            if (DEBUG(DEBUG_GUI)) fprintf(stdout, "quit received, shutting down\n");
-            cpu->halt = HLT_USER;
-            continue;
-        }
-        if (event.type == SDL_KEYDOWN) {
-            // Ignore if only shift is pressed
-            uint16_t mod = event.key.keysym.mod;
-            SDL_Keycode key = event.key.keysym.sym;
-            
-            if (mod & KMOD_SHIFT) {
-                if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "shift key pressed: %08X\n", key);
-                if ((key == SDLK_LSHIFT) || (key == SDLK_RSHIFT)) return;
-                if (key == SDLK_EQUALS) kb_key_pressed('+');
-                else if (key == SDLK_MINUS) kb_key_pressed('_');
-                else if (key == SDLK_1) kb_key_pressed('!');
-                else if (key == SDLK_2) kb_key_pressed('@');
-                else if (key == SDLK_3) kb_key_pressed('#');
-                else if (key == SDLK_4) kb_key_pressed('$');
-                else if (key == SDLK_5) kb_key_pressed('%');
-                else if (key == SDLK_6) kb_key_pressed('^');
-                else if (key == SDLK_7) kb_key_pressed('&');
-                else if (key == SDLK_8) kb_key_pressed('*');
-                else if (key == SDLK_9) kb_key_pressed('(');
-                else if (key == SDLK_0) kb_key_pressed(')');
-                else if (key == SDLK_QUOTE) kb_key_pressed('"');
-                else if (key == SDLK_SEMICOLON) kb_key_pressed(':');
-                else if (key == SDLK_COMMA) kb_key_pressed('<');
-                else if (key == SDLK_PERIOD) kb_key_pressed('>');
-                else if (key == SDLK_SLASH) kb_key_pressed('?');
-                else {
-                    kb_key_pressed(key);
-                }
-                continue;
-            }
-
-            if (mod & KMOD_CTRL) {
-                // Convert lowercase to control code (0x01-0x1A)
-                if (key >= 'a' && key <= 'z') {
-                    key = key - 'a' + 1;
-                    kb_key_pressed(key);
-                    if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "control key pressed: %08X\n", key);
-                }
-            } 
-            else {
-                kb_key_pressed(key);
-            }
-            if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "key pressed: %08X\n", key);
-        }
-    }
 
     if (display_was_updated) {
         SDL_RenderCopy(renderer, screenTexture, NULL, NULL);
