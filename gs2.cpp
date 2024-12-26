@@ -15,6 +15,7 @@
 #include "clock.hpp"
 #include "test.hpp"
 #include "display/text_40x24.hpp"
+#include "event_poll.hpp"
 
 // how many nanoseconds per second
 constexpr uint64_t NS_PER_SECOND = /* 1000000000 */ 999999999; /* if we do 1 billion even, it doesn't work. */
@@ -1878,7 +1879,7 @@ int execute_next_6502(cpu_state *cpu) {
             fprintf(stdout, "Unknown opcode: 0x%02X", opcode);
             cpu->halt = HLT_INSTRUCTION;
     }
-    if (DEBUG(DEBUG_ANY)) fprintf(stdout, "\n");
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "\n");
 
     return 0;
 }
@@ -1891,6 +1892,7 @@ void run_cpus(void) {
         if (execute_next_6502(cpu) > 0) {
             break;
         }
+        event_poll(cpu);
         uint64_t current_time = get_current_time_in_microseconds();
         if (current_time - last_display_update > 16667) {
             update_flash_state(cpu);
