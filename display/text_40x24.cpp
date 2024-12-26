@@ -63,6 +63,42 @@ uint16_t TEXT_PAGE_1_TABLE[24] = {
     0x07D0,
 };
 
+uint16_t TEXT_PAGE_2_TABLE[24] = {
+    0x0800,
+    0x0880,
+    0x0900,
+    0x0980,
+    0x0A00,
+    0x0A80,
+    0x0B00,
+    0x0B80,
+
+    0x0828,
+    0x08A8,
+    0x0928,
+    0x09A8,
+    0x0A28,
+    0x0AA8,
+    0x0B28,
+    0x0BA8,
+
+    0x0850,
+    0x08D0,
+    0x0950,
+    0x09D0,
+    0x0A50,
+    0x0AD0,
+    0x0B50,
+    0x0BD0,
+};
+
+// these three variables define the current text page
+// when we switch to screen 2, we change TEXT_PAGE_START, TEXT_PAGE_END, and TEXT_PAGE_TABLE
+// default to screen 1
+uint16_t TEXT_PAGE_START = 0x0400;
+uint16_t TEXT_PAGE_END = 0x07FF;
+uint16_t *TEXT_PAGE_TABLE = TEXT_PAGE_1_TABLE;
+
 
 #ifdef USE_SDL2
 
@@ -82,7 +118,8 @@ uint64_t init_display() {
         return 1;
     }
 
-    const int SCALE = 4;
+    const int SCALE_X = 4;
+    const int SCALE_Y = 4;
     const int BASE_WIDTH = 280;
     const int BASE_HEIGHT = 192;
     
@@ -90,8 +127,8 @@ uint64_t init_display() {
         "Apple ][ Emulator", 
         SDL_WINDOWPOS_UNDEFINED, 
         SDL_WINDOWPOS_UNDEFINED, 
-        BASE_WIDTH * SCALE, 
-        BASE_HEIGHT * SCALE, 
+        BASE_WIDTH * SCALE_X, 
+        BASE_HEIGHT * SCALE_Y, 
         SDL_WINDOW_SHOWN
     );
 
@@ -231,12 +268,12 @@ void free_display() {
 // converts address to an X,Y coordinate then calls render_character to do it.
 void txt_memory_write(uint16_t address, uint8_t value) {
     // Strict bounds checking for text page 1
-    if (address < 0x400 || address >= 0x800) {
+    if (address < TEXT_PAGE_START || address > TEXT_PAGE_END) {
         return;
     }
 
     // Convert text memory address to screen coordinates
-    uint16_t addr_rel = address - 0x400;
+    uint16_t addr_rel = address - TEXT_PAGE_START;
     
     // Each superrow is 128 bytes apart
     uint8_t superrow = addr_rel >> 7;      // Divide by 128 to get 0 or 1
