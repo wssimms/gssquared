@@ -2,7 +2,6 @@
 
 #include <cstdint>
 
-#include "gs2.hpp"
 #include "memoryspecs.hpp"
 #include "types.hpp"
 #define MAX_CPUS 1
@@ -128,3 +127,5 @@ struct cpu_state {
 #define FLAG_N        0b10000000 /* 0x80 */
 
 extern struct cpu_state CPUs[MAX_CPUS];
+
+void cpu_reset(cpu_state *cpu);
