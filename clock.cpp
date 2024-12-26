@@ -1,6 +1,7 @@
 #include <time.h>
 #include <mach/mach_time.h>
 
+#include "gs2.hpp"
 #include "cpu.hpp"
 #include "clock.hpp"
 
