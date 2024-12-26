@@ -2,10 +2,11 @@
 #include <sstream>
 #include <iomanip>
 
+#include "gs2.hpp"
 #include "memory.hpp"
 #include "debug.hpp"
 
-uint64_t debug_level = 0;
+uint64_t debug_level = DEBUG_KEYBOARD;
 
 inline void print_hex(uint8_t value) {
     std::cout << std::hex << std::uppercase << static_cast<int>(value) << std::dec;

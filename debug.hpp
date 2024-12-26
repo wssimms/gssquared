@@ -21,6 +21,8 @@ extern uint64_t debug_level;
 #include <iostream>
 #include <sstream>
 #include <iomanip>
+
+#include "gs2.hpp"
 #include "cpu.hpp"
 
 /* void debug_print_cpu(cpu_t *cpu);
