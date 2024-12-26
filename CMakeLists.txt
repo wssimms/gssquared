@@ -14,8 +14,9 @@ set(CMAKE_CXX_COMPILER clang++)
 find_package(SDL2 REQUIRED)
 
 # Add the executable
-add_executable(gs2 gs2.cpp bus.cpp clock.cpp debug.cpp cpu.cpp memory.cpp opcodes.cpp test.cpp display/text_40x24.cpp devices/keyboard.cpp
-    devices/keyboard.hpp)
+add_executable(gs2 gs2.cpp bus.cpp clock.cpp debug.cpp cpu.cpp memory.cpp opcodes.cpp test.cpp display/text_40x24.cpp 
+    devices/keyboard.cpp
+    event_poll.cpp)
 
 # Include SDL2 headers
 include_directories(${SDL2_INCLUDE_DIRS} /opt/homebrew/Cellar/sdl2/2.30.10/include)
