@@ -5,6 +5,8 @@
 #include "memory.hpp"
 #include "debug.hpp"
 
+uint64_t debug_level = 0;
+
 inline void print_hex(uint8_t value) {
     std::cout << std::hex << std::uppercase << static_cast<int>(value) << std::dec;
 }
@@ -20,7 +22,6 @@ std::string int_to_hex(uint16_t value) {
     ss << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << static_cast<int>(value);
     return ss.str();
 }
-
 
 void debug_dump_memory(cpu_state *cpu, uint32_t start, uint32_t end) {
     for (uint32_t i = start; i <= end; i++) {
