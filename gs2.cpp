@@ -201,7 +201,7 @@ inline void add_and_set_flags(cpu_state *cpu, uint8_t N) {
         cpu->C = (S & 0x0100) >> 8;
         cpu->V =  !((M ^ N) & 0x80) && ((M ^ S8) & 0x80); // from 6502.org article https://www.righto.com/2012/12/the-6502-overflow-flag-explained.html?m=1
         set_n_z_flags(cpu, cpu->a_lo);
-        if (DEBUG >= 2) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  C: %02X  V: %02X", M, N, cpu->a_lo, cpu->C, cpu->V);
+        if (DEBUG(DEBUG_REGISTERS)) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  C: %02X  V: %02X", M, N, cpu->a_lo, cpu->C, cpu->V);
     } else {              // decimal mode
         uint8_t M = bcd_to_int(cpu->a_lo);
         uint8_t N1 = bcd_to_int(N);
@@ -209,7 +209,7 @@ inline void add_and_set_flags(cpu_state *cpu, uint8_t N) {
         cpu->a_lo = int_to_bcd(S8);
         cpu->C = (S8 > 99);
         set_n_z_flags(cpu, cpu->a_lo);
-        if (DEBUG >= 2) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  C: %02X  V: %02X", M, N, cpu->a_lo, cpu->C, cpu->V);
+        if (DEBUG(DEBUG_REGISTERS)) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  C: %02X  V: %02X", M, N, cpu->a_lo, cpu->C, cpu->V);
     }
 }
 
@@ -227,7 +227,7 @@ inline uint8_t subtract_core(cpu_state *cpu, uint8_t M, uint8_t N, uint8_t C) {
     cpu->C = (S & 0x0100) >> 8;
     cpu->V =  !((M ^ N1) & 0x80) && ((M ^ S8) & 0x80);
     set_n_z_flags(cpu, S8);
-    if (DEBUG >= 2) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  C: %01X  V: %01X Z: %01X", M, N, S8, cpu->C, cpu->V, cpu->Z);
+    if (DEBUG(DEBUG_REGISTERS)) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  C: %01X  V: %01X Z: %01X", M, N, S8, cpu->C, cpu->V, cpu->Z);
     return S8;
 }
 
@@ -244,7 +244,7 @@ inline void subtract_and_set_flags(cpu_state *cpu, uint8_t N) {
         cpu->V =  !((M ^ N1) & 0x80) && ((M ^ S8) & 0x80);
         cpu->a_lo = S8; // store the result in the accumulator. I accidentally deleted this before.
         set_n_z_flags(cpu, S8);
-        if (DEBUG >= 2) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  Z:%01X C:%01X N:%01X V:%01X ", M, N, S8, cpu->Z, cpu->C, cpu->N, cpu->V);
+        if (DEBUG(DEBUG_REGISTERS)) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  Z:%01X C:%01X N:%01X V:%01X ", M, N, S8, cpu->Z, cpu->C, cpu->N, cpu->V);
     } else {
         uint8_t M = bcd_to_int(cpu->a_lo);
         uint8_t N1 = bcd_to_int(N);
@@ -257,7 +257,7 @@ inline void subtract_and_set_flags(cpu_state *cpu, uint8_t N) {
         }
         cpu->a_lo = int_to_bcd(S8);
         set_n_z_flags(cpu, cpu->a_lo);
-        if (DEBUG >= 2) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  Z:%01X C:%01X N:%01X V:%01X ", M, N, S8, cpu->Z, cpu->C, cpu->N, cpu->V);
+        if (DEBUG(DEBUG_REGISTERS)) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  Z:%01X C:%01X N:%01X V:%01X ", M, N, S8, cpu->Z, cpu->C, cpu->N, cpu->V);
     }
 }
 
@@ -275,7 +275,7 @@ inline void compare_and_set_flags(cpu_state *cpu, uint8_t M, uint8_t N) {
     //cpu->V =  !((M ^ N1) & 0x80) && ((M ^ S8) & 0x80);
     set_n_z_flags(cpu, S8);
     //if (DEBUG) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  C: %01X  V: %01X Z: %01X", M, N, S8, cpu->C, cpu->V, cpu->Z);
-    if (DEBUG >= 2) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  Z:%01X C:%01X N:%01X V:%01X ", M, N, S8, cpu->Z, cpu->C, cpu->N, cpu->V);
+    if (DEBUG(DEBUG_REGISTERS)) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  Z:%01X C:%01X N:%01X V:%01X ", M, N, S8, cpu->Z, cpu->C, cpu->N, cpu->V);
 
 }
 
@@ -286,12 +286,12 @@ inline void compare_and_set_flags(cpu_state *cpu, uint8_t M, uint8_t N) {
 inline void branch_if(cpu_state *cpu, uint8_t N, bool condition) {
     uint16_t oaddr = cpu->pc;
     uint16_t taddr = oaddr + (int8_t) N;
-    if (DEBUG >= 1) fprintf(stdout, " => $%04X", taddr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " => $%04X", taddr);
 
     if (condition) {
         if ((oaddr-2) == taddr) { // this test should back up 2 bytes.. so the infinite branch is actually bxx FE.
             fprintf(stdout, "JUMP TO SELF INFINITE LOOP Branch $%04X -> %01X\n", taddr, condition);
-            cpu->halt = 1;
+            cpu->halt = HLT_INSTRUCTION;
         }
 
         cpu->pc = cpu->pc + (int8_t) N;
@@ -301,7 +301,7 @@ inline void branch_if(cpu_state *cpu, uint8_t N, bool condition) {
         if ((oaddr & 0xFF00) != (taddr & 0xFF00)) {
             incr_cycles(cpu);
         }
-        if (DEBUG >= 1) fprintf(stdout, " (taken)");
+        if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " (taken)");
     }
 }
 
@@ -322,34 +322,34 @@ inline void branch_if(cpu_state *cpu, uint8_t N, bool condition) {
 /* These also generate the disassembly output - the operand address and mode */
 inline zpaddr_t get_operand_address_zeropage(cpu_state *cpu) {
     zpaddr_t zpaddr = read_byte_from_pc(cpu);
-    if (DEBUG >= 1) fprintf(stdout, " $%02X", zpaddr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%02X", zpaddr);
     return zpaddr;
 }
 
 inline zpaddr_t get_operand_address_zeropage_x(cpu_state *cpu) {
     zpaddr_t zpaddr = read_byte_from_pc(cpu);
     zpaddr_t taddr = zpaddr + cpu->x_lo; // make sure it wraps.
-    if (DEBUG >= 1) fprintf(stdout, " $%02X,X", zpaddr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%02X,X", zpaddr);
     return taddr;
 }
 
 inline zpaddr_t get_operand_address_zeropage_y(cpu_state *cpu) {
     zpaddr_t zpaddr = read_byte_from_pc(cpu);
     zpaddr_t taddr = zpaddr + cpu->y_lo; // make sure it wraps.
-    if (DEBUG >= 1) fprintf(stdout, " $%02X,Y", zpaddr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%02X,Y", zpaddr);
     return taddr;
 }
 
 inline absaddr_t get_operand_address_absolute(cpu_state *cpu) {
     absaddr_t addr = read_word_from_pc(cpu);
-    if (DEBUG >= 1) fprintf(stdout, " $%04X", addr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%04X", addr);
     return addr;
 }
 
 inline absaddr_t get_operand_address_absolute_indirect(cpu_state *cpu) {
     absaddr_t addr = read_word_from_pc(cpu);
     absaddr_t taddr = read_word(cpu, addr);
-    if (DEBUG >= 1) fprintf(stdout, " ($%04X) -> $%04X", addr, taddr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " ($%04X) -> $%04X", addr, taddr);
     return taddr;
 }
 
@@ -359,7 +359,7 @@ inline absaddr_t get_operand_address_absolute_x(cpu_state *cpu) {
     if ((addr & 0xFF00) != (taddr & 0xFF00)) {
         incr_cycles(cpu);
     }
-    if (DEBUG >= 1) fprintf(stdout, " $%04X,X", addr); // can add effective address here.
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%04X,X", addr); // can add effective address here.
     return taddr;
 }
 
@@ -369,14 +369,14 @@ inline absaddr_t get_operand_address_absolute_y(cpu_state *cpu) {
     if ((addr & 0xFF00) != (taddr & 0xFF00)) {
         incr_cycles(cpu);
     }
-    if (DEBUG >= 1) fprintf(stdout, " $%04X,Y", addr); // can add effective address here.
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%04X,Y", addr); // can add effective address here.
     return taddr;
 }
 
 inline uint16_t get_operand_address_indirect_x(cpu_state *cpu) {
     zpaddr_t zpaddr = read_byte_from_pc(cpu);
     absaddr_t taddr = read_word(cpu,(uint8_t)(zpaddr + cpu->x_lo)); // make sure it wraps.
-    if (DEBUG >= 1) fprintf(stdout, " ($%02X,X)  -> $%04X", zpaddr, taddr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " ($%02X,X)  -> $%04X", zpaddr, taddr);
     return taddr;
 }
 
@@ -388,7 +388,7 @@ inline absaddr_t get_operand_address_indirect_y(cpu_state *cpu) {
     if ((iaddr & 0xFF00) != (taddr & 0xFF00)) {
         incr_cycles(cpu);
     }
-    if (DEBUG >= 1) fprintf(stdout, " ($%02X),Y  -> $%04X", zpaddr, taddr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " ($%02X),Y  -> $%04X", zpaddr, taddr);
     return taddr;
 }
 
@@ -396,117 +396,117 @@ inline absaddr_t get_operand_address_indirect_y(cpu_state *cpu) {
 
 inline byte_t get_operand_immediate(cpu_state *cpu) {
     byte_t N = read_byte_from_pc(cpu);
-    if (DEBUG >= 1) fprintf(stdout, " #$%02X", N);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " #$%02X", N);
     return N;
 }
 
 inline byte_t get_operand_zeropage(cpu_state *cpu) {
     zpaddr_t addr = get_operand_address_zeropage(cpu);
     byte_t N = read_byte(cpu, addr);
-    if (DEBUG >= 1) fprintf(stdout, " -> #$%02X", N);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " -> #$%02X", N);
     return N;
 }
 
 inline void store_operand_zeropage(cpu_state *cpu, byte_t N) {
     zpaddr_t addr = get_operand_address_zeropage(cpu);
     write_byte(cpu, addr, N);
-    if (DEBUG >= 1) fprintf(stdout, "   [#%02X] -> $%02X", N, addr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] -> $%02X", N, addr);
 }
 
 inline byte_t get_operand_zeropage_x(cpu_state *cpu) {
     zpaddr_t addr = get_operand_address_zeropage_x(cpu);
     byte_t N = read_byte(cpu, addr);
-    if (DEBUG >= 1) fprintf(stdout, " [#%02X] <- $%02X", N, addr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%02X] <- $%02X", N, addr);
     return N;
 }
 
 inline void store_operand_zeropage_x(cpu_state *cpu, byte_t N) {
     zpaddr_t addr = get_operand_address_zeropage_x(cpu);
     write_byte(cpu, addr, N);
-    if (DEBUG >= 1) fprintf(stdout, "  [#%02X] -> $%02X", N, addr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "  [#%02X] -> $%02X", N, addr);
 }
 
 inline byte_t get_operand_zeropage_y(cpu_state *cpu) {
     zpaddr_t zpaddr = get_operand_address_zeropage_y(cpu);
     byte_t N = read_byte(cpu, zpaddr);
-    if (DEBUG >= 1) fprintf(stdout, "   [#%02X] <- $%02X", N, zpaddr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] <- $%02X", N, zpaddr);
     return N;
 }
 
 inline void store_operand_zeropage_y(cpu_state *cpu, byte_t N) {
     zpaddr_t zpaddr = get_operand_address_zeropage_y(cpu);
     write_byte(cpu, zpaddr, N);
-    if (DEBUG >= 1) fprintf(stdout, "  [#%02X] -> $%02X", N, zpaddr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "  [#%02X] -> $%02X", N, zpaddr);
 }
 
 inline byte_t get_operand_zeropage_indirect_x(cpu_state *cpu) {
     absaddr_t taddr = get_operand_address_indirect_x(cpu);
     byte_t N = read_byte(cpu, taddr);
-    if (DEBUG >= 1) fprintf(stdout, "  [#%02X] <- $%04X", N, taddr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "  [#%02X] <- $%04X", N, taddr);
     return N;
 }
 
 inline void store_operand_zeropage_indirect_x(cpu_state *cpu, byte_t N) {
     absaddr_t taddr = get_operand_address_indirect_x(cpu);
     write_byte(cpu, taddr, N);
-    if (DEBUG >= 1) fprintf(stdout, "   [#%02X] <- $%04X", N, taddr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] <- $%04X", N, taddr);
 }
 
 inline byte_t get_operand_zeropage_indirect_y(cpu_state *cpu) {
     absaddr_t addr = get_operand_address_indirect_y(cpu);
     byte_t N = read_byte(cpu, addr);
-    if (DEBUG >= 1) fprintf(stdout, "  [#%02X] <- $%04X", N, addr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "  [#%02X] <- $%04X", N, addr);
     return N;
 }
 
 inline void store_operand_zeropage_indirect_y(cpu_state *cpu, byte_t N) {
     absaddr_t addr = get_operand_address_indirect_y(cpu);
     write_byte(cpu, addr, N);
-    if (DEBUG >= 1) fprintf(stdout, "   [#%02X] -> $%04X", N, addr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] -> $%04X", N, addr);
 }
 
 inline byte_t get_operand_absolute(cpu_state *cpu) {
     absaddr_t addr = get_operand_address_absolute(cpu);
     byte_t N = read_byte(cpu, addr);
-    if (DEBUG >= 1) fprintf(stdout, "   [#%02X] <- $%04X", N, addr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] <- $%04X", N, addr);
     return N;
 }
 
 inline void store_operand_absolute(cpu_state *cpu, byte_t N) {
     absaddr_t addr = get_operand_address_absolute(cpu);
     write_byte(cpu, addr, N);
-    if (DEBUG >= 1) fprintf(stdout, "   [#%02X] <- $%04X", N, addr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] <- $%04X", N, addr);
 }
 
 inline byte_t get_operand_absolute_x(cpu_state *cpu) {
     absaddr_t addr = get_operand_address_absolute_x(cpu);
     byte_t N = read_byte(cpu, addr);
-    if (DEBUG >= 1) fprintf(stdout, "   [#%02X] <- $%04X", N, addr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] <- $%04X", N, addr);
     return N;
 }
 
 inline void store_operand_absolute_x(cpu_state *cpu, byte_t N) {
     absaddr_t addr = get_operand_address_absolute_x(cpu);
     write_byte(cpu, addr, N);
-    if (DEBUG >= 1) fprintf(stdout, "   [#%02X] -> $%04X", N, addr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] -> $%04X", N, addr);
 }
 
 inline byte_t get_operand_absolute_y(cpu_state *cpu) {
     absaddr_t addr = get_operand_address_absolute_y(cpu);
     byte_t N = read_byte(cpu, addr);
-    if (DEBUG >= 1) fprintf(stdout, "   [#%02X] <- $%04X", N, addr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] <- $%04X", N, addr);
     return N;
 }
 
 inline void store_operand_absolute_y(cpu_state *cpu, byte_t N) {
     absaddr_t addr = get_operand_address_absolute_y(cpu);
     write_byte(cpu, addr, N);
-    if (DEBUG >= 1) fprintf(stdout, "   [#%02X] -> $%04X", N, addr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] -> $%04X", N, addr);
 }
 
 inline byte_t get_operand_relative(cpu_state *cpu) {
     byte_t N = read_byte_from_pc(cpu);
-    if (DEBUG >= 1) fprintf(stdout, " #$%02X", N);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " #$%02X", N);
     return N;
 }
 
@@ -515,27 +515,27 @@ inline void op_transfer_to_x(cpu_state *cpu, byte_t N) {
     cpu->x_lo = N;
     set_n_z_flags(cpu, cpu->x_lo);
     incr_cycles(cpu);
-    if (DEBUG >= 1) fprintf(stdout, "[#$%02X] -> X", N);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "[#$%02X] -> X", N);
 }
 
 inline void op_transfer_to_y(cpu_state *cpu, byte_t N) {
     cpu->y_lo = N;
     set_n_z_flags(cpu, cpu->y_lo);
     incr_cycles(cpu);
-    if (DEBUG >= 1) fprintf(stdout, "[#$%02X] -> Y", N);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "[#$%02X] -> Y", N);
 }
 
 inline void op_transfer_to_a(cpu_state *cpu, byte_t N) {
     cpu->a_lo = N;
     set_n_z_flags(cpu, cpu->a_lo);
     incr_cycles(cpu);
-    if (DEBUG >= 1) fprintf(stdout, "[#$%02X] -> A", N);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "[#$%02X] -> A", N);
 }
 
 inline void op_transfer_to_s(cpu_state *cpu, byte_t N) {
     cpu->sp = N;
     incr_cycles(cpu);
-    if (DEBUG >= 1) fprintf(stdout, "[#$%02X] -> S", N);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "[#$%02X] -> S", N);
 }
 
 /**
@@ -547,30 +547,30 @@ inline void dec_operand(cpu_state *cpu, absaddr_t addr) {
     incr_cycles(cpu);
     write_byte(cpu, addr, N);
     set_n_z_flags(cpu, N);
-    if (DEBUG) fprintf(stdout, "   [#%02X]", N);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X]", N);
 }
 
 inline void dec_operand_zeropage(cpu_state *cpu) {
     zpaddr_t zpaddr = get_operand_address_zeropage(cpu);
-    if (DEBUG) fprintf(stdout, " $%02X", zpaddr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%02X", zpaddr);
     dec_operand(cpu, zpaddr);
 }
 
 inline void dec_operand_zeropage_x(cpu_state *cpu) {
     zpaddr_t zpaddr = get_operand_address_zeropage_x(cpu);
-    if (DEBUG) fprintf(stdout, " $%02X", zpaddr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%02X", zpaddr);
     dec_operand(cpu, zpaddr);
 }
 
 inline void dec_operand_absolute(cpu_state *cpu) {
     absaddr_t addr = get_operand_address_absolute(cpu);
-    if (DEBUG) fprintf(stdout, " $%04X", addr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%04X", addr);
     dec_operand(cpu, addr);
 }
 
 inline void dec_operand_absolute_x(cpu_state *cpu) {
     absaddr_t addr = get_operand_address_absolute_x(cpu);
-    if (DEBUG) fprintf(stdout, " $%04X", addr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%04X", addr);
     dec_operand(cpu, addr);
 }
 
@@ -583,30 +583,30 @@ inline void inc_operand(cpu_state *cpu, absaddr_t addr) {
     incr_cycles(cpu);
     write_byte(cpu, addr, N);
     set_n_z_flags(cpu, N);
-    if (DEBUG) fprintf(stdout, "   [#%02X]", N);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X]", N);
 }
 
 inline void inc_operand_zeropage(cpu_state *cpu) {
     zpaddr_t zpaddr = get_operand_address_zeropage(cpu);
-    if (DEBUG) fprintf(stdout, " $%02X", zpaddr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%02X", zpaddr);
     inc_operand(cpu, zpaddr);
 }
 
 inline void inc_operand_zeropage_x(cpu_state *cpu) {
     zpaddr_t zpaddr = get_operand_address_zeropage_x(cpu);
-    if (DEBUG) fprintf(stdout, " $%02X", zpaddr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%02X", zpaddr);
     inc_operand(cpu, zpaddr);
 }
 
 inline void inc_operand_absolute(cpu_state *cpu) {
     absaddr_t addr = get_operand_address_absolute(cpu);
-    if (DEBUG) fprintf(stdout, " $%04X", addr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%04X", addr);
     inc_operand(cpu, addr);
 }
 
 inline void inc_operand_absolute_x(cpu_state *cpu) {
     absaddr_t addr = get_operand_address_absolute_x(cpu);
-    if (DEBUG) fprintf(stdout, " $%04X", addr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%04X", addr);
     inc_operand(cpu, addr);
 }
 
@@ -615,7 +615,7 @@ inline byte_t logical_shift_right(cpu_state *cpu, byte_t N) {
     N = N >> 1;
     cpu->C = C;
     set_n_z_flags(cpu, N);
-    if (DEBUG) fprintf(stdout, " [#%02X]", N);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%02X]", N);
     return N;
 }
 
@@ -623,7 +623,7 @@ inline byte_t logical_shift_right_addr(cpu_state *cpu, absaddr_t addr) {
     byte_t N = read_byte(cpu, addr);
     byte_t result = logical_shift_right(cpu, N);
     write_byte(cpu, addr, result);
-    if (DEBUG) fprintf(stdout, " -> $%04X", addr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " -> $%04X", addr);
     return result;
 }
 
@@ -632,7 +632,7 @@ inline byte_t arithmetic_shift_left(cpu_state *cpu, byte_t N) {
     N = N << 1;
     cpu->C = C;
     set_n_z_flags(cpu, N);
-    if (DEBUG) fprintf(stdout, " [#%02X]", N);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%02X]", N);
     return N;
 }
 
@@ -640,7 +640,7 @@ inline byte_t arithmetic_shift_left_addr(cpu_state *cpu, absaddr_t addr) {
     byte_t N = read_byte(cpu, addr);
     byte_t result = arithmetic_shift_left(cpu, N);
     write_byte(cpu, addr, result);
-    if (DEBUG) fprintf(stdout, " -> $%04X", addr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " -> $%04X", addr);
     return result;
 }
 
@@ -651,7 +651,7 @@ inline byte_t rotate_right(cpu_state *cpu, byte_t N) {
     N |= (cpu->C << 7);
     cpu->C = C;
     set_n_z_flags(cpu, N);
-    if (DEBUG) fprintf(stdout, " [#%02X]", N);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%02X]", N);
     return N;
 }
 
@@ -659,7 +659,7 @@ inline byte_t rotate_right_addr(cpu_state *cpu, absaddr_t addr) {
     byte_t N = read_byte(cpu, addr);
     byte_t result = rotate_right(cpu, N);
     write_byte(cpu, addr, result);
-    if (DEBUG) fprintf(stdout, " -> $%04X", addr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " -> $%04X", addr);
     return result;
 }
 
@@ -669,7 +669,7 @@ inline byte_t rotate_left(cpu_state *cpu, byte_t N) {
     N |= cpu->C;
     cpu->C = C;
     set_n_z_flags(cpu, N);
-    if (DEBUG) fprintf(stdout, " [#%02X]", N);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%02X]", N);
     return N;
 }
 
@@ -677,7 +677,7 @@ inline byte_t rotate_left_addr(cpu_state *cpu, absaddr_t addr) {
     byte_t N = read_byte(cpu, addr);
     byte_t result = rotate_left(cpu, N);
     write_byte(cpu, addr, result);
-    if (DEBUG) fprintf(stdout, " -> $%04X", addr);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " -> $%04X", addr);
     return result;
 }
 
@@ -685,14 +685,14 @@ inline void push_byte(cpu_state *cpu, byte_t N) {
     write_byte(cpu, 0x0100 + cpu->sp, N);
     cpu->sp = (uint8_t)(cpu->sp - 1);
     incr_cycles(cpu);
-    if (DEBUG) fprintf(stdout, " [#%02X] -> S[0x01 %02X]", N, cpu->sp + 1);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%02X] -> S[0x01 %02X]", N, cpu->sp + 1);
 }
 
 inline byte_t pop_byte(cpu_state *cpu) {
     cpu->sp = (uint8_t)(cpu->sp + 1);
     byte_t N = read_byte(cpu, 0x0100 + cpu->sp);
     incr_cycles(cpu);
-    if (DEBUG) fprintf(stdout, " [#%02X] <- S[0x01 %02X]", N, cpu->sp - 1);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%02X] <- S[0x01 %02X]", N, cpu->sp - 1);
     return N;
 }
 
@@ -701,20 +701,20 @@ inline void push_word(cpu_state *cpu, word_t N) {
     write_byte(cpu, 0x0100 + cpu->sp - 1, N & 0x00FF);
     cpu->sp = (uint8_t)(cpu->sp - 2);
     incr_cycles(cpu);
-    if (DEBUG) fprintf(stdout, " [#%04X] -> S[0x01 %02X]", N, cpu->sp + 1);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%04X] -> S[0x01 %02X]", N, cpu->sp + 1);
 }
 
 inline absaddr_t pop_word(cpu_state *cpu) {
     absaddr_t N = read_word(cpu, 0x0100 + cpu->sp + 1);
     cpu->sp = (uint8_t)(cpu->sp + 2);
     incr_cycles(cpu);
-    if (DEBUG) fprintf(stdout, " [#%04X] <- S[0x01 %02X]", N, cpu->sp - 1);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%04X] <- S[0x01 %02X]", N, cpu->sp - 1);
     return N;
 }
 
 int execute_next_6502(cpu_state *cpu) {
 
-    if (DEBUG) {
+    if (DEBUG(DEBUG_CLOCK)) {
         uint64_t current_time = get_current_time_in_microseconds();
         fprintf(stdout, "[ %llu ]", cpu->cycles);
         uint64_t elapsed_time = current_time - cpu->boot_time;
@@ -723,20 +723,20 @@ int execute_next_6502(cpu_state *cpu) {
         fprintf(stdout, "[eHz: %.0f] ", cycles_per_second);
     }
 
-    if ( DEBUG == 0  && cpu->cycles > (10 * HZ_RATE) ) { // should take about 10 seconds.
+    if ( DEBUG(DEBUG_TIMEDRUN) && cpu->cycles > (10 * HZ_RATE) ) { // should take about 10 seconds.
         uint64_t current_time = get_current_time_in_microseconds();
         uint64_t elapsed_time = current_time - cpu->boot_time;
         fprintf(stdout, "[eTime: %llu] ", elapsed_time);
         float_t cycles_per_second = (cpu->cycles * 1000000000.0) / (elapsed_time * 1000.0);
         fprintf(stdout, "[eHz: %f] ", cycles_per_second);
-        cpu->halt = 1;
+        cpu->halt = HLT_INSTRUCTION;
     }
 
-    if (DEBUG >= 2) fprintf(stdout, " | PC: $%04X, A: $%02X, X: $%02X, Y: $%02X, P: $%02X, S: $%02X || ", cpu->pc, cpu->a_lo, cpu->x_lo, cpu->y_lo, cpu->p, cpu->sp);
+    if (DEBUG(DEBUG_REGISTERS)) fprintf(stdout, " | PC: $%04X, A: $%02X, X: $%02X, Y: $%02X, P: $%02X, S: $%02X || ", cpu->pc, cpu->a_lo, cpu->x_lo, cpu->y_lo, cpu->p, cpu->sp);
 
-    if (DEBUG) fprintf(stdout, "%04X: ", cpu->pc); // so PC is correct.
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "%04X: ", cpu->pc); // so PC is correct.
     opcode_t opcode = read_byte_from_pc(cpu);
-    if (DEBUG) fprintf(stdout, "%s", get_opcode_name(opcode));
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "%s", get_opcode_name(opcode));
 
     switch (opcode) {
 
@@ -1735,7 +1735,7 @@ int execute_next_6502(cpu_state *cpu) {
                 push_byte(cpu, cpu->p | FLAG_B | FLAG_UNUSED); // break flag and Unused bit set to 1.
                 cpu->p |= FLAG_I; // interrupt disable flag set to 1.
                 cpu->pc = read_word(cpu, BRK_VECTOR);
-                if (DEBUG) fprintf(stdout, " => $%04X", cpu->pc);
+                if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, " => $%04X", cpu->pc);
             }
             break;
 
@@ -1746,9 +1746,9 @@ int execute_next_6502(cpu_state *cpu) {
                 cpu->pc = read_word_from_pc(cpu);
                 if (thisaddr == cpu->pc) {
                     fprintf(stdout, " JUMP TO SELF INFINITE LOOP JMP $%04X\n", cpu->pc);
-                    cpu->halt = 1;
+                    cpu->halt = HLT_INSTRUCTION;
                 }
-                if (DEBUG) fprintf(stdout, " $%04X", cpu->pc);
+                if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, " $%04X", cpu->pc);
             }
             break;
 
@@ -1756,7 +1756,7 @@ int execute_next_6502(cpu_state *cpu) {
             {
                 absaddr_t addr = get_operand_address_absolute_indirect(cpu);
                 cpu->pc = addr;
-                if (DEBUG) fprintf(stdout, " -> [$%04X]", addr);
+                if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, " -> [$%04X]", addr);
             }
             break;
 
@@ -1766,7 +1766,7 @@ int execute_next_6502(cpu_state *cpu) {
                 absaddr_t addr = get_operand_address_absolute(cpu);
                 push_word(cpu, cpu->pc -1); // return address pushed is last byte of JSR instruction
                 cpu->pc = addr;
-                if (DEBUG) fprintf(stdout, "$%04X", cpu->pc);
+                if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, "$%04X", cpu->pc);
             }
             break;
 
@@ -1779,7 +1779,7 @@ int execute_next_6502(cpu_state *cpu) {
                 cpu->p = p | oldp;
 
                 cpu->pc = pop_word(cpu);
-                if (DEBUG) fprintf(stdout, "$%04X %02X", cpu->pc, cpu->p);
+                if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, "$%04X %02X", cpu->pc, cpu->p);
             }
             break;
 
@@ -1788,7 +1788,7 @@ int execute_next_6502(cpu_state *cpu) {
             {
                 cpu->pc = pop_word(cpu);
                 cpu->pc++;
-                if (DEBUG) fprintf(stdout, "$%04X", cpu->pc);
+                if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, "$%04X", cpu->pc);
             }
             break;
 
@@ -1870,15 +1870,15 @@ int execute_next_6502(cpu_state *cpu) {
 
         case OP_HLT_IMP: /* HLT */
             {
-                cpu->halt = 1;
+                cpu->halt = HLT_INSTRUCTION;
             }
             break;
 
         default:
             fprintf(stdout, "Unknown opcode: 0x%02X", opcode);
-            cpu->halt = 1;
+            cpu->halt = HLT_INSTRUCTION;
     }
-    if (DEBUG) fprintf(stdout, "\n");
+    if (DEBUG(DEBUG_ANY)) fprintf(stdout, "\n");
 
     return 0;
 }
@@ -1893,11 +1893,12 @@ void run_cpus(void) {
         }
         uint64_t current_time = get_current_time_in_microseconds();
         if (current_time - last_display_update > 16667) {
-            update_display(); // check for events 60 times per second.
+            update_flash_state(cpu);
+            update_display(cpu); // check for events 60 times per second.
             last_display_update = current_time;
         }
         if (cpu->halt) {
-            update_display(); // update one last time to show the last state.
+            update_display(cpu); // update one last time to show the last state.
             break;
         }
     }
@@ -1965,9 +1966,11 @@ int main() {
     }
 
     run_cpus();
-
-    printf("Press Enter to continue...");
-    getchar();
+    printf("CPU halted: %d\n", CPUs[0].halt);
+    if (CPUs[0].halt == HLT_INSTRUCTION) { // keep screen up and give user a chance to see the last state.
+        printf("Press Enter to continue...");
+        getchar();
+    }
 
     free_display();
 
