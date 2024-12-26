@@ -106,7 +106,7 @@ struct cpu_state {
         };
         uint8_t p;  /* Processor Status Register */
     };
-    uint8_t halt = 0;
+    uint8_t halt = 0; /* == 1 is HLT instruction halt; == 2 is user halt */
     uint64_t cycles; /* Number of cycles since reset */
     memory_map *memory;
     uint64_t last_tick;
@@ -114,6 +114,9 @@ struct cpu_state {
     uint64_t cycle_duration_ticks;    
     unsigned int free_run = 0;
 };
+
+#define HLT_INSTRUCTION 1
+#define HLT_USER 2
 
 #define FLAG_C        0b00000001 /* 0x01 */
 #define FLAG_Z        0b00000010 /* 0x02 */
