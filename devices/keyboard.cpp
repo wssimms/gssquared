@@ -4,6 +4,8 @@
 #include "../cpu.hpp"
 #include "../debug.hpp"
 #include "keyboard.hpp"
+#include "../gs2.hpp"
+
 // Software should be able to:
 // Read keyboard from register at $C000.
 // Write to the keyboard clear latch at $C010.
@@ -75,7 +77,7 @@ void handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
             key = key - 'a' + 1;
             kb_key_pressed(key);
             if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "control key pressed: %08X\n", key);
-        }
+        } else if (key == SDLK_F10) { cpu_reset(cpu); return; }
     } 
     else {
         // convert lowercase characters to uppercase for Apple ][+
