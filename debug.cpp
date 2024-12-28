@@ -6,7 +6,7 @@
 #include "memory.hpp"
 #include "debug.hpp"
 
-uint64_t debug_level = DEBUG_KEYBOARD;
+uint64_t debug_level = DEBUG_BOOT_FLAG;
 
 inline void print_hex(uint8_t value) {
     std::cout << std::hex << std::uppercase << static_cast<int>(value) << std::dec;
@@ -31,3 +31,7 @@ void debug_dump_memory(cpu_state *cpu, uint32_t start, uint32_t end) {
     }
     std::cout << std::endl;
 }
+
+void debug_set_level(uint64_t level) {
+    debug_level = level;
+};
