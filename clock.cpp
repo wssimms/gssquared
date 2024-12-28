@@ -25,7 +25,7 @@ void emulate_clock_cycle(cpu_state *cpu) {
 
 void incr_cycles(cpu_state *cpu) {
     cpu->cycles++;
-    if (!cpu->free_run) {
+    if (cpu->clock_mode != CLOCK_FREE_RUN) {
         emulate_clock_cycle(cpu);
     }
 }
