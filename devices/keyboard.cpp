@@ -1,10 +1,10 @@
 #include <cstdio>
 #include <SDL2/SDL.h>
-#include "../types.hpp"
+#include "../gs2.hpp"
 #include "../cpu.hpp"
 #include "../debug.hpp"
 #include "keyboard.hpp"
-#include "../gs2.hpp"
+#include "../bus.hpp"
 
 // Software should be able to:
 // Read keyboard from register at $C000.
@@ -20,7 +20,7 @@ void kb_clear_strobe() {
     kb_key_strobe = kb_key_strobe & 0x7F;
 }
 
-uint8_t kb_memory_read(uint16_t address) {
+uint8_t kb_memory_read(cpu_state *cpu, uint16_t address) {
     //fprintf(stderr, "kb_memory_read %04X\n", address);
     if (address == 0xC000) {
         uint8_t key = kb_key_strobe;
@@ -34,7 +34,7 @@ uint8_t kb_memory_read(uint16_t address) {
     return 0xEE;
 }
 
-void kb_memory_write(uint16_t address, uint8_t value) {
+void kb_memory_write(cpu_state *cpu, uint16_t address, uint8_t value) {
     if (address == 0xC010) {
         // Clear the keyboard latch
         kb_clear_strobe();
@@ -82,6 +82,10 @@ void handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
     else {
         // convert lowercase characters to uppercase for Apple ][+
         if (key == SDLK_F12) { cpu->halt = HLT_USER; return; }
+        if (key == SDLK_F9) { 
+            toggle_clock_mode(cpu);
+            return; 
+        }
         if (key == SDLK_LEFT) { kb_key_pressed(0x08); return; }
         if (key == SDLK_RIGHT) { kb_key_pressed(0x15); return; }
         if (key >= 'a' && key <= 'z') key = key - 'a' + 'A';
@@ -89,4 +93,11 @@ void handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
         kb_key_pressed(key);
     }
     if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "key pressed: %08X\n", key);
+}
+
+void init_keyboard() {
+    if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "init_keyboard\n");
+    register_C0xx_memory_read_handler(0xC000, kb_memory_read);
+    register_C0xx_memory_read_handler(0xC010, kb_memory_read);
+    register_C0xx_memory_write_handler(0xC010, kb_memory_write);
 }
