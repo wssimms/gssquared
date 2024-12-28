@@ -3,8 +3,21 @@
 #include <cstdint>
 
 #include "memoryspecs.hpp"
-#include "types.hpp"
+//#include "clock.hpp"
+
 #define MAX_CPUS 1
+
+#define BRK_VECTOR 0xFFFE
+#define IRQ_VECTOR 0xFFFE
+#define NMI_VECTOR 0xFFFA
+#define RESET_VECTOR 0xFFFC
+
+typedef enum clock_mode {
+    CLOCK_FREE_RUN = 0,
+    CLOCK_2_8MHZ,
+    CLOCK_1_024MHZ,
+    NUM_CLOCK_MODES
+} clock_mode;
 
 struct memory_page {
     uint8_t data[GS2_PAGE_SIZE];
@@ -110,8 +123,9 @@ struct cpu_state {
     memory_map *memory;
     uint64_t last_tick;
     uint64_t cycle_duration_ns;
-    uint64_t cycle_duration_ticks;    
-    unsigned int free_run = 0;
+    uint64_t cycle_duration_ticks;
+    uint64_t HZ_RATE;
+    clock_mode clock_mode = CLOCK_FREE_RUN;
 };
 
 #define HLT_INSTRUCTION 1
@@ -129,3 +143,9 @@ struct cpu_state {
 extern struct cpu_state CPUs[MAX_CPUS];
 
 void cpu_reset(cpu_state *cpu);
+
+void run_cpus(void) ;
+
+void toggle_clock_mode(cpu_state *cpu);
+
+void set_clock_mode(cpu_state *cpu, clock_mode mode);
