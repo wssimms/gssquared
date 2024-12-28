@@ -122,6 +122,10 @@ struct cpu_state {
     uint64_t cycles; /* Number of cycles since reset */
     memory_map *memory;
     uint64_t last_tick;
+    uint64_t next_tick;
+    uint64_t clock_slip = 0;
+    uint64_t clock_busy = 0;
+    uint64_t clock_sleep = 0;
     uint64_t cycle_duration_ns;
     uint64_t cycle_duration_ticks;
     uint64_t HZ_RATE;
