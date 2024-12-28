@@ -31,7 +31,7 @@ uint8_t read_memory(cpu_state *cpu, uint16_t address) {
         return cpu->memory->pages[address / GS2_PAGE_SIZE]->data[address % GS2_PAGE_SIZE];
     }
     // IO - call the memory bus dispatcher thingy.
-    return memory_bus_read(address);
+    return memory_bus_read(cpu, address);
 }
 
 void write_memory(cpu_state *cpu, uint16_t address, uint8_t value) {
@@ -44,12 +44,12 @@ void write_memory(cpu_state *cpu, uint16_t address, uint8_t value) {
     }
     // if IO, only call the memory bus dispatcher thingy
     if (typ == MEM_IO) {
-        memory_bus_write(address, value);
+        memory_bus_write(cpu, address, value);
         return;
     }
     // if RAM, write
     cpu->memory->pages[address / GS2_PAGE_SIZE]->data[address % GS2_PAGE_SIZE] = value;
-    memory_bus_write(address, value); // catch writes to video memory.
+    memory_bus_write(cpu, address, value); // catch writes to video memory.
 }
 
 uint8_t read_byte(cpu_state *cpu, uint16_t address) {

@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include "cpu.hpp"
-#include "gs2.hpp"
 
 
  uint8_t raw_memory_read(cpu_state *cpu, uint16_t address);
