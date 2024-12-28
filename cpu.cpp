@@ -17,6 +17,21 @@ uint64_t HZ_RATES[] = {
     1024000
 };
 
+// 1000000000 / cpu->HZ_RATE
+uint64_t cycle_durations_ns[] = {
+    425, // 357,
+    425, // 357,
+    1100, // 976
+};
+
+// cpu->cycle_duration_ns * info.denom / info.numer
+uint64_t cycle_durations_ticks[] = {
+    8,
+    8,
+    23
+};
+
+
 void set_clock_mode(cpu_state *cpu, clock_mode mode) {
     // Get the conversion factor for mach_absolute_time to nanoseconds
     mach_timebase_info_data_t info;
@@ -24,10 +39,11 @@ void set_clock_mode(cpu_state *cpu, clock_mode mode) {
 
     cpu->HZ_RATE = HZ_RATES[mode];
     // Calculate time per cycle at emulated rate
-    cpu->cycle_duration_ns = 1000000000 / cpu->HZ_RATE;
+    cpu->cycle_duration_ns = cycle_durations_ns[mode];
+    cpu->cycle_duration_ticks = cycle_durations_ticks[mode];
 
     // Convert the cycle duration to mach_absolute_time() units
-    cpu->cycle_duration_ticks = (cpu->cycle_duration_ns * info.denom / info.numer); // fudge
+    //cpu->cycle_duration_ticks = (cpu->cycle_duration_ns * info.denom / info.numer); // fudge
 
     cpu->clock_mode = mode;
     fprintf(stdout, "Clock mode: %d HZ_RATE: %llu cycle_duration_ns: %llu cycle_duration_ticks: %llu\n", cpu->clock_mode, cpu->HZ_RATE, cpu->cycle_duration_ns, cpu->cycle_duration_ticks);
