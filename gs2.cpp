@@ -17,17 +17,6 @@
 #include "event_poll.hpp"
 #include "devices/keyboard.hpp"
 
-#ifdef NONONONO
-// how many nanoseconds per second
-constexpr uint64_t NS_PER_SECOND = /* 1000000000 */ 999999999; /* if we do 1 billion even, it doesn't work. */
-
-// target effective emulated mhz rate
-constexpr uint64_t HZ_RATE = 2800000; /* 1 means 1 cycle per real second */
-
-// how many nanoseconds per cycle
-constexpr uint64_t nS_PER_CYCLE = NS_PER_SECOND / HZ_RATE;
-#endif
-
 /**
  * References: 
  * Apple Machine Language: Don Inman, Kurt Inman
@@ -136,6 +125,8 @@ void init_cpus() { // this is the same as a power-on event.
         CPUs[i].last_tick = 0;
 
         set_clock_mode(&CPUs[i], CLOCK_FREE_RUN);
+
+        CPUs[i].next_tick = mach_absolute_time() + CPUs[i].cycle_duration_ticks; 
 
 /*         // Get the conversion factor for mach_absolute_time to nanoseconds
         mach_timebase_info_data_t info;
@@ -1905,7 +1896,7 @@ void run_cpus(void) {
 
         if (current_time - last_5sec_update > 5000000) {
             uint64_t delta = cpu->cycles - last_5sec_cycles;
-            fprintf(stdout, "%llu cycles clock-mode: %d cycles per second: %f MHz\n", delta, cpu->clock_mode, (float)delta / float(5000000) );
+            fprintf(stdout, "%llu cycles clock-mode: %d CPS: %f MHz [ slips: %llu, busy: %llu, sleep: %llu]\n", delta, cpu->clock_mode, (float)delta / float(5000000) , cpu->clock_slip, cpu->clock_busy, cpu->clock_sleep);
             last_5sec_cycles = cpu->cycles;
             last_5sec_update = current_time;
         }
