@@ -1,13 +1,15 @@
 #pragma once
 
-#include "cpu.hpp"
-
 #define USE_SDL2 1
 
-#define BRK_VECTOR 0xFFFE
-#define IRQ_VECTOR 0xFFFE
-#define NMI_VECTOR 0xFFFA
-#define RESET_VECTOR 0xFFFC
+#include <unistd.h>
+#include <stdint.h>
 
-void run_cpus(void) ;
-void cpu_reset(cpu_state *cpu) ;
+/* Address types */
+typedef uint8_t zpaddr_t;
+typedef uint16_t absaddr_t;
+
+/* Data bus types */
+typedef uint8_t byte_t;
+typedef uint16_t word_t;
+typedef uint8_t opcode_t;
