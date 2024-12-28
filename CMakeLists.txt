@@ -10,6 +10,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # Set the compiler to Clang++
 set(CMAKE_CXX_COMPILER clang++)
 
+# Choose one of these optimization levels:
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")  # No optimization
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1")  # Basic optimization
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")  # Moderate optimization
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")  # Aggressive optimization
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os")  # Optimize for size
+
 # Find SDL2 package
 find_package(SDL2 REQUIRED)
 
