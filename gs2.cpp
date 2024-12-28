@@ -6,17 +6,18 @@
 #include <time.h>
 #include <mach/mach_time.h>
 
-#include "types.hpp"
 #include "gs2.hpp"
 #include "cpu.hpp"
+#include "clock.hpp"
 #include "memory.hpp"
 #include "opcodes.hpp"
 #include "debug.hpp"
-#include "clock.hpp"
 #include "test.hpp"
 #include "display/text_40x24.hpp"
 #include "event_poll.hpp"
+#include "devices/keyboard.hpp"
 
+#ifdef NONONONO
 // how many nanoseconds per second
 constexpr uint64_t NS_PER_SECOND = /* 1000000000 */ 999999999; /* if we do 1 billion even, it doesn't work. */
 
@@ -25,6 +26,7 @@ constexpr uint64_t HZ_RATE = 2800000; /* 1 means 1 cycle per real second */
 
 // how many nanoseconds per cycle
 constexpr uint64_t nS_PER_CYCLE = NS_PER_SECOND / HZ_RATE;
+#endif
 
 /**
  * References: 
@@ -132,9 +134,10 @@ void init_cpus() { // this is the same as a power-on event.
         CPUs[i].p = 0;
         CPUs[i].cycles = 0;
         CPUs[i].last_tick = 0;
-        CPUs[i].free_run = 1;
 
-        // Get the conversion factor for mach_absolute_time to nanoseconds
+        set_clock_mode(&CPUs[i], CLOCK_FREE_RUN);
+
+/*         // Get the conversion factor for mach_absolute_time to nanoseconds
         mach_timebase_info_data_t info;
         mach_timebase_info(&info);
 
@@ -143,7 +146,7 @@ void init_cpus() { // this is the same as a power-on event.
 
         // Convert the cycle duration to mach_absolute_time() units
         CPUs[i].cycle_duration_ticks = (CPUs[i].cycle_duration_ns * info.denom / info.numer); // fudge
-    }
+ */    }
 }
 
 /**
@@ -720,7 +723,7 @@ int execute_next_6502(cpu_state *cpu) {
         fprintf(stdout, "[eHz: %.0f] ", cycles_per_second);
     }
 
-    if ( DEBUG(DEBUG_TIMEDRUN) && cpu->cycles > (10 * HZ_RATE) ) { // should take about 10 seconds.
+    if ( DEBUG(DEBUG_TIMEDRUN) && cpu->cycles > (10 * cpu->HZ_RATE) ) { // should take about 10 seconds.
         uint64_t current_time = get_current_time_in_microseconds();
         uint64_t elapsed_time = current_time - cpu->boot_time;
         fprintf(stdout, "[eTime: %llu] ", elapsed_time);
@@ -1882,19 +1885,31 @@ int execute_next_6502(cpu_state *cpu) {
 
 void run_cpus(void) {
     cpu_state *cpu = &CPUs[0];
-    //cpu->pc = read_word(cpu, RESET_VECTOR);
+
     uint64_t last_display_update = 0;
+    uint64_t last_5sec_update = 0;
+    uint64_t last_5sec_cycles;
+
     while (1) {
         if (execute_next_6502(cpu) > 0) {
             break;
         }
-        event_poll(cpu);
+        
         uint64_t current_time = get_current_time_in_microseconds();
         if (current_time - last_display_update > 16667) {
+            event_poll(cpu); // they say call "once per frame"
             update_flash_state(cpu);
             update_display(cpu); // check for events 60 times per second.
             last_display_update = current_time;
         }
+
+        if (current_time - last_5sec_update > 5000000) {
+            uint64_t delta = cpu->cycles - last_5sec_cycles;
+            fprintf(stdout, "%llu cycles clock-mode: %d cycles per second: %f MHz\n", delta, cpu->clock_mode, (float)delta / float(5000000) );
+            last_5sec_cycles = cpu->cycles;
+            last_5sec_update = current_time;
+        }
+
         if (cpu->halt) {
             update_display(cpu); // update one last time to show the last state.
             break;
@@ -1914,6 +1929,9 @@ int main() {
     }
 
     init_cpus();
+
+    init_keyboard();
+    init_text_40x24_display();
 
     if (0) {
         // this is the one test system.
@@ -1964,6 +1982,7 @@ int main() {
     }
 
     run_cpus();
+
     printf("CPU halted: %d\n", CPUs[0].halt);
     if (CPUs[0].halt == HLT_INSTRUCTION) { // keep screen up and give user a chance to see the last state.
         printf("Press Enter to continue...");
