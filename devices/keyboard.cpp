@@ -5,6 +5,8 @@
 #include "../debug.hpp"
 #include "keyboard.hpp"
 #include "../bus.hpp"
+#include "speaker.hpp"
+#include "loader.hpp"
 
 // Software should be able to:
 // Read keyboard from register at $C000.
@@ -85,6 +87,14 @@ void handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
         if (key == SDLK_F9) { 
             toggle_clock_mode(cpu);
             return; 
+        }
+        if (key == SDLK_F8) {
+            toggle_speaker_recording();
+            return;
+        }
+        if (key == SDLK_F7) {
+            loader_execute(cpu);
+            return;
         }
         if (key == SDLK_LEFT) { kb_key_pressed(0x08); return; }
         if (key == SDLK_RIGHT) { kb_key_pressed(0x15); return; }
