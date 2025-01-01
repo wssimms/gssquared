@@ -1,11 +1,37 @@
+# GSSquared - Ultimate Apple II Series Emulator
 
-## System ROM Images:
+## Project Status (as of 2025-01-01)
 
-https://mirrors.apple2.org.za/Apple%20II%20Documentation%20Project/Computers/Apple%20II/Apple%20II/ROM%20Images/
+* CPUs
+  * NMOS 6502 - Complete.
+  * CMOS 6502 - not started.
+  * 65c816 - not started.
+* Keyboard - Complete.
+* Display Modes
+  * Text
+    * 40-column text mode - Complete. Supports normal, inverse, and flash; Screen 1 and 2.
+    * 80-column text mode - not started.
+  * Low-resolution graphics - (Complete - works with Screen 1, 2, split-screen and full-screen).
+  * High-resolution graphics - not started.
+* Storage Devices
+  * Cassette - not started.  
+  * Disk II Controller Card - Not started.
+  * SmartPort / ProDOS Block-Device Interface - Not started.
+  * RAMfast SCSI Interface - Not started.
+  * Pascal Storage Device - Not started.
+* Sound - Partially complete. Working, but has some audio artifact issues due to timing sync. Work in progress.
+* I/O Devices
+  * Printer / parallel port - not started.
+  * Printer / serial port - not started.
+  * Joystick / paddles - not started.
 
-### including the Character ROM:
 
-https://mirrors.apple2.org.za/Apple%20II%20Documentation%20Project/Computers/Apple%20II/Apple%20II/ROM%20Images/Apple%20II%20Character%20ROM%20-%20341-0036.bin
+## ROMs
+
+You will of course need ROM images to run the emulator like an Apple.
+
+1. System ROM Images: https://mirrors.apple2.org.za/Apple%20II%20Documentation%20Project/Computers/Apple%20II/Apple%20II/ROM%20Images/
+2. Character ROM Image: https://mirrors.apple2.org.za/Apple%20II%20Documentation%20Project/Computers/Apple%20II/Apple%20II/ROM%20Images/Apple%20II%20Character%20ROM%20-%20341-0036.bin
 
 ### More Character ROM stuff:
 
@@ -16,92 +42,29 @@ Info on the character set:
 https://en.wikipedia.org/wiki/Apple_II_character_set
 
 
-It's not easy to see the pattern in the character ROM, but it's there.
+## Display
 
-```
-0x08 xx001000
-0x14 xx010100
-0x22 xx100010
-0x22 xx100010
-0x3E xx111110
-0x22 xx100010
-0x22 xx100010
-0x00 xxxxxxxx
-```
+The display is managed by the cross-platform SDL2 library, which supports graphics
+but also sound, user input, lots of other stuff. It is a library intended for
+video games, and in thinking about all the things that make up a good emulator, 
+it fits the video game category quite closely.
 
-Apple II text mode : still uses 280x192 matrix.
-Each character is 7 x 8 pixels.
-280 / 7 = 40 columns.
-192 / 8 = 24 rows.
 
-Pixel size: Each character is made up of a 5x7 pixel bitmap, but displayed as a 7x8 character cell on the screen.
-there will be 1 pixel of padding on each side of the character.
 
-Testing the TIGR library.
+### Text Mode
 
-It looks like you do the following:
-    create the display window.
-    draw various things to the buffer.
-    update the display.
-So we can accumulate changes to the display memory/display buffer, and only update the display when we are ready to show it.
-Say once each 1/60th of a second.
-I guess we'll see how fast it is.
-To start, update buffer every time we write to the screen.
+Text mode is working pretty well. It supports normal, inverse, and flash.
 
-well that sort of works! don't know if it's fast enough, but ok for now.
+### Low-Resolution Graphics
 
-trying to boot actual apple 2 plus roms. Getting an infinite loop at f181 - 
-this is testing how much memory by writing into every page. unfortunately everything
-in the system right now is "ram" so it's never finding the end of ram ha ha.
+Low-resolution graphics are working pretty well. They work with screen 1, 2, split-screen, and full-screen.
 
-OK that's fixed and it now boots to the keyboard loop! Though the prompt is missing, and there is no cursor because there
-is no inverse or flash support right now.
-Tigr doesn't look to be very flexible for keyboard input. It is very simple but may not do the trick.
-Next one to try: SDL2: https://www.libsdl.org/
+### High-Resolution Graphics
 
----
+High-resolution graphics are not yet implemented.
 
-## Looking at SDL2
 
-Downloaded source from:
-https://github.com/libsdl-org/SDL/releases/tag/release-2.30.10
-
-If you are building "the Unix way," we encourage you to use build-scripts/clang-fat.sh in the SDL source tree for your compiler:
-
-mkdir build
-cd build 
-CC=/where/i/cloned/SDL/build-scripts/clang-fat.sh ../configure
-make
-
-the main GIT repo is version 3.0.
-Lots of deprecations warnings, but it built.
-
-Well, this is the easier way:
-
-```
-bazyar@Jawaids-MacBook-Pro gssquared % brew install sdl2
-==> Auto-updating Homebrew...
-Adjust how often this is run with HOMEBREW_AUTO_UPDATE_SECS or disable with
-```
-
-I'm going to go ahead and scrap the Tigr code because SDL2 looks like it will do the trick.
-
-## Keyboard Logic
-
-What better way to spend Christmas than writing an Apple II emulator?
-
-SDL2 is better. I got the actual character ROM working. Looks pretty good.
-
-Now working on the keyboard.
-
-If a key has been pressed, its value is in the keyboard latch, 0xC000. The Bit 7 will be set if the strobe hasn't been cleared.
-Clear the strobe by writing to 0xC010.
-
-Looking at where I hook this in..
-
-This is the SDL2 documentation for the keycodes:
-
-https://github.com/libsdl-org/SDL/blob/SDL2/include/SDL_keycode.h
+## Keyboard
 
 Status of keyboard:
 
@@ -114,14 +77,66 @@ Status of keyboard:
 1. REPT key: no. But we don't need this, autorepeat is working. Ignore this.
 1. Backspace - YES. This apparently maps to same as back arrow. Got lucky.
 
-Currently keyboard code is inside the display code. This is not good.
-SDL's use scope is broader than just the display. So we should move this out
-into a more generalized module, that calls into display and keyboard 
-and other 'devices' as needed.
 
-OK, the SDL2 keyboard code is segregated out properly, and the keyboard code is working pretty well.
+## Disk Drive Interfaces
 
-## Disk II Controller Card Design and Operation
+### Disk II Controller Card Design and Operation
 
 https://www.bigmessowires.com/2021/11/12/the-amazing-disk-ii-controller-card/
 
+This is highly timing-dependent, and, the way to go I think is to simulate time passage by
+counting cycles, not by counting realtime. This way floppy disks can be simulated at any speed.
+If we're at free-run, then the floppy disk would operate at that speed, and we don't have to
+slow down the clock.
+
+So that is one device we have to emulate, for DOS 3.3 compatibility.
+
+### SmartPort / ProDOS Block-Device Interface
+
+SmartPort became a standard for: 5.25" drives, 3.5" drives, and some hard disk drives.
+It is documented in the Apple IIgs Technical Reference Manual, chapter 7.
+
+$Cn01 - $20
+$Cn03 - $00
+$Cn05 - $03
+$Cn07 - $00 - "SmartPort Signature Byte"
+$CnFB - ?? - SmartPort ID Type Byte
+
+bit 7: extended
+Bits 6-2: Reserved
+Bit 1: SCSI
+Bit 0: RAM Card
+
+The ProDOS Dispatch address is at $CnFF. That byte indicates the address of the
+dispatch routine. if VV = value at $CnFF, then the ProDOS dispatch routine is at $CnVV.
+The SmartPort dispatch address is 3 bytes past that. 
+
+Both the Apple 3.5 Disk and the UniDisk 3.5 have the ability to override various
+internal routines, such as scanning for sector headers, etc. This was done to enable
+copy protection. We don't need to implement this. We will implement a generic UniDisk 3.5
+interface to simulate an 800K floppy. Attempts to call SetHook will just return an error.
+
+Our primary goal here is to support a simple block device interface, the fastest way to get
+disk storage on here so we can boot ProDOS < 2.0. on my apple II+.
+
+Some info is at:
+https://mirrors.apple2.org.za/Apple%20II%20Documentation%20Project/Companies/Apple/Documentation/Apple%20II%20Technical%20Notes%201989-09.pdf
+
+(Apple II Technical Notes)
+
+We would want to support this using ParaVirtualization. We will 'notice' and capture any JSR DISPATCH
+instructions. Then instead of performing the normal instruction emulation, we will instead call
+our paravirtual routines.
+
+
+### RAMfast SCSI Interface
+
+I'm not sure if there is any benefit to emulating the RAMfast SCSI interface. An Apple II forum
+user suggested it, but, I don't think there was any software that required it specifically?
+(There was also a suggestion to emulate a SecondSight, and, that would be way easier and
+make more sense).
+
+### Pascal Storage Device
+
+There is a standardized device interface that ProDOS supports, called Pascal. This may be what
+became known as the SmartPort / ProDOS block-device interface. See above.
