@@ -11,13 +11,15 @@ extern uint64_t debug_level;
 #define DEBUG_CLOCK 0x0040
 #define DEBUG_TIMEDRUN 0x0080
 #define DEBUG_GUI 0x0100
+#define DEBUG_SPEAKER 0x0200
+#define DEBUG_HGR 0x0400
 
-#define DEBUG_ANY 0xFFFF
-#define DEBUG_BOOT_FLAG DEBUG_KEYBOARD 
+#define DEBUG_ANY 0xFFFFFFFF
+#define DEBUG_BOOT_FLAG DEBUG_KEYBOARD | DEBUG_HGR
 
 #define DEBUG(flag) (debug_level & flag)
 
-#include <cstdint>
+#include <stdint.h>
 #include <iostream>
 #include <sstream>
 #include <iomanip>

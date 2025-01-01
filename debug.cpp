@@ -6,7 +6,7 @@
 #include "memory.hpp"
 #include "debug.hpp"
 
-uint64_t debug_level = DEBUG_BOOT_FLAG;
+uint64_t debug_level = DEBUG_BOOT_FLAG ;
 
 inline void print_hex(uint8_t value) {
     std::cout << std::hex << std::uppercase << static_cast<int>(value) << std::dec;
