@@ -19,6 +19,7 @@
 #include "devices/keyboard.hpp"
 #include "devices/speaker.hpp"
 #include "devices/loader.hpp"
+#include "devices/thunderclockplus.hpp"
 
 /**
  * References: 
@@ -1925,9 +1926,13 @@ int main(int argc, char *argv[]) {
     init_keyboard();
     init_device_display();
     init_speaker(&CPUs[0]);
+    init_thunderclock(1);
 
     if (argc > 2 && strcmp(argv[1], "-a") == 0) {
         loader_set_file_info(argv[2], 0x0801);
+    }
+    if (argc > 2 && strcmp(argv[1], "-b") == 0) {
+        loader_set_file_info(argv[2], 0x7000);
     }
 
     if (0) {
