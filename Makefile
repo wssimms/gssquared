@@ -225,6 +225,222 @@ debug.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/debug.cpp.s
 .PHONY : debug.cpp.s
 
+devices/keyboard.o: devices/keyboard.cpp.o
+.PHONY : devices/keyboard.o
+
+# target to build an object file
+devices/keyboard.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/devices/keyboard.cpp.o
+.PHONY : devices/keyboard.cpp.o
+
+devices/keyboard.i: devices/keyboard.cpp.i
+.PHONY : devices/keyboard.i
+
+# target to preprocess a source file
+devices/keyboard.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/devices/keyboard.cpp.i
+.PHONY : devices/keyboard.cpp.i
+
+devices/keyboard.s: devices/keyboard.cpp.s
+.PHONY : devices/keyboard.s
+
+# target to generate assembly for a file
+devices/keyboard.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/devices/keyboard.cpp.s
+.PHONY : devices/keyboard.cpp.s
+
+devices/loader.o: devices/loader.cpp.o
+.PHONY : devices/loader.o
+
+# target to build an object file
+devices/loader.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/devices/loader.cpp.o
+.PHONY : devices/loader.cpp.o
+
+devices/loader.i: devices/loader.cpp.i
+.PHONY : devices/loader.i
+
+# target to preprocess a source file
+devices/loader.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/devices/loader.cpp.i
+.PHONY : devices/loader.cpp.i
+
+devices/loader.s: devices/loader.cpp.s
+.PHONY : devices/loader.s
+
+# target to generate assembly for a file
+devices/loader.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/devices/loader.cpp.s
+.PHONY : devices/loader.cpp.s
+
+devices/speaker.o: devices/speaker.cpp.o
+.PHONY : devices/speaker.o
+
+# target to build an object file
+devices/speaker.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/devices/speaker.cpp.o
+.PHONY : devices/speaker.cpp.o
+
+devices/speaker.i: devices/speaker.cpp.i
+.PHONY : devices/speaker.i
+
+# target to preprocess a source file
+devices/speaker.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/devices/speaker.cpp.i
+.PHONY : devices/speaker.cpp.i
+
+devices/speaker.s: devices/speaker.cpp.s
+.PHONY : devices/speaker.s
+
+# target to generate assembly for a file
+devices/speaker.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/devices/speaker.cpp.s
+.PHONY : devices/speaker.cpp.s
+
+devices/thunderclockplus.o: devices/thunderclockplus.cpp.o
+.PHONY : devices/thunderclockplus.o
+
+# target to build an object file
+devices/thunderclockplus.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/devices/thunderclockplus.cpp.o
+.PHONY : devices/thunderclockplus.cpp.o
+
+devices/thunderclockplus.i: devices/thunderclockplus.cpp.i
+.PHONY : devices/thunderclockplus.i
+
+# target to preprocess a source file
+devices/thunderclockplus.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/devices/thunderclockplus.cpp.i
+.PHONY : devices/thunderclockplus.cpp.i
+
+devices/thunderclockplus.s: devices/thunderclockplus.cpp.s
+.PHONY : devices/thunderclockplus.s
+
+# target to generate assembly for a file
+devices/thunderclockplus.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/devices/thunderclockplus.cpp.s
+.PHONY : devices/thunderclockplus.cpp.s
+
+display/display.o: display/display.cpp.o
+.PHONY : display/display.o
+
+# target to build an object file
+display/display.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/display/display.cpp.o
+.PHONY : display/display.cpp.o
+
+display/display.i: display/display.cpp.i
+.PHONY : display/display.i
+
+# target to preprocess a source file
+display/display.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/display/display.cpp.i
+.PHONY : display/display.cpp.i
+
+display/display.s: display/display.cpp.s
+.PHONY : display/display.s
+
+# target to generate assembly for a file
+display/display.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/display/display.cpp.s
+.PHONY : display/display.cpp.s
+
+display/hgr_280x192.o: display/hgr_280x192.cpp.o
+.PHONY : display/hgr_280x192.o
+
+# target to build an object file
+display/hgr_280x192.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/display/hgr_280x192.cpp.o
+.PHONY : display/hgr_280x192.cpp.o
+
+display/hgr_280x192.i: display/hgr_280x192.cpp.i
+.PHONY : display/hgr_280x192.i
+
+# target to preprocess a source file
+display/hgr_280x192.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/display/hgr_280x192.cpp.i
+.PHONY : display/hgr_280x192.cpp.i
+
+display/hgr_280x192.s: display/hgr_280x192.cpp.s
+.PHONY : display/hgr_280x192.s
+
+# target to generate assembly for a file
+display/hgr_280x192.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/display/hgr_280x192.cpp.s
+.PHONY : display/hgr_280x192.cpp.s
+
+display/lores_40x48.o: display/lores_40x48.cpp.o
+.PHONY : display/lores_40x48.o
+
+# target to build an object file
+display/lores_40x48.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/display/lores_40x48.cpp.o
+.PHONY : display/lores_40x48.cpp.o
+
+display/lores_40x48.i: display/lores_40x48.cpp.i
+.PHONY : display/lores_40x48.i
+
+# target to preprocess a source file
+display/lores_40x48.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/display/lores_40x48.cpp.i
+.PHONY : display/lores_40x48.cpp.i
+
+display/lores_40x48.s: display/lores_40x48.cpp.s
+.PHONY : display/lores_40x48.s
+
+# target to generate assembly for a file
+display/lores_40x48.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/display/lores_40x48.cpp.s
+.PHONY : display/lores_40x48.cpp.s
+
+display/text_40x24.o: display/text_40x24.cpp.o
+.PHONY : display/text_40x24.o
+
+# target to build an object file
+display/text_40x24.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/display/text_40x24.cpp.o
+.PHONY : display/text_40x24.cpp.o
+
+display/text_40x24.i: display/text_40x24.cpp.i
+.PHONY : display/text_40x24.i
+
+# target to preprocess a source file
+display/text_40x24.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/display/text_40x24.cpp.i
+.PHONY : display/text_40x24.cpp.i
+
+display/text_40x24.s: display/text_40x24.cpp.s
+.PHONY : display/text_40x24.s
+
+# target to generate assembly for a file
+display/text_40x24.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/display/text_40x24.cpp.s
+.PHONY : display/text_40x24.cpp.s
+
+event_poll.o: event_poll.cpp.o
+.PHONY : event_poll.o
+
+# target to build an object file
+event_poll.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/event_poll.cpp.o
+.PHONY : event_poll.cpp.o
+
+event_poll.i: event_poll.cpp.i
+.PHONY : event_poll.i
+
+# target to preprocess a source file
+event_poll.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/event_poll.cpp.i
+.PHONY : event_poll.cpp.i
+
+event_poll.s: event_poll.cpp.s
+.PHONY : event_poll.s
+
+# target to generate assembly for a file
+event_poll.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/event_poll.cpp.s
+.PHONY : event_poll.cpp.s
+
 gs2.o: gs2.cpp.o
 .PHONY : gs2.o
 
@@ -342,6 +558,33 @@ help:
 	@echo "... debug.o"
 	@echo "... debug.i"
 	@echo "... debug.s"
+	@echo "... devices/keyboard.o"
+	@echo "... devices/keyboard.i"
+	@echo "... devices/keyboard.s"
+	@echo "... devices/loader.o"
+	@echo "... devices/loader.i"
+	@echo "... devices/loader.s"
+	@echo "... devices/speaker.o"
+	@echo "... devices/speaker.i"
+	@echo "... devices/speaker.s"
+	@echo "... devices/thunderclockplus.o"
+	@echo "... devices/thunderclockplus.i"
+	@echo "... devices/thunderclockplus.s"
+	@echo "... display/display.o"
+	@echo "... display/display.i"
+	@echo "... display/display.s"
+	@echo "... display/hgr_280x192.o"
+	@echo "... display/hgr_280x192.i"
+	@echo "... display/hgr_280x192.s"
+	@echo "... display/lores_40x48.o"
+	@echo "... display/lores_40x48.i"
+	@echo "... display/lores_40x48.s"
+	@echo "... display/text_40x24.o"
+	@echo "... display/text_40x24.i"
+	@echo "... display/text_40x24.s"
+	@echo "... event_poll.o"
+	@echo "... event_poll.i"
+	@echo "... event_poll.s"
 	@echo "... gs2.o"
 	@echo "... gs2.i"
 	@echo "... gs2.s"
