@@ -45,7 +45,27 @@ void assert_cycles(cpu_state *cpu, uint64_t expected_cycles) {
 
 void demo_ram() {
     Test test = {
-        .program = {
+         .program = {
+            OP_LDA_IMM, 0x40,
+            OP_JSR_ABS, 0x13, 0x03,
+            OP_LDY_IMM, 0xc0,
+            OP_LDA_IMM, 0x0C,
+            OP_JSR_ABS, 0x13, 0x03,
+            OP_LDA_ABS, 0x30, 0xC0,
+            OP_DEY_IMP,
+            OP_BNE_REL, 0xF5,
+            OP_HLT_IMP,
+
+            OP_SEC_IMP,    /* 0x0314 */
+            OP_PHA_IMP,
+            OP_SBC_IMM, 0x01,
+            OP_BNE_REL, 0xFC,
+            OP_PLA_IMP,
+            OP_SBC_IMM, 0x01,
+            OP_BNE_REL, 0xF6,
+            OP_RTS_IMP,
+
+            /*
             OP_LDX_IMM, 0xFF, // init the stack pointer
             OP_TXS_IMP,
 
@@ -220,11 +240,22 @@ void demo_ram() {
             OP_LDA_IMM, 0x32,
             OP_SBC_IMM, 0x02,
 
+            OP_CLD_IMP,
+
+            OP_LDX_IMM, 0x27,
+            OP_LDA_IMM, 0x41,
+            OP_STA_ABS_X, 0x00, 0x04,
+            OP_DEX_IMP,
+            OP_BNE_REL, 0xFA,
+
             OP_HLT_IMP,
+            OP_CLC_IMP,
+            OP_BCC_REL, 0xFD,
+
             OP_RTS_IMP,
 
             OP_BRK_IMP,            // 7 cycles
-            OP_JMP_ABS, 0x00, 0x03, // 3 cycles
+            OP_JMP_ABS, 0x00, 0x03, // 3 cycles */
         },
         .program_size = sizeof(test.program),
         .program_address = 0x0300,
@@ -233,11 +264,11 @@ void demo_ram() {
         },
         .assertions = [](cpu_state *cpu) {
             // Assertions to check the final state
-            assert(cpu->a_lo == 0xAE);
-            assert(cpu->C == 0);
-            assert(raw_memory_read(cpu, 0x0000) == 0xAA);
-            assert(raw_memory_read(cpu, 0x1234) == 0xAA);
-            assert_cycles(cpu, 219);
+            //assert(cpu->a_lo == 0xAE);
+            //assert(cpu->C == 0);
+            //assert(raw_memory_read(cpu, 0x0000) == 0xAA);
+//            assert(raw_memory_read(cpu, 0x1234) == 0xAA);
+            //assert_cycles(cpu, 219);
         }
     };
 

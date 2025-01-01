@@ -1,8 +1,7 @@
 #pragma once
 
 #include <functional>
-#include <cstdint>
-#include "gs2.hpp"
+#include <stdint.h>
 #include "cpu.hpp"
 
 struct Test {
