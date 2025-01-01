@@ -5,7 +5,7 @@
 
 #include "display/text_40x24.hpp"
 #include "devices/keyboard.hpp"
-
+#include "display/hgr_280x192.hpp"
 /**
  * Process read and write to simulated IO bus for peripherals 
  * All external bus accesses are 8-bit data, 16-bit address.
@@ -298,6 +298,9 @@ uint8_t memory_bus_read(cpu_state *cpu, uint16_t address) {
 void memory_bus_write(cpu_state *cpu, uint16_t address, uint8_t value) {
     if (address >= 0x0400 && address <= 0x0BFF) {
         txt_memory_write(address, value);
+    }
+    if (address >= 0x2000 && address <= 0x5FFF) {
+        hgr_memory_write(address, value);
     }
     if (address >= 0xC000 && address <= 0xC07F) {
         memory_write_handler funcptr =  C0xx_memory_write_handlers[address - 0xC000];
