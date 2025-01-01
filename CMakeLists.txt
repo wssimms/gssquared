@@ -23,7 +23,7 @@ find_package(SDL2 REQUIRED)
 # Add the executable
 add_executable(gs2 gs2.cpp bus.cpp clock.cpp debug.cpp cpu.cpp memory.cpp opcodes.cpp test.cpp 
     display/text_40x24.cpp display/lores_40x48.cpp display/hgr_280x192.cpp display/display.cpp
-    devices/keyboard.cpp devices/speaker.cpp devices/loader.cpp 
+    devices/keyboard.cpp devices/speaker.cpp devices/loader.cpp devices/thunderclockplus.cpp
     event_poll.cpp)
 
 # Include SDL2 headers
