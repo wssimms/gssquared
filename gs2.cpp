@@ -10,12 +10,15 @@
 #include "cpu.hpp"
 #include "clock.hpp"
 #include "memory.hpp"
+#include "display/display.hpp"
 #include "opcodes.hpp"
 #include "debug.hpp"
 #include "test.hpp"
 #include "display/text_40x24.hpp"
 #include "event_poll.hpp"
 #include "devices/keyboard.hpp"
+#include "devices/speaker.hpp"
+#include "devices/loader.hpp"
 
 /**
  * References: 
@@ -24,7 +27,6 @@
  * https://www.masswerk.at/6502/6502_instruction_set.html#USBC
  * 
  */
-
 
 /**
  * gssquared
@@ -124,20 +126,10 @@ void init_cpus() { // this is the same as a power-on event.
         CPUs[i].cycles = 0;
         CPUs[i].last_tick = 0;
 
-        set_clock_mode(&CPUs[i], CLOCK_FREE_RUN);
+        set_clock_mode(&CPUs[i], CLOCK_1_024MHZ);
 
         CPUs[i].next_tick = mach_absolute_time() + CPUs[i].cycle_duration_ticks; 
-
-/*         // Get the conversion factor for mach_absolute_time to nanoseconds
-        mach_timebase_info_data_t info;
-        mach_timebase_info(&info);
-
-        // Calculate time per cycle at emulated rate
-        CPUs[i].cycle_duration_ns = 1000000000 / HZ_RATE;
-
-        // Convert the cycle duration to mach_absolute_time() units
-        CPUs[i].cycle_duration_ticks = (CPUs[i].cycle_duration_ns * info.denom / info.numer); // fudge
- */    }
+    }
 }
 
 /**
@@ -1466,6 +1458,7 @@ int execute_next_6502(cpu_state *cpu) {
             {
                 cpu->a_lo = pop_byte(cpu);
                 set_n_z_flags(cpu, cpu->a_lo);
+                incr_cycles(cpu);
             }
             break;
     /* ROL --------------------------------- */
@@ -1778,7 +1771,9 @@ int execute_next_6502(cpu_state *cpu) {
         case OP_RTS_IMP: /* RTS */
             {
                 cpu->pc = pop_word(cpu);
+                incr_cycles(cpu);
                 cpu->pc++;
+                incr_cycles(cpu);
                 if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, "$%04X", cpu->pc);
             }
             break;
@@ -1797,43 +1792,49 @@ int execute_next_6502(cpu_state *cpu) {
         case OP_CLD_IMP: /* CLD Implied */
             {
                 cpu->D = 0;
+                incr_cycles(cpu);
             }
             break;
 
         case OP_SED_IMP: /* SED Implied */
             {
                 cpu->D = 1;
+                incr_cycles(cpu);
             }
             break;
 
         case OP_CLC_IMP: /* CLC Implied */
             {
                 cpu->C = 0;
+                incr_cycles(cpu);
             }
             break;
 
         case OP_CLI_IMP: /* CLI Implied */
             {
                 cpu->I = 0;
+                incr_cycles(cpu);
             }
             break;
 
         case OP_CLV_IMP: /* CLV */
             {
                 cpu->V = 0;
+                incr_cycles(cpu);
             }
             break;
-
 
         case OP_SEC_IMP: /* SEC Implied */
             {
                 cpu->C = 1;
+                incr_cycles(cpu);
             }
             break;
 
         case OP_SEI_IMP: /* SEI Implied */
             {
                 cpu->I = 1;
+                incr_cycles(cpu);
             }
             break;
 
@@ -1896,7 +1897,7 @@ void run_cpus(void) {
 
         if (current_time - last_5sec_update > 5000000) {
             uint64_t delta = cpu->cycles - last_5sec_cycles;
-            fprintf(stdout, "%llu cycles clock-mode: %d CPS: %f MHz [ slips: %llu, busy: %llu, sleep: %llu]\n", delta, cpu->clock_mode, (float)delta / float(5000000) , cpu->clock_slip, cpu->clock_busy, cpu->clock_sleep);
+            fprintf(stdout, "%llu delta %llu cycles clock-mode: %d CPS: %f MHz [ slips: %llu, busy: %llu, sleep: %llu]\n", delta, cpu->cycles, cpu->clock_mode, (float)delta / float(5000000) , cpu->clock_slip, cpu->clock_busy, cpu->clock_sleep);
             last_5sec_cycles = cpu->cycles;
             last_5sec_update = current_time;
         }
@@ -1909,12 +1910,12 @@ void run_cpus(void) {
 }
 
 
-int main() {
+int main(int argc, char *argv[]) {
     int a = 2;
 
     std::cout << "Booting GSSquared!" << std::endl;
 
-    if (init_display()) {
+    if (init_display_sdl()) {
         fprintf(stderr, "Error initializing display\n");
         exit(1);
     }
@@ -1922,7 +1923,12 @@ int main() {
     init_cpus();
 
     init_keyboard();
-    init_text_40x24_display();
+    init_device_display();
+    init_speaker(&CPUs[0]);
+
+    if (argc > 2 && strcmp(argv[1], "-a") == 0) {
+        loader_set_file_info(argv[2], 0x0801);
+    }
 
     if (0) {
         // this is the one test system.
@@ -1979,6 +1985,8 @@ int main() {
         printf("Press Enter to continue...");
         getchar();
     }
+
+    //dump_full_speaker_event_log();
 
     free_display();
 
