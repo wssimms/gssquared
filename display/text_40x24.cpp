@@ -7,6 +7,7 @@
 #include "../memory.hpp"
 #include "../debug.hpp"
 #include "../bus.hpp"
+#include "display.hpp"
 
 // Apple II+ Character Set (7x8 pixels)
 // Characters 0x20 through 0x7F
@@ -135,94 +136,19 @@ uint16_t TEXT_PAGE_START = 0x0400;
 uint16_t TEXT_PAGE_END = 0x07FF;
 uint16_t *TEXT_PAGE_TABLE = TEXT_PAGE_1_TABLE;
 
-#include <SDL2/SDL.h>
-
-SDL_Surface* winSurface = NULL;
-SDL_Window* window = NULL;
-
-SDL_Renderer* renderer = nullptr;
-SDL_Texture* screenTexture = nullptr;
-
-uint32_t dirty_line[24];
-
-void force_text_display_update() {
-    for (int y = 0; y < 24; y++) {
-        dirty_line[y] = 1;
-    }
-}
-
-uint64_t init_display() {
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        fprintf(stderr, "Error initializing SDL: %s\n", SDL_GetError());
-        return 1;
-    }
-
-    force_text_display_update();
-
-    const int SCALE_X = 4;
-    const int SCALE_Y = 4;
-    const int BASE_WIDTH = 280;
-    const int BASE_HEIGHT = 192;
-    
-    window = SDL_CreateWindow(
-        "GSSquared - Apple ][ Emulator", 
-        SDL_WINDOWPOS_UNDEFINED, 
-        SDL_WINDOWPOS_UNDEFINED, 
-        BASE_WIDTH * SCALE_X, 
-        BASE_HEIGHT * SCALE_Y, 
-        SDL_WINDOW_SHOWN
-    );
-
-    if (!window) {
-        fprintf(stderr, "Error creating window: %s\n", SDL_GetError());
-        return 1;
-    }
-
-    // Create renderer with nearest-neighbor scaling (sharp pixels)
-    renderer = SDL_CreateRenderer(window, -1, 
-        SDL_RENDERER_ACCELERATED /* | SDL_RENDERER_PRESENTVSYNC */);
-    
-    if (!renderer) {
-        fprintf(stderr, "Error creating renderer: %s\n", SDL_GetError());
-        return 1;
-    }
-
-    // Set scaling quality to nearest neighbor for sharp pixels
-    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
-    
-    // Create the screen texture
-    screenTexture = SDL_CreateTexture(renderer,
-        SDL_PIXELFORMAT_RGBA8888,
-        SDL_TEXTUREACCESS_STREAMING,
-        280, 192);
-
-    if (!screenTexture) {
-        fprintf(stderr, "Error creating screen texture: %s\n", SDL_GetError());
-        return 1;
-    }
-
-    // Clear the texture to black
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    SDL_RenderClear(renderer);
-    SDL_RenderPresent(renderer);
-
-    SDL_RaiseWindow(window);
-
-    load_character_rom();
-
-    return 0;
-}
 
 bool flash_state = false;
 
 /**
  * render single character - in context of a locked texture of a whole display line.
  */
-void render_character(int x, int y, void *pixels, int pitch, uint8_t character) {
+void render_text(cpu_state *cpu, int x, int y, void *pixels, int pitch) {
     // Bounds checking
     if (x < 0 || x >= 40 || y < 0 || y >= 24) {
         return;
     }
+
+    uint8_t character = raw_memory_read(cpu, TEXT_PAGE_TABLE[y] + x);
 
     // Calculate font offset (8 bytes per character, starting at 0x20)
     const uint32_t* charPixels = &APPLE2_FONT_32[character * 56];
@@ -258,32 +184,6 @@ void render_character(int x, int y, void *pixels, int pitch, uint8_t character) 
     }
 }
 
-void render_line(cpu_state *cpu, int y) {
-
-    SDL_Rect updateRect = {
-        0,    // X position (left of window))
-        y * 8,    // Y position (8 pixels per character)
-        280,        // Width of line
-        8         // Height of line
-    };
-
-    // the texture is our canvas. When we 'lock' it, we get a pointer to the pixels, and the pitch which is pixels per row
-    // of the area. Since all our chars are the same we can just use the same pitch for all our chars.
-
-    void* pixels;
-    int pitch;
-    if (SDL_LockTexture(screenTexture, &updateRect, &pixels, &pitch) < 0) {
-        fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
-        return;
-    }
-
-    for (int x = 0; x < 40; x++) {
-        uint8_t character = raw_memory_read(cpu, TEXT_PAGE_TABLE[y] + x);
-        render_character(x, y, pixels, pitch, character);
-    }
-
-    SDL_UnlockTexture(screenTexture);
-}
 
 void update_flash_state(cpu_state *cpu) {
     // 2 times per second (every 30 frames), the state of flashing characters (those matching 0b01xxxxxx) must be reversed.
@@ -301,7 +201,7 @@ void update_flash_state(cpu_state *cpu) {
             if ((character & 0b11000000) == 0x40) {
                 // mark line as dirty
                 dirty_line[y] = 1;
-                //render_character(x, y, character, flash_state);
+                //render_text(x, y, character, flash_state);
                 //flashcount++;
             }
         }
@@ -309,37 +209,11 @@ void update_flash_state(cpu_state *cpu) {
     //if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Flash chars updated: %d\n", flashcount);
 }
 
-/**
- * This is effectively a "redraw the entire screen each frame" method now.
- * With an optimization only update dirty lines.
- */
-void update_display(cpu_state *cpu) {
-    int updated = 0;
-    for (int i = 0; i < 24; i++) {
-        if (dirty_line[i]) {
-            //fprintf(stdout, "Dirty line %d\n", i);
-            render_line(cpu, i);
-            dirty_line[i] = 0;
-            updated = 1;
-        }
-    }
-
-    if (updated) {
-        SDL_RenderCopy(renderer, screenTexture, NULL, NULL);
-        SDL_RenderPresent(renderer);
-    }
-}
-
-void free_display() {
-    if (screenTexture) SDL_DestroyTexture(screenTexture);
-    if (renderer) SDL_DestroyRenderer(renderer);
-    if (window) SDL_DestroyWindow(window);
-    SDL_Quit();
-}
 
 // write a character to the display memory based on the text page memory address.
-// converts address to an X,Y coordinate then calls render_character to do it.
+// converts address to an X,Y coordinate then calls render_text to do it.
 void txt_memory_write(uint16_t address, uint8_t value) {
+
     // Strict bounds checking for text page 1
     if (address < TEXT_PAGE_START || address > TEXT_PAGE_END) {
         return;
@@ -369,41 +243,21 @@ void txt_memory_write(uint16_t address, uint8_t value) {
         return;
     }
 
+    if (display_mode == GRAPHICS_MODE && display_split_mode == SPLIT_SCREEN) {
+        // update lines 21 - 24
+        if (y_loc >= 20 && y_loc < 24) {
+            dirty_line[y_loc] = 1;
+        }
+    }
+
+    // update any line.
     dirty_line[y_loc] = 1;
 }
 
-void set_text_page1() {
-    TEXT_PAGE_START = 0x0400;
-    TEXT_PAGE_END = 0x07FF;
-    TEXT_PAGE_TABLE = TEXT_PAGE_1_TABLE;
-}
 
-void set_text_page2() {
-    TEXT_PAGE_START = 0x0800;
-    TEXT_PAGE_END = 0x0BFF;
-    TEXT_PAGE_TABLE = TEXT_PAGE_2_TABLE;
-}
 
 uint8_t txt_bus_read(cpu_state *cpu, uint16_t address) {
     return 0;
 }
 
-void txt_bus_write(cpu_state *cpu, uint16_t address, uint8_t value) {
-    if (address == 0xC054) {
-        // switch to screen 1
-        if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Switching to screen 1\n");
-        set_text_page1();
-        force_text_display_update();
-    }
-    if (address == 0xC055) {
-        // switch to screen 2
-        if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Switching to screen 2\n");
-        set_text_page2();
-        force_text_display_update();
-    }
-}
 
-void init_text_40x24_display() {
-    register_C0xx_memory_write_handler(0xC054, txt_bus_write);
-    register_C0xx_memory_write_handler(0xC055, txt_bus_write);
-}
