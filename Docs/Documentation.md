@@ -201,3 +201,23 @@ nibble 8: second (tens place, 0-5 BCD)
 nibble 9: second units (0-9 BCD)
 
 So we need state tracking of the strobe; and state tracking of the 'clock' bit.
+
+
+# Building
+
+gs2 is currently built on a Mac using:
+
+* clang
+* SDL2 from Homebrew
+* git
+
+I use vscode as my IDE, but, this isn't required.
+
+1. git clone xxxxxxx
+1. cd xxxxxxx
+1. mkdir build
+1. cd build
+1. cmake .
+
+If you want to help create build tooling for Windows or Linux, let me know! All of this should
+work on all 3 platforms courtesy of SDL2.
