@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdint>
+#include <stdint.h>
 #include "cpu.hpp"
 
 // Function pointer type for memory bus handlers
