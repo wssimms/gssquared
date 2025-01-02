@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <time.h>
 #include <mach/mach_time.h>
+#include <getopt.h>
 
 #include "gs2.hpp"
 #include "cpu.hpp"
@@ -20,6 +21,7 @@
 #include "devices/speaker.hpp"
 #include "devices/loader.hpp"
 #include "devices/thunderclockplus.hpp"
+#include "platforms.hpp"
 
 /**
  * References: 
@@ -1868,7 +1870,7 @@ int execute_next_6502(cpu_state *cpu) {
             break;
 
         default:
-            fprintf(stdout, "Unknown opcode: 0x%02X", opcode);
+            fprintf(stdout, "Unknown opcode: %04X: 0x%02X", cpu->pc-1, opcode);
             cpu->halt = HLT_INSTRUCTION;
     }
     if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "\n");
@@ -1912,35 +1914,37 @@ void run_cpus(void) {
 
 
 int main(int argc, char *argv[]) {
-    int a = 2;
-
     std::cout << "Booting GSSquared!" << std::endl;
 
-    if (init_display_sdl()) {
-        fprintf(stderr, "Error initializing display\n");
-        exit(1);
+    int platform_id = 1;  // default to Apple II Plus
+    int opt;
+    
+    while ((opt = getopt(argc, argv, "p:a:b:")) != -1) {
+        switch (opt) {
+            case 'p':
+                platform_id = atoi(optarg);
+                break;
+            case 'a':
+                loader_set_file_info(optarg, 0x0801);
+                break;
+            case 'b':
+                loader_set_file_info(optarg, 0x7000);
+                break;
+            default:
+                fprintf(stderr, "Usage: %s [-p platform] [-a program.bin] [-b loader.bin]\n", argv[0]);
+                exit(1);
+        }
     }
 
     init_cpus();
 
-    init_keyboard();
-    init_device_display();
-    init_speaker(&CPUs[0]);
-    init_thunderclock(1);
+#if 0
 
-    if (argc > 2 && strcmp(argv[1], "-a") == 0) {
-        loader_set_file_info(argv[2], 0x0801);
-    }
-    if (argc > 2 && strcmp(argv[1], "-b") == 0) {
-        loader_set_file_info(argv[2], 0x7000);
-    }
-
-    if (0) {
         // this is the one test system.
         demo_ram();
-    }
+#endif
 
-    if (0) {
+#if 0
         // read file 6502_65C02_functional_tests/bin_files/6502_functional_test.bin into a 64k byte array
 
         uint8_t *memory_chunk = (uint8_t *)malloc(65536); // Allocate 64KB memory chunk
@@ -1959,29 +1963,32 @@ int main(int argc, char *argv[]) {
         for (uint64_t i = 0; i < 65536; i++) {
             raw_memory_write(&CPUs[0], i, memory_chunk[i]);
         }
+#endif
+
+#if 1
+        rom_data *rd = load_platform_roms(platform_id);
+
+        if (!rd) {
+            fprintf(stdout, "Failed to load platform roms\n");
+        }
+        // Load into memory at correct address
+        for (uint64_t i = 0; i < rd->main_size; i++) {
+            raw_memory_write(&CPUs[0], rd->main_base_addr + i, rd->main_rom[i]);
+        }
+        // we could dispose of this now if we wanted..
+#endif
+printf("did we get here?\n");
+    if (init_display_sdl(rd)) {
+        fprintf(stderr, "Error initializing display\n");
+        exit(1);
     }
 
-    if (1) {
-        // read file 
+    init_keyboard();
+    init_device_display();
+    init_speaker(&CPUs[0]);
+    init_thunderclock(1);
 
-        uint8_t *memory_chunk = (uint8_t *)malloc(65536); // Allocate 64KB memory chunk
-        if (memory_chunk == NULL) {
-            fprintf(stderr, "Failed to allocate memory\n");
-            exit(1);
-        }
-
-        FILE* file = fopen("roms/apple2_plus/apple2_plus_0xD000-0xFFFF.bin", "rb");
-        if (file == NULL) {
-            fprintf(stderr, "Failed to open file\n");
-            exit(1);
-        }
-        fread(memory_chunk, 1, 12288, file);
-        fclose(file);
-        for (uint64_t i = 0; i < 12288; i++) {
-            raw_memory_write(&CPUs[0], 0xD000 + i, memory_chunk[i]);
-        }
-        cpu_reset(&CPUs[0]);
-    }
+    cpu_reset(&CPUs[0]);
 
     run_cpus();
 
