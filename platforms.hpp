@@ -4,8 +4,10 @@
 #include <stddef.h>
 
 struct platform_info {
+    const int id;               // Human readable name
     const char* name;           // Human readable name
     const char* rom_dir;        // Directory under roms/
+    const int processor_type;   // processor type
 };
 
 struct rom_data {
@@ -19,5 +21,6 @@ struct rom_data {
 extern  int num_platforms;
 platform_info* get_platform(int index);
 platform_info* find_platform_by_dir(const char* dir);
-rom_data* load_platform_roms(int index);
+rom_data* load_platform_roms(platform_info *platform);
 void free_platform_roms(rom_data* roms); 
+void print_platform_info(platform_info *platform);

@@ -42,6 +42,30 @@ struct memory_map {
     memory_page *pages[MEMORY_SIZE / GS2_PAGE_SIZE];
 };
 
+enum processor_type {
+    PROCESSOR_6502 = 0,
+    PROCESSOR_65C02,
+    NUM_PROCESSOR_TYPES
+};
+
+struct cpu_state;
+
+typedef int (*execute_next_fn)(cpu_state *cpu);
+
+struct processor_model {
+    const char* name;
+    execute_next_fn execute_next;
+};
+
+extern processor_model processor_models[NUM_PROCESSOR_TYPES];
+
+namespace cpu_6502 {
+    extern int execute_next(cpu_state *cpu);
+}
+namespace cpu_65c02 {
+    extern int execute_next(cpu_state *cpu);
+}
+
 struct cpu_state {
     uint64_t boot_time; 
     union {
@@ -130,6 +154,8 @@ struct cpu_state {
     uint64_t cycle_duration_ticks;
     uint64_t HZ_RATE;
     clock_mode clock_mode = CLOCK_FREE_RUN;
+
+    execute_next_fn execute_next;
 };
 
 #define HLT_INSTRUCTION 1
@@ -153,3 +179,5 @@ void run_cpus(void) ;
 void toggle_clock_mode(cpu_state *cpu);
 
 void set_clock_mode(cpu_state *cpu, clock_mode mode);
+
+const char* processor_get_name(int processor_type);

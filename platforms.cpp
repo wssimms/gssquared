@@ -2,14 +2,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include "cpu.hpp"
 #include "platforms.hpp"
 
 static  platform_info platforms[] = {
-    { "Apple II", "apple2" },
-    { "Apple II Plus", "apple2_plus" },
-    { "Apple IIe",     "apple2e" },
+    { 0, "Apple II", "apple2", PROCESSOR_6502 },
+    { 1, "Apple II Plus", "apple2_plus", PROCESSOR_6502 },
+    { 2, "Apple IIe",     "apple2e", PROCESSOR_6502 },
+    { 3, "Apple IIe Enhanced",     "apple2e_enhanced", PROCESSOR_65C02 },
     // Add more platforms as needed:
-    // { "Apple IIe Enhanced", "apple2e_enhanced" },
     // { "Apple IIc",         "apple2c" },
     // { "Apple IIc Plus",    "apple2c_plus" },
 };
@@ -34,8 +35,7 @@ static  platform_info platforms[] = {
     return nullptr;
 }
 
-rom_data* load_platform_roms(int index) {
-    const platform_info* platform = get_platform(index);
+rom_data* load_platform_roms(platform_info *platform) {
     if (!platform) return nullptr;
 
     fprintf(stderr, "Platform: %s   folder name: %s\n", platform->name, platform->rom_dir);
@@ -112,3 +112,8 @@ void free_platform_roms(rom_data* roms) {
     }
 }
 
+void print_platform_info(platform_info *platform) {
+    fprintf(stdout, "Platform ID %d: %s \n", platform->id, platform->name);
+    fprintf(stdout, "  processor type: %s\n", processor_get_name(platform->processor_type));
+    fprintf(stdout, "  folder name: %s\n", platform->rom_dir);
+}

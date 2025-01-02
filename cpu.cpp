@@ -53,3 +53,12 @@ void toggle_clock_mode(cpu_state *cpu) {
     set_clock_mode(cpu, (clock_mode)((cpu->clock_mode + 1) % NUM_CLOCK_MODES));
     fprintf(stdout, "Clock mode: %d HZ_RATE: %llu\n", cpu->clock_mode, cpu->HZ_RATE);
 }
+
+processor_model processor_models[NUM_PROCESSOR_TYPES] = {
+    { "6502 (nmos)", cpu_6502::execute_next },
+    { "65C02 (cmos)", cpu_65c02::execute_next }
+};
+
+const char* processor_get_name(int processor_type) {
+    return processor_models[processor_type].name;
+}
