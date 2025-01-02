@@ -8,6 +8,8 @@
 #include "../debug.hpp"
 #include "../bus.hpp"
 #include "display.hpp"
+#include "../platforms.hpp"
+
 
 // Apple II+ Character Set (7x8 pixels)
 // Characters 0x20 through 0x7F
@@ -16,7 +18,7 @@
 
 // The Character ROM contains 256 entries (total of 2048 bytes).
 // Each character is 8 bytes, each byte is 1 row of pixels.
-uint8_t APPLE2_FONT[CHAR_GLYPHS_COUNT * CHAR_GLYPHS_SIZE];
+//uint8_t APPLE2_FONT[CHAR_GLYPHS_COUNT * CHAR_GLYPHS_SIZE];
 
 uint32_t APPLE2_FONT_32[CHAR_GLYPHS_COUNT * CHAR_GLYPHS_SIZE * 8 ]; // 8 pixels per row.
 
@@ -26,7 +28,7 @@ uint32_t APPLE2_FONT_32[CHAR_GLYPHS_COUNT * CHAR_GLYPHS_SIZE * 8 ]; // 8 pixels 
  * output: APPLE2_FONT_32
 */
 
-void pre_calculate_font () {
+void pre_calculate_font (rom_data *rd) {
     // Draw the character bitmap into the texture
     // pitch is the number of pixels per row of the texture. May depend on device.
     // we don't use pitch here.
@@ -38,7 +40,7 @@ void pre_calculate_font () {
     uint32_t *position = APPLE2_FONT_32;
 
     for (int row = 0; row < 256 * 8; row++) {
-        uint8_t rowBits = APPLE2_FONT[row];
+        uint8_t rowBits = rd->char_rom[row];
         //fprintf(stdout, "position: %8p, row: %04X, rowBits: %02X   ", position, row, rowBits);
         for (int col = 0; col < 7; col++) {
             bool pixel = rowBits & (1 << (6 - col));
@@ -51,8 +53,9 @@ void pre_calculate_font () {
     }
 }
 
-
+#if 0
 void load_character_rom() {
+
     FILE* rom = fopen("roms/apple2_plus/Apple II Character ROM - 341-0036.bin", "rb");
     if (!rom) {
         fprintf(stderr, "Error: Could not open character ROM file\n");
@@ -70,6 +73,7 @@ void load_character_rom() {
 
     pre_calculate_font();
 }
+#endif
 
 uint16_t TEXT_PAGE_1_TABLE[24] = {
     0x0400,

@@ -10,6 +10,7 @@
 #include "text_40x24.hpp"
 #include "lores_40x48.hpp"
 #include "hgr_280x192.hpp"
+#include "../platforms.hpp"
 
 SDL_Surface* winSurface = NULL;
 SDL_Window* window = NULL;
@@ -47,7 +48,7 @@ void set_display_page2() {
 
 }
 
-uint64_t init_display_sdl() {
+uint64_t init_display_sdl(rom_data *rd) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         fprintf(stderr, "Error initializing SDL: %s\n", SDL_GetError());
         return 1;
@@ -104,7 +105,7 @@ uint64_t init_display_sdl() {
 
     SDL_RaiseWindow(window);
 
-    load_character_rom();
+    pre_calculate_font(rd);
 
     return 0;
 }
