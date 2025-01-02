@@ -1,5 +1,14 @@
 CMakeFiles/
 build/
+build/*
 gs2.dSYM/
 hw.dSYM/
 gs2
+testdev/
+CMakeCache.txt
+tmp/
+tmp/*
+roms/*/*.rom
+roms/*/*.bin
+roms/*/base.addr
+Makefile

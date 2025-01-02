@@ -513,6 +513,30 @@ opcodes.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/opcodes.cpp.s
 .PHONY : opcodes.cpp.s
 
+platforms.o: platforms.cpp.o
+.PHONY : platforms.o
+
+# target to build an object file
+platforms.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/platforms.cpp.o
+.PHONY : platforms.cpp.o
+
+platforms.i: platforms.cpp.i
+.PHONY : platforms.i
+
+# target to preprocess a source file
+platforms.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/platforms.cpp.i
+.PHONY : platforms.cpp.i
+
+platforms.s: platforms.cpp.s
+.PHONY : platforms.s
+
+# target to generate assembly for a file
+platforms.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gs2.dir/build.make CMakeFiles/gs2.dir/platforms.cpp.s
+.PHONY : platforms.cpp.s
+
 test.o: test.cpp.o
 .PHONY : test.o
 
@@ -594,6 +618,9 @@ help:
 	@echo "... opcodes.o"
 	@echo "... opcodes.i"
 	@echo "... opcodes.s"
+	@echo "... platforms.o"
+	@echo "... platforms.i"
+	@echo "... platforms.s"
 	@echo "... test.o"
 	@echo "... test.i"
 	@echo "... test.s"
