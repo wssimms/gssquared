@@ -1,5 +1,5 @@
 # List of supported computer types
-COMPUTERS = apple2_plus apple2e
+COMPUTERS = apple2_plus apple2e apple2
 
 VENV = .venv
 PYTHON = $(VENV)/bin/python3
