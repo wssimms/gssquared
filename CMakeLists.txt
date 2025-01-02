@@ -25,10 +25,14 @@ add_executable(gs2 gs2.cpp bus.cpp clock.cpp debug.cpp cpu.cpp memory.cpp opcode
     display/text_40x24.cpp display/lores_40x48.cpp display/hgr_280x192.cpp display/display.cpp
     devices/keyboard.cpp devices/speaker.cpp devices/loader.cpp devices/thunderclockplus.cpp
     platforms.cpp
+    cpus/cpu_6502.cpp cpus/cpu_65c02.cpp
     event_poll.cpp)
 
 # Include SDL2 headers
-include_directories(${SDL2_INCLUDE_DIRS} /opt/homebrew/Cellar/sdl2/2.30.10/include)
+include_directories(${SDL2_INCLUDE_DIRS} 
+    /opt/homebrew/Cellar/sdl2/2.30.10/include
+    ${CMAKE_SOURCE_DIR}
+)
 
 # Link SDL2 and required frameworks
 target_link_libraries(gs2 PRIVATE 
