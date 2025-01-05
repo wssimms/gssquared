@@ -2,7 +2,7 @@
 
 #include "debug.hpp"
 #include "cpu.hpp"
-#include "devices/keyboard.hpp"
+#include "devices/keyboard/keyboard.hpp"
 
 // Loops until there are no events in queue waiting to be read.
 
