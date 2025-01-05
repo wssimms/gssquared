@@ -97,7 +97,7 @@ extern interleave_t cpm_order;
 
 
 void dump_disk_image(disk_image_t& disk_image);
-void load_disk_image(disk_image_t& disk_image, const char *filename);
+int load_disk_image(disk_image_t& disk_image, const char *filename);
 void emit_disk(disk_t& disk, disk_image_t& disk_image, int volume);
 void write_disk(disk_t& disk, const char *filename);
 void dump_disk(disk_t& disk);

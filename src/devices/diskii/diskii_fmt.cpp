@@ -286,12 +286,12 @@ void load_sector(sector_t& sect, const char *filename) {
     fclose(fp);
 }
 
-void load_disk_image(disk_image_t& disk_image, const char *filename) {
+int load_disk_image(disk_image_t& disk_image, const char *filename) {
 
     FILE *fp = fopen(filename, "rb");
     if (!fp) {
         printf("Could not open %s\n", filename);
-        return;
+        return -1;
     }
 
     int sect_index = 0;
@@ -300,12 +300,13 @@ void load_disk_image(disk_image_t& disk_image, const char *filename) {
             if (fread(disk_image.sectors[t][s], 1, SECTOR_SIZE, fp) != SECTOR_SIZE) {
                 printf("Could not read %d bytes from %s\n", SECTOR_SIZE, filename);
                 fclose(fp);
-                return;
+                return -1;
             }
         }
     }
 
     fclose(fp);
+    return 0;
 }
 
 void write_sector_62(sector_62_t& s62, const char *filename) {
