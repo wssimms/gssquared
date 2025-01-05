@@ -70,7 +70,7 @@ target_link_libraries(gs2 PRIVATE
     "-framework Cocoa"
 )
 
-target_link_libraries(gs2 PUBLIC gs2_cpu gs2_devices_tcp gs2_devices_keyboard)
+target_link_libraries(gs2 PUBLIC gs2_cpu gs2_devices_tcp gs2_devices_keyboard gs2_devices_diskii)
 
 
 add_subdirectory(apps/nibblizer)
