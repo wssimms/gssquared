@@ -19,7 +19,11 @@ int main() {
     sector_t sectors[16];
     disk_image_t disk_image;
 
-    load_disk_image(disk_image, "disk_sample.do");
+    int ret = load_disk_image(disk_image, "disk_sample.do");
+    if (ret < 0) {
+        printf("Failed to load disk image\n");
+        exit(1);
+    }
     dump_disk_image(disk_image);
 
     emit_disk(disk, disk_image, DEFAULT_VOLUME);
