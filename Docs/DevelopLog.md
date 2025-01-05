@@ -95,6 +95,7 @@ This is the SDL2 documentation for the keycodes:
 https://github.com/libsdl-org/SDL/blob/SDL2/include/SDL_keycode.h
 
 
+
 ## Dec 25, 2024
 
 I'm going to go ahead and scrap the Tigr code because SDL2 looks like it will do the trick.
@@ -663,6 +664,8 @@ Unclear how widely-supported this is.
 
 ## Generic Disk Interface - proposed
 
+### Registers
+
 Propose:
 
 ```
@@ -671,7 +674,400 @@ C0S1 - hi byte of sector number
 C0S2 - target address lo byte
 C0S3 - target address hi byte
 C0S4 - sector count
-C0S5 - write command. 1 = read, 2 = write.
+C0S5 - command. 0x1A = read, 2C = write.
 ```
 
-someone could easily accidentally write garbage to the disk.
+Someone could easily accidentally write garbage to the disk by strafing these registers. Give some thought
+on how to prevent that... Have the commands be values unlikely to be written by accident.
+Require a specific double-strobe. Something like that.
+Ah. Write values in. Strobe. Write command. Strobe.
+if not done in this sequence, command is ignored.
+Then the data is DMA'd into memory.
+
+### Firmware
+$CS00 - boot.
+$CS
+
+
+## Disk II Interface
+
+First, ROMs:
+
+https://mirrors.apple2.org.za/ftp.apple.asimov.net/emulators/rom_images/
+
+   * $C0S0 - Phase 0 Off
+   * $C0S1 - Phase 0 On
+   * $C0S2 - Phase 1 Off
+   * $C0S3 - Phase 1 On
+   * $C0S4 - Phase 2 Off
+   * $C0S5 - Phase 2 On
+   * $C0S6 - Phase 3 Off
+   * $C0S7 - Phase 3 On
+   * $C0S8 - Turn Motor Off
+   * $C0S9 - Turn Motor On
+   * $C0SA - Select Drive 1
+   * $C0SB - Select Drive 2
+   * $C0SC - Q6L
+   * $C0SD - Q6H
+   * $C0SE - Q7L
+   * $C0SF - Q7H
+
+So, the idea I have for this:
+each Disk II track is 4kbyte. I can build a complex state machine to run when
+$C0xx is referenced. Or, when loading a disk image, I can convert the disk image
+into a pre-encoded format that is stored in RAM. Then we just play this back very
+simply, in a circle. The $C0xx handler is a simple state machine, keeping track
+of these values:
+   * Current track position. track number, and phase.
+   * Current read/write pointer into the track
+   
+
+Each pre-encoded track will be a fixed number of bytes.
+
+If we write to a track, we need to know which sector, so we can update the image
+file on the real disk.
+
+Done this way, the disk ought to be emulatable at any emulated MHz speed. Our 
+pretend disk spins faster along with the cpu clock! Ha ha.
+
+### Track Encoding
+
+At least 5 all-1's bytes in a row.
+
+Followed by :
+
+Mark Bytes for Address Field: D5 AA 96
+Mark Bytes for Data Field: D5 AA AD
+
+### Head Movement
+
+to step in a track from an even numbered track (e.g. track 0):
+LDA C0S3        # turn on phase 1
+(wait 11.5ms)
+LDA C0S5        # turn on phase 2
+(wait 0.1ms)
+LDA C0S4        # turn off phase 1
+(wait 36.6 msec)
+LDA C0S6        # turn off phase 2
+
+Moving phases 0,1,2,3,0,1,2,3 etc moves the head inward towards center.
+Going 3,2,1,0,3,2,1,0 etc moves the head inward.
+Even tracks are positioned under phase 0,
+Odd tracks are positioned under phase 2.
+
+If track is 0, and we get:
+Ph 1 on, Ph 2 on, Ph 1 off
+Then we move in one track to track. 1.
+
+So we'll want to debug with printing the track number and phase.
+
+When software is syncing, it's just going to look for 5 FF bytes in a row
+from the read register, followed by the marks. That's basically it.
+For handling writing, we might want to have each sector in its own block and up
+to a certain 
+
+We'll be able to handle both 6-and-2 and 5-and-3 scheme in case anyone wants this -
+it would be registering a different disk ii handler that would set a flag.
+In theory this scheme could let you nibble-copy disk images too.
+
+The media is traveling faster under the head when the head is at the edge;
+slower when under the center. The time for a track to pass under the head is
+the same regardless of which track the head is over. In the physical world,
+this means the magnetic pulses are physically longer when the head is at the edge.
+In our emulated world, it should be roughly the same number of bits per ms
+regardless of position. So each track should be the same number of pre-encoded bytes.
+
+If the motor is off, we stop rotating bits out through the registers.
+
+OK, we have a 6:2 encoding table.
+
+# Jan 1, 2025
+
+## Apple IIe Dinking
+
+I implemented some infrastructure to automatically fetch and combine ROMs from the Internet
+for use by the emulator.
+
+The Apple IIe ROMs aren't working, because we don't have correct memory mapping in place
+for the ROMs.
+
+Apple IIe Technical Reference Manual, Pages 142-143, cover this, but it's dense and the diagram
+doesn't exactly match the text.
+
+Booting up, we see this (we didn't get very far, lol):
+
+ | PC: $FE84, A: $00, X: $00, Y: $00, P: $00, S: $A5 || FE84: LDY #$FF
+ | PC: $FE86, A: $00, X: $00, Y: $FF, P: $80, S: $A5 || FE86: STY $32   [#FF] -> $32
+ | PC: $FE88, A: $00, X: $00, Y: $FF, P: $80, S: $A5 || FE88: RTS [#FA65] <- S[0x01 A6]$FA66
+ | PC: $FA66, A: $00, X: $00, Y: $FF, P: $80, S: $A7 || FA66: JSR $FB2F [#FA68] -> S[0x01 A6]$FB2F
+ | PC: $FB2F, A: $00, X: $00, Y: $FF, P: $80, S: $A5 || FB2F: LDA #$00
+ | PC: $FB31, A: $00, X: $00, Y: $FF, P: $02, S: $A5 || FB31: STA $48   [#00] -> $48
+ | PC: $FB33, A: $00, X: $00, Y: $FF, P: $02, S: $A5 || FB33: LDA $C056   [#00] <- $C056
+ | PC: $FB36, A: $00, X: $00, Y: $FF, P: $02, S: $A5 || FB36: LDA $C054   [#00] <- $C054
+ | PC: $FB39, A: $00, X: $00, Y: $FF, P: $02, S: $A5 || FB39: LDA $C051   [#00] <- $C051
+ | PC: $FB3C, A: $00, X: $00, Y: $FF, P: $02, S: $A5 || FB3C: LDA #$00
+ | PC: $FB3E, A: $00, X: $00, Y: $FF, P: $02, S: $A5 || FB3E: BEQ #$0B => $FB4B (taken)
+ | PC: $FB4B, A: $00, X: $00, Y: $FF, P: $02, S: $A5 || FB4B: STA $22   [#00] -> $22
+ | PC: $FB4D, A: $00, X: $00, Y: $FF, P: $02, S: $A5 || FB4D: LDA #$00
+ | PC: $FB4F, A: $00, X: $00, Y: $FF, P: $02, S: $A5 || FB4F: STA $20   [#00] -> $20
+ | PC: $FB51, A: $00, X: $00, Y: $FF, P: $02, S: $A5 || FB51: LDY #$08
+ | PC: $FB53, A: $00, X: $00, Y: $08, P: $00, S: $A5 || FB53: BNE #$5F => $FBB4 (taken)
+ | PC: $FBB4, A: $00, X: $00, Y: $08, P: $00, S: $A5 || FBB4: PHP [#30] -> S[0x01 A5]
+ | PC: $FBB5, A: $00, X: $00, Y: $08, P: $00, S: $A4 || FBB5: SEI
+ | PC: $FBB6, A: $00, X: $00, Y: $08, P: $04, S: $A4 || FBB6: BIT $C015   [#EE] <- $C015
+ | PC: $FBB9, A: $00, X: $00, Y: $08, P: $C6, S: $A4 || FBB9: PHP [#F6] -> S[0x01 A4]
+ | PC: $FBBA, A: $00, X: $00, Y: $08, P: $C6, S: $A3 || FBBA: STA $C007   [#00] <- $C007
+ | PC: $FBBD, A: $00, X: $00, Y: $08, P: $C6, S: $A3 || FBBD: JMP $C100
+ | PC: $C100, A: $00, X: $00, Y: $08, P: $C6, S: $A3 || C100: INC $EEEE $EEEE   [#E4]
+
+ So, it's trying to enable "Internal ROM at $CX00" when it hits $C007:
+
+ "When SLOTCXROM is active (high), the IO memory space from $C100 to $C7FF is allocated
+ to the expansion slots, as described previously. Setting SLOTCXROM inactive (low) disables
+ the peripheral-card ROM and selects built-in ROM in all of the I/O memory space
+ except the part from $C000 to $C0FF (used for soft switches and data I/O).
+ In addition to the 80 col firmware at $C300 and $C800, the built-in ROM
+ includes firmware that performs the self-test of the Apple IIe's hardware.
+
+So it's trying to enable the internal ROM. Which I have loaded, but I am not exposing that
+part of the memory page.
+
+This brings up the question of whether page sizes should be 4K as I was originally thinking,
+or 256 bytes. There's a bunch of stuff here that gets paged in on 256 byte boundaries.
+I guess I could add some logic to bus.c to try to handle this.
+
+Should review all the 80-column stuff too. Might as well jump in and document all the "extra
+memory bank" related stuff, and go straight from where we're at with 64K, to 128K.
+
+
+## Apple II (non-plus) dinking
+
+Going the other direction, loading Apple II (original) f/w on the emulator works.
+Dumps you into monitor ROM, and, ctrl-B into Integer BASIC!
+
+F666G puts you into the mini-assembler, which is especially fun.
+
+This is an Integer basic game :
+
+https://en.wikipedia.org/wiki/Integer_BASIC
+
+that would be a pain in the ass to type in, so, was thinking about a copy/paste feature
+to paste data into the emulator.
+
+Since I've started this Platform work, there are some things to think about:
+
+1. Even to support full Apple IIe functionality, we're going to need the ability to handle more than
+64K of memory. This is done with switches, and the 'bus' is still only 16 bit.
+1. The Platform concept should include selection of the CPU chip, and perhaps certain hardware. Though
+we probably want to have some separation so we can have "Any card in any platform in any slot".
+
+
+
+# January 2, 2025
+
+I have an interesting concept, of extensive use of function pointers in structs / arrays.
+For example, when defining the Apple II Plus platform, we would have a struct that
+is a list of all the devices that need to be initialized. They would be executed in order.
+A different platform could have a different set.
+All the devices would interface specifically through the Bus concept - just like they do in the
+real systems, and, must not have any cross-dependencies. And then all the devices
+code could be 100% shared between different platform definitions.
+A device class would be composed of:
+  initialization method
+  de-initialization method
+
+They tie into the system through:
+  bus_register
+  bus_unregister
+  timer_register
+  timer_unregister
+
+timer_register is something that's hardcoded in the gs2 main loop right now.
+But we could maintain a ordered event queue of function pointers to call.
+Let's say we've got video routines 60 times a second; and another thing that needs to
+happen 10 times a second, etc. Each time a handler ran, it would reschedule itself
+for a next run, as appropriate.
+
+To integrate into SDL events, build a data structure that would have callbacks based on certain event types.
+
+This is a goal, before we get too awful many devices into this thing.
+
+At a little higher level, we'll have a slot device class. These will be called with a slot number.
+And then register themselves into the system as appropriate.
+
+## January 3, 2025
+
+Thinking about display a little bit.
+We're going to need to have the native display be 560x192 pixels. This is for a few reasons.
+1) handle 80 column text. that's 7 pixels x 80 = 560.
+2) handle double hi-res. This is 560x192.
+3) even with standard hi-res, if we want to simulate the slight horizontal displacement of different color pixels, then
+we need to have 560 pixels horizontally. This actually sort of simplifies HGR display.
+
+The implication is that either I change the texture scale horizontally by a factor of 2
+(e.g., in 40-column modes it would be 8x 4y scaling), or, I can just write twice
+as many pixels horizontally to the texture.
+
+Yes. We would still define the texture as 560x192.
+In 40-col text and regular lo-res mode, we would only write pixels into 280x192, and SDL_RenderCopy 
+double (see below) to stretch it.
+In 80-col mode, double lo-res mode, and hi-res mode, and double hi-res mode, we would write pixels into 560x192
+and copy w/o stretching.
+
+This implies we need to keep the screen mode per line. i.e. each of the 24 lines would be:
+   lores40
+   lores80
+   text40
+   text80
+   hires
+   dhires
+
+The display overall would also have a color vs monochrome mode.
+And we need to keep track of the "color-killer" mode: in mixed text and graphics mode,
+the text is color-fringed. In pure text mode, the display is set to only display white pixels.
+Actually this implies that even on lines in text mode, we might need to draw the text with
+the slight pixel-shift and color-fringed effect. In which case, all buffers would always be
+560 wide. And, we would likely post-process the color-fringe effect. I.e., draw a scanline
+(or, 8 scanlines), then apply filtering to color the bits. Then render.
+
+In monochrome mode, a pixel is just on or off. no color. But, probably still pixel-shifted.
+
+Depending on how intricate this all gets, we may even need to use a large pixel resolution than 560x192.
+Would have to read up on the Apple II NTSC stuff in more detail.
+
+```
+// Source rectangle (original dimensions)
+    SDL_Rect srcRect = {
+        0,      // X position
+        y * 8,  // Y position
+        280,    // Original width
+        8       // Height
+    };
+
+    // Destination rectangle (stretched dimensions)
+    SDL_Rect dstRect = {
+        0,      // X position
+        y * 8,  // Y position
+        560,    // Doubled width (or whatever scale you want)
+        8       // Height
+    };
+
+    SDL_RenderCopy(renderer, texture, &srcRect, &dstRect);
+```
+
+Example hires bytes:
+
+  01010101 - 55. Purple dots. even byte (0,2,etc)
+  00101010 - 2A. Purple dots. odd byte. (1,3,etc)
+
+  11010101 - D5. Blue dots. even byte (0,2,etc)
+  10101010 - AA. Blue dots. odd byte. (1,3,etc)
+
+Apple2TS does not do color fringing on text. 
+
+A very thorough hires renderer:
+
+https://github.com/markadev/AppleII-VGA/blob/main/pico/render_hires.c?fbclid=IwY2xjawHlXzFleHRuA2FlbQIxMAABHY4HQtJ1e_ODqLnjQ3SEOp4Z_js9qJa7JArXYQJj-KmLULgEYBUDO24zUQ_aem_3K8UGHDmTyjZzMBticL4uA#L6
+
+This is a decoder for how a bunch of things are supposed to look:
+https://zellyn.com/apple2shader/?fbclid=IwY2xjawHlYI1leHRuA2FlbQIxMAABHWRHc9TVWKrSuP0JBIeQHS4OVXc7_nCmcu2hdOl6c-vtCk2Aiit1uXNFEA_aem_5LQvZKXfjFgJFIU0zM5WnQ
+
+## Jan 4, 2025
+
+The DiskII code is now correctly generating a nibblized disk image in memory.
+I have tested this two ways, first, by comparing encoded sectors to the example
+in decodeSector.py. Second, by taking an entire disk and inspecting it with 
+CiderPress2. This has the ability to read nibblized disk images and pull data
+out of them, catalog them, etc. Slick.
+
+Getting ready to write the read register support, then, we ought to be able to
+boot a bloody DOS 3.3 image!
+
+In preparation for that, I took the code I was working on which was a separate
+set of source files and executable, and moved it into a new folder structure,
+src/devices/diskii. There is also apps/nibblizer. There's a hierarchy of Makes
+and Cmake apparently makes it very easy to turn some of these into libraries
+and link them into the main executable. This means the diskii_fmt files are now
+shared between the main executable and the nibblizer executable. Slick.
+
+I also have had some thoughts about how to do runtime configuration and linking of
+a user interface with the engine. I was thinking, some kind of IPC mechanism.
+If we use web tech like JSON to an API, that could open up some very interesting
+possibilies. It would allow remote control over the internet; it would allow 
+programmatic / scripted runtime configuration of the system, which could really
+help automate testing. This could work kind of like the bittorrent client,
+where the configurator is just a web app.
+
+[ ] DiskII should get volume byte from DOS33 VTOC and 'format' the disk image with it.
+
+[ ] Create struct configuration tables for memory map for each platform.
+
+[ ] There's an obvious optimization in the DiskII area - we don't have to shift the bits out of the register. We can just provide the full byte with the hi-bit set. This would 
+probably work and speed up disk emulation mightily.
+
+## Jan 5, 2025
+
+Well as of this morning I'm booting disk images!
+
+However, they are exceptionally slow operating. I think it must have to do with the interleaving.
+I am laying them out in memory in logical disk order, but with the sector numbers mapped
+to interleave. I think that's insufficient.
+
+Check out my CiderPress2 generated .nib image and see what order the sectors are in.
+
+yeah, physical sectors numbers in the CP2 image are: 0, 1, etc. So not only do they change the sector numbers
+in the address field, but, we need to reorder the data so the physical sectors in the stream are in the physical sector order:
+i.e., 0, 1, 2, 3, etc.
+
+original way
+
+gs2 -d testdev/disk2/disk_sample.do  50.24s user 0.40s system 98% cpu 51.397 total
+
+new way (physical order)
+
+gs2 -d testdev/disk2/disk_sample.do  47.40s user 0.35s system 99% cpu 48.173 total
+
+That's not much difference - 3 seconds.
+
+Here's some more potential stuff:
+
+From Understanding the Apple II. page 9-37:
+"Is is possible to check whether a drive at a slot is on by configuring for reading
+data and monitoring the data register. If a drive is turned on, the data register will
+be changing and vice-versa."
+
+So when the disk is off, it is turning it on and waiting a second for it to spin up.
+
+Understanding the Apple II. page 9-13: "The effect of this timer is to
+delay drive turn-off until one second after a reference to $C088,X".
+
+So I need to emulate the timer. Each iteration through the DiskII code, check
+cpu cycles from "mark_cycles_turnoff". if it's non-zero, then see if it's
+been one second. Only then mark the motor disabled. On a reset the delay timer
+is cleared and drive turned off almost immediately."
+
+So, simulate this timer. Because I think the II is waiting one second every time it
+turns the disk motor on.
+
+We will need a "list of routines to call on a reset" queue. Disk:
+"RESET forces all disk switches to off, and clears the delay timer."
+
+There is also this: "Access to even addresses causes the data register contents to be
+transferred to thedata bus."
+
+my attempt to delay motor off is not working, its causing the disk to chugga chugga.
+Don't forget I'm starting on track 13 every time to be silly. Would help a little
+to have it start at track 0.
+
+None of this has really helped. here's what I'm thinking. say I'm in an apple ii.
+I read a sector. I have to go off and do stuff with it.
+by the time I come back to read the next sector, the disk has spun around a circle
+for a while. But my emulator hasn't moved the virtual head. So all this interleave 
+stuff is just wrong. 
+
+I need to simulate the disk continuing to spin while we're away. So, between reads
+from the disk, I need to spin the disk that many nybbles.
+
+Oh. I should disable my "accelerator".
+
+So, 300rpm ?
