@@ -5,7 +5,6 @@
 #include <stdlib.h>
 
 #include "devices/diskii/diskii_fmt.hpp"
-//#include "diskii_fmt.cpp"
 
 /**
  * for now, read only!
