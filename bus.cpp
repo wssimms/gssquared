@@ -3,8 +3,8 @@
 #include <sstream>
 #include "bus.hpp"
 
+#include "memory.hpp"
 #include "display/text_40x24.hpp"
-#include "devices/keyboard.hpp"
 #include "display/hgr_280x192.hpp"
 /**
  * Process read and write to simulated IO bus for peripherals 
@@ -42,6 +42,9 @@ uint8_t memory_bus_read(cpu_state *cpu, uint16_t address) {
         if (funcptr != nullptr) {
             return (*funcptr)(cpu, address);
         } else return 0xEE;
+    }
+    if (address >= 0xC100 && address < 0xC800) { // Slot-card firmware.
+        return raw_memory_read(cpu, address);
     }
     return 0xEE; /* TODO: should return a random value 'floating bus'*/
 }
