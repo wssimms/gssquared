@@ -6,9 +6,14 @@ hw.dSYM/
 gs2
 testdev/
 CMakeCache.txt
+cmake_install.cmake
 tmp/
 tmp/*
 roms/*/*.rom
 roms/*/*.bin
 roms/*/base.addr
 Makefile
+bin
+bin/*
+lib/
+lib/*
