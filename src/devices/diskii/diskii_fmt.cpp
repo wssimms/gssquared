@@ -425,7 +425,10 @@ void emit_track(disk_t& disk, disk_image_t& disk_image, int volume, int track) {
     emit_gap_a(disk.tracks[track]); // gap A is only at beginning of track.
     for (int s = 0; s < SECTORS_PER_TRACK; s++) {
         // we must map the logical sector number (.do format) to the physical sector number (.nib format)
-        emit_sector(disk.tracks[track], (sector_t&)disk_image.sectors[track][s], volume, track, disk.interleave_logical_to_phys[s]);
+        // right now this loops in logical order.
+        //emit_sector(disk.tracks[track], (sector_t&)disk_image.sectors[track][s], volume, track, disk.interleave_logical_to_phys[s]);
+        // loop in physical order.
+        emit_sector(disk.tracks[track], (sector_t&)disk_image.sectors[track][disk.interleave_phys_to_logical[s]], volume, track, s);
     }
 }
 
