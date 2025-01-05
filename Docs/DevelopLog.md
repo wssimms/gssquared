@@ -1068,12 +1068,34 @@ stuff is just wrong.
 I need to simulate the disk continuing to spin while we're away. So, between reads
 from the disk, I need to spin the disk that many nybbles.
 
-Oh. I should disable my "accelerator".
-
-So, 300rpm ?
-
-never mind. I disabled my "accelerator" and now it boots fast. That code was causing a big
+Never mind. I disabled my "accelerator" and now it boots fast. That code was causing a big
 mismatch between the simulated disk and cycles going by - it was messing with the interleave
 timing.
 
 Now we're at 11 seconds!
+
+This may yet be an issue when writing. Have to take a look at the write code in DOS.
+And, of course, we'll need a denibblizer routine. I bet I can steal that from Woz too!
+
+A ton of software requires 64K. So I guess that's the next thing to do.
+
+I am thinking, a more generalized event queue is needed. For instance, the disk needs to turn
+off one second after the command to turn it off is actually sent. Right now I am cheating
+and checking cpu cycles but only when the disk registers are read. Software is going to want
+to turn it off and then NOT READ REGISTERS for a while.
+
+Of course I also have timing routines related to video and audio. So that's where the event queue
+comes in. It needs to be -ordered-, when we read out of it.
+
+It's going to be the following:
+cycle count to trigger at
+function pointer to call
+argument 1 uint64_t
+argument 2 uint64_t
+
+This will be part of the CPU struct, so the actual function can be called with the CPU pointer.
+
+[ ] Add 'Language card' / 64K support.
+[ ] Add event queue system.
+[ ] Add Disk II write support.
+[ ] Add .nib and .po format support.
