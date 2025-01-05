@@ -3,7 +3,6 @@
 #include <cstdlib>
 
 #include "../gs2.hpp"
-#include "../devices/keyboard.hpp"
 #include "../memory.hpp"
 #include "../debug.hpp"
 #include "../bus.hpp"
