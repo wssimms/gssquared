@@ -1071,3 +1071,9 @@ from the disk, I need to spin the disk that many nybbles.
 Oh. I should disable my "accelerator".
 
 So, 300rpm ?
+
+never mind. I disabled my "accelerator" and now it boots fast. That code was causing a big
+mismatch between the simulated disk and cycles going by - it was messing with the interleave
+timing.
+
+Now we're at 11 seconds!
