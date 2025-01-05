@@ -5,8 +5,8 @@
 #include "../debug.hpp"
 #include "keyboard.hpp"
 #include "../bus.hpp"
-#include "speaker.hpp"
-#include "loader.hpp"
+#include "devices/speaker.hpp"
+#include "devices/loader.hpp"
 
 // Software should be able to:
 // Read keyboard from register at $C000.
