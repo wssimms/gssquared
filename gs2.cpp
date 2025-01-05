@@ -22,6 +22,7 @@
 #include "devices/loader.hpp"
 #include "devices/thunderclock_plus/thunderclockplus.hpp"
 #include "devices/diskii.hpp"
+#include "devices/diskii/diskii_fmt.hpp"
 #include "platforms.hpp"
 
 /**
@@ -182,8 +183,11 @@ int main(int argc, char *argv[]) {
 
     int platform_id = 1;  // default to Apple II Plus
     int opt;
+
+    disk_image_t disk_image;
+    disk_t disk;
     
-    while ((opt = getopt(argc, argv, "p:a:b:")) != -1) {
+    while ((opt = getopt(argc, argv, "p:a:b:1:2:")) != -1) {
         switch (opt) {
             case 'p':
                 platform_id = atoi(optarg);
@@ -193,6 +197,12 @@ int main(int argc, char *argv[]) {
                 break;
             case 'b':
                 loader_set_file_info(optarg, 0x7000);
+                break;
+            case '1':
+                mount_disk(6, 0, optarg);
+                break;
+            case '2':
+                mount_disk(6, 1, optarg);
                 break;
             default:
                 fprintf(stderr, "Usage: %s [-p platform] [-a program.bin] [-b loader.bin]\n", argv[0]);
