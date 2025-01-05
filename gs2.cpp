@@ -17,10 +17,11 @@
 #include "test.hpp"
 #include "display/text_40x24.hpp"
 #include "event_poll.hpp"
-#include "devices/keyboard.hpp"
+#include "devices/keyboard/keyboard.hpp"
 #include "devices/speaker.hpp"
 #include "devices/loader.hpp"
-#include "devices/thunderclockplus.hpp"
+#include "devices/thunderclock_plus/thunderclockplus.hpp"
+#include "devices/diskii.hpp"
 #include "platforms.hpp"
 
 /**
@@ -256,6 +257,7 @@ int main(int argc, char *argv[]) {
     init_device_display();
     init_speaker(&CPUs[0]);
     init_thunderclock(1);
+    diskII_register_slot(&CPUs[0], 6); // put a disk II in slot 6
 
     cpu_reset(&CPUs[0]);
 
