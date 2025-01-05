@@ -8,6 +8,7 @@ struct platform_info {
     const char* name;           // Human readable name
     const char* rom_dir;        // Directory under roms/
     const int processor_type;   // processor type
+    const clock_mode default_clock_mode; // default clock mode for this platform at startup.
 };
 
 struct rom_data {

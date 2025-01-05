@@ -6,10 +6,10 @@
 #include "platforms.hpp"
 
 static  platform_info platforms[] = {
-    { 0, "Apple II", "apple2", PROCESSOR_6502 },
-    { 1, "Apple II Plus", "apple2_plus", PROCESSOR_6502 },
-    { 2, "Apple IIe",     "apple2e", PROCESSOR_6502 },
-    { 3, "Apple IIe Enhanced",     "apple2e_enhanced", PROCESSOR_65C02 },
+    { 0, "Apple II", "apple2", PROCESSOR_6502, CLOCK_1_024MHZ },
+    { 1, "Apple II Plus", "apple2_plus", PROCESSOR_6502, CLOCK_1_024MHZ },
+    { 2, "Apple IIe",     "apple2e", PROCESSOR_6502, CLOCK_1_024MHZ },
+    { 3, "Apple IIe Enhanced",     "apple2e_enhanced", PROCESSOR_65C02, CLOCK_1_024MHZ },
     // Add more platforms as needed:
     // { "Apple IIc",         "apple2c" },
     // { "Apple IIc Plus",    "apple2c_plus" },
