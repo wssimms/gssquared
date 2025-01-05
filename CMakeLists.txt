@@ -38,6 +38,10 @@ add_library(gs2_devices_tcp
     src/devices/thunderclock_plus/thunderclockplus.cpp
 )
 
+add_library(gs2_devices_keyboard
+    src/devices/keyboard/keyboard.cpp
+)
+
 add_library(gs2_cpu
     src/cpus/cpu_6502.cpp
     src/cpus/cpu_65c02.cpp
@@ -46,7 +50,7 @@ add_library(gs2_cpu
 # Add the executable
 add_executable(gs2 gs2.cpp bus.cpp clock.cpp debug.cpp cpu.cpp memory.cpp opcodes.cpp test.cpp 
     display/text_40x24.cpp display/lores_40x48.cpp display/hgr_280x192.cpp display/display.cpp
-    devices/keyboard.cpp devices/speaker.cpp devices/loader.cpp 
+    devices/speaker.cpp devices/loader.cpp 
     devices/diskii.cpp
     platforms.cpp
     event_poll.cpp)
@@ -66,7 +70,7 @@ target_link_libraries(gs2 PRIVATE
     "-framework Cocoa"
 )
 
-target_link_libraries(gs2 PUBLIC gs2_cpu gs2_devices_tcp)
+target_link_libraries(gs2 PUBLIC gs2_cpu gs2_devices_tcp gs2_devices_keyboard)
 
 
 add_subdirectory(apps/nibblizer)
