@@ -147,6 +147,7 @@ In DOS at $B800 lives the "prenibble routine" . I could perhaps steal that. hehe
 #include "bus.hpp"
 #include "diskii.hpp"
 #include "devices/diskii/diskii_fmt.hpp"
+#include "debug.hpp"
 
 uint8_t diskII_firmware[256] = {
  0xA2,  0x20,  0xA0,  0x00,   0xA2,  0x03,  0x86,  0x3C,   0x8A,  0x0A,  0x24,  0x3C,   0xF0,  0x10,  0x05,  0x3C,  
@@ -236,15 +237,26 @@ uint8_t read_nybble(diskII& disk) { // cause a shift.
 #endif
 }
 
-void mount_disk(uint8_t slot, uint8_t drive, const char *filename) {
-    memcpy(diskII_slot[slot].drive[drive].nibblized.interleave_phys_to_logical, do_phys_to_logical, sizeof(interleave_t));
-    memcpy(diskII_slot[slot].drive[drive].nibblized.interleave_logical_to_phys, do_logical_to_phys, sizeof(interleave_t));
+void mount_diskII(uint8_t slot, uint8_t drive, const char *filename) {
+
+    // TODO: detect DOS 3.3 or ProDOS and set the interleave accordingly.
+    // if filename ends in .po, use po_phys_to_logical and po_logical_to_phys.
+    // if filename ends in .do, use do_phys_to_logical and do_logical_to_phys.
+    // if filename ends in .dsk, use do_phys_to_logical and do_logical_to_phys.
+
+    if (strstr(filename, ".po")) {
+        memcpy(diskII_slot[slot].drive[drive].nibblized.interleave_phys_to_logical, po_phys_to_logical, sizeof(interleave_t));
+        memcpy(diskII_slot[slot].drive[drive].nibblized.interleave_logical_to_phys, po_logical_to_phys, sizeof(interleave_t));
+    } else {
+        memcpy(diskII_slot[slot].drive[drive].nibblized.interleave_phys_to_logical, do_phys_to_logical, sizeof(interleave_t));
+        memcpy(diskII_slot[slot].drive[drive].nibblized.interleave_logical_to_phys, do_logical_to_phys, sizeof(interleave_t));
+    }
 
     load_disk_image(diskII_slot[slot].drive[drive].media, filename); // pull this into diskii stuff somewhere.
     emit_disk(diskII_slot[slot].drive[drive].nibblized, diskII_slot[slot].drive[drive].media, 0xFE);
 }
 
-void unmount_disk(uint8_t slot, uint8_t drive) {
+void unmount_diskII(uint8_t slot, uint8_t drive) {
     // TODO: this will write the disk image back to disk.
 }
 
@@ -276,7 +288,7 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
     diskII &seldrive = diskII_slot[slot].drive[drive];
 
     if (seldrive.motor == 1 && seldrive.mark_cycles_turnoff != 0 && ((cpu->cycles > seldrive.mark_cycles_turnoff))) {
-        printf("motor off: %llu %llu cycles\n", cpu->cycles, seldrive.mark_cycles_turnoff);
+        if (DEBUG(DEBUG_DISKII)) printf("motor off: %llu %llu cycles\n", cpu->cycles, seldrive.mark_cycles_turnoff);
         seldrive.motor = 0;
         seldrive.mark_cycles_turnoff = 0;
     }
@@ -288,11 +300,11 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
 
     switch (reg) {
         case DiskII_Ph0_Off:    
-            DEBUG_PH(slot, drive, 0, 0);
+            if (DEBUG(DEBUG_DISKII))  DEBUG_PH(slot, drive, 0, 0);
             seldrive.phase0 = 0;
             break;
         case DiskII_Ph0_On:
-            DEBUG_PH(slot, drive, 0, 1);
+            if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 0, 1);
             if (last_phase_on == 1) {
                 diskII_slot[slot].drive[drive].track--;
             } else if (last_phase_on == 3) {
@@ -302,11 +314,11 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
             seldrive.last_phase_on = 0;
             break;
         case DiskII_Ph1_Off:
-            DEBUG_PH(slot, drive, 1, 0);
+            if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 1, 0);
             seldrive.phase1 = 0;
             break;
         case DiskII_Ph1_On:
-            DEBUG_PH(slot, drive, 1, 1);
+            if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 1, 1);
             if (last_phase_on ==2) {
                 seldrive.track--;
             } else if (last_phase_on == 0) {
@@ -316,11 +328,11 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
             seldrive.last_phase_on = 1;
             break;
         case DiskII_Ph2_Off:
-            DEBUG_PH(slot, drive, 2, 0);
+            if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 2, 0);
             seldrive.phase2 = 0;
             break;
         case DiskII_Ph2_On:
-            DEBUG_PH(slot, drive, 2, 1);
+            if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 2, 1);
             if (last_phase_on == 3) {
                 seldrive.track--;
             } else if (last_phase_on == 1) {
@@ -330,11 +342,11 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
             seldrive.last_phase_on = 2;
             break;
         case DiskII_Ph3_Off:
-            DEBUG_PH(slot, drive, 3, 0);
+            if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 3, 0);
             seldrive.phase3 = 0;
             break;
         case DiskII_Ph3_On:
-            DEBUG_PH(slot, drive, 3, 1);
+            if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 3, 1);
             if (last_phase_on == 0) {
                 seldrive.track--;
             } else if (last_phase_on == 2) {
@@ -344,25 +356,25 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
             seldrive.last_phase_on = 3;
             break;
         case DiskII_Motor_Off:
-            DEBUG_MOT(slot, drive, seldrive.motor);
+            if (DEBUG(DEBUG_DISKII)) DEBUG_MOT(slot, drive, seldrive.motor);
             // if motor already off, do nothing.
             if (seldrive.motor == 1) {
                 seldrive.mark_cycles_turnoff = cpu->cycles + 750000;
-                printf("schedule motor off at %llu (is now %llu)\n", seldrive.mark_cycles_turnoff, cpu->cycles);
+                if (DEBUG(DEBUG_DISKII)) printf("schedule motor off at %llu (is now %llu)\n", seldrive.mark_cycles_turnoff, cpu->cycles);
             }
             //seldrive.motor = 0;
             break;
         case DiskII_Motor_On:
-            DEBUG_MOT(slot, drive, seldrive.motor);
+            if (DEBUG(DEBUG_DISKII)) DEBUG_MOT(slot, drive, seldrive.motor);
             seldrive.motor = 1;
             seldrive.mark_cycles_turnoff = 0; // if we turn motor on, reset this and don't stop it!
             break;
         case DiskII_Drive1_Select:
-            DEBUG_DS(slot, drive, 0);
+            if (DEBUG(DEBUG_DISKII)) DEBUG_DS(slot, drive, 0);
             diskII_slot[slot].drive_select = 0;
             break;
         case DiskII_Drive2_Select:
-            DEBUG_DS(slot, drive, 1);
+            if (DEBUG(DEBUG_DISKII)) DEBUG_DS(slot, drive, 1);
             diskII_slot[slot].drive_select = 1;
             break;
         case DiskII_Q6L:
@@ -395,10 +407,10 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
 
     if (seldrive.track != cur_track) {
         uint8_t halftrack = seldrive.track % 2;
-        fprintf(stdout, "new (internal track): %d, realtrack %d, halftrack %d\n", seldrive.track, seldrive.track/2, halftrack);
+        if (DEBUG(DEBUG_DISKII)) fprintf(stdout, "new (internal track): %d, realtrack %d, halftrack %d\n", seldrive.track, seldrive.track/2, halftrack);
     }
     if (seldrive.track < 0) {
-        fprintf(stdout, "track < 0, CHUGGA CHUGGA CHUGGA\n");
+        if (DEBUG(DEBUG_DISKII)) fprintf(stdout, "track < 0, CHUGGA CHUGGA CHUGGA\n");
         seldrive.track = 0;
     }
     return 0xEE;
@@ -459,18 +471,6 @@ void diskII_register_slot(cpu_state *cpu, uint8_t slot) {
     register_C0xx_memory_read_handler(slot_base + DiskII_Q7L, diskII_read_C0xx);
     register_C0xx_memory_read_handler(slot_base + DiskII_Q7H, diskII_read_C0xx);
 
-    //register_C0xx_memory_write_handler(slot_base + DiskII_Ph0_Off, diskII_write_C0xx);
-    //register_C0xx_memory_write_handler(slot_base + DiskII_Ph0_On, diskII_write_C0xx);
-    //register_C0xx_memory_write_handler(slot_base + DiskII_Ph1_Off, diskII_write_C0xx);
-    //register_C0xx_memory_write_handler(slot_base + DiskII_Ph1_On, diskII_write_C0xx);
-    //register_C0xx_memory_write_handler(slot_base + DiskII_Ph2_Off, diskII_write_C0xx);
-    //register_C0xx_memory_write_handler(slot_base + DiskII_Ph2_On, diskII_write_C0xx);
-    //register_C0xx_memory_write_handler(slot_base + DiskII_Ph3_Off, diskII_write_C0xx);
-    //register_C0xx_memory_write_handler(slot_base + DiskII_Ph3_On, diskII_write_C0xx);
-    //register_C0xx_memory_write_handler(slot_base + DiskII_Motor_Off, diskII_write_C0xx);
-    //register_C0xx_memory_write_handler(slot_base + DiskII_Motor_On, diskII_write_C0xx);
-    //register_C0xx_memory_write_handler(slot_base + DiskII_Drive1_Select, diskII_write_C0xx);
-    //register_C0xx_memory_write_handler(slot_base + DiskII_Drive2_Select, diskII_write_C0xx);
     register_C0xx_memory_write_handler(slot_base + DiskII_Q6L, diskII_write_C0xx);
     register_C0xx_memory_write_handler(slot_base + DiskII_Q6H, diskII_write_C0xx);
     register_C0xx_memory_write_handler(slot_base + DiskII_Q7L, diskII_write_C0xx);
