@@ -10,4 +10,4 @@
 #define MEMORY_SIZE 64 * 1024
 #endif
 
-#define GS2_PAGE_SIZE 4096
+#define GS2_PAGE_SIZE 256
