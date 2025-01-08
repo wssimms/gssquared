@@ -1,0 +1,79 @@
+; ProDOS Disk Drive Block Controller
+;
+
+jmp_vector    equ $07FD
+jmp_addr      equ $07FE
+jmp_page      equ $07FF
+
+PD_CMD        equ $42
+PD_DEV        equ $43
+PD_ADDR_LO    equ $44
+PD_ADDR_HI    equ $45
+PD_BLOCK_LO   equ $46
+PD_BLOCK_HI   equ $47
+
+BYTES_ADDR equ $C6FC
+CMD_VECTOR equ $C6C0
+
+BOOTLOADER    equ $0800
+
+        org $C600
+        
+        LDX #$20
+        LDA #$00
+        LDX #$03
+        LDA #$3C        ; 00 indicated smartport, needs another vector 3 bytes after CMD_VECTOR. Try $3C for (disk device)
+        BIT $CFFF       ; turn off other device ROM in c8-cf (we don't really need this, but be clean)
+
+        LDA #$01
+        STA PD_CMD
+        LDA #$4C
+        STA jmp_vector
+        LDA #$C0
+        STA jmp_addr
+        LDA #$60
+        STA jmp_page
+        JSR jmp_page       ; call an RTS to get our page number
+        TSX
+        LDA $0100,X
+        STA jmp_page       ; finish writing instruction JMP $Cn60 to $7FD
+        ASL
+        ASL
+        ASL
+        ASL
+        STA PD_DEV
+        LDA #$08
+        STA PD_ADDR_HI
+        LDA #$00
+        STA PD_ADDR_LO
+        STA PD_BLOCK_LO
+        STA PD_BLOCK_HI
+        JSR jmp_vector
+        BCS error           ;   - if carry set, error
+
+        LDA #$0A
+        STA PD_ADDR_HI      ; load in page $0A
+        LDA #$01
+        STA PD_BLOCK_LO     ; block 1
+        JSR jmp_vector
+        BCS error       ; - if carry set, error
+        LDA BOOTLOADER+1
+        BEQ error       ; - if zero, error
+        LDA #$01
+        CMP BOOTLOADER
+        BNE error       ; - if not equal, error.
+        LDX $43
+        JMP BOOTLOADER+1    ; - proceed with boot.
+error   JMP $E000       ; - jump into basic (or something)
+
+driver        org $C660
+
+        ds  BYTES_ADDR - driver
+
+
+            org $C6FC
+num_blocks     
+            dw $0640
+status db %00_11_1111
+driver_lo db CMD_VECTOR
+
