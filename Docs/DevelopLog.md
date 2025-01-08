@@ -1099,3 +1099,389 @@ This will be part of the CPU struct, so the actual function can be called with t
 [ ] Add event queue system.
 [ ] Add Disk II write support.
 [ ] Add .nib and .po format support.
+[ ] Note infinite loop on the console, but do not terminate.
+
+
+### Language Card:
+
+4K RAM Bank 1: D000 - DFFF
+4K RAM Bank 2: D000 - DFFF
+
+10K RAM: E000 - F7FF
+2K RAM: F800 - FFFF
+Language ROM: F800 - FFFF
+
+So thinking about 256 byte memory map. In the IIe like the stack page can be swapped
+between main and aux memory.
+
+So, 64K memory map is 256 pages of 256 bytes. Create memory table with 256 byte pages.
+
+For GS, we could have a multi-level memory map that lets us have two different page sizes. An extension to do
+later.
+
+Separately allocate the actual memory areas and assign them to variables that exist independently of the memory map.
+Because we will need to swap these in and out.
+
+So for instance, for the II+ we'll do:
+  * Main_RAM = alloc(48K)
+  * Main_IO = alloc(4k)
+  * Main_ROM = alloc(12K)
+
+The pages do not have to be allocated separately. Contigious is fine.
+
+Then assign subsets of these to the memory map in 256 byte increments. 
+
+For language card, we'll have:
+Bank_RAM_4K_1 = alloc(4K)
+Bank_RAM_4K_2 = alloc(4K)
+Bank_RAM_6K = alloc(6K)
+Bank_RAM_2K = alloc(2K)
+Bank_ROM = alloc(2K)
+
+And then memory map altered when softswitches are toggled appropriately.
+We will want some external functions to mediate this, in bus.cpp.
+It seems straightforward how a card would swap its pages in. How would we swap back? Does it save the old entries? hm, yes, I think it does. On init_card, it will save the memory map entries that were present at init time. 
+  * OR, 3rd: store the main system memory blocks into well-known variable names.
+
+ok I'm gonna cut for the night - I have the new memory map implemented, and have gs2 booting again. I think the language card hooks are in, and now need to start testing that.
+
+## Jan 6, 2025
+
+Some of the memory management might be a lot easier if I think about it this way:
+instead of allocating all these different chunks, do:
+1 64KByte chunk for RAM.
+1 12KB chunk for ROM.
+
+Then I map the effective address space into the appropriate bits of these chunks.
+E.g.:
+
+1st 48K is mapped straight.
+Then D000 bank 1 => RAM[0xC000]
+D000 bank 2 => RAM[0xD000]
+
+Also this is more likely closer to how the apple IIe does it - there aren't all
+these separate RAM chips. they just had a 64K bank of RAM. This is because the same
+patterns apply to aux memory (the additional 64K chunk there.) Then we can just have
+aux memory be treated the same way.
+
+OK, running the Apple II Diagnostic disk. I have C083 * 2 'good', C083 'bad'. I think this
+is because the manual says we are supposed to read C083 TWICE to switch into RAM/RAM read/write
+mode. What constitutes reading twice in a row? This is almost certainly some protection against
+accidental reads of C083.
+
+The first time C083 is hit, it's the same as hitting C080 - ram read, no writing. Hitting C083 a second time enables writing to RAM.
+
+ok, it passes the diagnostic test now!!!
+
+Trying to boot ProDOS - I got the ProDOS boot screen and blip!
+but infinite loop doing this:
+Thunderclock Plus read register C090 => 00
+Thunderclock Plus read register C090 => 00
+Thunderclock Plus read register C090 => 00
+Thunderclock Plus read register C090 => 00
+
+turned that off..
+now fails here:
+schedule motor off at 15126338 (is now 14376338)
+languagecard_read_C08B - LANG_RAM_BANK1 | RAM_RAM
+bank_number: 1, reads: 1, writes: 0
+page: D0 read: 0x148014000 write: 0x14700ae00 canwrite: 0
+...
+languagecard_read_C08B - LANG_RAM_BANK1 | RAM_RAM
+bank_number: 1, reads: 1, writes: 1
+page: D0 read: 0x148014000 write: 0x148014000 canwrite: 1
+...
+Unknown opcode: FD6F: 0x82CPU halted: 1
+
+it's running from ram.
+
+So it's loaded code into page D6 and then hit invalid opcode 0x82.
+When we hit the system halt, I should be able to dump memory and various things.
+
+
+
+Hm, this could be a disk order thing.. maybe I can check bytes in the image to detect if it's DOS 3.3 or ProDOS and implement the correct interleave? doesn't seem likely..
+
+In the debug prints, display the buffers in more informative way. Instead of raw pointer, say "main_ram(DE)" to specify main_ram page DE. Make a little subroutine for it.
+
+Carmen Sandiego got a little bit further. Wants me to put in disk 2. now what?! hehe.
+
+I don't think hires page 2 is working.. Hm, no, it is.
+
+Something is still not quite working with the memory map stuff.
+
+OK, Thunderclock utils disk downloaded. These things want "thunderclock plus firmware" to be present to work. 
+
+I should also be able to freeze execution any other time and do the same.
+And disassemble code. So, I need a system monitor app.
+I could do a running disassembly, i.e. have the last 10 or 20 instructions in a circular buffer,
+dumped also.
+
+
+So, various things are trying to load Integer basic, but then failing to do so. There is some sort of test that's being done that fails, for if there is a language card present. The first thing I note, is that this hits:
+
+C081, then C081 again 4 cycles later. and Apple IIe manual has "RR" next to C081. I think all the modes that enable RAM writes, require the double-read in order to turn on RAM writes. Let's go ahead and try that.
+
+Apparently Locksmith 6.0 has a "really good language card tester".
+
+Apple2ts , when it hits C08B once, switches immediately to R/W RAM Bank 1 for D0 - FF. That is not what the manual says. Maybe the manual is wrong.
+also, when it hits C081, I can wait a very long time before hitting again and then it switches to read rom write ram.
+and then C08B switches immediately to RW RAM Bank 1. wut.
+c081 c08b goes to rw ram bank 1.
+c089 by itself does nothing. again does read rom write ram.
+So the 2nd read doesn't have to be the same switch. It can be any of the other double switches.
+and C08b and c083 go immediately to read ram.
+(They also trigger c100-c7ff / and c800-cfff 'peripheral' instead of 'internal ROM', which must be an Apple IIe thing.)
+
+
+Notes from apple2ts
+
+  // All addresses from $C000-C00F will read the keyboard and keystrobe
+  // R/W to $C010 or any write to $C011-$C01F will clear the keyboard strobe
+
+  if (addr >= 0xC080 && addr <= 0xC08F) {
+    // $C084...87 --> $C080...83, $C08C...8F --> $C088...8B
+    handleBankedRAM(addr & ~4, calledFromMemSet)
+    return
+
+There appears to be an extensive discussion of this stuff in Understanding the Apple II.
+Chapter 5, page 5-26, The 16K RAM CARD
+
+ok, going by this, my implementation is wrong, and misses the effect writes can have. This
+was not documented by Apple. Bad Apple.
+
+Sather discusses a number of flip-flops (state bits):
+Bank_1 flip flop. 0 = bank 2, 1 = bank 1.
+Read_Enable flip flop. 1 = enable read from expansion RAM. 0 = enable read from ROM.
+Write_Enable' flip flop. 0 = enable write to expansion RAM. 1 = no write.
+Pre_Write flip flop.
+
+the write flip flops can be thought of as a write counter which counts odd read accesses
+in the C08X range. The counter is set to zero by even or write access in the C08X range.
+If the write counter reaches the count of 2, writing to expansion RAM is enabled.
+Writing will stay enabled until an even access is made in the C08X range.
+
+at power on:
+Bank_1 = 0
+Pre_Write = 0
+Read_Enable = 0
+Write_Enable' = 0 ()
+ - says Reset has no effect. I bet they changed this.
+
+A3
+= 0, C080-C087 - any access resets Bank_1. 
+= 1, C088-C08F - any access sets Bank_1.
+
+A0/A1
+==00, 11 : C080, C083, C084, C087, C088, C08B, C08C, C08F - set READ_ENABLE.
+==01, 10 : C081, C082, C085, C086, C089, C08A, C08D, C08E - reset READ_ENABLE.
+
+PRE_Write = 1
+then can reset WRITE_ENABLE'
+
+Pre_Write is set by Odd Read Access in C08X range.
+Pre_Write is reset of Even access in range, OR a write access anywhere in C08X range.
+
+WRITE_ENABLE' is reset by an odd read access in C08X when PRE_Write is 1.
+WRITE_ENABLE' is set by an even access in C08X range.
+
+So, Bank and Read enable are set on both reads and writes. That was not at all clear.
+
+**I can now successfully boot ProDOS 1.1.1. I can load integer basic on the DOS3.3 master disk.**
+
+## Jan 7, 2025
+
+The JACE (java) emulator has a working Thunderclock implementation, including the thunderclock ROM file.
+That's probably what I need to check to fix my implementation.
+
+Looking at generic ProDOS clock implementation.
+
+ProDOS recognizes a clock card if:
+Cn00 = $08
+Cn02 = $28
+Cn04 = $58
+Cn06 = $70
+Cn08 - READ entry point
+Cn0B - WRITE entry point
+
+The ProDOS routine stores date and time in:
+$BF91 - $BF90
+day: bits 4-0
+month: bits 8-5
+year: bits 15-9
+$BF93 - hour
+$BF92 - minute
+
+The ProDOS clock driver expects the clock card to send an ASCII
+string to the GETLN input buffer ($200). This string must have the
+following format (including the commas):
+mo,da,dt,hr,mn
+mo is the month (01 = January...12 = December)
+da is the day of the week (00 = Sunday...06 = Saturday)
+dt is the date (00 through 31)
+hr is the hour (00 through 23)
+mn is the minute (00 through 59)
+
+It doesn't say but presumably the $200 getln ends with a carriage return.
+
+Well this seems very simple. The only question is, how do we trigger a call
+into a native routine?
+CPU is going to do this:
+JSR $Cn08
+Cn08: XX YY ZZ
+What values can we put there we can capture?
+Options.
+1) write our own ASM firmware that runs in Cn00. This will read registers.
+2) 
+
+Ah ha! 6.3 of ProDOS-8-Tech-Ref is Disk Driver Routines. Same conversation regarding
+"3rd party disk drives".
+
+$Cn01 = $20
+$Cn03 = $00
+$Cn05 = $03
+
+if $CnFF = $00, ProDOS assumes a 16-sector Disk II card.
+If $CnFF = $FF, ProDOS assumes a 13-sector Disk II card.
+If $CnFF <> $00 or $FF, assumes has found an intelligent disk controller.
+If Status byte at $CnFE indicates it supports READ and STATUS requests,
+ProDOS marks the global page with a device driver whose high-byte is
+$Cn and low-byte is $CnFF.
+E.g., in Slot 5, that would be $C5<value of $CnFF>. Let's say $CnFF was
+23. Then ProDOS would record a device driver address at $C523.
+
+This is the boot code.
+
+So the start of the device driver is:
+C700    LDX #$20
+C702    LDA #$00
+C704    LDX #$03
+C706    LDA #$00
+C708    BIT $CFFF - turn off other device ROM in c8-cf
+C70B    LDA #$01
+C70D    STA $42
+C70F    LDA #$4C
+C711    STA $07FD
+C714    LDA #$C0
+C716    STA $07FE
+C719    LDA #$60
+C71B    STA $07FF
+C71E    JSR $07FF     ; call an RTS to get our page number
+C721    TSX
+C722    LDA $0100,X
+C725    STA $07FF     ; finish writing instruction JMP $Cn60 to $7FD
+C728    ASL
+C729    ASL
+C72A    ASL
+C72B    ASL
+C72C    STA $43
+C72E    LDA #$08
+C730    STA $45
+C732    LDA #$00
+C734    STA $44
+C736    STA $46
+C738    STA $47
+C73A    JSR $07FD
+C73D    BCS C75D  - if carry set, error
+C73F    LDA #$0A
+C741    STA $45
+C743    LDA #$01
+C745    STA $46
+C747    JSR $07FD
+C74A    BCS $c75D - if carry set, error
+C74C    LDA $0801
+C74F    BEQ $C75D - if zero, error
+C751    LDA #$01
+C753    CMP $0800
+C756    BNE $C75D - if not equal, error.
+C758    LDX $43
+C75A    JMP $0801 - proceed with boot.
+C75D    JMP $E000 - jump into basic (or something)
+
+So when a JSR to $Cn60 is made, the Apple2TS emulator does its pretend
+call. Here it's full of BRK, so, it's not actually executing anything.
+
+Disk driver calls are: STATUS, READ, WRITE, FORMAT.
+STATUS
+   checks if device is ready for a read or write. If not, set carry,
+   and return error in A.
+
+   If ready, clear carry, set A = $00, and return the number of blocks
+   on the device in X (low byte) and Y (high byte).
+
+DEVICE numbers (physical slot 5)
+  S5,D1 = $50
+  S5,D2 = $D0
+  S1, D1 = $10
+  S1, D2 = $90
+
+DEVICE numbers (physical slot 5)
+  S6,D1 = $60
+  S6,D2 = $E0
+  S2, D1 = $20
+  S2, D2 = $A0
+
+  What are return vlaues for read and write?
+
+Device number is ( (Slot + (D-1)) * 0x10  )
+
+special locations in ROM:
+$CnFC - $CnFD - total number of blocks on device
+$CnFE - Status byte
+  bit 7 - medium is removable
+  bit 6 - device is interruptable
+  bit 5-4 - number of volumes on device (0-3)
+  bit 3 - device supports formatting
+  bit 2 - device can be written to
+  bit 1 - device can be read from
+  bit 0 - device's status can be read (must be 1)
+$CnFF - low byte of entry to driver routines
+
+Ah, so this lets us do CDROMs and stuff (read-only, removable).
+
+Call Parameters: - Zero Page
+
+$42 - Command: 0 = STATUS, 1 = READ, 2 = WRITE, 3 = FORMAT
+$43 - Unit number. 
+  7  6  5  4  3  2  1  0
++--+--+--+--+--+--+--+--+
+|DR|  SLOT  | NOT USED  |
++--+--+--+--+--+--+--+--+
+DR = Disk Read
+SLOT = Slot number
+
+$44-$45 - buffer pointer. (Start of 512 memory buffer for data transfer)
+$46-$47 - Block number - block on disk for data transfer.
+Error codes:
+$00 - no error
+$27 - I/O error
+$28 - No device connected
+$2B - write protected
+
+So, one method to handle this would be to do this:
+when we're about to enter the execution loop, if the PC
+is $Cn60, or, one of a list of other registered addresses)
+then we can call our special handler.
+Which needs to do the following:
+   execute
+   pretend to do an RTS
+
+OK this is exactly what Apple2ts does, and it seems reasonable. And it will
+be lightning fast.
+
+So, we can implement:
+ProDOS Disk II Drive Controller (280 max blocks)
+ProDOS 800k Drive Controller (1600 max blocks)
+ProDOS Hard Disk Controller ($FFFF max blocks)
+I recommend we flush write on every write.
+The extended commands for SmartPort would let us do multiple blocks at once,
+improving performance there.
+
+ok, I need byte Cn07 to be set to $3C. $00 means "smartport", which I'm not supporting yet. This disk
+I have wants a //e or //c. So let's find another image.
+
+Holy grail! I am booting ProDOS 1.1.1 off 800k "disk" media and the ProDOS block driver is working!
+
+ok, tomorrow, implement writing, it should be a nearly trivial addition.
+
+NO DO IT NOW.

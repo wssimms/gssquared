@@ -7,6 +7,8 @@
   * CMOS 6502 - not started.
   * 65c816 - not started.
 * Keyboard - Complete.
+* Memory Expansion
+  * Language Card - Complete.
 * Display Modes
   * Text
     * 40-column text mode - Complete. Supports normal, inverse, and flash; Screen 1 and 2.
@@ -15,7 +17,7 @@
   * High-resolution graphics - not started.
 * Storage Devices
   * Cassette - not started.  
-  * Disk II Controller Card - Not started.
+  * Disk II Controller Card - Read-only working with DOS-interleave disks. Jury is out on PO order.
   * SmartPort / ProDOS Block-Device Interface - Not started.
   * RAMfast SCSI Interface - Not started.
   * Pascal Storage Device - Not started.
@@ -24,8 +26,9 @@
   * Printer / parallel port - not started.
   * Printer / serial port - not started.
   * Joystick / paddles - not started.
-* Other Devices
-  * Thunderclock - read of time implemented. Interrupts, writing clock - not implemented.
+* Clocks
+  * Thunderclock - read of time implemented. Interrupts, writing clock - not implemented. Needs testing.
+  * Generic ProDOS-compatible Clock - not started.
 
 ## ROMs
 
