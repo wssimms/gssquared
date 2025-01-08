@@ -7,10 +7,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)  # This is the impor
 # Set the project name
 project(gssquared)
 
-#message(STATUS "Runtime output dir: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
-#message(STATUS "Library output dir: ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
-#message(STATUS "Archive output dir: ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}")
-#message(STATUS "Source dir: ${CMAKE_SOURCE_DIR}")
+# Generate compile_commands.json
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Specify the C++ standard
 set(CMAKE_CXX_STANDARD 11)
@@ -19,15 +17,44 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # Set the compiler to Clang++
 set(CMAKE_CXX_COMPILER clang++)
 
-# Choose one of these optimization levels:
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")  # No optimization
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1")  # Basic optimization
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")  # Moderate optimization
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")  # Aggressive optimization
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os")  # Optimize for size
+# Set default build type to Release if not specified
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
+# Define flags for different build types
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3 -ggdb3")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 # Find SDL2 package
 find_package(SDL2 REQUIRED)
+
+# Build prodos block firmware
+add_custom_command(
+    OUTPUT ${CMAKE_SOURCE_DIR}/src/devices/prodos_block/pd_block_firmware.hpp
+    COMMAND make
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/devices/prodos_block
+    DEPENDS 
+        ${CMAKE_SOURCE_DIR}/src/devices/prodos_block/pd_block_firmware.a65
+        ${CMAKE_SOURCE_DIR}/src/devices/prodos_block/bin2cpp.py
+        ${CMAKE_SOURCE_DIR}/src/devices/prodos_block/Makefile
+)
+
+add_custom_target(prodos_block_firmware
+    DEPENDS ${CMAKE_SOURCE_DIR}/src/devices/prodos_block/pd_block_firmware.hpp
+)
+
+add_library(gs2_devices_prodos_block
+    src/devices/prodos_block/prodos_block.cpp
+)
+
+add_dependencies(gs2_devices_prodos_block prodos_block_firmware)
+
+target_include_directories(gs2_devices_prodos_block PRIVATE
+    ${CMAKE_SOURCE_DIR}/src/devices/prodos_block
+)
 
 add_library(gs2_devices_diskii
     src/devices/diskii/diskii_fmt.cpp
@@ -36,6 +63,10 @@ add_library(gs2_devices_diskii
 
 add_library(gs2_devices_tcp
     src/devices/thunderclock_plus/thunderclockplus.cpp
+)
+
+add_library(gs2_devices_languagecard
+    src/devices/languagecard/languagecard.cpp
 )
 
 add_library(gs2_devices_keyboard
@@ -70,7 +101,7 @@ target_link_libraries(gs2 PRIVATE
     "-framework Cocoa"
 )
 
-target_link_libraries(gs2 PUBLIC gs2_cpu gs2_devices_tcp gs2_devices_keyboard gs2_devices_diskii)
+target_link_libraries(gs2 PUBLIC gs2_cpu gs2_devices_tcp gs2_devices_keyboard gs2_devices_diskii gs2_devices_languagecard gs2_devices_prodos_block)
 
 
 add_subdirectory(apps/nibblizer)
