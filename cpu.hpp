@@ -39,7 +39,9 @@ struct memory_page_info {
 
 struct memory_map {
     memory_page_info page_info[MEMORY_SIZE / GS2_PAGE_SIZE];
-    memory_page *pages[MEMORY_SIZE / GS2_PAGE_SIZE];
+    uint8_t *pages_read[MEMORY_SIZE / GS2_PAGE_SIZE];
+    uint8_t *pages_write[MEMORY_SIZE / GS2_PAGE_SIZE];
+    //memory_page *pages[MEMORY_SIZE / GS2_PAGE_SIZE];
 };
 
 enum processor_type {
@@ -144,6 +146,11 @@ struct cpu_state {
     };
     uint8_t halt = 0; /* == 1 is HLT instruction halt; == 2 is user halt */
     uint64_t cycles; /* Number of cycles since reset */
+
+    uint8_t *main_ram_64 = nullptr;
+    uint8_t *main_io_4 = nullptr;
+    uint8_t *main_rom_D0 = nullptr;
+
     memory_map *memory;
     uint64_t last_tick;
     uint64_t next_tick;
@@ -172,6 +179,8 @@ struct cpu_state {
 
 extern struct cpu_state CPUs[MAX_CPUS];
 
+void reset_system(cpu_state *cpu);
+
 void cpu_reset(cpu_state *cpu);
 
 void run_cpus(void) ;
@@ -181,3 +190,4 @@ void toggle_clock_mode(cpu_state *cpu);
 void set_clock_mode(cpu_state *cpu, clock_mode mode);
 
 const char* processor_get_name(int processor_type);
+
