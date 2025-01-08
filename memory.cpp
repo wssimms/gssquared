@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <sstream>
 #include <iomanip>
+#include <cassert>
 #include "cpu.hpp"
 #include "gs2.hpp"
 #include "debug.hpp"
@@ -10,13 +11,29 @@
 
 /* Read and write to memory-mapped memory */
 
+/**
+ * Memory is mapped per CPU, in pages of 256 bytes.
+ * That's how the Apple II+ and a bunch of other stuff works.
+ * 
+ * We maintain separate pointer tables for read and write, so that reads
+ * can go to one memory, and writes to another, which is a requirement
+ * for the Language Card.
+ */
+
+/**
+ * Also the memory_write and raw_memory_write functions need to obey the
+ * can_write flag.
+ */
+
 // Raw. Do not trigger cycles or do the IO bus stuff
 uint8_t raw_memory_read(cpu_state *cpu, uint16_t address) {
-    return cpu->memory->pages[address / GS2_PAGE_SIZE]->data[address % GS2_PAGE_SIZE];
+    return cpu->memory->pages_read[address / GS2_PAGE_SIZE][address % GS2_PAGE_SIZE];
 }
 
+// no writable check here, do it higher up - this needs to be able to write to 
+// memory block no matter what.
 void raw_memory_write(cpu_state *cpu, uint16_t address, uint8_t value) {
-    cpu->memory->pages[address / GS2_PAGE_SIZE]->data[address % GS2_PAGE_SIZE] = value;
+    cpu->memory->pages_write[address / GS2_PAGE_SIZE][address % GS2_PAGE_SIZE] = value;
 }
 
 void raw_memory_write_word(cpu_state *cpu, uint16_t address, uint16_t value) {
@@ -28,27 +45,35 @@ uint8_t read_memory(cpu_state *cpu, uint16_t address) {
     incr_cycles(cpu);
     uint8_t typ = cpu->memory->page_info[address / GS2_PAGE_SIZE].type;
     if (typ == MEM_ROM || typ == MEM_RAM) {
-        return cpu->memory->pages[address / GS2_PAGE_SIZE]->data[address % GS2_PAGE_SIZE];
+        return cpu->memory->pages_read[address / GS2_PAGE_SIZE][address % GS2_PAGE_SIZE];
     }
     // IO - call the memory bus dispatcher thingy.
     return memory_bus_read(cpu, address);
 }
 
 void write_memory(cpu_state *cpu, uint16_t address, uint8_t value) {
-    incr_cycles(cpu);
-    uint8_t typ = cpu->memory->page_info[address / GS2_PAGE_SIZE].type;
+    uint16_t page = address / GS2_PAGE_SIZE;
+    uint16_t offset = address % GS2_PAGE_SIZE;
 
-    // if ROM don't write
-    if (typ == MEM_ROM) {
-        return;
-    }
+    assert(page < 0x100);
+    assert(offset < GS2_PAGE_SIZE);
+
+    incr_cycles(cpu);
+    uint8_t typ = cpu->memory->page_info[page].type;
+
     // if IO, only call the memory bus dispatcher thingy
     if (typ == MEM_IO) {
         memory_bus_write(cpu, address, value);
         return;
     }
+    
+    // ROM and "write protected RAM", don't write
+    if (!cpu->memory->page_info[page].can_write) {
+        return;
+    }
+
     // if RAM, write
-    cpu->memory->pages[address / GS2_PAGE_SIZE]->data[address % GS2_PAGE_SIZE] = value;
+    cpu->memory->pages_write[page][offset] = value;
     memory_bus_write(cpu, address, value); // catch writes to video memory.
 }
 
