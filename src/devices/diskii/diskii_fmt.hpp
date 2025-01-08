@@ -91,6 +91,7 @@ typedef struct {
 } disk_image_t;
 
 extern interleave_t po_phys_to_logical;
+extern interleave_t po_logical_to_phys;
 extern interleave_t do_phys_to_logical;
 extern interleave_t do_logical_to_phys;
 extern interleave_t cpm_order;

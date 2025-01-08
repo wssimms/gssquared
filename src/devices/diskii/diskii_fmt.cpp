@@ -9,6 +9,10 @@ interleave_t po_phys_to_logical = {   // also Pascal Order.
     0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15
 };
 
+interleave_t po_logical_to_phys = {   // also Pascal Order.
+    0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15
+};
+
 interleave_t do_phys_to_logical = {
     0, 7, 14, 6, 13, 5, 12, 4, 11, 3, 10, 2, 9, 1, 8, 15
 };
