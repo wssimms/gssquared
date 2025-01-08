@@ -23,6 +23,8 @@
 #include "devices/thunderclock_plus/thunderclockplus.hpp"
 #include "devices/diskii.hpp"
 #include "devices/diskii/diskii_fmt.hpp"
+#include "devices/languagecard/languagecard.hpp"
+#include "devices/prodos_block/prodos_block.hpp"
 #include "platforms.hpp"
 
 /**
@@ -72,9 +74,37 @@
  * initialize memory
  */
 
+void init_default_memory_map(cpu_state *cpu) {
+
+    for (int i = 0; i < (RAM_KB / GS2_PAGE_SIZE); i++) {
+        cpu->memory->page_info[i + 0x00].type = MEM_RAM;
+        cpu->memory->page_info[i + 0x00].can_read = 1;
+        cpu->memory->page_info[i + 0x00].can_write = 1;
+        cpu->memory->pages_read[i + 0x00] = cpu->main_ram_64 + i * GS2_PAGE_SIZE;
+        cpu->memory->pages_write[i + 0x00] = cpu->main_ram_64 + i * GS2_PAGE_SIZE;
+    }
+    for (int i = 0; i < (IO_KB / GS2_PAGE_SIZE); i++) {
+        cpu->memory->page_info[i + 0xC0].type = MEM_IO;
+        cpu->memory->page_info[i + 0xC0].can_read = 1;
+        cpu->memory->page_info[i + 0xC0].can_write = 1;
+        cpu->memory->pages_read[i + 0xC0] = cpu->main_io_4 + i * GS2_PAGE_SIZE;
+        cpu->memory->pages_write[i + 0xC0] = cpu->main_io_4 + i * GS2_PAGE_SIZE;
+    }
+    for (int i = 0; i < (ROM_KB / GS2_PAGE_SIZE); i++) {
+        cpu->memory->page_info[i + 0xD0].type = MEM_ROM;
+        cpu->memory->page_info[i + 0xD0].can_read = 1;
+        cpu->memory->page_info[i + 0xD0].can_write = 0;
+        cpu->memory->pages_read[i + 0xD0] = cpu->main_rom_D0 + i * GS2_PAGE_SIZE;
+        cpu->memory->pages_write[i + 0xD0] = cpu->main_rom_D0 + i * GS2_PAGE_SIZE;
+    }
+}
 void init_memory(cpu_state *cpu) {
     cpu->memory = new memory_map();
     
+    cpu->main_ram_64 = new uint8_t[RAM_KB];
+    cpu->main_io_4 = new uint8_t[IO_KB];
+    cpu->main_rom_D0 = new uint8_t[ROM_KB];
+
     #ifdef APPLEIIGS
     for (int i = 0; i < RAM_SIZE / GS2_PAGE_SIZE; i++) {
         cpu->memory->page_info[i].type = MEM_RAM;
@@ -85,31 +115,11 @@ void init_memory(cpu_state *cpu) {
         }
     }
     #else
-    for (int i = 0; i < RAM_KB / GS2_PAGE_SIZE; i++) {
-        cpu->memory->page_info[i].type = MEM_RAM;
-        cpu->memory->pages[i] = new memory_page(); /* do we care if this is aligned */
-        if (!cpu->memory->pages[i]) {
-            std::cerr << "Failed to allocate memory page " << i << std::endl;
-            exit(1);
-        }
-    }
-    for (int i = 12; i <= 12; i++) {
-        cpu->memory->page_info[i].type = MEM_IO;
-        cpu->memory->pages[i] = new memory_page(); /* do we care if this is aligned */
-        if (!cpu->memory->pages[i]) {
-            std::cerr << "Failed to allocate memory page " << i << std::endl;
-            exit(1);
-        }
-    }
-    for (int i = 13; i <= 15; i++) {
-        cpu->memory->page_info[i].type = MEM_ROM;
-        cpu->memory->pages[i] = new memory_page(); /* do we care if this is aligned */
-        if (!cpu->memory->pages[i]) {
-            std::cerr << "Failed to allocate memory page " << i << std::endl;
-            exit(1);
-        }
-    }
+    init_default_memory_map(cpu);
     #endif
+/*     for (int i = 0; i < 256; i++) {
+        printf("page %02X: %p\n", i, cpu->memory->pages[i]);
+    } */
 }
 
 uint64_t get_current_time_in_microseconds() {
@@ -151,6 +161,12 @@ void run_cpus(void) {
     uint64_t last_5sec_cycles;
 
     while (1) {
+
+        if (cpu->pc == 0xC5C0) {
+            printf("ParaVirtual Trap PC: %04X\n", cpu->pc);
+            prodos_block_pv_trap(cpu);
+        }
+
         if ((cpu->execute_next)(cpu) > 0) {
             break;
         }
@@ -177,6 +193,11 @@ void run_cpus(void) {
     }
 }
 
+void reset_system(cpu_state *cpu) {
+    cpu_reset(cpu);
+    init_default_memory_map(cpu);
+    reset_languagecard(cpu); // reset language card
+}
 
 int main(int argc, char *argv[]) {
     std::cout << "Booting GSSquared!" << std::endl;
@@ -187,7 +208,10 @@ int main(int argc, char *argv[]) {
     disk_image_t disk_image;
     disk_t disk;
     
-    while ((opt = getopt(argc, argv, "p:a:b:1:2:")) != -1) {
+    char slot_str[2], drive_str[2], filename[256];
+    int slot, drive;
+    
+    while ((opt = getopt(argc, argv, "p:a:b:d:")) != -1) {
         switch (opt) {
             case 'p':
                 platform_id = atoi(optarg);
@@ -198,11 +222,22 @@ int main(int argc, char *argv[]) {
             case 'b':
                 loader_set_file_info(optarg, 0x7000);
                 break;
-            case '1':
-                mount_disk(6, 0, optarg);
-                break;
-            case '2':
-                mount_disk(6, 1, optarg);
+            case 'd':
+                // disk parameter is sXdY,filename
+                if (sscanf(optarg, "s%[0-9]d%[0-9]=%[^\n]", slot_str, drive_str, filename) != 3) {
+                    fprintf(stderr, "Invalid disk format. Expected sXdY=filename\n");
+                    exit(1);
+                }
+                slot = atoi(slot_str);
+                drive = atoi(drive_str)-1;
+                if (slot == 6) {
+                    mount_diskII(slot, drive, filename);
+                } else if (slot == 5) {
+                    mount_prodos_block(slot, drive, filename);
+                } else {
+                    fprintf(stderr, "Invalid slot. Expected 5 or 6\n");
+                    exit(1);
+                }
                 break;
             default:
                 fprintf(stderr, "Usage: %s [-p platform] [-a program.bin] [-b loader.bin]\n", argv[0]);
@@ -265,10 +300,11 @@ int main(int argc, char *argv[]) {
 
     init_keyboard();
     init_device_display();
+    init_languagecard(&CPUs[0],0);
     init_speaker(&CPUs[0]);
     init_thunderclock(1);
     diskII_register_slot(&CPUs[0], 6); // put a disk II in slot 6
-
+    init_prodos_block(&CPUs[0], 5);
     cpu_reset(&CPUs[0]);
 
     run_cpus();
