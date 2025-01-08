@@ -17,3 +17,6 @@ bin
 bin/*
 lib/
 lib/*
+disk_images/*
+**/*_Output.txt
+**/_FileInformation.txt
