@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug gs2",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/gs2",
+            "args": ["-ds5d1=/Users/bazyar/src/gssquared/disk_images/AppleIISystem800k.po"],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "build-debug"
+        }
+    ]
+} 
