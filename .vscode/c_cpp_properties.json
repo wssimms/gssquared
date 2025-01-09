@@ -5,7 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "/opt/homebrew/Cellar/sdl2/2.30.10/include",
-                "/usr/local/include"
+                "/usr/local/include",
+                "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk/usr/include"
             ],
             "defines": [],
             "macFrameworkPath": [

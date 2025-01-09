@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 
+set(CMAKE_OSX_SYSROOT "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk")
+set(CMAKE_OSX_DEPLOYMENT_TARGET "15.2")
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)  # This is the important one for .a files
@@ -61,27 +64,22 @@ add_library(gs2_devices_diskii
     src/devices/diskii/diskii_fmt.cpp
 )
 
-add_library(gs2_devices_tcp
-    src/devices/thunderclock_plus/thunderclockplus.cpp
-)
+add_library(gs2_devices_tcp    src/devices/thunderclock_plus/thunderclockplus.cpp )
 
-add_library(gs2_devices_languagecard
-    src/devices/languagecard/languagecard.cpp
-)
+add_library(gs2_devices_languagecard     src/devices/languagecard/languagecard.cpp )
 
-add_library(gs2_devices_keyboard
-    src/devices/keyboard/keyboard.cpp
-)
+add_library(gs2_devices_keyboard     src/devices/keyboard/keyboard.cpp )
 
-add_library(gs2_cpu
-    src/cpus/cpu_6502.cpp
-    src/cpus/cpu_65c02.cpp
-)
+add_library(gs2_devices_speaker     src/devices/speaker/speaker.cpp )
+
+add_library(gs2_cpu src/cpus/cpu_6502.cpp src/cpus/cpu_65c02.cpp )
+
+add_library(gs2_util src/util/media.cpp)
 
 # Add the executable
 add_executable(gs2 gs2.cpp bus.cpp clock.cpp debug.cpp cpu.cpp memory.cpp opcodes.cpp test.cpp 
     display/text_40x24.cpp display/lores_40x48.cpp display/hgr_280x192.cpp display/display.cpp
-    devices/speaker.cpp devices/loader.cpp 
+    devices/loader.cpp 
     devices/diskii.cpp
     platforms.cpp
     event_poll.cpp)
@@ -101,7 +99,16 @@ target_link_libraries(gs2 PRIVATE
     "-framework Cocoa"
 )
 
-target_link_libraries(gs2 PUBLIC gs2_cpu gs2_devices_tcp gs2_devices_keyboard gs2_devices_diskii gs2_devices_languagecard gs2_devices_prodos_block)
-
+target_link_libraries(gs2 
+    PUBLIC gs2_cpu 
+    gs2_devices_tcp 
+    gs2_devices_keyboard 
+    gs2_devices_diskii 
+    gs2_devices_languagecard 
+    gs2_devices_prodos_block
+    gs2_devices_speaker
+)
 
 add_subdirectory(apps/nibblizer)
+
+add_subdirectory(apps/diskid)
