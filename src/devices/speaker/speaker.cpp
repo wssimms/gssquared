@@ -3,10 +3,9 @@
 
 #include <mach/mach_time.h>
 
-#include "../debug.hpp"
-
-#include "speaker.hpp"
-#include "../bus.hpp"
+#include "debug.hpp"
+#include "bus.hpp"
+#include "devices/speaker/speaker.hpp"
 
 
 // SDL audio device ID after opening
