@@ -1,9 +1,9 @@
 #include <iostream>
 #include <cstdio>
 
-#include "../gs2.hpp"
-#include "../cpu.hpp"
-#include "../memory.hpp"
+#include "gs2.hpp"
+#include "cpu.hpp"
+#include "memory.hpp"
 #include "loader.hpp"
 
 char *loader_filename = NULL;

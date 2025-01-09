@@ -1,7 +1,7 @@
 
-#include "../gs2.hpp"
-#include "../cpu.hpp"
-#include "../memory.hpp"
+#include "gs2.hpp"
+#include "cpu.hpp"
+#include "memory.hpp"
 #include "text_40x24.hpp"
 #include "lores_40x48.hpp"
 

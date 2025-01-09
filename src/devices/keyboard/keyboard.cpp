@@ -2,9 +2,9 @@
 #include <SDL2/SDL.h>
 #include "gs2.hpp"
 #include "cpu.hpp"
-#include "../debug.hpp"
+#include "debug.hpp"
 #include "keyboard.hpp"
-#include "../bus.hpp"
+#include "bus.hpp"
 #include "devices/speaker/speaker.hpp"
 #include "devices/loader.hpp"
 

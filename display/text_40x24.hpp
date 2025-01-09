@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../cpu.hpp"
+#include "cpu.hpp"
 
 extern uint16_t TEXT_PAGE_START;
 extern uint16_t TEXT_PAGE_END;

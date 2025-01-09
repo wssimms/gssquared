@@ -1,8 +1,8 @@
 #include <time.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "../cpu.hpp"
-#include "../bus.hpp"
+#include "cpu.hpp"
+#include "bus.hpp"
 
 /*
 

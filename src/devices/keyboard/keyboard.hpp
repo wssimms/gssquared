@@ -1,7 +1,7 @@
 #pragma once
 
 #include <SDL2/SDL.h>
-#include "../cpu.hpp"
+#include "cpu.hpp"
 
 #define KB_LATCH_ADDRESS 0xC000
 #define KB_CLEAR_LATCH_ADDRESS 0xC010

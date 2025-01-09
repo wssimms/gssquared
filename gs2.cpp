@@ -18,7 +18,7 @@
 #include "display/text_40x24.hpp"
 #include "event_poll.hpp"
 #include "devices/keyboard/keyboard.hpp"
-#include "devices/speaker.hpp"
+#include "devices/speaker/speaker.hpp"
 #include "devices/loader.hpp"
 #include "devices/thunderclock_plus/thunderclockplus.hpp"
 #include "devices/diskii.hpp"

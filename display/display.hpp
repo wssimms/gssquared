@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../gs2.hpp"
-#include "../cpu.hpp"
-#include "../platforms.hpp"
+#include "gs2.hpp"
+#include "cpu.hpp"
+#include "platforms.hpp"
 
 // Graphics vs Text, C050 / C051
 typedef enum {

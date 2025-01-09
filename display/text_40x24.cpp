@@ -2,12 +2,12 @@
 #include <unistd.h>
 #include <cstdlib>
 
-#include "../gs2.hpp"
-#include "../memory.hpp"
-#include "../debug.hpp"
-#include "../bus.hpp"
+#include "gs2.hpp"
+#include "memory.hpp"
+#include "debug.hpp"
+#include "bus.hpp"
 #include "display.hpp"
-#include "../platforms.hpp"
+#include "platforms.hpp"
 
 
 // Apple II+ Character Set (7x8 pixels)

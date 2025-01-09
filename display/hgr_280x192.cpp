@@ -1,8 +1,8 @@
 
-#include "../gs2.hpp"
+#include "gs2.hpp"
 #include "hgr_280x192.hpp"
-#include "../memory.hpp"
-#include "../debug.hpp"
+#include "memory.hpp"
+#include "debug.hpp"
 #include "display.hpp"
 
 uint16_t HGR_PAGE_1_TABLE[24] = {

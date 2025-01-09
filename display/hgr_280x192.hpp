@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "../cpu.hpp"
+#include "cpu.hpp"
 
 extern uint16_t HGR_PAGE_START;
 extern uint16_t HGR_PAGE_END;

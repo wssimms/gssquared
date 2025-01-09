@@ -1,16 +1,16 @@
 #include <SDL2/SDL.h>
 
-#include "../cpu.hpp"
-#include "../gs2.hpp"
-#include "../memory.hpp"
-#include "../debug.hpp"
+#include "cpu.hpp"
+#include "gs2.hpp"
+#include "memory.hpp"
+#include "debug.hpp"
 
-#include "../bus.hpp"
+#include "bus.hpp"
 #include "display.hpp"
 #include "text_40x24.hpp"
 #include "lores_40x48.hpp"
 #include "hgr_280x192.hpp"
-#include "../platforms.hpp"
+#include "platforms.hpp"
 
 SDL_Surface* winSurface = NULL;
 SDL_Window* window = NULL;
