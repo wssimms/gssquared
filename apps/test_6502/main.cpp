@@ -35,7 +35,7 @@
 #include "display/text_40x24.hpp"
 #include "event_poll.hpp"
 #include "devices/keyboard/keyboard.hpp"
-#include "devices/speaker.hpp"
+#include "devices/speaker/speaker.hpp"
 #include "devices/loader.hpp"
 #include "platforms.hpp"
 
@@ -85,11 +85,39 @@
 /**
  * initialize memory
  */
+void init_default_memory_map(cpu_state *cpu) {
 
+    for (int i = 0; i < (RAM_KB / GS2_PAGE_SIZE); i++) {
+        cpu->memory->page_info[i + 0x00].type = MEM_RAM;
+        cpu->memory->page_info[i + 0x00].can_read = 1;
+        cpu->memory->page_info[i + 0x00].can_write = 1;
+        cpu->memory->pages_read[i + 0x00] = cpu->main_ram_64 + i * GS2_PAGE_SIZE;
+        cpu->memory->pages_write[i + 0x00] = cpu->main_ram_64 + i * GS2_PAGE_SIZE;
+    }
+    for (int i = 0; i < (IO_KB / GS2_PAGE_SIZE); i++) {
+        cpu->memory->page_info[i + 0xC0].type = MEM_IO;
+        cpu->memory->page_info[i + 0xC0].can_read = 1;
+        cpu->memory->page_info[i + 0xC0].can_write = 1;
+        cpu->memory->pages_read[i + 0xC0] = cpu->main_io_4 + i * GS2_PAGE_SIZE;
+        cpu->memory->pages_write[i + 0xC0] = cpu->main_io_4 + i * GS2_PAGE_SIZE;
+    }
+    for (int i = 0; i < (ROM_KB / GS2_PAGE_SIZE); i++) {
+        cpu->memory->page_info[i + 0xD0].type = MEM_ROM;
+        cpu->memory->page_info[i + 0xD0].can_read = 1;
+        cpu->memory->page_info[i + 0xD0].can_write = 0;
+        cpu->memory->pages_read[i + 0xD0] = cpu->main_rom_D0 + i * GS2_PAGE_SIZE;
+        cpu->memory->pages_write[i + 0xD0] = cpu->main_rom_D0 + i * GS2_PAGE_SIZE;
+    }
+}
 void init_memory(cpu_state *cpu) {
     cpu->memory = new memory_map();
     
-    for (int i = 0; i < RAM_KB / GS2_PAGE_SIZE; i++) {
+    cpu->main_ram_64 = new uint8_t[RAM_KB];
+    cpu->main_io_4 = new uint8_t[IO_KB];
+    cpu->main_rom_D0 = new uint8_t[ROM_KB];
+
+    #ifdef APPLEIIGS
+    for (int i = 0; i < RAM_SIZE / GS2_PAGE_SIZE; i++) {
         cpu->memory->page_info[i].type = MEM_RAM;
         cpu->memory->pages[i] = new memory_page(); /* do we care if this is aligned */
         if (!cpu->memory->pages[i]) {
@@ -97,23 +125,12 @@ void init_memory(cpu_state *cpu) {
             exit(1);
         }
     }
-    for (int i = 12; i <= 12; i++) {
-        cpu->memory->page_info[i].type = MEM_IO;
-        cpu->memory->pages[i] = new memory_page(); /* do we care if this is aligned */
-        if (!cpu->memory->pages[i]) {
-            std::cerr << "Failed to allocate memory page " << i << std::endl;
-            exit(1);
-        }
-    }
-    for (int i = 13; i <= 15; i++) {
-        cpu->memory->page_info[i].type = MEM_ROM;
-        cpu->memory->pages[i] = new memory_page(); /* do we care if this is aligned */
-        if (!cpu->memory->pages[i]) {
-            std::cerr << "Failed to allocate memory page " << i << std::endl;
-            exit(1);
-        }
-    }
-
+    #else
+    init_default_memory_map(cpu);
+    #endif
+/*     for (int i = 0; i < 256; i++) {
+        printf("page %02X: %p\n", i, cpu->memory->pages[i]);
+    } */
 }
 
 uint64_t get_current_time_in_microseconds() {
