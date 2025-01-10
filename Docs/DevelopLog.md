@@ -1485,3 +1485,51 @@ Holy grail! I am booting ProDOS 1.1.1 off 800k "disk" media and the ProDOS block
 ok, tomorrow, implement writing, it should be a nearly trivial addition.
 
 NO DO IT NOW.
+
+## January 9, 2025
+
+So I have this idea for how to handle the infinite loop detection - the 65c02 (or maybe just 816) implemented
+an instruction called WAI, that halted processing until an interrupt occurred. So we can do that when we hit an infinite
+loop case - trigger a WAI state - this will then not run CPU instructions, but, will still do the other
+event loop stuff, and, will sleep for 1/60th of a second at a time, letting the cpu rest.
+infinite loops are not that unusual an occurence on old software. Seems reasonable.
+
+I am working on pushing the media_descriptor stuff down into the hardware layer as far as makes sense.
+This way there is only one place where media is updated.
+Also, we can have a single place in the main loop and/or exit, where we can "unmount" and safely write
+media to real disk.
+
+I need to find a variety of 2mg images to test:
+dos 3.3 image
+prodos 143k image
+prodos 800k image
+hard disk drive image
+
+## January 10, 2025
+
+I have a cool idea. Set up a web site that mirrors the various image sites.
+Provide a search engine that lets you search for images by name, description,
+or, by the various attributes, AND BY file contents on the files inside the images!
+And quickly browse the image contents (catalog), and, view the files inside. Could
+use cp2 behind the scenes since it already knows all the image and file formats.
+This would be handy for calaloguing my own stuff.
+
+For later reference: Apple III hardware description:
+https://groups.google.com/g/comp.sys.apple2/c/_NYADLx16G8/m/MZKv-Y20uTQJ
+https://ftp.apple.asimov.net/documentation/apple3/A3SOSReferenceVol.1.pdf
+
+Everything seems straightforward except:
+"Extended/enhanced indirect addressing"
+https://www.apple3.org/Documents/Magazines/AppleIIIExtendedAddressing.html
+also discussed in detail in 2.4.2.2 in the A3 SOS Reference above.
+
+Huge amount of Apple /// info here: https://ftp.apple.asimov.net/documentation/apple3/
+
+There are great disassemblies of Apple III SOS and probably ROM. These can be used to 
+answer questions about the hardware.
+
+Apple III disk image formats:
+https://retrocomputing.stackexchange.com/questions/12684/what-are-the-most-common-apple-ii-disk-image-formats-and-what-hardware-disk-driv
+
+A whole bunch of Apple III software:
+https://www.apple3.org/iiisoftware.html
