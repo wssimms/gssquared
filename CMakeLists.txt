@@ -107,6 +107,7 @@ target_link_libraries(gs2
     gs2_devices_languagecard 
     gs2_devices_prodos_block
     gs2_devices_speaker
+    gs2_util
 )
 
 add_subdirectory(apps/nibblizer)
