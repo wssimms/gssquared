@@ -1,3 +1,20 @@
+/*
+ *   Copyright (c) 2025 Jawaid Bazyar
+
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <stdio.h>
 #include <stdint.h>
 
@@ -93,7 +110,7 @@ void dump_track(track_t& track) {
     dump_bytes(track.data, track.size);
 }
 
-void dump_disk(disk_t& disk) {
+void dump_disk(nibblized_disk_t& disk) {
     for (int t = 0; t < TRACKS_PER_DISK; t++) {
         printf("Encoded Track %d, position: %d\n", t, disk.tracks[t].position);
         dump_track(disk.tracks[t]);
@@ -425,7 +442,7 @@ void emit_sector(track_t& tr, sector_t& in, uint8_t volume, uint8_t track, uint8
  * input: disk_image_t disk_image, which is the disk raw image data, and the track number to emit.
  * output: streams the nibblized track with gap_a, sectors to the track's data stream.
  */
-void emit_track(disk_t& disk, disk_image_t& disk_image, int volume, int track) {
+void emit_track(nibblized_disk_t& disk, disk_image_t& disk_image, int volume, int track) {
     emit_gap_a(disk.tracks[track]); // gap A is only at beginning of track.
     for (int s = 0; s < SECTORS_PER_TRACK; s++) {
         // we must map the logical sector number (.do format) to the physical sector number (.nib format)
@@ -441,14 +458,14 @@ void emit_track(disk_t& disk, disk_image_t& disk_image, int volume, int track) {
  * input: disk_t disk, which is the nibblized disk data structure.
  * output: streams the nibblized disk to the track's data stream.
  */
-void emit_disk(disk_t& disk, disk_image_t& disk_image, int volume) {
+void emit_disk(nibblized_disk_t& disk, disk_image_t& disk_image, int volume) {
     printf("Emitting entire disk...\n");
     for (int t = 0; t < TRACKS_PER_DISK; t++) {
         emit_track(disk, disk_image, volume, t);
     }
 }
 
-void write_disk(disk_t& disk, const char *filename) {
+void write_disk(nibblized_disk_t& disk, const char *filename) {
     FILE *out_fp = fopen(filename, "wb");
     if (!out_fp) {
         printf("Could not open %s for writing\n", filename);

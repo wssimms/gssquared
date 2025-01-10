@@ -1,3 +1,20 @@
+/*
+ *   Copyright (c) 2025 Jawaid Bazyar
+
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 /* Functions to handle setting up media descriptors */
 #include <iostream>
 #include <sys/stat.h>
@@ -68,11 +85,12 @@ int read_2mg_header(format_2mg_t &hdr_out, const char *filename) {
     hdr_out.version = le16_to_cpu(raw.version);
     hdr_out.flag = le32_to_cpu(raw.image_format);
     hdr_out.block_count = le32_to_cpu(raw.block_count);
-    hdr_out.bytes_count = le32_to_cpu(raw.bytes_count);
+    hdr_out.bytes_count = le32_to_cpu(raw.data_length);
     hdr_out.comment_offset = le32_to_cpu(raw.comment_offset);
     hdr_out.comment_length = le32_to_cpu(raw.comment_length);
     hdr_out.creator_data = le32_to_cpu(raw.creator_data);
     hdr_out.creator_data_length = le32_to_cpu(raw.creator_data_length);
+    hdr_out.image_format = le32_to_cpu(raw.image_format);
 
     if (hdr_out.comment_offset != 0 && hdr_out.comment_length > 0) {
         fseek(fp, hdr_out.comment_offset, SEEK_SET);
@@ -111,7 +129,7 @@ const char *get_2mg_creator_name(char *creator_id) {
             return format_2mg_creator_list[i].name;
         }
     }
-    return "(Unknwon)";
+    return "(Unknown)";
 }
 
 
@@ -124,7 +142,7 @@ const char * get_media_type_name(media_type_t media_type) {
     }
 }
 
-const char * get_interleave_name(interleave_t interleave) {
+const char * get_interleave_name(media_interleave_t interleave) {
     switch (interleave) {
         case INTERLEAVE_NONE: return "NONE";
         case INTERLEAVE_DO: return "DOS";
@@ -142,7 +160,8 @@ int display_media_descriptor(media_descriptor& md) {
     std::cout << "  Block Count: " << md.block_count << std::endl;
     std::cout << "  File Size: " << md.file_size << std::endl;
     std::cout << "  Data Offset: " << md.data_offset << std::endl;
-
+    std::cout << "  Write Protected: " << (md.write_protected ? "Yes" : "No") << std::endl;
+    std::cout << "  DOS 3.3 Volume: " << md.dos33_volume << std::endl;
     return 0;
 }
 
@@ -174,23 +193,44 @@ int display_2mg_header(format_2mg_t& hdr) {
 
 int identify_media(media_descriptor& md) {
     if (compare_suffix(md.filename, ".2mg")) {
-        md.media_type = MEDIA_BLK;
         format_2mg_t hdr;
         if (read_2mg_header(hdr, md.filename) != 0) {
             std::cerr << "Failed to read 2MG header: " << md.filename << std::endl;
             return -1;
         }
         display_2mg_header(hdr);
+
+        if (hdr.image_format == 0x00000000) { // DOS 3.3 Sector Order. Only ever 143k disks.
+            md.interleave = INTERLEAVE_DO;
+            md.media_type = MEDIA_NYBBLE;
+        } else if (hdr.image_format == 0x00000001) { // ProDOS Sector Order.
+            // if disk size is 143k, treat as a nybble disk.
+            if (hdr.bytes_count == 560 * 256) { // floppy
+                md.interleave = INTERLEAVE_PO;
+                md.media_type = MEDIA_NYBBLE;
+            } else {                            // any other media size, just a bunch of blocks.
+                md.interleave = INTERLEAVE_NONE;
+                md.media_type = MEDIA_BLK;
+            }
+        } else if (hdr.image_format == 0x00000002) { // NIB data
+            md.interleave = INTERLEAVE_NONE;
+            md.media_type = MEDIA_PRENYBBLE;
+        } else {
+            std::cerr << "Unknown image format: " << hdr.image_format << std::endl;
+            return -1;
+        }
         md.file_size = hdr.bytes_count;
         md.block_count = hdr.block_count;
         md.block_size = hdr.bytes_count / hdr.block_count;
-        md.interleave = INTERLEAVE_NONE;
         md.data_offset = hdr.header_size;
+        md.write_protected = (hdr.flag & FLAG_LOCKED) != 0;
+        md.dos33_volume = (hdr.flag & FLAG_DOS33) != 0 ? (hdr.flag & FLAG_DOS33_VOL_MASK) : 254; // if not set, then 254
+
     } else if (compare_suffix(md.filename, ".hdv")) {
         md.media_type = MEDIA_BLK;
         // get size of file on disk
         md.file_size = get_file_size(md.filename);
-        md.block_size = 256;
+        md.block_size = 512;
         md.block_count = md.file_size / md.block_size;
         md.interleave = INTERLEAVE_NONE;
         md.data_offset = 0;
@@ -206,6 +246,8 @@ int identify_media(media_descriptor& md) {
         md.block_count = md.file_size / md.block_size;
         md.interleave = INTERLEAVE_DO;
         md.data_offset = 0;
+        md.write_protected = true;
+        md.dos33_volume = 254; // might want to try to snag this from the DOS33 VTOC
     } else if (compare_suffix(md.filename, ".po")) {
         md.media_type = MEDIA_NYBBLE;
                 // if file size is not 143K, then error.
@@ -218,6 +260,8 @@ int identify_media(media_descriptor& md) {
         md.block_count = md.file_size / md.block_size;
         md.interleave = INTERLEAVE_PO;
         md.data_offset = 0;
+        md.write_protected = true;
+        md.dos33_volume = 254; // might want to try to snag this from the DOS33 VTOC
     } else if (compare_suffix(md.filename, ".nib")) {
         md.media_type = MEDIA_PRENYBBLE;
         md.file_size = get_file_size(md.filename);

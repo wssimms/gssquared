@@ -1,20 +1,37 @@
+/*
+ *   Copyright (c) 2025 Jawaid Bazyar
+
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <stdio.h>
 #include "gs2.hpp"
 #include "cpu.hpp"
 #include "memory.hpp"
 #include "debug.hpp"
 #include "devices/prodos_block/prodos_block.hpp"
+#include "util/media.hpp"
 #include "pd_block_firmware.hpp"
-
 
 typedef struct media_t {
     FILE *file;
-    uint16_t block_size;
+    media_descriptor *media;
+/*     uint16_t block_size;
     uint16_t block_count;
-} media_t;
+ */} media_t;
 
-media_t media[7][2];
-
+media_t prodosblockdevices[7][2];
 
 void pv_return(cpu_state *cpu) {
     // pop two bytes off the stack.
@@ -27,21 +44,33 @@ void pv_return(cpu_state *cpu) {
 }
 
 uint8_t status(cpu_state *cpu, uint8_t slot, uint8_t drive) {
-    if (media[slot][drive].file == nullptr) {
+    if (prodosblockdevices[slot][drive].file == nullptr) {
         return 0x01; // device not ready
     }
     return 0x00; // device ready
 }
 
+/**
+ * These two routines read and write a block to the media.
+ * They take into account the media descriptor and the data offset.
+ * They read and write memory to the cpu using the memory functions
+ * that take into account the memory map, so, we can write data into
+ * any bank selected as the CPU (or a 'DMA' device like us) would see it.
+ */
 void read_block(cpu_state *cpu, uint8_t slot, uint8_t drive, uint16_t block, uint16_t addr) {
     // TODO: read the block into the address.
     static uint8_t block_buffer[512];
-    FILE *fp = media[slot][drive].file;
+    FILE *fp = prodosblockdevices[slot][drive].file;
     
-    fseek(fp, block * media[slot][drive].block_size, SEEK_SET);
-    fread(block_buffer, 1, media[slot][drive].block_size, fp);
-    for (int i = 0; i < media[slot][drive].block_size; i++) {
+    media_descriptor *media = prodosblockdevices[slot][drive].media;
+
+    fseek(fp, media->data_offset + (block * media->block_size), SEEK_SET);
+    fread(block_buffer, 1, media->block_size, fp);
+    for (int i = 0; i < media->block_size; i++) {
         // TODO: for dma we want to simulate the memory map but do not want to burn cycles.
+        // the CPU would halt during a DMA and not tick cycles even though the rest of the bus
+        // is following the system clock.
+        // TODO: So we need a dma_write_memory and dma_read_memory set of routines that do that.
         write_memory(cpu, addr + i, block_buffer[i]); 
     }
     //debug_dump_memory(cpu, addr, addr + media[slot][drive].block_size);
@@ -50,14 +79,15 @@ void read_block(cpu_state *cpu, uint8_t slot, uint8_t drive, uint16_t block, uin
 void write_block(cpu_state *cpu, uint8_t slot, uint8_t drive, uint16_t block, uint16_t addr) {
     // TODO: read the block into the address.
     static uint8_t block_buffer[512];
-    FILE *fp = media[slot][drive].file;
+    FILE *fp = prodosblockdevices[slot][drive].file;
+    media_descriptor *media = prodosblockdevices[slot][drive].media;
     
-    for (int i = 0; i < media[slot][drive].block_size; i++) {
+    for (int i = 0; i < media->block_size; i++) {
         // TODO: for dma we want to simulate the memory map but do not want to burn cycles.
         block_buffer[i] = read_memory(cpu, addr + i); 
     }
-    fseek(fp, block * media[slot][drive].block_size, SEEK_SET);
-    fwrite(block_buffer, 1, media[slot][drive].block_size, fp);
+    fseek(fp, media->data_offset + (block * media->block_size), SEEK_SET);
+    fwrite(block_buffer, 1, media->block_size, fp);
 
     //debug_dump_memory(cpu, addr, addr + media[slot][drive].block_size);
 }
@@ -109,18 +139,16 @@ void prodos_block_pv_trap(cpu_state *cpu) {
     pv_return(cpu);
 }
 
-void mount_prodos_block(uint8_t slot, uint8_t drive, const char *filename) {
-    printf("Mounting ProDOS block device %s slot %d drive %d\n", filename, slot, drive);
+void mount_prodos_block(uint8_t slot, uint8_t drive, media_descriptor *media) {
+    printf("Mounting ProDOS block device %s slot %d drive %d\n", media->filename, slot, drive);
 
-    FILE *fp = fopen(filename, "r+b");
+    FILE *fp = fopen(media->filename, "r+b");
     if (fp == nullptr) {
-        fprintf(stderr, "Could not open ProDOS block device file: %s\n", filename);
+        fprintf(stderr, "Could not open ProDOS block device file: %s\n", media->filename);
         return;
     }
-    media[slot][drive].file = fp;
-    media[slot][drive].block_size = 512;
-    media[slot][drive].block_count = 1600;
-
+    prodosblockdevices[slot][drive].file = fp;
+    prodosblockdevices[slot][drive].media = media;
 }
 
 void init_prodos_block(cpu_state *cpu, uint8_t slot)

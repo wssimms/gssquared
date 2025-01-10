@@ -1,3 +1,20 @@
+/*
+ *   Copyright (c) 2025 Jawaid Bazyar
+
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #pragma once
 
 #include <stdint.h> 
@@ -83,7 +100,7 @@ typedef struct {
     interleave_t interleave_logical_to_phys;
     track_t tracks[35]; // They are numbered from 0 to 34, track 0 being the
                         // outer most track and track 34 being the inner most.
-} disk_t;
+} nibblized_disk_t;
 
 // Disk data structure (raw, unencoded)
 typedef struct {
@@ -99,7 +116,7 @@ extern interleave_t cpm_order;
 
 void dump_disk_image(disk_image_t& disk_image);
 int load_disk_image(disk_image_t& disk_image, const char *filename);
-void emit_disk(disk_t& disk, disk_image_t& disk_image, int volume);
-void write_disk(disk_t& disk, const char *filename);
-void dump_disk(disk_t& disk);
+void emit_disk(nibblized_disk_t& disk, disk_image_t& disk_image, int volume);
+void write_disk(nibblized_disk_t& disk, const char *filename);
+void dump_disk(nibblized_disk_t& disk);
 

@@ -1,3 +1,20 @@
+/*
+ *   Copyright (c) 2025 Jawaid Bazyar
+
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 /**
  * 
    * $C0S0 - Phase 0 Off
@@ -146,6 +163,7 @@ In DOS at $B800 lives the "prenibble routine" . I could perhaps steal that. hehe
 #include "memory.hpp"
 #include "bus.hpp"
 #include "diskii.hpp"
+#include "util/media.hpp"
 #include "devices/diskii/diskii_fmt.hpp"
 #include "debug.hpp"
 
@@ -188,7 +206,7 @@ struct diskII {
     uint64_t mark_cycles_turnoff = 0; // when DRIVES OFF, set this to current cpu cycles. Then don't actually set motor=0 until one second (1M cycles) has passed. Then reset this to 0.
 
     disk_image_t media;
-    disk_t nibblized;
+    nibblized_disk_t nibblized;
 };
 
 struct diskII_controller {
@@ -237,22 +255,22 @@ uint8_t read_nybble(diskII& disk) { // cause a shift.
 #endif
 }
 
-void mount_diskII(uint8_t slot, uint8_t drive, const char *filename) {
+void mount_diskII(uint8_t slot, uint8_t drive, media_descriptor *media) {
 
     // TODO: detect DOS 3.3 or ProDOS and set the interleave accordingly.
     // if filename ends in .po, use po_phys_to_logical and po_logical_to_phys.
     // if filename ends in .do, use do_phys_to_logical and do_logical_to_phys.
     // if filename ends in .dsk, use do_phys_to_logical and do_logical_to_phys.
 
-    if (strstr(filename, ".po")) {
+    if (media->interleave == INTERLEAVE_PO) {
         memcpy(diskII_slot[slot].drive[drive].nibblized.interleave_phys_to_logical, po_phys_to_logical, sizeof(interleave_t));
         memcpy(diskII_slot[slot].drive[drive].nibblized.interleave_logical_to_phys, po_logical_to_phys, sizeof(interleave_t));
-    } else {
+    } else if (media->interleave == INTERLEAVE_DO) {
         memcpy(diskII_slot[slot].drive[drive].nibblized.interleave_phys_to_logical, do_phys_to_logical, sizeof(interleave_t));
         memcpy(diskII_slot[slot].drive[drive].nibblized.interleave_logical_to_phys, do_logical_to_phys, sizeof(interleave_t));
     }
 
-    load_disk_image(diskII_slot[slot].drive[drive].media, filename); // pull this into diskii stuff somewhere.
+    load_disk_image(diskII_slot[slot].drive[drive].media, media->filename); // pull this into diskii stuff somewhere.
     emit_disk(diskII_slot[slot].drive[drive].nibblized, diskII_slot[slot].drive[drive].media, 0xFE);
 }
 

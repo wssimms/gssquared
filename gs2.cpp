@@ -1,3 +1,20 @@
+/*
+ *   Copyright (c) 2025 Jawaid Bazyar
+
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <iostream>
 #include <cstdio>
 #include <unistd.h>
@@ -26,6 +43,7 @@
 #include "devices/languagecard/languagecard.hpp"
 #include "devices/prodos_block/prodos_block.hpp"
 #include "platforms.hpp"
+#include "util/media.hpp"
 
 /**
  * References: 
@@ -199,18 +217,26 @@ void reset_system(cpu_state *cpu) {
     reset_languagecard(cpu); // reset language card
 }
 
+typedef struct {
+    int slot;
+    int drive;
+    char *filename;
+    media_descriptor *media;
+} disk_mount_t;
+
+
 int main(int argc, char *argv[]) {
     std::cout << "Booting GSSquared!" << std::endl;
 
     int platform_id = 1;  // default to Apple II Plus
     int opt;
-
-    disk_image_t disk_image;
-    disk_t disk;
     
     char slot_str[2], drive_str[2], filename[256];
     int slot, drive;
     
+    std::vector<disk_mount_t> disks_to_mount;
+
+    // parse command line optionss
     while ((opt = getopt(argc, argv, "p:a:b:d:")) != -1) {
         switch (opt) {
             case 'p':
@@ -223,26 +249,26 @@ int main(int argc, char *argv[]) {
                 loader_set_file_info(optarg, 0x7000);
                 break;
             case 'd':
-                // disk parameter is sXdY,filename
                 if (sscanf(optarg, "s%[0-9]d%[0-9]=%[^\n]", slot_str, drive_str, filename) != 3) {
                     fprintf(stderr, "Invalid disk format. Expected sXdY=filename\n");
                     exit(1);
                 }
                 slot = atoi(slot_str);
                 drive = atoi(drive_str)-1;
-                if (slot == 6) {
-                    mount_diskII(slot, drive, filename);
-                } else if (slot == 5) {
-                    mount_prodos_block(slot, drive, filename);
-                } else {
-                    fprintf(stderr, "Invalid slot. Expected 5 or 6\n");
-                    exit(1);
-                }
+                
+                printf("Mounting disk %s in slot %d drive %d\n", filename, slot, drive);
+                disks_to_mount.push_back({slot, drive, strndup(filename, 256)});
                 break;
             default:
                 fprintf(stderr, "Usage: %s [-p platform] [-a program.bin] [-b loader.bin]\n", argv[0]);
                 exit(1);
         }
+    }
+
+    // Debug print mounted media
+    std::cout << "Mounted Media (" << disks_to_mount.size() << " disks):" << std::endl;
+    for (const auto& disk_mount : disks_to_mount) {
+        std::cout << " Slot " << disk_mount.slot << " Drive " << disk_mount.drive << " - " << disk_mount.filename << std::endl;
     }
 
     init_cpus();
@@ -306,6 +332,33 @@ int main(int argc, char *argv[]) {
     diskII_register_slot(&CPUs[0], 6); // put a disk II in slot 6
     init_prodos_block(&CPUs[0], 5);
     cpu_reset(&CPUs[0]);
+
+    std::vector<media_descriptor *> mounted_media;
+
+    // mount disks - AFTER device init.
+    while (!disks_to_mount.empty()) {
+        disk_mount_t disk_mount = disks_to_mount.back();
+        disks_to_mount.pop_back();
+
+        printf("Mounting disk %s in slot %d drive %d\n", disk_mount.filename, disk_mount.slot, disk_mount.drive);
+        media_descriptor * media = new media_descriptor();
+        media->filename = disk_mount.filename;
+        if (identify_media(*media) != 0) {
+            fprintf(stderr, "Failed to identify media %s\n", disk_mount.filename);
+            exit(1);
+        }
+        display_media_descriptor(*media);
+
+        mounted_media.push_back(media);
+
+        if (disk_mount.slot == 6) {
+            mount_diskII(disk_mount.slot, disk_mount.drive, media);
+        } else if (disk_mount.slot == 5) {
+            mount_prodos_block(disk_mount.slot, disk_mount.drive, media);
+        } else {
+            fprintf(stderr, "Invalid slot. Expected 5 or 6\n");
+        }
+    }
 
     run_cpus();
 
