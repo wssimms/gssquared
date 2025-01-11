@@ -45,6 +45,7 @@
 #include "devices/game/gamecontroller.hpp"
 #include "platforms.hpp"
 #include "util/media.hpp"
+#include "util/dialog.hpp"
 
 /**
  * References: 
@@ -226,6 +227,8 @@ typedef struct {
 } disk_mount_t;
 
 
+gs2_app_t gs2_app_values;
+
 int main(int argc, char *argv[]) {
     std::cout << "Booting GSSquared!" << std::endl;
 
@@ -237,32 +240,44 @@ int main(int argc, char *argv[]) {
     
     std::vector<disk_mount_t> disks_to_mount;
 
-    // parse command line optionss
-    while ((opt = getopt(argc, argv, "p:a:b:d:")) != -1) {
-        switch (opt) {
-            case 'p':
-                platform_id = atoi(optarg);
-                break;
-            case 'a':
-                loader_set_file_info(optarg, 0x0801);
-                break;
-            case 'b':
-                loader_set_file_info(optarg, 0x7000);
-                break;
-            case 'd':
-                if (sscanf(optarg, "s%[0-9]d%[0-9]=%[^\n]", slot_str, drive_str, filename) != 3) {
-                    fprintf(stderr, "Invalid disk format. Expected sXdY=filename\n");
+    if (isatty(fileno(stdin))) {
+        gs2_app_values.console_mode = true;
+    }
+
+    if (gs2_app_values.console_mode) {
+        gs2_app_values.base_path = "./";
+    } else {
+        gs2_app_values.base_path = SDL_GetBasePath();
+    }
+
+    if (gs2_app_values.console_mode) {
+        // parse command line optionss
+        while ((opt = getopt(argc, argv, "p:a:b:d:")) != -1) {
+            switch (opt) {
+                case 'p':
+                    platform_id = atoi(optarg);
+                    break;
+                case 'a':
+                    loader_set_file_info(optarg, 0x0801);
+                    break;
+                case 'b':
+                    loader_set_file_info(optarg, 0x7000);
+                    break;
+                case 'd':
+                    if (sscanf(optarg, "s%[0-9]d%[0-9]=%[^\n]", slot_str, drive_str, filename) != 3) {
+                        fprintf(stderr, "Invalid disk format. Expected sXdY=filename\n");
+                        exit(1);
+                    }
+                    slot = atoi(slot_str);
+                    drive = atoi(drive_str)-1;
+                    
+                    printf("Mounting disk %s in slot %d drive %d\n", filename, slot, drive);
+                    disks_to_mount.push_back({slot, drive, strndup(filename, 256)});
+                    break;
+                default:
+                    fprintf(stderr, "Usage: %s [-p platform] [-a program.bin] [-b loader.bin]\n", argv[0]);
                     exit(1);
-                }
-                slot = atoi(slot_str);
-                drive = atoi(drive_str)-1;
-                
-                printf("Mounting disk %s in slot %d drive %d\n", filename, slot, drive);
-                disks_to_mount.push_back({slot, drive, strndup(filename, 256)});
-                break;
-            default:
-                fprintf(stderr, "Usage: %s [-p platform] [-a program.bin] [-b loader.bin]\n", argv[0]);
-                exit(1);
+            }
         }
     }
 
@@ -271,6 +286,8 @@ int main(int argc, char *argv[]) {
     for (const auto& disk_mount : disks_to_mount) {
         std::cout << " Slot " << disk_mount.slot << " Drive " << disk_mount.drive << " - " << disk_mount.filename << std::endl;
     }
+
+    system_diag((char *)gs2_app_values.base_path);
 
     init_cpus();
 
@@ -300,7 +317,15 @@ int main(int argc, char *argv[]) {
             raw_memory_write(&CPUs[0], i, memory_chunk[i]);
         }
 #endif
+    
+    if (init_display_sdl()) {
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "A little test.", NULL);
+        fprintf(stderr, "Error initializing display\n");
+        exit(1);
+    } 
 
+
+    // load platform roms   
 #if 1
         platform_info* platform = get_platform(platform_id);
         print_platform_info(platform);
@@ -308,7 +333,7 @@ int main(int argc, char *argv[]) {
         rom_data *rd = load_platform_roms(platform);
 
         if (!rd) {
-            fprintf(stdout, "Failed to load platform roms, exiting. Did you 'cd roms; make' first?\n");
+            system_failure("Failed to load platform roms, exiting. Did you 'cd roms; make' first?");
             exit(1);
         }
         // Load into memory at correct address
@@ -320,19 +345,17 @@ int main(int argc, char *argv[]) {
 
     set_cpu_processor(&CPUs[0], platform->processor_type);
 
-    if (init_display_sdl(rd)) {
-        fprintf(stderr, "Error initializing display\n");
-        exit(1);
-    }
+    init_display_font(rd);
 
-    init_keyboard();
-    init_device_display();
-    init_languagecard(&CPUs[0],0);
-    init_speaker(&CPUs[0]);
-    init_game_controller(&CPUs[0]);
-    init_thunderclock(1);
-    diskII_register_slot(&CPUs[0], 6); // put a disk II in slot 6
+    init_mb_keyboard(&CPUs[0]);
+    init_mb_device_display(&CPUs[0]);
+    init_slot_languagecard(&CPUs[0],0);
+    init_mb_speaker(&CPUs[0]);
+    init_mb_game_controller(&CPUs[0]);
+    init_slot_thunderclock(&CPUs[0],1);
+    init_slot_diskII(&CPUs[0],6);
     init_prodos_block(&CPUs[0], 5);
+    
     cpu_reset(&CPUs[0]);
 
     std::vector<media_descriptor *> mounted_media;

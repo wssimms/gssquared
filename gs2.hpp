@@ -30,3 +30,10 @@ typedef uint16_t absaddr_t;
 typedef uint8_t byte_t;
 typedef uint16_t word_t;
 typedef uint8_t opcode_t;
+
+typedef struct gs2_app_t {
+    const char *base_path;
+    bool console_mode = false;
+} gs2_app_t;
+
+extern gs2_app_t gs2_app_values;
