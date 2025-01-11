@@ -1585,7 +1585,8 @@ Well that wasn't bad at all. A weird thing happened playing sabotage, the mouse 
 stopped firing. Keyboard still worked, and, mouse still steered. So there may be something
 weird or it may be a bug in the game crack or something. Choplifter didn't seem to have any
 issues. Overall, having the mouse->joystick be linear makes for somewhat slow movement.
-Depends on the size of the screen. 
+Depends on the size of the screen. And I guess you can speed up your mouse movement on the host.
+
 Also, if you zoom off the window and then click, something comes up and covers the screen
 and you're way off base. Ah, so what I need is if I click in that window, the mouse locks to that window
 and can't leave it.
@@ -1593,3 +1594,22 @@ The mechanics of the analog input simulation work just fine.
 
 OK, the SDL Relative Mouse mode helps. The mouse can't leave. What I did is, when you click
 inside the window, it locks mouse to window. Hit F1 to unlock. Shades of deep VMware purple.
+
+in thinking about the shift key mod, it's super easy. However, it needs to tie into the keyboard.
+(Just like I did F1 above).
+This will be the same with //e, open apple and closed apple which need to map alt to game controller buttons.
+But would like it to be a separate module. And there are some other modules that 
+tie into the keyboard too where you don't necessarily want the code to handle the *whatever*
+in the event loop or keyboard handler. Like, there is keyboard handling for the emulated
+machine, and keyboard handling for other stuff.
+
+I think the number of things that will do this is probably relatively small, so create an array
+of key values and handler function pointers and just iterate them on a key event.
+
+Todo for this:
+
+[ ] get window dimensions by calling SDL_GetWindowSize
+[ ] buy a usb joystick and see what is needed for that to work right.
+
+
+Hm, how hard to go to a fullscreen mode?
