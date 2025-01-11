@@ -108,7 +108,7 @@ uint8_t read_game_switch_2(cpu_state *cpu, uint16_t address) {
     return game_switch_2 ? 0x80 : 0x00;
 }
 
-void init_game_controller(cpu_state *cpu) {
+void init_mb_game_controller(cpu_state *cpu) {
 
     printf("Initializing game controller\n");
     game_switch_0 = 0;

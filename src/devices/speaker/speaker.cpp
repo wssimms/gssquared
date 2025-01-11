@@ -262,7 +262,7 @@ void speaker_memory_write(cpu_state *cpu, uint16_t address, uint8_t value) {
     log_speaker_blip(cpu);
 }
 
-void init_speaker(cpu_state *cpu) {
+void init_mb_speaker(cpu_state *cpu) {
 
     speaker_states[0].cpu = cpu;
 

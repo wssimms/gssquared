@@ -40,4 +40,4 @@
 #define GAME_AN3_OFF 0xC05E
 #define GAME_AN3_ON  0xC05F
 
-void init_game_controller(cpu_state *cpu);
+void init_mb_game_controller(cpu_state *cpu);

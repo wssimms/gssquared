@@ -220,7 +220,7 @@ uint8_t languagecard_read_C012(cpu_state *cpu, uint16_t address) {
     return FF_READ_ENABLE << 7;
 }
 
-void init_languagecard(cpu_state *cpu, uint8_t slot) {
+void init_slot_languagecard(cpu_state *cpu, uint8_t slot) {
 
     fprintf(stdout, "languagecard_register_slot %d\n", slot);
     if (slot != 0) {

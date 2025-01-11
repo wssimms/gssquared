@@ -112,7 +112,7 @@ void thunderclock_write_register(cpu_state *cpu, uint16_t address, uint8_t value
 
 }
 
-void init_thunderclock(int slot) {
+void init_slot_thunderclock(cpu_state *cpu, int slot) {
     uint16_t thunderclock_cmd_reg = THUNDERCLOCK_CMD_REG_BASE + (slot << 4);
     fprintf(stderr, "Thunderclock Plus init at SLOT %d address %X\n", slot, thunderclock_cmd_reg);
     register_C0xx_memory_read_handler(thunderclock_cmd_reg, thunderclock_read_register);

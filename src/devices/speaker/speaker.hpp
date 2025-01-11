@@ -19,7 +19,7 @@
 
 #include "cpu.hpp"
 
-void init_speaker(cpu_state *cpu);
+void init_mb_speaker(cpu_state *cpu);
 void toggle_speaker_recording();
 void dump_full_speaker_event_log();
 void dump_partial_speaker_event_log(uint64_t cycles_now);

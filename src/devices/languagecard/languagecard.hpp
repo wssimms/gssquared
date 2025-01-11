@@ -66,5 +66,5 @@
 #define RAM_RAM             0b011
 
 
-void init_languagecard(cpu_state *cpu, uint8_t slot);
+void init_slot_languagecard(cpu_state *cpu, uint8_t slot);
 void reset_languagecard(cpu_state *cpu);

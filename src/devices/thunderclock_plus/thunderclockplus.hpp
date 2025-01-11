@@ -17,4 +17,6 @@
 
 #pragma once
 
-void init_thunderclock(int slot);
+#include "cpu.hpp"
+
+void init_slot_thunderclock(cpu_state *cpu, int slot);
