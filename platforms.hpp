@@ -19,6 +19,8 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include "cpu.hpp"
+#include "clock.hpp"
 
 struct platform_info {
     const int id;               // Human readable name
