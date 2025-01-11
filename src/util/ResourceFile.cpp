@@ -27,7 +27,7 @@
 #include <SDL2/SDL.h>
 
 #include "gs2.hpp"
-#include "util/resourcefiles.hpp"
+#include "util/ResourceFile.hpp"
 #include "util/dialog.hpp"
 
 ResourceFile::ResourceFile(const char *filename, file_mode_t mode) {
@@ -42,7 +42,10 @@ ResourceFile::ResourceFile(const char *filename, file_mode_t mode) {
 }
 
 ResourceFile::~ResourceFile() {
-    // Nothing to delete
+    if (file_data) {
+        // delete[] file_data; // this means we dispose of it after loading into the VM memory.
+        // current use is the ResourceFile object will go away when leaving the function loading it.
+    }
 }
 
 int ResourceFile::exists() {
