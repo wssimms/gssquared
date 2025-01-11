@@ -1,20 +1,43 @@
 cmake_minimum_required(VERSION 3.10)
 
-set(CMAKE_OSX_SYSROOT "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk")
-set(CMAKE_OSX_DEPLOYMENT_TARGET "15.2")
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)  # This is the important one for .a files
-
 # Set the project name
 project(gssquared)
+
+# Mac-specific settings
+if(APPLE)
+    set(CMAKE_OSX_SYSROOT "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "15.2")
+
+    # Mac-specific bundle configuration
+    set(MACOSX_BUNDLE_ICON_FILE gs2.icns)
+    set(APP_ICON_MACOSX ${CMAKE_SOURCE_DIR}/assets/img/gs2.icns)
+    set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.bazyar.gs2")
+    set(MACOSX_BUNDLE_BUNDLE_NAME "GSSquared")
+    set(MACOSX_BUNDLE_BUNDLE_VERSION "0.1.0")
+    set(MACOSX_BUNDLE_SHORT_VERSION_STRING "0.1.0")
+    set(MACOSX_BUNDLE_COPYRIGHT "Copyright © 2025 Jawaid Bazyar")
+    
+    # Custom target for creating Mac app bundle
+    add_custom_target(mac-package
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/GSSquared.app/Contents/MacOS
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/GSSquared.app/Contents/Resources
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gs2> ${CMAKE_BINARY_DIR}/GSSquared.app/Contents/MacOS/
+        COMMAND ${CMAKE_COMMAND} -E copy ${APP_ICON_MACOSX} ${CMAKE_BINARY_DIR}/GSSquared.app/Contents/Resources/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/resources/Info.plist ${CMAKE_BINARY_DIR}/GSSquared.app/Contents/
+        DEPENDS gs2
+    )
+endif()
+
+# Set output directories
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 
 # Generate compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Specify the C++ standard
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # Set the compiler to Clang++
@@ -49,9 +72,9 @@ add_custom_target(prodos_block_firmware
     DEPENDS ${CMAKE_SOURCE_DIR}/src/devices/prodos_block/pd_block_firmware.hpp
 )
 
-add_library(gs2_devices_prodos_block
-    src/devices/prodos_block/prodos_block.cpp
-)
+add_library(gs2_devices_prodos_block src/devices/prodos_block/prodos_block.cpp )
+
+add_library(gs2_devices_game src/devices/game/gamecontroller.cpp )
 
 add_dependencies(gs2_devices_prodos_block prodos_block_firmware)
 
@@ -74,7 +97,7 @@ add_library(gs2_devices_speaker     src/devices/speaker/speaker.cpp )
 
 add_library(gs2_cpu src/cpus/cpu_6502.cpp src/cpus/cpu_65c02.cpp )
 
-add_library(gs2_util src/util/media.cpp)
+add_library(gs2_util src/util/media.cpp src/util/resourcefiles.cpp src/util/dialog.cpp )
 
 # Add the executable
 add_executable(gs2 gs2.cpp bus.cpp clock.cpp debug.cpp cpu.cpp memory.cpp opcodes.cpp test.cpp 
@@ -107,6 +130,7 @@ target_link_libraries(gs2
     gs2_devices_languagecard 
     gs2_devices_prodos_block
     gs2_devices_speaker
+    gs2_devices_game
     gs2_util
 )
 
