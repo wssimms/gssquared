@@ -233,3 +233,44 @@ I use vscode as my IDE, but, this isn't required.
 
 If you want to help create build tooling for Windows or Linux, let me know! All of this should
 work on all 3 platforms courtesy of SDL2.
+
+
+## Code Organization
+
+### Platforms
+
+When a virtual Apple II is created and 'powered on', there are several stages.
+
+1. Platform is initialized.
+1. CPU structure is created.
+1. Memory allocated and initial memory map assigned.
+1. Devices are initialized and 'registered'.
+1. The CPU is 'powered on'.
+
+A "Platform" is a specific selection and combination of: CPU type, devices, and memory map.
+Because so much of the Apple II series share significant systems and subsystems,
+we define and implement those with granularity and "compose" them together when a 
+particular virtual machine is set up.
+
+As one example, the Apple II, II+, IIe, IIc, and IIgs all share the same $C030 primitive
+speaker toggle. So, we do that only once. When we 'boot' a IIgs OR a IIe, we call
+"init_mb_speaker" against the CPU structure, and that hooks in this functionality.
+
+Similarly with CPUs. You want a IIe with nmos 6502? Great. Select those components.
+You want a IIe with original firmware but cmos 6502? You can define a platform
+to do exactly that.
+
+Want to create your own platform that never existed in reality and experiment?
+Go for it! Design the next generation of Apple II! Then maybe someone can take your
+idea and implement in hardware.
+
+Contribute new devices back to the project for fun and profit! Well, for fun anyway.
+
+### CPU
+
+### Bus
+
+The Bus is the concept that ties the CPU together with memory and devices.
+Apple II devices of course are memory-mapped I/O, i.e., their control registers
+are accessed at specific memory addresses.
+

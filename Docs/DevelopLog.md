@@ -1613,3 +1613,28 @@ Todo for this:
 
 
 Hm, how hard to go to a fullscreen mode?
+
+## Jan 11, 2025
+
+Push media write protect handling down into the hardware drivers.
+
+have two interfaces for device init.
+
+init_mb_DEVICENAME(cpu_state *cpu)
+init_slot_DEVICENAME(cpu_state *cpu, int slot)
+
+ok, did that, then worked on getting this thing to run as a Mac app bundle. That opened a rabbit hole
+of "where are my resource files? How are resources packaged?"
+
+Learned a lot. A modern Mac app is just a folder with a .app extension. There is some 
+metadata, but, this is way better than what they used to call Resource Forks. It's basically
+just a convention for the Finder. SDL provides some utility functions for finding your
+Resource folder. This is good for cross-platform. Linux and Windows will then likely work
+similarly, though Windows you'll register your icon somewhere. Cross that bridge when we get to it.
+
+Also Chat Gippity helped improve structure of the CMakeLists where all the Mac-specific stuff.
+Also, changed to require C++17 in order to access std::filesystem and maybe some other stuff.
+This will be the start of a bunch of refactoring to make the code more C++17 compliant.
+Since I got past my include file location issues of earlier, I can now be consistent and
+disciplined about using only modern C++ idioms for I/O and other stuff.
+
