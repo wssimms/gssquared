@@ -603,6 +603,7 @@ https://sites.google.com/site/drjohnbmatthews/apple2/lores
 ```
  Black [0], Magenta [1], Dark Blue [2], Purple [3], Dark Green [4], Dark Gray [5], Medium Blue [6], Light Blue [7], Brown [8], Orange [9], Gray [10], Pink [11], Green [12], Yellow [13], Aqua [14] and White [15]
 
+```
  0 - 0x00000000
  1 - 0x8A2140FF
  2 - 0x3C22A5FF
@@ -619,7 +620,7 @@ https://sites.google.com/site/drjohnbmatthews/apple2/lores
  13 - 0xB9D060FF
  14 - 0x6EE1C0FF
  15 - 0xFFFFFFFF
-
+```
 OK that was largely working. 
 
 [x] Now, however, I have a bug where when I type 'GR' it only partially clears the screen. There must be a race condition somewhere. (Fixed. in text_40x24.cpp:txt_memory_write I was not setting dirty flag on line when in lores mode.) (This has a hack in in regarding hi-res mode).
@@ -643,10 +644,10 @@ There is no "end of data" indication, so it's up to the reader to specify the le
 
 For machine-language programs, the length is specified on the monitor command line, e.g. 800.1FFFR would read $1800 (6144) bytes. For BASIC programs and data, the length is included in an initial header section:
 
-Integer BASIC programs have a two-byte (little-endian) length.
-Applesoft BASIC has a two-byte length, followed by a "run" flag byte.
-Applesoft shape tables (loaded with SHLOAD) have a two-byte length.
-Applesoft arrays (loaded with RECALL) have a three-byte header.
+ * Integer BASIC programs have a two-byte (little-endian) length.
+ * Applesoft BASIC has a two-byte length, followed by a "run" flag byte.
+ * Applesoft shape tables (loaded with SHLOAD) have a two-byte length.
+ * Applesoft arrays (loaded with RECALL) have a three-byte header.
 Note the header section is a full data area, complete with 10.6-second lead-in.
 
 The storage density varies from 2000bps for a file full of 0 bits to 1000bps for a file full of 1 bits. Assuming an equal distribution of bits, you can expect to transfer about 187 bytes/second (ignoring the header).
@@ -686,7 +687,7 @@ Then the data is DMA'd into memory.
 
 ### Firmware
 $CS00 - boot.
-$CS
+$CS??
 
 
 ## Disk II Interface
@@ -736,12 +737,15 @@ At least 5 all-1's bytes in a row.
 
 Followed by :
 
+```
 Mark Bytes for Address Field: D5 AA 96
 Mark Bytes for Data Field: D5 AA AD
+```
 
 ### Head Movement
 
 to step in a track from an even numbered track (e.g. track 0):
+```
 LDA C0S3        # turn on phase 1
 (wait 11.5ms)
 LDA C0S5        # turn on phase 2
@@ -749,6 +753,7 @@ LDA C0S5        # turn on phase 2
 LDA C0S4        # turn off phase 1
 (wait 36.6 msec)
 LDA C0S6        # turn off phase 2
+```
 
 Moving phases 0,1,2,3,0,1,2,3 etc moves the head inward towards center.
 Going 3,2,1,0,3,2,1,0 etc moves the head inward.
@@ -795,7 +800,7 @@ Apple IIe Technical Reference Manual, Pages 142-143, cover this, but it's dense 
 doesn't exactly match the text.
 
 Booting up, we see this (we didn't get very far, lol):
-
+```
  | PC: $FE84, A: $00, X: $00, Y: $00, P: $00, S: $A5 || FE84: LDY #$FF
  | PC: $FE86, A: $00, X: $00, Y: $FF, P: $80, S: $A5 || FE86: STY $32   [#FF] -> $32
  | PC: $FE88, A: $00, X: $00, Y: $FF, P: $80, S: $A5 || FE88: RTS [#FA65] <- S[0x01 A6]$FA66
@@ -819,7 +824,7 @@ Booting up, we see this (we didn't get very far, lol):
  | PC: $FBBA, A: $00, X: $00, Y: $08, P: $C6, S: $A3 || FBBA: STA $C007   [#00] <- $C007
  | PC: $FBBD, A: $00, X: $00, Y: $08, P: $C6, S: $A3 || FBBD: JMP $C100
  | PC: $C100, A: $00, X: $00, Y: $08, P: $C6, S: $A3 || C100: INC $EEEE $EEEE   [#E4]
-
+```
  So, it's trying to enable "Internal ROM at $CX00" when it hits $C007:
 
  "When SLOTCXROM is active (high), the IO memory space from $C100 to $C7FF is allocated
@@ -1132,11 +1137,11 @@ The pages do not have to be allocated separately. Contigious is fine.
 Then assign subsets of these to the memory map in 256 byte increments. 
 
 For language card, we'll have:
-Bank_RAM_4K_1 = alloc(4K)
-Bank_RAM_4K_2 = alloc(4K)
-Bank_RAM_6K = alloc(6K)
-Bank_RAM_2K = alloc(2K)
-Bank_ROM = alloc(2K)
+  * Bank_RAM_4K_1 = alloc(4K)
+  * Bank_RAM_4K_2 = alloc(4K)
+  * Bank_RAM_6K = alloc(6K)
+  * Bank_RAM_2K = alloc(2K)
+  * Bank_ROM = alloc(2K)
 
 And then memory map altered when softswitches are toggled appropriately.
 We will want some external functions to mediate this, in bus.cpp.
@@ -1145,19 +1150,23 @@ It seems straightforward how a card would swap its pages in. How would we swap b
 
 ok I'm gonna cut for the night - I have the new memory map implemented, and have gs2 booting again. I think the language card hooks are in, and now need to start testing that.
 
+I ended up allocating all in one big 64K chunk. That's more like the real thing and is less to keep track of.
+
 ## Jan 6, 2025
 
 Some of the memory management might be a lot easier if I think about it this way:
 instead of allocating all these different chunks, do:
-1 64KByte chunk for RAM.
-1 12KB chunk for ROM.
+  * 1 64KByte chunk for RAM.
+  * 1 12KB chunk for ROM.
 
 Then I map the effective address space into the appropriate bits of these chunks.
 E.g.:
 
 1st 48K is mapped straight.
+```
 Then D000 bank 1 => RAM[0xC000]
 D000 bank 2 => RAM[0xD000]
+```
 
 Also this is more likely closer to how the apple IIe does it - there aren't all
 these separate RAM chips. they just had a 64K bank of RAM. This is because the same
@@ -1175,13 +1184,15 @@ ok, it passes the diagnostic test now!!!
 
 Trying to boot ProDOS - I got the ProDOS boot screen and blip!
 but infinite loop doing this:
+```
 Thunderclock Plus read register C090 => 00
 Thunderclock Plus read register C090 => 00
 Thunderclock Plus read register C090 => 00
 Thunderclock Plus read register C090 => 00
-
+```
 turned that off..
 now fails here:
+```
 schedule motor off at 15126338 (is now 14376338)
 languagecard_read_C08B - LANG_RAM_BANK1 | RAM_RAM
 bank_number: 1, reads: 1, writes: 0
@@ -1192,6 +1203,7 @@ bank_number: 1, reads: 1, writes: 1
 page: D0 read: 0x148014000 write: 0x148014000 canwrite: 1
 ...
 Unknown opcode: FD6F: 0x82CPU halted: 1
+```
 
 it's running from ram.
 
@@ -1236,6 +1248,7 @@ and C08b and c083 go immediately to read ram.
 
 Notes from apple2ts
 
+```
   // All addresses from $C000-C00F will read the keyboard and keystrobe
   // R/W to $C010 or any write to $C011-$C01F will clear the keyboard strobe
 
@@ -1243,6 +1256,7 @@ Notes from apple2ts
     // $C084...87 --> $C080...83, $C08C...8F --> $C088...8B
     handleBankedRAM(addr & ~4, calledFromMemSet)
     return
+```
 
 There appears to be an extensive discussion of this stuff in Understanding the Apple II.
 Chapter 5, page 5-26, The 16K RAM CARD
@@ -1261,6 +1275,7 @@ in the C08X range. The counter is set to zero by even or write access in the C08
 If the write counter reaches the count of 2, writing to expansion RAM is enabled.
 Writing will stay enabled until an even access is made in the C08X range.
 
+```
 at power on:
 Bank_1 = 0
 Pre_Write = 0
@@ -1278,6 +1293,7 @@ A0/A1
 
 PRE_Write = 1
 then can reset WRITE_ENABLE'
+```
 
 Pre_Write is set by Odd Read Access in C08X range.
 Pre_Write is reset of Even access in range, OR a write access anywhere in C08X range.
@@ -1297,30 +1313,34 @@ That's probably what I need to check to fix my implementation.
 Looking at generic ProDOS clock implementation.
 
 ProDOS recognizes a clock card if:
+```
 Cn00 = $08
 Cn02 = $28
 Cn04 = $58
 Cn06 = $70
 Cn08 - READ entry point
 Cn0B - WRITE entry point
+```
 
 The ProDOS routine stores date and time in:
+```
 $BF91 - $BF90
 day: bits 4-0
 month: bits 8-5
 year: bits 15-9
 $BF93 - hour
 $BF92 - minute
+```
 
 The ProDOS clock driver expects the clock card to send an ASCII
 string to the GETLN input buffer ($200). This string must have the
 following format (including the commas):
-mo,da,dt,hr,mn
-mo is the month (01 = January...12 = December)
-da is the day of the week (00 = Sunday...06 = Saturday)
-dt is the date (00 through 31)
-hr is the hour (00 through 23)
-mn is the minute (00 through 59)
+  * mo,da,dt,hr,mn
+  * mo is the month (01 = January...12 = December)
+  * da is the day of the week (00 = Sunday...06 = Saturday)
+  * dt is the date (00 through 31)
+  * hr is the hour (00 through 23)
+  * mn is the minute (00 through 59)
 
 It doesn't say but presumably the $200 getln ends with a carriage return.
 
@@ -1332,14 +1352,16 @@ Cn08: XX YY ZZ
 What values can we put there we can capture?
 Options.
 1) write our own ASM firmware that runs in Cn00. This will read registers.
-2) 
+2) some other option I forgot.
 
 Ah ha! 6.3 of ProDOS-8-Tech-Ref is Disk Driver Routines. Same conversation regarding
 "3rd party disk drives".
 
+```
 $Cn01 = $20
 $Cn03 = $00
 $Cn05 = $03
+```
 
 if $CnFF = $00, ProDOS assumes a 16-sector Disk II card.
 If $CnFF = $FF, ProDOS assumes a 13-sector Disk II card.
@@ -1353,6 +1375,7 @@ E.g., in Slot 5, that would be $C5<value of $CnFF>. Let's say $CnFF was
 This is the boot code.
 
 So the start of the device driver is:
+```
 C700    LDX #$20
 C702    LDA #$00
 C704    LDX #$03
@@ -1397,6 +1420,7 @@ C756    BNE $C75D - if not equal, error.
 C758    LDX $43
 C75A    JMP $0801 - proceed with boot.
 C75D    JMP $E000 - jump into basic (or something)
+```
 
 So when a JSR to $Cn60 is made, the Apple2TS emulator does its pretend
 call. Here it's full of BRK, so, it's not actually executing anything.
@@ -1409,6 +1433,7 @@ STATUS
    If ready, clear carry, set A = $00, and return the number of blocks
    on the device in X (low byte) and Y (high byte).
 
+```
 DEVICE numbers (physical slot 5)
   S5,D1 = $50
   S5,D2 = $D0
@@ -1420,12 +1445,14 @@ DEVICE numbers (physical slot 5)
   S6,D2 = $E0
   S2, D1 = $20
   S2, D2 = $A0
+```
 
   What are return vlaues for read and write?
 
 Device number is ( (Slot + (D-1)) * 0x10  )
 
-special locations in ROM:
+```
+Special locations in ROM:
 $CnFC - $CnFD - total number of blocks on device
 $CnFE - Status byte
   bit 7 - medium is removable
@@ -1436,9 +1463,11 @@ $CnFE - Status byte
   bit 1 - device can be read from
   bit 0 - device's status can be read (must be 1)
 $CnFF - low byte of entry to driver routines
+```
 
 Ah, so this lets us do CDROMs and stuff (read-only, removable).
 
+```
 Call Parameters: - Zero Page
 
 $42 - Command: 0 = STATUS, 1 = READ, 2 = WRITE, 3 = FORMAT
@@ -1457,22 +1486,22 @@ $00 - no error
 $27 - I/O error
 $28 - No device connected
 $2B - write protected
-
+```
 So, one method to handle this would be to do this:
 when we're about to enter the execution loop, if the PC
 is $Cn60, or, one of a list of other registered addresses)
 then we can call our special handler.
 Which needs to do the following:
-   execute
-   pretend to do an RTS
+  * execute
+  * pretend to do an RTS
 
 OK this is exactly what Apple2ts does, and it seems reasonable. And it will
 be lightning fast.
 
 So, we can implement:
-ProDOS Disk II Drive Controller (280 max blocks)
-ProDOS 800k Drive Controller (1600 max blocks)
-ProDOS Hard Disk Controller ($FFFF max blocks)
+  * ProDOS Disk II Drive Controller (280 max blocks)
+  * ProDOS 800k Drive Controller (1600 max blocks)
+  * ProDOS Hard Disk Controller ($FFFF max blocks)
 I recommend we flush write on every write.
 The extended commands for SmartPort would let us do multiple blocks at once,
 improving performance there.
@@ -1500,10 +1529,10 @@ Also, we can have a single place in the main loop and/or exit, where we can "unm
 media to real disk.
 
 I need to find a variety of 2mg images to test:
-dos 3.3 image
-prodos 143k image
-prodos 800k image
-hard disk drive image
+  * dos 3.3 image
+  * prodos 143k image
+  * prodos 800k image
+  * hard disk drive image
 
 ## January 10, 2025
 
@@ -1549,24 +1578,26 @@ was accessed.
 
 Let's look at the game controller stuff.
 
+| Function | State | Address |
+|----------|--------|----------|
+| Annunciator 0 | off | $C058 |
+| Annunciator 0 | on | $C059 |
+| Annunciator 1 | off | $C05A |
+| Annunciator 1 | on | $C05B |
+| Annunciator 2 | off | $C05C |
+| Annunciator 2 | on | $C05D |
+| Annunciator 3 | off | $C05E |
+| Annunciator 3 | on | $C05F |
+| Strobe Output | | $C040 |
+| Switch Input | 0 | $C061 |
+| Switch Input | 1 | $C062 |
+| Switch Input | 2 | $C063 |
+| Analog Input | 0 | $C064 |
+| Analog Input | 1 | $C065 |
+| Analog Input | 2 | $C066 |
+| Analog Input | 3 | $C067 |
+| Analog Input | Reset | $C070 |
 
-Annunciator 0 | off | $C058
-Annunciator 0 | on  | $C059
-Annunciator 1 | off | $C05A
-Annunciator 1 | on  | $C05B
-Annunciator 2 | off | $C05C
-Annunciator 2 | on  | $C05D
-Annunciator 3 | off | $C05E
-Annunciator 3 | on  | $C05F
-Strobe Output | | $C040
-Switch Input | 0 | $C061
-Switch Input | 1 | $C062
-Switch Input | 2 | $C063
-Analog Input | 0 | $C064
-Analog Input | 1 | $C065
-Analog Input | 2 | $C066
-Analog Input | 3 | $C067
-Analog Input | Reset | $C070
 
 The Analog inputs work like this: hit the reset switch.
 Then, read the analog input over and over until the "bit at the appropriate
@@ -1620,8 +1651,12 @@ Push media write protect handling down into the hardware drivers.
 
 have two interfaces for device init.
 
-init_mb_DEVICENAME(cpu_state *cpu)
+```init_mb_DEVICENAME(cpu_state *cpu)
 init_slot_DEVICENAME(cpu_state *cpu, int slot)
+```
+
+Ultimately a platform definition will include a list of these functions, in order,
+to initialize the VM. Pick and choose the ones you want.
 
 ok, did that, then worked on getting this thing to run as a Mac app bundle. That opened a rabbit hole
 of "where are my resource files? How are resources packaged?"
