@@ -57,9 +57,10 @@ void force_display_update();
 void update_display(cpu_state *cpu);
 void free_display();
 
-uint64_t init_display_sdl(rom_data *rd);
+uint64_t init_display_sdl();
 void txt_memory_write(uint16_t , uint8_t );
 void update_flash_state(cpu_state *cpu);
-void init_device_display();
+void init_mb_device_display(cpu_state *cpu);
 void render_line(cpu_state *cpu, int y);
 void pre_calculate_font(rom_data *rd);
+void init_display_font(rom_data *rd);

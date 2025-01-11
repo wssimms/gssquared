@@ -65,7 +65,7 @@ void set_display_page2() {
 
 }
 
-uint64_t init_display_sdl(rom_data *rd) {
+uint64_t init_display_sdl() {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         fprintf(stderr, "Error initializing SDL: %s\n", SDL_GetError());
         return 1;
@@ -122,9 +122,12 @@ uint64_t init_display_sdl(rom_data *rd) {
 
     SDL_RaiseWindow(window);
 
-    pre_calculate_font(rd);
 
     return 0;
+}
+
+void init_display_font(rom_data *rd) {
+    pre_calculate_font(rd);
 }
 
 /**
@@ -332,7 +335,7 @@ void txt_bus_write_C057(cpu_state *cpu, uint16_t address, uint8_t value) {
     txt_bus_read_C057(cpu, address);
 }
 
-void init_device_display() {
+void init_mb_device_display(cpu_state *cpu) {
     register_C0xx_memory_read_handler(0xC050, txt_bus_read_C050);
     register_C0xx_memory_read_handler(0xC051, txt_bus_read_C051);
     register_C0xx_memory_read_handler(0xC052, txt_bus_read_C052);
