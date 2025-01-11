@@ -22,7 +22,7 @@
 #include <sys/stat.h>
 #include "cpu.hpp"
 #include "platforms.hpp"
-#include "util/resourcefiles.hpp"
+#include "util/ResourceFile.hpp"
 #include "util/dialog.hpp"
 
 static  platform_info platforms[] = {
