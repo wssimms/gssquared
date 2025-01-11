@@ -12,10 +12,25 @@ Eventually (hopefully, soon) I will build for Linux. I am hoping I can get someo
 
 ## Build for Production
 
+### CLI
+
+```
 cmake -DCMAKE_BUILD_TYPE=Release .
 make
+```
+
+### Mac App Bundle
+
+Gets installed into GSSquared.app/
+
+```
+cmake -DCMAKE_BUILD_TYPE=Release
+make mac-package
+```
 
 ## Build for Debug
 
+```
 cmake -DCMAKE_BUILD_TYPE=Debug .
 make
+```
