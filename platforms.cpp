@@ -17,16 +17,19 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include "cpu.hpp"
 #include "platforms.hpp"
+#include "util/resourcefiles.hpp"
+#include "util/dialog.hpp"
 
 static  platform_info platforms[] = {
-    { 0, "Apple II", "apple2", PROCESSOR_6502, CLOCK_1_024MHZ },
-    { 1, "Apple II Plus", "apple2_plus", PROCESSOR_6502, CLOCK_1_024MHZ },
-    { 2, "Apple IIe",     "apple2e", PROCESSOR_6502, CLOCK_1_024MHZ },
-    { 3, "Apple IIe Enhanced",     "apple2e_enhanced", PROCESSOR_65C02, CLOCK_1_024MHZ },
+    { 0, "Apple II", "apple2", 0xD000, PROCESSOR_6502, CLOCK_1_024MHZ },
+    { 1, "Apple II Plus", "apple2_plus", 0xD000, PROCESSOR_6502, CLOCK_1_024MHZ },
+    { 2, "Apple IIe",     "apple2e", 0xD000, PROCESSOR_6502, CLOCK_1_024MHZ },
+    { 3, "Apple IIe Enhanced",     "apple2e_enhanced", 0xD000, PROCESSOR_65C02, CLOCK_1_024MHZ },
     // Add more platforms as needed:
     // { "Apple IIc",         "apple2c" },
     // { "Apple IIc Plus",    "apple2c_plus" },
@@ -61,11 +64,13 @@ rom_data* load_platform_roms(platform_info *platform) {
     char filepath[256];
     struct stat st;
 
-    // Read base address
+ /*    // Read base address
     snprintf(filepath, sizeof(filepath), "roms/%s/base.addr", platform->rom_dir);
     FILE* base_file = fopen(filepath, "r");
     if (!base_file) {
-        fprintf(stderr, "Failed to open %s\n", filepath);
+        char *debugstr = new char[512];
+        snprintf(debugstr, 512, "Failed to open base_addr %s errno: %d\n", filepath, errno);
+        system_failure(debugstr);
         delete roms;
         return nullptr;
     }
@@ -73,44 +78,35 @@ rom_data* load_platform_roms(platform_info *platform) {
     fgets(base_addr_str, sizeof(base_addr_str), base_file);
     fclose(base_file);
     roms->main_base_addr = strtol(base_addr_str, NULL, 16);
+ */
 
+    roms->main_base_addr = platform->rom_base_addr;
     // Load main ROM
     snprintf(filepath, sizeof(filepath), "roms/%s/main.rom", platform->rom_dir);
-    if (stat(filepath, &st) != 0) {
-        fprintf(stderr, "Failed to stat %s\n", filepath);
+    ResourceFile main_rom_file(filepath, READ_ONLY);
+    if (!main_rom_file.exists()) {
+        char *debugstr = new char[512];
+        snprintf(debugstr, 512, "Failed to stat %s errno: %d\n", filepath, errno);
+        system_failure(debugstr);
         delete roms;
         return nullptr;
     }
-    roms->main_size = st.st_size;
-    FILE* main_file = fopen(filepath, "rb");
-    if (!main_file) {
-        fprintf(stderr, "Failed to open %s\n", filepath);
-        delete roms;
-        return nullptr;
-    }
-    roms->main_rom = new uint8_t[roms->main_size];
-    fread(roms->main_rom, 1, roms->main_size, main_file);
-    fclose(main_file);
+    roms->main_rom = main_rom_file.load();
+    roms->main_size = main_rom_file.size();
 
     // Load character ROM
     snprintf(filepath, sizeof(filepath), "roms/%s/char.rom", platform->rom_dir);
-    if (stat(filepath, &st) != 0) {
-        fprintf(stderr, "Failed to stat %s\n", filepath);
+    ResourceFile char_rom_file(filepath, READ_ONLY);
+    if (!char_rom_file.exists()) {
+        char *debugstr = new char[512];
+        snprintf(debugstr, 512, "Failed to stat %s errno: %d\n", filepath, errno);
+        system_failure(debugstr);
         delete[] roms->main_rom;
         delete roms;
         return nullptr;
     }
-    roms->char_size = st.st_size;
-    FILE* char_file = fopen(filepath, "rb");
-    if (!char_file) {
-        fprintf(stderr, "Failed to open %s\n", filepath);
-        delete[] roms->main_rom;
-        delete roms;
-        return nullptr;
-    }
-    roms->char_rom = new uint8_t[roms->char_size];
-    fread(roms->char_rom, 1, roms->char_size, char_file);
-    fclose(char_file);
+    roms->char_rom = char_rom_file.load();
+    roms->char_size = char_rom_file.size();
 
     fprintf(stdout, "ROM Data:\n");
     fprintf(stdout, "  Main ROM Base Address: 0x%04X\n", roms->main_base_addr);
