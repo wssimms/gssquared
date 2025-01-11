@@ -12,20 +12,29 @@
 * Display Modes
   * Text
     * 40-column text mode - Complete. Supports normal, inverse, and flash; Screen 1 and 2.
-    * 80-column text mode - not started.
+    * Apple II+ 80-column text mode. not started.
+    * Apple IIe 80-column text mode - not started.
   * Low-resolution graphics - (Complete - works with Screen 1, 2, split-screen and full-screen).
-  * High-resolution graphics - not started.
+  * High-resolution graphics - monochrome ('green screen version') done. Color hi-res not started.
 * Storage Devices
   * Cassette - not started.  
-  * Disk II Controller Card - Read-only working with DOS-interleave disks. Jury is out on PO order.
+  * Disk II Controller Card - Read-only working with DOS and ProDOS interleave disks.
+  * ProDOS Block-Device Interface - complete.
   * SmartPort / ProDOS Block-Device Interface - Not started.
   * RAMfast SCSI Interface - Not started.
   * Pascal Storage Device - Not started.
+* Disk Image Formats
+  * .do, .dsk - read only.
+  * .po - read only.
+  * .2mg - read/write, for block devices, complete.
+  * .nib - not started.
+  * .woz - not started.
 * Sound - Partially complete. Working, but has some audio artifact issues due to timing sync. Work in progress.
 * I/O Devices
   * Printer / parallel port - not started.
   * Printer / serial port - not started.
-  * Joystick / paddles - not started.
+  * Joystick / paddles - initial implementation, with mouse. Needs work.
+  * Shift-key mod and Lowercase Character Generator. Not started.
 * Clocks
   * Thunderclock - read of time implemented. Interrupts, writing clock - not implemented. Needs testing.
   * Generic ProDOS-compatible Clock - not started.
