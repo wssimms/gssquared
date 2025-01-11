@@ -44,6 +44,19 @@
         "typeinfo": "cpp",
         "variant": "cpp",
         "algorithm": "cpp",
-        "iomanip": "cpp"
-    }
+        "iomanip": "cpp",
+        "print": "cpp",
+        "__hash_table": "cpp",
+        "__node_handle": "cpp",
+        "__split_buffer": "cpp",
+        "array": "cpp",
+        "deque": "cpp",
+        "memory": "cpp",
+        "optional": "cpp",
+        "queue": "cpp",
+        "stack": "cpp",
+        "unordered_map": "cpp",
+        "vector": "cpp"
+    },
+    "makefile.configureOnOpen": false
 }
