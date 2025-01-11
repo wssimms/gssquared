@@ -113,6 +113,10 @@ void handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
             loader_execute(cpu);
             return;
         }
+        if (key == SDLK_F1) {
+            SDL_SetRelativeMouseMode(SDL_FALSE);
+            return;
+        }
         if (key == SDLK_LEFT) { kb_key_pressed(0x08); return; }
         if (key == SDLK_RIGHT) { kb_key_pressed(0x15); return; }
         if (key >= 'a' && key <= 'z') key = key - 'a' + 'A';

@@ -1533,3 +1533,63 @@ https://retrocomputing.stackexchange.com/questions/12684/what-are-the-most-commo
 
 A whole bunch of Apple III software:
 https://www.apple3.org/iiisoftware.html
+
+I started thinking about other Apple II+ things need to be done; 
+  * color hi-res.
+  * shift-key mod. (Should be super simple, but need software to test).
+
+Shift-key mod. Basically, if shift was pressed with key, then mark PB2 high. What address is this?
+
+More generally: 
+
+https://gswv.apple2.org.za/a2zine/faqs/Csa2KBPADJS.html
+
+[ ] Hm, I need to add in handling mapping of the $C800-$CFFF ROM space based on which peripheral card
+was accessed.
+
+Let's look at the game controller stuff.
+
+
+Annunciator 0 | off | $C058
+Annunciator 0 | on  | $C059
+Annunciator 1 | off | $C05A
+Annunciator 1 | on  | $C05B
+Annunciator 2 | off | $C05C
+Annunciator 2 | on  | $C05D
+Annunciator 3 | off | $C05E
+Annunciator 3 | on  | $C05F
+Strobe Output | | $C040
+Switch Input | 0 | $C061
+Switch Input | 1 | $C062
+Switch Input | 2 | $C063
+Analog Input | 0 | $C064
+Analog Input | 1 | $C065
+Analog Input | 2 | $C066
+Analog Input | 3 | $C067
+Analog Input | Reset | $C070
+
+The Analog inputs work like this: hit the reset switch.
+Then, read the analog input over and over until the "bit at the appropriate
+memory location changes to 0".
+About 3millisecond delay. The time it takes to decay is directly proportional
+to the resistance across the input.
+
+This is a super-useful looking general purpose - machine identifier, and joystick tester!
+
+Converting a mouse location to a pseudo joystick location shouldn't be too hard. Let's say
+we have a sort of "dead" zone in the middle of the virtual display, where the mouse can rest
+and the joystick will read 128/128. then it's probably a pretty straight translation to
+x/y coordinates of mouse relative to focus window, to a timer.
+
+Well that wasn't bad at all. A weird thing happened playing sabotage, the mouse buttons
+stopped firing. Keyboard still worked, and, mouse still steered. So there may be something
+weird or it may be a bug in the game crack or something. Choplifter didn't seem to have any
+issues. Overall, having the mouse->joystick be linear makes for somewhat slow movement.
+Depends on the size of the screen. 
+Also, if you zoom off the window and then click, something comes up and covers the screen
+and you're way off base. Ah, so what I need is if I click in that window, the mouse locks to that window
+and can't leave it.
+The mechanics of the analog input simulation work just fine.
+
+OK, the SDL Relative Mouse mode helps. The mouse can't leave. What I did is, when you click
+inside the window, it locks mouse to window. Hit F1 to unlock. Shades of deep VMware purple.

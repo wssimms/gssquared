@@ -15,30 +15,29 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <SDL2/SDL.h>
-
-#include "debug.hpp"
 #include "cpu.hpp"
-#include "devices/keyboard/keyboard.hpp"
 
-// Loops until there are no events in queue waiting to be read.
+// TODO: get these from the display subsystem. Maybe even query the window.
+#define WINDOW_WIDTH 1120
+#define WINDOW_HEIGHT 768
 
-void event_poll(cpu_state *cpu) {
-    SDL_Event event;
-    while(SDL_PollEvent(&event)) {
-        switch (event.type) {
-            case  SDL_QUIT:
-                if (DEBUG(DEBUG_GUI)) fprintf(stdout, "quit received, shutting down\n");
-                cpu->halt = HLT_USER;
-                break;
+#define GAME_STROBE  0xC040
+#define GAME_SWITCH_0 0xC061
+#define GAME_SWITCH_1 0xC062
+#define GAME_SWITCH_2 0xC063
+#define GAME_ANALOG_0 0xC064
+#define GAME_ANALOG_1 0xC065
+#define GAME_ANALOG_2 0xC066
+#define GAME_ANALOG_3 0xC067
+#define GAME_ANALOG_RESET 0xC070
 
-            case SDL_KEYDOWN:
-                handle_sdl_keydown(cpu, event);
-                break;
+#define GAME_AN0_OFF 0xC058
+#define GAME_AN0_ON  0xC059
+#define GAME_AN1_OFF 0xC05A
+#define GAME_AN1_ON  0xC05B
+#define GAME_AN2_OFF 0xC05C
+#define GAME_AN2_ON  0xC05D
+#define GAME_AN3_OFF 0xC05E
+#define GAME_AN3_ON  0xC05F
 
-            case SDL_MOUSEBUTTONDOWN:
-                SDL_SetRelativeMouseMode(SDL_TRUE);
-                break;
-        }
-    }
-}
+void init_game_controller(cpu_state *cpu);

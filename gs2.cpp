@@ -42,6 +42,7 @@
 #include "devices/diskii/diskii_fmt.hpp"
 #include "devices/languagecard/languagecard.hpp"
 #include "devices/prodos_block/prodos_block.hpp"
+#include "devices/game/gamecontroller.hpp"
 #include "platforms.hpp"
 #include "util/media.hpp"
 
@@ -328,6 +329,7 @@ int main(int argc, char *argv[]) {
     init_device_display();
     init_languagecard(&CPUs[0],0);
     init_speaker(&CPUs[0]);
+    init_game_controller(&CPUs[0]);
     init_thunderclock(1);
     diskII_register_slot(&CPUs[0], 6); // put a disk II in slot 6
     init_prodos_block(&CPUs[0], 5);
