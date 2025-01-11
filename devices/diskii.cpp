@@ -463,7 +463,7 @@ void diskII_init() {
     }
 }
 
-void diskII_register_slot(cpu_state *cpu, uint8_t slot) {
+void init_slot_diskII(cpu_state *cpu, uint8_t slot) {
 
     fprintf(stdout, "diskII_register_slot %d\n", slot);
 
