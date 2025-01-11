@@ -34,10 +34,10 @@ def process_rom(rom_config, machine_dir):
         f.write(b'\xFF' * rom_config["size"])
     
     # For main ROM, write base address to base.addr
-    if rom_config["type"] == "main":
-        base_addr_file = os.path.join(machine_dir, "base.addr")
-        with open(base_addr_file, "w") as f:
-            f.write(rom_config["base_address"])
+    #if rom_config["type"] == "main":
+    #    base_addr_file = os.path.join(machine_dir, "base.addr")
+    #    with open(base_addr_file, "w") as f:
+    #        f.write(rom_config["base_address"])
     
     # Download and merge parts
     for part in rom_config["parts"]:
