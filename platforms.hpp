@@ -21,6 +21,7 @@
 #include <stddef.h>
 #include "cpu.hpp"
 #include "clock.hpp"
+#include "util/ResourceFile.hpp"
 
 struct platform_info {
     const int id;               // Human readable name
@@ -31,12 +32,20 @@ struct platform_info {
     const clock_mode default_clock_mode; // default clock mode for this platform at startup.
 };
 
+typedef uint8_t char_rom_t[256 * 8];
+typedef uint8_t main_rom_t[0x3000];
+
 struct rom_data {
     uint16_t main_base_addr;
-    uint8_t* main_rom;
+    ResourceFile *main_rom_file;
+    ResourceFile *char_rom_file;
+    main_rom_t *main_rom_data;
+    char_rom_t *char_rom_data;
+
+/*     uint8_t* main_rom;
     size_t main_size;
     uint8_t* char_rom;
-    size_t char_size;
+    size_t char_size; */
 };
 
 extern  int num_platforms;

@@ -15,7 +15,7 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 
 #include "cpu.hpp"
 #include "gs2.hpp"
@@ -30,7 +30,7 @@
 #include "platforms.hpp"
 
 SDL_Surface* winSurface = NULL;
-SDL_Window* window = NULL;
+/* SDL_Window* window = NULL; */
 
 SDL_Renderer* renderer = nullptr;
 SDL_Texture* screenTexture = nullptr;
@@ -65,8 +65,8 @@ void set_display_page2() {
 
 }
 
-uint64_t init_display_sdl() {
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+uint64_t init_display_sdl(cpu_state *cpu) {
+    if (!SDL_Init(SDL_INIT_VIDEO)) {
         fprintf(stderr, "Error initializing SDL: %s\n", SDL_GetError());
         return 1;
     }
@@ -78,23 +78,23 @@ uint64_t init_display_sdl() {
     const int BASE_WIDTH = 280;
     const int BASE_HEIGHT = 192;
     
-    window = SDL_CreateWindow(
+    cpu->window = SDL_CreateWindow(
         "GSSquared - Apple ][ Emulator", 
-        SDL_WINDOWPOS_UNDEFINED, 
-        SDL_WINDOWPOS_UNDEFINED, 
+        /* SDL_WINDOWPOS_UNDEFINED, 
+        SDL_WINDOWPOS_UNDEFINED,  */
         BASE_WIDTH * SCALE_X, 
         BASE_HEIGHT * SCALE_Y, 
-        SDL_WINDOW_SHOWN
+        0 /* SDL_WINDOW_SHOWN */
     );
 
-    if (!window) {
+    if (!cpu->window) {
         fprintf(stderr, "Error creating window: %s\n", SDL_GetError());
         return 1;
     }
 
     // Create renderer with nearest-neighbor scaling (sharp pixels)
-    renderer = SDL_CreateRenderer(window, -1, 
-        SDL_RENDERER_ACCELERATED /* | SDL_RENDERER_PRESENTVSYNC */);
+    renderer = SDL_CreateRenderer(cpu->window, NULL /* -1, 
+        SDL_RENDERER_ACCELERATED */ );
     
     if (!renderer) {
         fprintf(stderr, "Error creating renderer: %s\n", SDL_GetError());
@@ -102,8 +102,9 @@ uint64_t init_display_sdl() {
     }
 
     // Set scaling quality to nearest neighbor for sharp pixels
-    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
-    
+    /* SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0"); */
+    SDL_SetRenderScale(renderer, SCALE_X, SCALE_Y);
+
     // Create the screen texture
     screenTexture = SDL_CreateTexture(renderer,
         SDL_PIXELFORMAT_RGBA8888,
@@ -115,13 +116,18 @@ uint64_t init_display_sdl() {
         return 1;
     }
 
+    SDL_SetTextureBlendMode(screenTexture, SDL_BLENDMODE_NONE); /* GRRRRRRR. This was defaulting to SDL_BLENDMODE_BLEND. */
+    // LINEAR gets us appropriately blurred pixels.
+    // NEAREST gets us sharp pixels.
+    // TODO: provide a UI toggle for this.
+    SDL_SetTextureScaleMode(screenTexture, SDL_SCALEMODE_LINEAR);
+
     // Clear the texture to black
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
 
-    SDL_RaiseWindow(window);
-
+    SDL_RaiseWindow(cpu->window);
 
     return 0;
 }
@@ -138,7 +144,6 @@ void update_display(cpu_state *cpu) {
     int updated = 0;
     for (int line = 0; line < 24; line++) {
         if (dirty_line[line]) {
-            //fprintf(stdout, "Dirty line %d\n", i);
             render_line(cpu, line);
             dirty_line[line] = 0;
             updated = 1;
@@ -146,7 +151,7 @@ void update_display(cpu_state *cpu) {
     }
 
     if (updated) {
-        SDL_RenderCopy(renderer, screenTexture, NULL, NULL);
+        SDL_RenderTexture(renderer, screenTexture, NULL, NULL);
         SDL_RenderPresent(renderer);
     }
 }
@@ -157,10 +162,10 @@ void force_display_update() {
     }
 }
 
-void free_display() {
+void free_display(cpu_state *cpu) {
     if (screenTexture) SDL_DestroyTexture(screenTexture);
     if (renderer) SDL_DestroyRenderer(renderer);
-    if (window) SDL_DestroyWindow(window);
+    if (cpu->window) SDL_DestroyWindow(cpu->window);
     SDL_Quit();
 }
 
@@ -193,14 +198,16 @@ void update_line_mode() {
     }
 }
 
+// TODO: this code can likely lock the whole screen, so we do one lock
+// (relatively expensive) instead of one lock per line.
 
 void render_line(cpu_state *cpu, int y) {
 
     SDL_Rect updateRect = {
-        0,    // X position (left of window))
-        y * 8,    // Y position (8 pixels per character)
+        0,          // X position (left of window))
+        y * 8,      // Y position (8 pixels per character)
         280,        // Width of line
-        8         // Height of line
+        8           // Height of line
     };
 
     // the texture is our canvas. When we 'lock' it, we get a pointer to the pixels, and the pitch which is pixels per row
@@ -208,13 +215,12 @@ void render_line(cpu_state *cpu, int y) {
 
     void* pixels;
     int pitch;
-    if (SDL_LockTexture(screenTexture, &updateRect, &pixels, &pitch) < 0) {
+    if (!SDL_LockTexture(screenTexture, &updateRect, &pixels, &pitch)) {
         fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
         return;
     }
 
     for (int x = 0; x < 40; x++) {
-        //uint8_t character = raw_memory_read(cpu, TEXT_PAGE_TABLE[y] + x);
         if (line_mode[y] == LM_TEXT_MODE) {
             render_text(cpu, x, y, pixels, pitch);
         } else if (line_mode[y] == LM_LORES_MODE) {

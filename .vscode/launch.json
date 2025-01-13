@@ -6,7 +6,7 @@
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/bin/gs2",
-            "args": ["-ds5d1=/Users/bazyar/src/gssquared/disk_images/AppleIISystem800k.po"],
+            "args": ["-ds5d1=/Users/bazyar/src/gssquared/disk_images/AppleIISystem800k.hdv"],
             "cwd": "${workspaceFolder}",
             "preLaunchTask": "build-debug"
         }

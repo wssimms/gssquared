@@ -54,8 +54,8 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-# Find SDL2 package
-find_package(SDL2 REQUIRED)
+# Find SDL3 package
+find_package(SDL3 REQUIRED)
 
 # Build prodos block firmware
 add_custom_command(
@@ -97,7 +97,7 @@ add_library(gs2_devices_speaker     src/devices/speaker/speaker.cpp )
 
 add_library(gs2_cpu src/cpus/cpu_6502.cpp src/cpus/cpu_65c02.cpp )
 
-add_library(gs2_util src/util/media.cpp src/util/resourcefiles.cpp src/util/dialog.cpp )
+add_library(gs2_util src/util/media.cpp src/util/ResourceFile.cpp src/util/dialog.cpp )
 
 # Add the executable
 add_executable(gs2 gs2.cpp bus.cpp clock.cpp debug.cpp cpu.cpp memory.cpp opcodes.cpp test.cpp 
@@ -107,17 +107,17 @@ add_executable(gs2 gs2.cpp bus.cpp clock.cpp debug.cpp cpu.cpp memory.cpp opcode
     platforms.cpp
     event_poll.cpp)
 
-# Include SDL2 headers
-include_directories(${SDL2_INCLUDE_DIRS} 
-    /opt/homebrew/Cellar/sdl2/2.30.10/include
+# Include SDL3 headers
+include_directories(${SDL3_INCLUDE_DIRS} 
+    /usr/local/include
     ${CMAKE_SOURCE_DIR}
     PUBLIC
         ${CMAKE_SOURCE_DIR}/src    # Makes "src" the root include directory
 )
 
-# Link SDL2 and required frameworks
+# Link SDL3 and required frameworks
 target_link_libraries(gs2 PRIVATE 
-    ${SDL2_LIBRARIES}
+    SDL3::SDL3
     "-framework OpenGL" 
     "-framework Cocoa"
 )

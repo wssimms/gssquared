@@ -24,7 +24,7 @@
 #include <fstream>
 #include <stdexcept>
 
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 
 #include "gs2.hpp"
 #include "util/ResourceFile.hpp"
@@ -58,6 +58,18 @@ int ResourceFile::exists() {
         return 0;
     }
     return 1;
+}
+
+void ResourceFile::dump() {
+    printf("Dumping file: %s\n", filename_t.c_str());
+    printf("File size: %zu\n", file_size);
+    printf("File mode: %d\n", mode_t);
+    if (file_data) {
+        for (int i = 0; i < 256; i++) {
+            printf("%02X ", file_data[i]);
+        }
+        printf("\n");
+    }
 }
 
 uintmax_t ResourceFile::size() {
@@ -107,3 +119,6 @@ uint8_t* ResourceFile::load() {
     return file_data;
 }
 
+uint8_t* ResourceFile::get_data() {
+    return file_data;
+}

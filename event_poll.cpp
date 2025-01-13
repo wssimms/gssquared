@@ -15,7 +15,7 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 
 #include "debug.hpp"
 #include "cpu.hpp"
@@ -27,17 +27,17 @@ void event_poll(cpu_state *cpu) {
     SDL_Event event;
     while(SDL_PollEvent(&event)) {
         switch (event.type) {
-            case  SDL_QUIT:
+            case  SDL_EVENT_QUIT:
                 if (DEBUG(DEBUG_GUI)) fprintf(stdout, "quit received, shutting down\n");
                 cpu->halt = HLT_USER;
                 break;
 
-            case SDL_KEYDOWN:
+            case SDL_EVENT_KEY_DOWN:
                 handle_sdl_keydown(cpu, event);
                 break;
 
-            case SDL_MOUSEBUTTONDOWN:
-                SDL_SetRelativeMouseMode(SDL_TRUE);
+            case SDL_EVENT_MOUSE_BUTTON_DOWN:
+                SDL_SetWindowRelativeMouseMode(cpu->window, true);
                 break;
         }
     }

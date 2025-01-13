@@ -81,37 +81,39 @@ rom_data* load_platform_roms(platform_info *platform) {
  */
 
     roms->main_base_addr = platform->rom_base_addr;
+
     // Load main ROM
     snprintf(filepath, sizeof(filepath), "roms/%s/main.rom", platform->rom_dir);
-    ResourceFile main_rom_file(filepath, READ_ONLY);
-    if (!main_rom_file.exists()) {
+    roms->main_rom_file = new ResourceFile(filepath, READ_ONLY);
+    if (!roms->main_rom_file->exists()) {
         char *debugstr = new char[512];
         snprintf(debugstr, 512, "Failed to stat %s errno: %d\n", filepath, errno);
         system_failure(debugstr);
         delete roms;
         return nullptr;
     }
-    roms->main_rom = main_rom_file.load();
-    roms->main_size = main_rom_file.size();
+    roms->main_rom_data = (main_rom_t*) roms->main_rom_file->load();
+    //roms->main_rom_file->size();
 
     // Load character ROM
     snprintf(filepath, sizeof(filepath), "roms/%s/char.rom", platform->rom_dir);
-    ResourceFile char_rom_file(filepath, READ_ONLY);
-    if (!char_rom_file.exists()) {
+    roms->char_rom_file = new ResourceFile(filepath, READ_ONLY);
+    if (!roms->char_rom_file->exists()) {
         char *debugstr = new char[512];
         snprintf(debugstr, 512, "Failed to stat %s errno: %d\n", filepath, errno);
         system_failure(debugstr);
-        delete[] roms->main_rom;
+        delete[] roms->main_rom_file;
         delete roms;
         return nullptr;
     }
-    roms->char_rom = char_rom_file.load();
-    roms->char_size = char_rom_file.size();
+    roms->char_rom_data = (char_rom_t*) roms->char_rom_file->load();
+    //roms->char_size = char_rom_file.size();
+    roms->char_rom_file->dump();
 
     fprintf(stdout, "ROM Data:\n");
     fprintf(stdout, "  Main ROM Base Address: 0x%04X\n", roms->main_base_addr);
-    fprintf(stdout, "  Main ROM Size: %zu bytes\n", roms->main_size);
-    fprintf(stdout, "  Character ROM Size: %zu bytes\n", roms->char_size);
+    fprintf(stdout, "  Main ROM Size: %zu bytes\n", roms->main_rom_file->size());
+    fprintf(stdout, "  Character ROM Size: %zu bytes\n", roms->char_rom_file->size());
 
     return roms;
 }
@@ -119,8 +121,8 @@ rom_data* load_platform_roms(platform_info *platform) {
 // Helper function to free ROM data
 void free_platform_roms(rom_data* roms) {
     if (roms) {
-        delete[] roms->main_rom;
-        delete[] roms->char_rom;
+        delete roms->main_rom_file;
+        delete roms->char_rom_file;
         delete roms;
     }
 }

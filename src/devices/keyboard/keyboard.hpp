@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 #include "cpu.hpp"
 
 #define KB_LATCH_ADDRESS 0xC000

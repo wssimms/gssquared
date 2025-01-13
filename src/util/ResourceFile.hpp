@@ -57,11 +57,18 @@ public:
     uintmax_t size();
 
     /**
+     * Display info about the file
+     */
+    void dump();
+
+    /**
      * Load the file into memory
      * @return Pointer to the loaded file data. Caller is responsible for freeing the memory.
      * @throws std::runtime_error if file cannot be loaded
      */
     uint8_t* load();
+
+    uint8_t* get_data();
 };
 
 

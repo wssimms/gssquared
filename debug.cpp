@@ -52,3 +52,12 @@ void debug_dump_memory(cpu_state *cpu, uint32_t start, uint32_t end) {
 void debug_set_level(uint64_t level) {
     debug_level = level;
 };
+
+void debug_dump_pointer(uint8_t *start, uint16_t length) {
+    for (uint16_t i = 0; i < length; i++) {
+        if (i % 32 == 0) std::cout << int_to_hex((uint16_t)i) << ": ";
+        std::cout << int_to_hex(*(start+i)) << " ";
+        if ((i % 32) == 0x1F) std::cout << std::endl;
+    }
+    std::cout << std::endl;
+}

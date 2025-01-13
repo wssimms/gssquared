@@ -17,8 +17,6 @@
 
 #pragma once
 
-#define USE_SDL2 1
-
 #include <unistd.h>
 #include <stdint.h>
 

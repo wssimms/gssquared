@@ -18,6 +18,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <SDL3/SDL.h>
 
 #include "memoryspecs.hpp"
 //#include "clock.hpp"
@@ -180,6 +181,8 @@ struct cpu_state {
     clock_mode clock_mode = CLOCK_FREE_RUN;
 
     execute_next_fn execute_next;
+
+    SDL_Window *window;
 };
 
 #define HLT_INSTRUCTION 1

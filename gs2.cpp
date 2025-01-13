@@ -177,6 +177,7 @@ void run_cpus(void) {
     cpu_state *cpu = &CPUs[0];
 
     uint64_t last_display_update = 0;
+    uint64_t last_audio_update = 0;
     uint64_t last_5sec_update = 0;
     uint64_t last_5sec_cycles;
 
@@ -197,6 +198,11 @@ void run_cpus(void) {
             update_flash_state(cpu);
             update_display(cpu); // check for events 60 times per second.
             last_display_update = current_time;
+        }
+
+        if (cpu->cycles - last_audio_update > 34000 ) {
+            audio_generate_frame(cpu);
+            last_audio_update = cpu->cycles;
         }
 
         if (current_time - last_5sec_update > 5000000) {
@@ -287,12 +293,11 @@ int main(int argc, char *argv[]) {
         std::cout << " Slot " << disk_mount.slot << " Drive " << disk_mount.drive << " - " << disk_mount.filename << std::endl;
     }
 
-    system_diag((char *)gs2_app_values.base_path);
+    /* system_diag((char *)gs2_app_values.base_path); */
 
     init_cpus();
 
 #if 0
-
         // this is the one test system.
         demo_ram();
 #endif
@@ -318,15 +323,14 @@ int main(int argc, char *argv[]) {
         }
 #endif
     
-    if (init_display_sdl()) {
+    if (init_display_sdl(&CPUs[0])) {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "A little test.", NULL);
         fprintf(stderr, "Error initializing display\n");
         exit(1);
     } 
 
-
-    // load platform roms   
 #if 1
+    // load platform roms   
         platform_info* platform = get_platform(platform_id);
         print_platform_info(platform);
 
@@ -337,8 +341,9 @@ int main(int argc, char *argv[]) {
             exit(1);
         }
         // Load into memory at correct address
-        for (uint64_t i = 0; i < rd->main_size; i++) {
-            raw_memory_write(&CPUs[0], rd->main_base_addr + i, rd->main_rom[i]);
+        printf("Main Rom Data: %p base_addr: %04X size: %zu\n", rd->main_rom_data, rd->main_base_addr, rd->main_rom_file->size());
+        for (uint64_t i = 0; i < rd->main_rom_file->size(); i++) {
+            raw_memory_write(&CPUs[0], rd->main_base_addr + i, (*rd->main_rom_data)[i]);
         }
         // we could dispose of this now if we wanted..
 #endif
@@ -385,6 +390,10 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    speaker_start(); // final init of speaker.
+
+    //toggle_speaker_recording();
+
     run_cpus();
 
     printf("CPU halted: %d\n", CPUs[0].halt);
@@ -395,7 +404,7 @@ int main(int argc, char *argv[]) {
 
     //dump_full_speaker_event_log();
 
-    free_display();
+    free_display(&CPUs[0]);
 
     debug_dump_memory(&CPUs[0], 0x1230, 0x123F);
     return 0;

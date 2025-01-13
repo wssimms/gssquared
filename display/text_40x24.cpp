@@ -34,7 +34,6 @@
 
 // The Character ROM contains 256 entries (total of 2048 bytes).
 // Each character is 8 bytes, each byte is 1 row of pixels.
-//uint8_t APPLE2_FONT[CHAR_GLYPHS_COUNT * CHAR_GLYPHS_SIZE];
 
 uint32_t APPLE2_FONT_32[CHAR_GLYPHS_COUNT * CHAR_GLYPHS_SIZE * 8 ]; // 8 pixels per row.
 
@@ -45,51 +44,28 @@ uint32_t APPLE2_FONT_32[CHAR_GLYPHS_COUNT * CHAR_GLYPHS_SIZE * 8 ]; // 8 pixels 
 */
 
 void pre_calculate_font (rom_data *rd) {
-    // Draw the character bitmap into the texture
-    // pitch is the number of pixels per row of the texture. May depend on device.
-    // we don't use pitch here.
-    // each char will be 56 bytes.
+    // Draw the character bitmap into a memory array. (32 bit pixels, 7 sequential pixels per row, 8 rows per character)
+    // each char will be 56 pixels or 224 bytes
 
     uint32_t fg_color = 0xFFFFFFFF;
     uint32_t bg_color = 0x00000000;
 
-    uint32_t *position = APPLE2_FONT_32;
+    uint32_t pos_index = 0;
 
     for (int row = 0; row < 256 * 8; row++) {
-        uint8_t rowBits = rd->char_rom[row];
-        //fprintf(stdout, "position: %8p, row: %04X, rowBits: %02X   ", position, row, rowBits);
+        uint8_t rowBits = (*rd->char_rom_data)[row];
         for (int col = 0; col < 7; col++) {
             bool pixel = rowBits & (1 << (6 - col));
             uint32_t color = pixel ? fg_color : bg_color;
-            //fprintf(stdout, "%08X", color);
-            *position = color;
-            position++;
+            APPLE2_FONT_32[pos_index] = color;
+            pos_index++;
+            if (pos_index > CHAR_GLYPHS_COUNT * CHAR_GLYPHS_SIZE * 8 ) {
+                fprintf(stderr, "pos_index out of bounds: %d\n", pos_index);
+                exit(1);
+            }
         }
-        //fprintf(stdout, "\n");
     }
 }
-
-#if 0
-void load_character_rom() {
-
-    FILE* rom = fopen("roms/apple2_plus/Apple II Character ROM - 341-0036.bin", "rb");
-    if (!rom) {
-        fprintf(stderr, "Error: Could not open character ROM file\n");
-        exit(1);
-    }
-
-    // Read the entire 2KB ROM file
-    if (fread((void*)APPLE2_FONT, 1, CHAR_GLYPHS_COUNT * CHAR_GLYPHS_SIZE, rom) != CHAR_GLYPHS_COUNT * CHAR_GLYPHS_SIZE) {
-        fprintf(stderr, "Error: Could not read character ROM file\n");
-        fclose(rom);
-        exit(1);
-    }
-
-    fclose(rom);
-
-    pre_calculate_font();
-}
-#endif
 
 uint16_t TEXT_PAGE_1_TABLE[24] = {
     0x0400,
@@ -156,7 +132,6 @@ uint16_t TEXT_PAGE_START = 0x0400;
 uint16_t TEXT_PAGE_END = 0x07FF;
 uint16_t *TEXT_PAGE_TABLE = TEXT_PAGE_1_TABLE;
 
-
 bool flash_state = false;
 
 /**
@@ -214,6 +189,7 @@ void update_flash_state(cpu_state *cpu) {
         flash_state = !flash_state;
     }
     //int flashcount = 0;
+    //TODO: invert the loops. And, we can bail on the inner loop after we find the first flash character.
     for (int x = 0; x < 40; x++) {
         for (int y = 0; y < 24; y++) {
             uint16_t addr = TEXT_PAGE_TABLE[y] + x;

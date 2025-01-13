@@ -32,9 +32,10 @@ extern uint64_t debug_level;
 #define DEBUG_HGR 0x0400
 #define DEBUG_DISKII 0x0800
 #define DEBUG_LANGCARD 0x1000
+#define DEBUG_GAME 0x2000
 
 #define DEBUG_ANY 0xFFFFFFFF
-#define DEBUG_BOOT_FLAG DEBUG_KEYBOARD
+#define DEBUG_BOOT_FLAG DEBUG_KEYBOARD | DEBUG_SPEAKER
 
 #define DEBUG(flag) (debug_level & flag)
 
@@ -57,3 +58,4 @@ void debug_set_level(uint64_t level);
 std::string int_to_hex(uint16_t value) ;
 std::string int_to_hex(uint8_t value) ;
 inline void print_hex(uint8_t value) ;
+void debug_dump_pointer(uint8_t *start, uint16_t length);

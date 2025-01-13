@@ -20,10 +20,11 @@
  * 
  */
 
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 
 #include "cpu.hpp"
 #include "bus.hpp"
+#include "debug.hpp"
 #include "devices/game/gamecontroller.hpp"
 
 int game_switch_0 = 0;
@@ -56,14 +57,13 @@ int game_input_trigger_2 = 0;
 int game_input_trigger_3 = 0;
 
 uint8_t strobe_game_inputs(cpu_state *cpu, uint16_t address) {
-    int mouse_x, mouse_y;
+    float mouse_x, mouse_y;
     SDL_GetMouseState(&mouse_x, &mouse_y);
     game_input_trigger_0 = cpu->cycles + (3000 / 255) * ((mouse_x *255) / WINDOW_WIDTH);
     game_input_trigger_1 = cpu->cycles + (3000 / 255) * ((mouse_y *255) / WINDOW_HEIGHT);
-    printf("Strobe game inputs: %d, %d: %d, %d\n", mouse_x, mouse_y, game_input_trigger_0, game_input_trigger_1);
+    if (DEBUG(DEBUG_GAME)) fprintf(stdout, "Strobe game inputs: %f, %f: %d, %d\n", mouse_x, mouse_y, game_input_trigger_0, game_input_trigger_1);
     return 0x00;
 }
-
 
 uint8_t read_game_input_0(cpu_state *cpu, uint16_t address) {
     if (game_input_trigger_0 > cpu->cycles) {
@@ -94,23 +94,23 @@ uint8_t read_game_input_3(cpu_state *cpu, uint16_t address) {
 }
 
 uint8_t read_game_switch_0(cpu_state *cpu, uint16_t address) {
-    game_switch_0 = (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;
+    game_switch_0 = (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_MASK(SDL_BUTTON_LEFT)) != 0;
     return game_switch_0 ? 0x80 : 0x00;
 }
 
 uint8_t read_game_switch_1(cpu_state *cpu, uint16_t address) {
-    game_switch_1 = (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_RIGHT)) != 0;
+    game_switch_1 = (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_MASK(SDL_BUTTON_RIGHT)) != 0;
     return game_switch_1 ? 0x80 : 0x00;
 }
 
 uint8_t read_game_switch_2(cpu_state *cpu, uint16_t address) {
-    game_switch_2 = (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_MIDDLE)) != 0;
+    game_switch_2 = (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_MASK(SDL_BUTTON_MIDDLE)) != 0;
     return game_switch_2 ? 0x80 : 0x00;
 }
 
 void init_mb_game_controller(cpu_state *cpu) {
 
-    printf("Initializing game controller\n");
+    if (DEBUG(DEBUG_GAME)) fprintf(stdout, "Initializing game controller\n");
     game_switch_0 = 0;
     game_switch_1 = 0;
     game_switch_2 = 0;

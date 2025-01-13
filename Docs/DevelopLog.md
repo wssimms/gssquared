@@ -1651,7 +1651,8 @@ Push media write protect handling down into the hardware drivers.
 
 have two interfaces for device init.
 
-```init_mb_DEVICENAME(cpu_state *cpu)
+```
+init_mb_DEVICENAME(cpu_state *cpu)
 init_slot_DEVICENAME(cpu_state *cpu, int slot)
 ```
 
@@ -1673,3 +1674,90 @@ This will be the start of a bunch of refactoring to make the code more C++17 com
 Since I got past my include file location issues of earlier, I can now be consistent and
 disciplined about using only modern C++ idioms for I/O and other stuff.
 
+So have more thinking to do - for debug output, can write to a file.
+And create a debug log abstraction. 
+
+[ ] When a VM is off, its window can display the apple logo and the machine name underneath. (e.g. Apple IIe, //c etc.)
+[ ] edit the icon so it's square, and, has a transparent background where the white is.
+
+Thinking about UI. Two ways to go here.
+1. Do a web browser type, discussed above. Gives access to a broad range of UI tools in-browser, except perhaps the one we really need, which is select local file.
+1. Switch to SDL3, which has a variety of UI tools and a bunch of other stuff to boot.
+1. Stick with SDL2 and use this: https://github.com/btzy/nativefiledialog-extended and other such things.
+
+I suspect switching to SDL3 now is the way to go, before I get too much further invested in SDL2.
+and it's got the file dialog stuff, etc.
+
+It looks like the audio stuff may be a bit of a lift - but, it will be cleaner and thread-safe. Important if I'm going
+to do multiple VMs at once.
+
+So UI. I have a vision.
+
+Control Window:
+
+The whole Control Window can be shown/hidden with a key shortcut (e.g. F1)
+
+At the top, we have a menu bar with some basic stuff like help, about, quit.
+
+There is a pane you can open to show the current machine's state: picture of the emulated machine (e.g. an Apple IIe pic, IIc pic, IIgs pic, etc.);
+effective MHz; etc
+
+Below that, a pane with some controls: reset button, power off, break into debugger; reverse analog input axes; change display mode (color, green screen amber screen);   
+
+An accordion pane with disk drive images, to provide visual feedback on: disk activity; slot and drive; what disk image is mounted; etc.
+Click on an eject button to eject a disk from that drive, which will do a clean unmount. Then, click on the disk image to mount a new image.
+
+An accordion pane with info on any other virtual peripherals where it makes sense. map serial / parallel port to real device with an icon of the virtual device (e.g. a super serial card); choose joystick/gamepad device; choose audio device; we could map a serial port to a TCP IP and port (fun); virtual modem (ATDT1.2.3.4); Each device registers its own icon / UI logic.
+
+An optional debugger window. The debugger provides a part GUI / part CLI interface into the system.
+
+An optional printer output window. Of course you can hook up a real printer. I bet a bunch of Apple II software supports HP PCL, and of course later
+and GS stuff will support PostScript. The ImageWriter was ubiquitous. Also Epson MX-80.  
+
+Images and iconography are SVG.
+
+
+SDL3 - ugh! lot of work.
+Looks like there is SDL_SetRenderDrawColor which might let us draw with white pixels but translate to a different color. Maybe good for a "green screen" mode or Amber mode.
+
+I ripped the display code out of the emulator and put it in a separate test program. It's working. That is weird. I must have a memory management bug somewhere.
+
+## Jan 12, 2025
+
+OH there was a comment that "the texture is write-only.":
+Warning: Please note that SDL_LockTexture() is intended to be write-only; it will not guarantee the previous contents of the texture will be provided. You must fully initialize any area of a texture that you lock before unlocking it, as the pixels might otherwise be uninitialized memory.
+
+That's the issue, and that's what is different between the main thing and the test thing. The test thing is writing the entire texture.
+Let me try writing only part of them.
+
+NO that wasn't the issue. Though it could have been.
+
+The issue was very simple: SDL3 defaults to BLEND. Previously we had set hint to overwrite. So, that was that! What a PITA!
+Also, it defaults to fuzzy (linear) scaling. This provides a more old-CRT-like effect, which is common on other emulators. But for certain 
+applications you might want to use nearest neighbor scaling, which provides exact-sharp pixel scaling. ultimately provide a toggle for this.
+
+OK, I think the last thing I need to do is to get the audio working.
+
+They changed a few things, including how the callback works. Now, the callback is called, and you use a call PUT to put however many bytes
+of audio data you want into the stream. This is likely better. What may be even better yet is to include an audio frame processor
+into the main event loop. Now I'm curious, I wonder if I can now open a 1-bit channel.. no. But they do offer floating point samples.
+Consider that later.
+
+I can shove as much or as little audio data as I want into the stream. It will take care of synchronizing buffers. So I will
+do that. We will return data generated in the cpu cycles between this time and last time.
+
+OK! I got the speaker/audio working again this time as a push-based system. Every 17000 'cpu cycles' I generate an audio frame.
+However, over time the audio stream is getting delayed more and more. I.e., Out of sync with realtime. 
+This means I'm pushing more data than I should, and the player is getting behind playing it.
+So I need to compress the output data stream a little if it gets behind.
+How do I know if I'm behind? Calculate how many bytes we sent to the player based on cycles, compared to how many we should have sent
+based on realtime.
+
+## Jan 13, 2025
+
+I think I'm mostly done with the SDL3 refactor. I am not happy with the audio stuff. I am going to break
+it out into a standalone test program to continue to tune it. There is almost certainly a bug somewhere
+when handling blips that cross frame boundaries. But I took a long recording of audio and 
+will be able to test iterations much faster this way.
+
+In the meantime, clean up the mess in the code and push into the repo.
