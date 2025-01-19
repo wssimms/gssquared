@@ -184,6 +184,8 @@ void run_cpus(void) {
 
     /* initialize time tracker vars */
     uint64_t ct = SDL_GetTicksNS();
+    uint64_t last_event_update = ct;
+    uint64_t last_display_update = ct;
     uint64_t last_audio_update = ct;
     uint64_t last_5sec_update = ct;
     uint64_t last_5sec_cycles = cpu->cycles;
@@ -220,24 +222,34 @@ void run_cpus(void) {
         }
         uint64_t current_time;
 
-        INSTRUMENT(current_time = SDL_GetTicksNS();)
-        event_poll(cpu); // they say call "once per frame"
-        INSTRUMENT(uint64_t event_time = SDL_GetTicksNS() - current_time;)
+        if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_event_update > 16667000)
+            || (cpu->clock_mode != CLOCK_FREE_RUN)) {
+            current_time = SDL_GetTicksNS();
+            event_poll(cpu); // they say call "once per frame"
+            uint64_t event_time = SDL_GetTicksNS() - current_time;
+            last_event_update = current_time;
+        }
 
         /* Emit Audio Frame */
-        INSTRUMENT(current_time = SDL_GetTicksNS();)
-        audio_generate_frame(cpu, last_cycle_window_start, cycle_window_start);
-        INSTRUMENT(uint64_t audio_time = SDL_GetTicksNS() - current_time;)
+        current_time = SDL_GetTicksNS();
+        if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_audio_update > 16667000)
+            || (cpu->clock_mode != CLOCK_FREE_RUN)) {            
+            audio_generate_frame(cpu, last_cycle_window_start, cycle_window_start);
+            uint64_t audio_time = SDL_GetTicksNS() - current_time;
+            last_audio_update = current_time;
+        }
 
         /* Emit Video Frame */
-        INSTRUMENT(current_time = SDL_GetTicksNS();)
-        //if (current_time - last_display_update > 16667000) {
-            //event_poll(cpu); // they say call "once per frame"
+        current_time = SDL_GetTicksNS();
+        if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_display_update > 16667000)
+            || (cpu->clock_mode != CLOCK_FREE_RUN)) {
+            event_poll(cpu); // they say call "once per frame"
             update_flash_state(cpu);
             update_display(cpu);    
-            //last_display_update = current_time;
-        //}
-        INSTRUMENT(uint64_t display_time = SDL_GetTicksNS() - current_time;)
+            last_display_update = current_time;
+        }
+        INSTRUMENT(uint64_t displa
+        y_time = SDL_GetTicksNS() - current_time;)
 
         /* Emit 5-second Stats */
         current_time = SDL_GetTicksNS();
