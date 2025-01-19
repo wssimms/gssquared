@@ -35,7 +35,7 @@ extern uint64_t debug_level;
 #define DEBUG_GAME 0x2000
 
 #define DEBUG_ANY 0xFFFFFFFF
-#define DEBUG_BOOT_FLAG DEBUG_KEYBOARD | DEBUG_SPEAKER
+#define DEBUG_BOOT_FLAG DEBUG_KEYBOARD
 
 #define DEBUG(flag) (debug_level & flag)
 
