@@ -165,7 +165,7 @@ void init_cpus() { // this is the same as a power-on event.
 
         set_clock_mode(&CPUs[i], CLOCK_1_024MHZ);
 
-        CPUs[i].next_tick = mach_absolute_time() + CPUs[i].cycle_duration_ticks; 
+        //CPUs[i].next_tick = mach_absolute_time() + CPUs[i].cycle_duration_ticks; 
     }
 }
 
@@ -173,39 +173,75 @@ void set_cpu_processor(cpu_state *cpu, int processor_type) {
     cpu->execute_next = processor_models[processor_type].execute_next;
 }
 
+#if 0
+#define INSTRUMENT(x) x
+#else
+#define INSTRUMENT(x) 
+#endif
+
 void run_cpus(void) {
     cpu_state *cpu = &CPUs[0];
 
-    uint64_t last_display_update = 0;
-    uint64_t last_audio_update = 0;
-    uint64_t last_5sec_update = 0;
-    uint64_t last_5sec_cycles;
+    /* initialize time tracker vars */
+    uint64_t ct = SDL_GetTicksNS();
+    uint64_t last_audio_update = ct;
+    uint64_t last_5sec_update = ct;
+    uint64_t last_5sec_cycles = cpu->cycles;
+
+    uint64_t last_cycle_count =cpu->cycles;
+    uint64_t last_cycle_time = SDL_GetTicksNS();
+
+    uint64_t last_time_window_start = 0;
+    uint64_t last_cycle_window_start = 0;
 
     while (1) {
 
-        if (cpu->pc == 0xC5C0) {
-            printf("ParaVirtual Trap PC: %04X\n", cpu->pc);
-            prodos_block_pv_trap(cpu);
-        }
+        INSTRUMENT(std::cout << "last_cycle_count: " << last_cycle_count << " last_cycle_time: " << last_cycle_time << std::endl;)
 
-        if ((cpu->execute_next)(cpu) > 0) {
-            break;
+        uint64_t time_window_start = SDL_GetTicksNS();
+        uint64_t cycle_window_start = cpu->cycles;
+        uint64_t time_window_delta = time_window_start - last_time_window_start;
+        uint64_t cycle_window_delta = cycle_window_start - last_cycle_window_start;
+
+        //printf("slips | time_window_start : cycle_window_start: %4llu : %12llu : %12llu | %12llu : %12llu\n", cpu->clock_slip, time_window_start, time_window_delta,cycle_window_start, cycle_window_delta);
+
+        uint64_t last_cycle_count = cpu->cycles;
+        uint64_t last_cycle_time = SDL_GetTicksNS();
+
+        while (cpu->cycles - last_cycle_count < 17008) { // 1/60th second.
+            if (cpu->pc == 0xC5C0) {
+                printf("ParaVirtual Trap PC: %04X\n", cpu->pc);
+                prodos_block_pv_trap(cpu);
+            }
+
+            if ((cpu->execute_next)(cpu) > 0) { // never returns 0 right now
+               break;
+            }
         }
-        
-        uint64_t current_time = get_current_time_in_microseconds();
-        if (current_time - last_display_update > 16667) {
-            event_poll(cpu); // they say call "once per frame"
+        uint64_t current_time;
+
+        INSTRUMENT(current_time = SDL_GetTicksNS();)
+        event_poll(cpu); // they say call "once per frame"
+        INSTRUMENT(uint64_t event_time = SDL_GetTicksNS() - current_time;)
+
+        /* Emit Audio Frame */
+        INSTRUMENT(current_time = SDL_GetTicksNS();)
+        audio_generate_frame(cpu, last_cycle_window_start, cycle_window_start);
+        INSTRUMENT(uint64_t audio_time = SDL_GetTicksNS() - current_time;)
+
+        /* Emit Video Frame */
+        INSTRUMENT(current_time = SDL_GetTicksNS();)
+        //if (current_time - last_display_update > 16667000) {
+            //event_poll(cpu); // they say call "once per frame"
             update_flash_state(cpu);
-            update_display(cpu); // check for events 60 times per second.
-            last_display_update = current_time;
-        }
+            update_display(cpu);    
+            //last_display_update = current_time;
+        //}
+        INSTRUMENT(uint64_t display_time = SDL_GetTicksNS() - current_time;)
 
-        if (cpu->cycles - last_audio_update > 34000 ) {
-            audio_generate_frame(cpu);
-            last_audio_update = cpu->cycles;
-        }
-
-        if (current_time - last_5sec_update > 5000000) {
+        /* Emit 5-second Stats */
+        current_time = SDL_GetTicksNS();
+        if (current_time - last_5sec_update > 5000000000) {
             uint64_t delta = cpu->cycles - last_5sec_cycles;
             fprintf(stdout, "%llu delta %llu cycles clock-mode: %d CPS: %f MHz [ slips: %llu, busy: %llu, sleep: %llu]\n", delta, cpu->cycles, cpu->clock_mode, (float)delta / float(5000000) , cpu->clock_slip, cpu->clock_busy, cpu->clock_sleep);
             last_5sec_cycles = cpu->cycles;
@@ -216,6 +252,29 @@ void run_cpus(void) {
             update_display(cpu); // update one last time to show the last state.
             break;
         }
+
+        // calculate what sleep-until time should be.
+        uint64_t wakeup_time = last_cycle_time + (cpu->cycles - last_cycle_count) * cpu->cycle_duration_ns;
+
+        if (cpu->clock_mode != CLOCK_FREE_RUN) {
+            uint64_t sleep_loops = 0;
+            // busy wait sync cycle time
+            do {
+                sleep_loops++;
+            } while (SDL_GetTicksNS() < wakeup_time);
+
+            if (sleep_loops == 1) {
+                cpu->clock_slip++;
+            }
+        }
+
+        //printf("event_time / audio time / display time / total time: %9llu %9llu %9llu %9llu\n", event_time, audio_time, display_time, event_time + audio_time + display_time);
+
+        last_cycle_count = cpu->cycles;
+        last_cycle_time = SDL_GetTicksNS();
+
+        last_time_window_start = time_window_start;
+        last_cycle_window_start = cycle_window_start;
     }
 }
 
@@ -390,9 +449,16 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    speaker_start(); // final init of speaker.
+// the first time through (maybe the first couple times?) these will take
+// considerable time. do them now before main loop.
+    update_display(&CPUs[0]); // check for events 60 times per second.
+    for (int i = 0; i < 10; i++) {
+        event_poll(&CPUs[0]); // call first time to get things started.
+    }
 
     //toggle_speaker_recording();
+    // do not start speaker until after all the expensive stuff is done.
+    //speaker_start(); // final init of speaker.
 
     run_cpus();
 
@@ -405,7 +471,7 @@ int main(int argc, char *argv[]) {
     //dump_full_speaker_event_log();
 
     free_display(&CPUs[0]);
-
+    
     debug_dump_memory(&CPUs[0], 0x1230, 0x123F);
     return 0;
 }
