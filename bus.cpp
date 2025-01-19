@@ -68,10 +68,10 @@ uint8_t memory_bus_read(cpu_state *cpu, uint16_t address) {
 
 void memory_bus_write(cpu_state *cpu, uint16_t address, uint8_t value) {
     if (address >= 0x0400 && address <= 0x0BFF) {
-        txt_memory_write(address, value);
+        txt_memory_write(cpu, address, value);
     }
     if (address >= 0x2000 && address <= 0x5FFF) {
-        hgr_memory_write(address, value);
+        hgr_memory_write(cpu, address, value);
     }
     if (address >= C0X0_BASE && address < C0X0_BASE + C0X0_SIZE) {
         memory_write_handler funcptr =  C0xx_memory_write_handlers[address - C0X0_BASE];
