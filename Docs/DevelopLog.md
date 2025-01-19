@@ -1761,3 +1761,310 @@ when handling blips that cross frame boundaries. But I took a long recording of 
 will be able to test iterations much faster this way.
 
 In the meantime, clean up the mess in the code and push into the repo.
+
+Watched a video by Chris Torrance on how to do audio.
+
+Post events: cycles AND time. (or, just time).
+Then time to samples.
+
+## Jan 14, 2025
+
+First pass at redoing the audio, as a test program, is done. I take the cycle-event recording,
+generate audio data, and output to a WAV file. The WAV file reconstruction is based purely on
+cycle timing. However, I think I'm underrunning the buffer, so need to fix that.
+
+Then, I need to add the smarts per the Chris Torrance algorithm.
+
+It will be imporant to fix the overall cycle timing. The last iteration, in the audio I was patching
+around that. The timing is running a bit fast.
+
+Let's say I have the event loop:
+
+```
+while (true) {
+a1:
+    execute_next();
+       fetch opcode & cycle
+       fetch operand & cycle (potentially many times)
+a2:
+    do_some_event_loop_stuff();
+a3:
+    video_update();
+a4:
+    every X cycles, generation audio frame.
+}
+```
+
+When we 'wait', we want to pause for a time based on the last time. I.e., each cycle, 
+calculate the next "wakeup" time. Then, any sleep, is "sleep for wakeup_time - current_time".
+The wakeup_time is basically a1 + X. Everything else needs to be ignored.
+This will take into account all the time spent doing other stuff in rest of the event loop.
+And, keep track of whether we fall behind. If we do, we will need to be sure not to trigger
+audio and video updates in the same event loop. (That should be easy to fix, do if else if else
+instead of if, if.)
+
+One thing that might be required, is to sleep and sync only every X cycles. Instead of trying to
+microsleep every cpu cycle, sleeps are likely to be more accurate if we sleep less often for longer.
+This also provides more time to do other stuff in the event loop.
+
+Since audio events are recorded based on the cpu cycles, it shouldn't matter if we run 10 instructions
+at full speed then sleep some. And it will all be too fast for humans to notice. Hopefully.
+
+The fastest cycle time required to support is the 2.8MHz of the IIgs. Everything else can be
+Ludicrous Speed.
+
+At start of program, last_cycle_count = 0, last_cycle_time = GetTicksNS();
+We don't know how many cycles will be executed beforehand, because it depends on the opcode
+etc.
+But, when we're through with an opcode, however many minimum number of cycles, we keep track of that
+with cpu->cycles - last_cycle_count. 
+
+Unless there is a slip event - the next target time should be calculated based on the **original start time**.
+
+next_cycle_time = start_cycle_time + (ns_per_cycle * cycles_elapsed)
+WaitNS(next_cycle_time - GetTicksNS())
+
+Let's just do a test program for cycle timing.
+
+Simple loop, I can do busy waits pretty well. I run 30 iterations, and I wake up right on time.
+A single printf in the loop causes the timing to be off by a total of 130,000 to 260,000 ns over the 
+loop.
+
+## Jan 16, 2025
+
+### Threads vs short bursts of free-run CPU
+
+### Free-run bursts
+
+I think we definitely need to be smarter about how we handle cycle timing.
+One issue I was thinking about, is that the time it takes to execute a video frame update
+is not 0. It's also not constant. In a real system, it's going on in the background, constantly.
+Not just each 1/60th second. I think it makes sense to do this as a separate thread. Same with the audio.
+The other general event processing, maybe. Some of that is probably pretty fast.
+Certainly, anything that might print to the console is going to be slow as we've seen. 250-500 microseconds.
+I've demonstrated that, absent doing things that take a huge amount of time, we can key pretty accurately
+on cycle times with the nanosecond precision of SDL_GetTicksNS().
+
+One approach is to separate cpu from other stuff in separate threads. Another, is to bunch up CPU
+processing into bursts. I.e. not try to delay and sync every cycle, but instead run a bunch of cycles,
+then execute 'stuff', then do a cycle sync.
+
+My concern with this is over things like, say, reading the keyboard. So let's say we read the keyboard in
+a tight loop like apples do. The average user might type a key every 1-2 seconds. An Apple II would
+wait for keyboard like 500,000 loop iterations during that time. maybe it's going to do other things too. I guess if the
+resolution of these is still much higher than human reaction time, it won't be noticeable. But, I still am
+unsure about it. I guess the only way is to try it.
+
+Video frames are 60 times per second. Audio maybe 30-60.
+
+So a loop would be:
+
+```
+free-run CPU for 17,008 cpu cycles. (60fps @ 1.0205mhz)
+video update.
+audio update.
+whatever else update.
+wait/sleep for end of 17,000 cpu cycle.
+```
+
+17K cycles is 16,667 microseconds.
+or, 16,667,000 nanoseconds. That seems like a fair bit of time to get things done.
+
+We could do this at 100fps or 120fps. (Still only update the video 60fps). That's 8M nanoseconds.
+What if we "free run" one instruction, then do other stuff. 1 instruction is anywhere from 2 to 6/7
+cycles. That's 2000 to 7000 nanoseconds. A few thousand instructions.
+
+This shouldn't be that hard to implement.
+
+```
+last_cycle_count; last_cycle_time;
+
+execute_next();
+do_some_other_stuff();
+busy wait until (current_time > last_cycle_time + (this_cycle_count - last_cycle_count) * ns_per_cycle)
+
+loop
+```
+
+This loop can operate with however many "execute_next" in a row we want. i.e. can have an inner loop
+that does X instructions. This will always sync up afterward.
+
+Today we have huge numbers of clock slips because we can't get much of anything done in the one microsecond
+we have after the last cycle of an instruction.
+
+Let's try this first.
+
+Weird audio artifacts. Not worried about that right now. Doing a loop every instruction, we are getting a few
+thousand slips per minute.
+
+Let's do an inner loop of 10 instructions.
+
+Ha! Now I'm getting almost exactly 300 slips per 5 seconds. That's 60 slips per second, i.e., video/audio frames.
+
+ok, how about 100 instructions. (100-500 microseconds).. 11 to 12 slips per second.
+free-run 17000 cycles:
+   5119863 delta 75640749 cycles clock-mode: 2 CPS: 1.023973 MHz [ slips: 4, busy: 0, sleep: 0]
+
+virtually no slips. Two weird artifacts: clicks when clicking in and out of the window.
+and, on boot, the display didn't properly clear after showing all 0's.
+
+Also note that the frequency check is now reading 1.023973. 
+
+Remember I think clicks are due to underruns. The current speaker code is only ever emitting +1 or -1, but 
+I bet the audio system fills in with 0s when it's behind.
+
+Choplifter works well. Taxman did too. I did in fact see some screen flicker with this approach. If we implement
+the IIe VBL register, and set it appropriately (hmm, it should basically always be off), then newer stuff
+will work well. Notably I didn't get clicks on this run. It probably happens when it starts with timing
+slightly wonky. 
+
+ha! Forgot. I'm running the absolutely wrong audio code.
+
+On a clock speed change, we need to bail out of the CPU thread early, to give our algorithm a chance
+to resync to the new clock speed.
+
+Overall so far this is working well. Just the video bug on startup.
+
+### Threads
+
+A second option is to do multiple threads. This will add pretty significant complexity, requiring mutex around
+shared data structures. Let's examine.
+
+SDL video updates can only occur from the main thread. That's pretty definitive. If video has to be on main
+thread, then the CPU is going to have to be an alternate thread.
+
+SDL has some support for inter-thread communication. SDL_RunOnMainThread() requests a callback be run on the main thread. There is also the ability to define custom messages for the event queue, and pass messages between threads this way.
+
+So let's look at the data structures we have, and consider them in a multithreaded context.
+
+Video memory. Video ram is written to by CPU. Then read by video code. As long as the location of the video
+RAM doesn't change, then this is one-way data flow and should be thread safe. The CPU thread writing new values
+into video memory won't hurt or break the video update process. it could cause flicker. But that's like the
+real computer.
+
+Paravirtual disk driver. right now, the cpu is sort of 'halted' and disk I/O performed reading or writing into
+CPU RAM, then cpu resumed. This will not likely happen in space between cycles. So CPU would halt, disk I/O
+performed in a separate thread, then CPU resume. We also don't want this I/O to tie up the video or audio
+output.
+
+For GS, there will be a keyboard buffer. There are several bits of hardware like that. That's all going to be
+write at one point and read from another point. Synchronization here not strictly required.
+
+The audio event buffer is like that, too. If over overrun (overfill the buffer) then events just have to get dropped.
+But, we should be able to manage this w/o mutexes.
+
+In fact, any mutex here could re-cause the problem we're trying to avoid. So these must be done anywhere
+except in the CPU thread.
+
+If we go this second route, then we get our support for multiple VMs much more easily.
+
+Support vertical blanking sync emulation would be a lot easier as a separate thread. And the
+IIgs "3200 colors" mode, which is vertical blanking sync on steroids, would also not likely work
+without a multi-threaded approach.
+
+Certain devices will have a "cpu context" and an "event loop context". E.g., video is split.
+The CPU thread will decode a video address to set the line dirty flag. But it won't do the 
+video update itself. Code that runs from memory_write etc also needs to be sure to be short.
+
+## Revisiting the speaker code.
+
+ok now that we have the clocking synced pretty well at 1.0205MHz (1.020571 to be precise),
+let's revisit speaker code.
+
+yes, I improved cycle timing in audio3, and the buzzing has gone away while it's running, and it's staying
+very well synced.
+
+The trick will be how to make that work at 2.8MHz and in Ludicrous Speed.
+
+## Jan 17, 2025
+
+audio4 (current iteration of the audio test) isn't bad. the timing is good. The algorithm needs to be improved
+per Torrance. So. Let's do that, then, change the buffer algorithm to:
+
+1. Call audio_generate_frame() roughly every 17ms. (As best as we can).
+1. calculate number of samples to generate based on time elspsed since last call into audio_generate_frame(). Because it's critical that we generate enough samples to keep the buffer from underrunning.
+1. map a cpu cycle range to the samples range. This will be based on the effective cycles per second: time_delta / cycles_delta.
+1. Iterate the samples.
+
+The naive approach is:
+1. Loop number of samples:
+    1. count cycles one by one, checking the queue for events.
+        1.   If there's an event, switch the sign of contribution.
+        1.   add +1 (or -1) for each cycle (i.e. iterate for cycles_per_sample).
+    1. emit sample, repeat
+
+Downside of this approach is that we have a loop iteration for every cycle.
+It feels like it would be better to iterate only the samples and do some 
+math to figure out how many cycles to skip. Let's get this working first,
+then see if we can improve it.
+
+When the emulator starts up, and this is a big difference from the audio4 test program,
+we immediately encounter clock slips:
+
+```
+last_cycle_count: 2 last_cycle_time: 279866291
+last_cycle_count: 17011 last_cycle_time: 296535125
+ tm_delta: 16669375 cpu_delta: 17009 samp_c: 736 cyc/samp: 23 cyc range: [0 - 17009] evtq: 41 qd_samp: 1470
+last_cycle_count: 34019 last_cycle_time: 612695375
+queue underrun 0
+ tm_delta: 92876800 cpu_delta: 94772 samp_c: 4096 cyc/samp: 23 cyc range: [17010 - 111782] evtq: 62 qd_samp: 0
+last_cycle_count: 51029 last_cycle_time: 658447458
+ tm_delta: 92876800 cpu_delta: 94772 samp_c: 4096 cyc/samp: 23 cyc range: [111783 - 206555] evtq: 31 qd_samp: 4096
+last_cycle_count: 68037 last_cycle_time: 675941458
+ tm_delta: 92876800 cpu_delta: 94772 samp_c: 4096 cyc/samp: 23 cyc range: [206556 - 301328] evtq: 31 qd_samp: 10240
+last_cycle_count: 85045 last_cycle_time: 693876750
+ tm_delta: 92876800 cpu_delta: 94772 samp_c: 4096 cyc/samp: 23 cyc range: [301329 - 396101] evtq: 32 qd_samp: 16384
+last_cycle_count: 102056 last_cycle_time: 711035000
+ tm_delta: 45802508 cpu_delta: 46737 samp_c: 2020 cyc/samp: 23 cyc range: [396102 - 442839] evtq: 26 qd_samp: 22528
+last_cycle_count: 119066 last_cycle_time: 727704875
+ tm_delta: 13960042 cpu_delta: 14244 samp_c: 616 cyc/samp: 23 cyc range: [442840 - 457084] evtq: 0 qd_samp: 26568
+last_cycle_count: 136075 last_cycle_time: 744373833
+ tm_delta: 16596833 cpu_delta: 16935 samp_c: 732 cyc/samp: 23 cyc range: [457085 - 474020] evtq: 0 qd_samp: 25752
+last_cycle_count: 153083 last_cycle_time: 761041791
+ tm_delta: 16648000 cpu_delta: 16987 samp_c: 735 cyc/samp: 23 cyc range: [474021 - 491008] evtq: 0 qd_samp: 25168
+ ```
+
+ The first time through the loop is fine, but then there is a huge delay to get
+ back around. 
+ There is an initial huge jump. The video is being called. I bet there is a bunch of
+ setup required in event_poll(), the video display, etc the first we call them.
+ So, call them once before the CPU loop starts.
+
+ ## Jan 18, 2025
+
+```
+ last_cycle_count: 2 last_cycle_time: 582707583
+last_cycle_count: 17011 last_cycle_time: 640102875
+ tm_delta: 1554875 cpu_delta: 1586 samp_c: 69 cyc/samp: 22 cyc range: [0 - 1586] evtq: 41 qd_samp: 1784
+last_cycle_count: 34019 last_cycle_time: 656770750
+queue underrun 0
+```
+
+I've been jiggering around with the audio code. There are lots of assumptions here.
+One was, the stream doesn't start automatically, but I think that might have been wrong. The SDL 
+docs are inconsistent on this point.
+
+The first time to audio_generate_frame, we do nothing.
+The second time through, we're generating only 69 samples because the time delta
+is only 1.5 microseconds. so that's why we underrun. Why is this..
+
+the issue is that something near startup is sucking up a lot of time in the first
+couple loops. Instrument to see what this is. There is a big jump in cycle time delta.
+
+OK after a herculean (well perhaps I exaggerate) effort, I've got the audio working, at 1MHz
+at least. At ludicrous speed, several things aren't working right.
+
+At higher speeds, quickly gets out of sync. Cross that bridge later. The 1-bit speaker
+is sort of ludicrous at 250MHz anyway ha ha. (It's playing back events at 1MHz speed no matter what, 
+but at faster speeds it's loading up the buffer way faster). When speed shifting, flush the audio
+buffer. (for a IIgs running Apple II stuff in emulation mode, slow down to 1MHz when PB=0 or PB=1).
+
+Video - there is no restriction on the video update rate.
+
+If we are in ludicrous speed, limit video updates to 60fps. ok, done. I did for events, etc. So we're back to 
+
+```
+1280493489 delta 4415324039 cycles clock-mode: 0 CPS: 256.098694 MHz [ slips: 0, busy: 0, sleep: 0]
+```
+
+256MHz apple II. I mean, come on man.
