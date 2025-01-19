@@ -25,4 +25,5 @@ void dump_full_speaker_event_log();
 void dump_partial_speaker_event_log(uint64_t cycles_now);
 void speaker_start();
 void speaker_stop();
-void audio_generate_frame(cpu_state *cpu);
+//void audio_generate_frame(cpu_state *cpu);
+void audio_generate_frame(cpu_state *cpu, uint64_t last_cycle_window_start, uint64_t cycle_window_start);
