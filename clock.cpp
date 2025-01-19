@@ -22,6 +22,7 @@
 #include "cpu.hpp"
 #include "clock.hpp"
 
+#if 0
 // nanosleep isn't real. Combine usleep and the busy wait.
 void emulate_clock_cycle_old(cpu_state *cpu) {
     
@@ -62,11 +63,12 @@ void emulate_clock_cycle(cpu_state *cpu) {
     }
     cpu->last_tick = current_time;
 }
+#endif
+
 
 void incr_cycles(cpu_state *cpu) {
     cpu->cycles++;
-    if (cpu->clock_mode != CLOCK_FREE_RUN) {
+    /* if (cpu->clock_mode != CLOCK_FREE_RUN) { // temp disable this to try different timing approach
         emulate_clock_cycle(cpu);
-    }
+    } */
 }
-

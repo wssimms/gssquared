@@ -176,7 +176,7 @@ struct cpu_state {
     uint64_t clock_busy = 0;
     uint64_t clock_sleep = 0;
     uint64_t cycle_duration_ns;
-    uint64_t cycle_duration_ticks;
+    //uint64_t cycle_duration_ticks;
     uint64_t HZ_RATE;
     clock_mode clock_mode = CLOCK_FREE_RUN;
 
