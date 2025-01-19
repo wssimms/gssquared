@@ -24,54 +24,9 @@
 #include "bus.hpp"
 #include "devices/speaker/speaker.hpp"
 
-
-// SDL audio device ID after opening
-/* SDL_AudioDeviceID device = 0;
-int device_started = 0; */
-
-// At 44.1kHz, each sample is ~0.023ms (1/44100 seconds)
-// let's say a blip is 1ms. 1ms = 1000us = 43 samples.
-
-#define BLIP_LENGTH_US 400
-#define BLIP_SAMPLES int(BLIP_LENGTH_US / 22.6)
-
 static FILE *speaker_recording = nullptr;
 
-int16_t blip_data[BLIP_SAMPLES] = {
-    0,
-    0x3000,
-    0x6000,
-    0x6000,
-    0x6000,
-    0x6000,
-    0x6000,
-    0x6000,
-    0x6000,
-    0x6000,
-    0x6000,
-    0x6000,
-    0x6000,
-    0x6000,    
-    0x6000,
-    0x3000,
-    0   
-};
-
-/*
-    0x6000,
-    0x6000,
-    0x6000,
-    0x6000,
-    0x6000,
-    0x6000,
-    0x6000,
-    0x4000,
-    0x2000,
-    0
-};
-*/
-
-#define EVENT_BUFFER_SIZE 32000
+#define EVENT_BUFFER_SIZE 128000
 
 struct EventBuffer {
     uint64_t events[EVENT_BUFFER_SIZE];
@@ -137,145 +92,81 @@ typedef struct speaker_state {
 
 speaker_state speaker_states[2];
 
-#define US_PER_SAMPLE 22.6
-#define US_PER_BUFFER (US_PER_SAMPLE * 735)
-/*#define CYCLES_PER_BUFFER (int)((float)US_PER_BUFFER * 1.0205)*/
-#define CYCLES_PER_BUFFER 17008
-
-#define WORKING_BUFFER_SAMPLES (2048)
-
-int16_t working_buffer[WORKING_BUFFER_SAMPLES] = {0};
 
 
-uint64_t cumulative_time = 0;
-uint64_t startup_time = 0;
-uint64_t cumulative_samples = 0;
+#define SAMPLE_BUFFER_SIZE (4096)
 
-// this is averaging about 10 too many samples per interval.
-// of course the emulator is actually running faster than 1.0205MHz., like 1.0325. ;
-// 1.1%; 
-// instead of using assumption of how many cpu cycles; keep track of last time and last
-// cpu cycles and use that to calculate the number of samples.
-// that's cpu_delta and time_delta_last. 
-// (cpu_delta / time_delta_last) * 44100 = samples_expected
+int16_t working_buffer[SAMPLE_BUFFER_SIZE] = {0};
 
-void audio_generate_frame(cpu_state *cpu) {
+void audio_generate_frame(cpu_state *cpu, uint64_t cycle_window_start, uint64_t cycle_window_end) {
 
-    static uint64_t buf_start_cycle = 0; // first time, we start at 0.
-    uint64_t buf_end_cycle = cpu->cycles -1; // TODO: adjust this down for the length of a blip
-    uint64_t cpu_delta = buf_end_cycle - buf_start_cycle;
-    static int inv = 1;
+    static int inv = 1; // speaker polarity, -1 or +1
+    static uint64_t ns_per_sample = 1000000000 / 44100;  // 22675.736
+    static uint64_t ns_per_cycle = cpu->cycle_duration_ns; // must calculate from actual results in ludicrous speed
 
-    static uint64_t last_time = 0;
-    uint64_t current_time = SDL_GetTicksNS();
-    if (last_time == 0) {
-        last_time = current_time - 33333333; /* 33.3 milliseconds */
-        startup_time = last_time;
-    }
-    uint64_t time_delta_last = current_time - last_time;
-    uint64_t time_delta_startup = (current_time - startup_time);
-
-    uint64_t desired_ns_per_sample = (1000000000 / 44100);
-    uint64_t desired_time = 1000000000;
-    uint64_t desired_samples = 44100;
-
-    uint64_t cumulative_samples_expected = (time_delta_startup * desired_samples) / desired_time;
-    uint64_t samples_count = (time_delta_last * desired_samples) / desired_time;
-
-    int64_t samples_diverged = cumulative_samples + samples_count - cumulative_samples_expected;
-
-    static int iterations = 60;
-
-    // gentle adjustment to number of samples to try to stay in sync. (maybe do something logarithmic)
-    if (samples_diverged < -10) {
-        samples_count+=10;
-    }
-    if (samples_diverged > 10) {
-        samples_count-=10;
-    }
-
-    int cycles_per_sample = cpu_delta / samples_count ;
-
-    if (iterations-- == 0) {
-        if (DEBUG(DEBUG_SPEAKER)) std::cout << "time_delta: " 
-            << time_delta_last << " cpu_delta: " << cpu_delta << " samples_count: " << samples_count << " cycles_per_sample: " << cycles_per_sample
-            <<  " buf-cycle range: [" << buf_start_cycle << " - " << buf_end_cycle << "] event count: " << event_buffer.count << "\n";
-
-        if (DEBUG(DEBUG_SPEAKER)) std::cout << "Time since start: " << time_delta_startup/1000000 << "(ms) Samples: cumulative / expected / diverged: " 
-            << cumulative_samples + samples_count << " / " << cumulative_samples_expected << " / " << samples_diverged <<  "\n";
-        iterations = 60;
-    }
-
-    if (samples_count <= 0) {
+    if (cycle_window_start == 0 && cycle_window_end == 0) {
+        printf("audio_generate_frame: first time send empty frame and a bit more\n");
+        memset(working_buffer, 0, 1000 * sizeof(int16_t));
+        SDL_PutAudioStreamData(speaker_states[0].stream, working_buffer, 1000*sizeof(int16_t));
         return;
     }
 
-    // Clear the second half of working buffer (first half contains previous overflow)
-    if (samples_count > WORKING_BUFFER_SAMPLES) {
-        //printf("samples_requested exceeeded working buffer samples\n");
-        // I can reduce samples_count to WORKING_BUFFER_SAMPLES, but then need to change the buf_end_cycle.
-        // increase the buffer size for now.
-        samples_count = WORKING_BUFFER_SAMPLES;
-        buf_end_cycle = (buf_start_cycle + (int)((float)WORKING_BUFFER_SAMPLES * 23.14) );
-         if (DEBUG(DEBUG_SPEAKER)) printf(" -> constrained buf_end_cycle %llu\n", buf_end_cycle);
+    uint64_t queued_samples = SDL_GetAudioStreamQueued(speaker_states[0].stream);
+    if (queued_samples < 100) { printf("queue underrun %llu\n", queued_samples); 
+        // attempt to calculate how much time slipped and generate that many samples
+        memset(working_buffer, 0, 1000 * sizeof(int16_t));
+        SDL_PutAudioStreamData(speaker_states[0].stream, working_buffer, 1000*sizeof(int16_t));
     }
 
-    // clear the buffer
-    memset(working_buffer + BLIP_SAMPLES, 0, (WORKING_BUFFER_SAMPLES-BLIP_SAMPLES) * sizeof(int16_t));
+    // is it more accurate to convert cycles to time then to samples??
+    // convert cycles to time
 
-    // this will be more accurate with FP math.
-    uint64_t event_time;
-    while (event_buffer.peek_oldest(event_time)) {
-        if (event_time < buf_start_cycle) { // discard too old events.
-            event_buffer.pop_oldest(event_time);
-        } else if (event_time > buf_end_cycle) {
-            break;
-        } else {
-            event_buffer.pop_oldest(event_time);
-            /* int sample_index = int(((float)(event_time-buf_start_cycle) / 1.0205) / US_PER_SAMPLE); */
-            int sample_index = (event_time-buf_start_cycle) / cycles_per_sample;
+    uint64_t samples_count = 735 ; // (time_delta / ns_per_sample)+1; // 734.7 - round up to 735
 
-            //if (DEBUG(DEBUG_SPEAKER)) std::cout << "event_time " << event_time << " sample_index " << sample_index << "\n";
-            
-            // Paint into working buffer - we have room for the full blip
-            for (int j = 0; j < BLIP_SAMPLES; j++) {
-                working_buffer[sample_index + j] += (blip_data[j] * inv);
+    // if samples_count is too large (say, 1500) then we have somehow fallen behind,
+    // and we need to catch up. But not too fast or we blow the sample buffer array.
+
+    uint64_t cpu_delta = cycle_window_end - cycle_window_start;
+    uint64_t cycles_per_sample = cpu_delta / samples_count;
+    
+    if (DEBUG(DEBUG_SPEAKER)) std::cout << " cpu_delta: " << cpu_delta   
+        << " samp_c: " << samples_count << " cyc/samp: " << cycles_per_sample
+        <<  " cyc range: [" << cycle_window_start << " - " << cycle_window_end << "] evtq: " 
+        << event_buffer.count << " qd_samp: " << queued_samples << "\n";
+
+    /**
+     * this is the more savvy Chris Torrance algorithm.
+     */
+    uint64_t event_tick;
+    int16_t contribution = 0;
+    uint64_t cyc = cycle_window_start;
+    for (uint64_t samp = 0; samp < samples_count; samp++) {
+        for (uint64_t cyc_i = 0; cyc_i < cycles_per_sample; cyc_i ++) {
+            event_buffer.peek_oldest(event_tick);
+            if (event_tick <= cyc) {
+                event_buffer.pop_oldest(event_tick);
+                inv = -inv;
             }
+            contribution += inv;
+            cyc++;
         }
-        inv = -inv;
+        working_buffer[samp] = ((float)contribution / (float)cycles_per_sample) * 0x6000;
+        contribution = 0;
     }
-
-    // Copy as much data as we had cycles to generate
-    // So, 1024050 cycles = 44100 samples.
-    // What is cycles delta? cpu_delta.
+    // copy samples out to audio stream
     SDL_PutAudioStreamData(speaker_states[0].stream, working_buffer, samples_count*sizeof(int16_t));
-    //debug_dump_pointer((uint8_t *) working_buffer, 0x200);
-
-    // move the remaining data to the start of the buffer
-    //memcpy(working_buffer, working_buffer + samples_count*sizeof(int16_t), (WORKING_BUFFER_SAMPLES-samples_count) * sizeof(int16_t));
-    memcpy(working_buffer, working_buffer + samples_count*sizeof(int16_t), BLIP_SAMPLES * sizeof(int16_t));
-    buf_start_cycle = buf_end_cycle + 1;
-    last_time = current_time;
-    cumulative_samples += samples_count;
-
-    //if (DEBUG(DEBUG_SPEAKER)) printf("new buf_start_cycle %llu\n", buf_start_cycle);
-
 }
 
+
 inline void log_speaker_blip(cpu_state *cpu) {
-/*     if (DEBUG(DEBUG_SPEAKER)) {
-        std::cout << "log_speaker_blip " << cpu->cycles << "\n";
-    } */
-    // trigger a speaker start once we have enough cycles to fill a buffer
-    /* if ((speaker_states[0].device_started == 0) && (cpu->cycles > CYCLES_PER_BUFFER * 3)) {
-        speaker_start();
-    } */
     event_buffer.add_event(cpu->cycles);
+    if (speaker_states[0].device_started == 0) {
+        speaker_start();
+    }
     if (speaker_recording) {
         fprintf(speaker_recording, "%llu\n", cpu->cycles);
     }
 }
-
 
 #define SPEAKER_EVENT_LOG_SIZE 16384
 uint64_t speaker_event_log[SPEAKER_EVENT_LOG_SIZE];
@@ -312,6 +203,11 @@ void init_mb_speaker(cpu_state *cpu) {
     }
 
     speaker_states[0].device_id = SDL_GetAudioStreamDevice(speaker_states[0].stream);
+    SDL_PauseAudioDevice(speaker_states[0].device_id);
+
+    // prime the pump with a few frames of silence.
+    memset(working_buffer, 0, 735 * sizeof(int16_t));
+    SDL_PutAudioStreamData(speaker_states[0].stream, working_buffer, 735*sizeof(int16_t));
 
     if (DEBUG(DEBUG_SPEAKER)) fprintf(stdout, "init_speaker\n");
     register_C0xx_memory_read_handler(0xC030, speaker_memory_read);
@@ -322,17 +218,20 @@ void speaker_start() {
     // Start audio playback
     // put a frame of blank audio into the buffer to prime the pump.
 
-    memset(working_buffer, 0, WORKING_BUFFER_SAMPLES * sizeof(int16_t));
-    SDL_PutAudioStreamData(speaker_states[0].stream, working_buffer, WORKING_BUFFER_SAMPLES*sizeof(int16_t));
-    
     if (!SDL_ResumeAudioDevice(speaker_states[0].device_id)) {
         std::cerr << "Error resuming audio device: " << SDL_GetError() << std::endl;
     }
+    memset(working_buffer, 0, SAMPLE_BUFFER_SIZE * sizeof(int16_t));
+    SDL_PutAudioStreamData(speaker_states[0].stream, working_buffer, 735*sizeof(int16_t));
+
     speaker_states[0].device_started = 1;
 }
 
 void speaker_stop() {
     // Stop audio playback
+    memset(working_buffer, 0, SAMPLE_BUFFER_SIZE * sizeof(int16_t));
+    SDL_PutAudioStreamData(speaker_states[0].stream, working_buffer, SAMPLE_BUFFER_SIZE*sizeof(int16_t));
+
     SDL_PauseAudioDevice(speaker_states[0].device_id);  // 1 means pause
     speaker_states[0].device_started = 0;
 }
