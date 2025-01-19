@@ -2068,3 +2068,19 @@ If we are in ludicrous speed, limit video updates to 60fps. ok, done. I did for 
 ```
 
 256MHz apple II. I mean, come on man.
+
+ok what's next?
+
+I'm going to implement green and amber text and lores modes, and implement a color mode switch.
+
+But then I need to do a code cleanup and move globals and statics in a few places into structs attached
+to the cpu_state.
+
+For that (which I should implement for this color mode thing as the first implementation of it), I need
+a generalized data storage thing. If this was JavaScript I would just pile things into an associative array,
+or properties.
+
+But this is C++, and we need to allocate memory. What if I do an enum of 'names' ('properties'), and then
+the cpu_state has an array of void pointers. Each module that needs this type of storage gets a name assigned.
+When it needs its state, it typecasts the pointer to its correct type. Then the cpu_state doesn't care
+what the structs look like. If a module needs multiple chunks it can define its static struct to have them.

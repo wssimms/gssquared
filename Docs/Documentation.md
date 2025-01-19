@@ -1,6 +1,6 @@
 # GSSquared - Ultimate Apple II Series Emulator
 
-## Project Status (as of 2025-01-01)
+## Project Status (as of 2025-01-18)
 
 * CPUs
   * NMOS 6502 - Complete.
@@ -24,16 +24,17 @@
   * RAMfast SCSI Interface - Not started.
   * Pascal Storage Device - Not started.
 * Disk Image Formats
-  * .do, .dsk - read only.
-  * .po - read only.
+  * .do, .dsk - read only, 143K.
+  * .po - read only, 143K.
+  * .hdv - any size block device, read/write, complete.
   * .2mg - read/write, for block devices, complete.
   * .nib - not started.
   * .woz - not started.
-* Sound - Partially complete. Working, but has some audio artifact issues due to timing sync. Work in progress.
+* Sound - Complete and cycle accurate for 1MHz operation. Will need tweaking to work at higher CPU speeds.
 * I/O Devices
   * Printer / parallel port - not started.
   * Printer / serial port - not started.
-  * Joystick / paddles - initial implementation, with mouse. Needs work.
+  * Joystick / paddles - initial implementation, with mouse. Work in progress. GamePad support coming.
   * Shift-key mod and Lowercase Character Generator. Not started.
 * Clocks
   * Thunderclock - read of time implemented. Interrupts, writing clock - not implemented. Needs testing.
@@ -57,24 +58,23 @@ https://en.wikipedia.org/wiki/Apple_II_character_set
 
 ## Display
 
-The display is managed by the cross-platform SDL2 library, which supports graphics
+The display is managed by the cross-platform SDL3 library, which supports graphics
 but also sound, user input, lots of other stuff. It is a library intended for
 video games, and in thinking about all the things that make up a good emulator, 
-it fits the video game category quite closely.
-
+emulators fit the video game category quite closely.
 
 
 ### Text Mode
 
-Text mode is working pretty well. It supports normal, inverse, and flash.
+Text mode is complete. It supports 40-column normal, inverse, and flash.
 
 ### Low-Resolution Graphics
 
-Low-resolution graphics are working pretty well. They work with screen 1, 2, split-screen, and full-screen.
+Low-resolution graphics are complete. They work with screen 1, 2, split-screen, and full-screen.
 
 ### High-Resolution Graphics
 
-High-resolution graphics are not yet implemented.
+Monochrome (green screen) high-resolution graphics are complete.
 
 
 ## Keyboard
@@ -102,11 +102,13 @@ counting cycles, not by counting realtime. This way floppy disks can be simulate
 If we're at free-run, then the floppy disk would operate at that speed, and we don't have to
 slow down the clock.
 
-So that is one device we have to emulate, for DOS 3.3 compatibility.
+This is required for DOS 3.3 compatibility.
 
 ### SmartPort / ProDOS Block-Device Interface
 
-SmartPort became a standard for: 5.25" drives, 3.5" drives, and some hard disk drives.
+SmartPort became a standard for: 5.25" drives, 3.5" drives, and some hard disk drives,
+for the ProDOS operating system.
+
 It is documented in the Apple IIgs Technical Reference Manual, chapter 7.
 
 $Cn01 - $20
@@ -220,7 +222,7 @@ So we need state tracking of the strobe; and state tracking of the 'clock' bit.
 gs2 is currently built on a Mac using:
 
 * clang
-* SDL2 from Homebrew
+* SDL3 downloaded and built from the SDL web site.
 * git
 
 I use vscode as my IDE, but, this isn't required.
@@ -232,7 +234,7 @@ I use vscode as my IDE, but, this isn't required.
 1. cmake .
 
 If you want to help create build tooling for Windows or Linux, let me know! All of this should
-work on all 3 platforms courtesy of SDL2.
+work on all 3 platforms courtesy of SDL3.
 
 
 ## Code Organization
