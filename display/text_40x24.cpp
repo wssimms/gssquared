@@ -67,77 +67,22 @@ void pre_calculate_font (rom_data *rd) {
     }
 }
 
-uint16_t TEXT_PAGE_1_TABLE[24] = {
-    0x0400,
-    0x0480,
-    0x0500,
-    0x0580,
-    0x0600,
-    0x0680,
-    0x0700,
-    0x0780,
-
-    0x0428,
-    0x04A8,
-    0x0528,
-    0x05A8,
-    0x0628,
-    0x06A8,
-    0x0728,
-    0x07A8,
-
-    0x0450,
-    0x04D0,
-    0x0550,
-    0x05D0,
-    0x0650,
-    0x06D0,
-    0x0750,
-    0x07D0,
+uint32_t text_color_table[DM_NUM_MODES] = {
+    0xFFFFFFFF, // color, keep it as-is
+    0xFFBF00FF, // amber.
+    0x009933FF, // green.
 };
-
-uint16_t TEXT_PAGE_2_TABLE[24] = {
-    0x0800,
-    0x0880,
-    0x0900,
-    0x0980,
-    0x0A00,
-    0x0A80,
-    0x0B00,
-    0x0B80,
-
-    0x0828,
-    0x08A8,
-    0x0928,
-    0x09A8,
-    0x0A28,
-    0x0AA8,
-    0x0B28,
-    0x0BA8,
-
-    0x0850,
-    0x08D0,
-    0x0950,
-    0x09D0,
-    0x0A50,
-    0x0AD0,
-    0x0B50,
-    0x0BD0,
-};
-
-// these three variables define the current text page
-// when we switch to screen 2, we change TEXT_PAGE_START, TEXT_PAGE_END, and TEXT_PAGE_TABLE
-// default to screen 1
-uint16_t TEXT_PAGE_START = 0x0400;
-uint16_t TEXT_PAGE_END = 0x07FF;
-uint16_t *TEXT_PAGE_TABLE = TEXT_PAGE_1_TABLE;
-
-bool flash_state = false;
 
 /**
  * render single character - in context of a locked texture of a whole display line.
  */
 void render_text(cpu_state *cpu, int x, int y, void *pixels, int pitch) {
+
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    display_color_mode_t color_mode = ds->color_mode;
+    uint32_t color_value = text_color_table[color_mode];
+    uint16_t *TEXT_PAGE_TABLE = ds->display_page_table->text_page_table;
+
     // Bounds checking
     if (x < 0 || x >= 40 || y < 0 || y >= 24) {
         return;
@@ -153,7 +98,7 @@ void render_text(cpu_state *cpu, int x, int y, void *pixels, int pitch) {
     if ((character & 0xC0) == 0) {
         inverse = true;
     } else if (((character & 0xC0) == 0x40)) {
-        inverse = flash_state;
+        inverse = ds->flash_state;
     }
     
     // for inverse, xor the pixels with 0xFFFFFFFF to invert them.
@@ -168,25 +113,28 @@ void render_text(cpu_state *cpu, int x, int y, void *pixels, int pitch) {
     uint32_t* texturePixels = (uint32_t*)pixels;
     for (int row = 0; row < 8; row++) {
         uint32_t base = row * pitchoff;
-        texturePixels[base + charoff ] = charPixels[0] ^ xor_mask;
-        texturePixels[base + charoff + 1] = charPixels[1] ^ xor_mask;
-        texturePixels[base + charoff + 2] = charPixels[2] ^ xor_mask;
-        texturePixels[base + charoff + 3] = charPixels[3] ^ xor_mask;
-        texturePixels[base + charoff + 4] = charPixels[4] ^ xor_mask;
-        texturePixels[base + charoff + 5] = charPixels[5] ^ xor_mask;
-        texturePixels[base + charoff + 6] = charPixels[6] ^ xor_mask;
+        texturePixels[base + charoff ] = (charPixels[0] ^ xor_mask) & color_value;
+        texturePixels[base + charoff + 1] = (charPixels[1] ^ xor_mask) & color_value;
+        texturePixels[base + charoff + 2] = (charPixels[2] ^ xor_mask) & color_value;
+        texturePixels[base + charoff + 3] = (charPixels[3] ^ xor_mask) & color_value;
+        texturePixels[base + charoff + 4] = (charPixels[4] ^ xor_mask) & color_value;
+        texturePixels[base + charoff + 5] = (charPixels[5] ^ xor_mask) & color_value;
+        texturePixels[base + charoff + 6] = (charPixels[6] ^ xor_mask) & color_value;
         charPixels += 7;
     }
 }
 
-
 void update_flash_state(cpu_state *cpu) {
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    display_page_t *display_page = ds->display_page_table;
+    uint16_t *TEXT_PAGE_TABLE = display_page->text_page_table;
+
     // 2 times per second (every 30 frames), the state of flashing characters (those matching 0b01xxxxxx) must be reversed.
     static int flash_counter = 0;
     flash_counter++;
     if (flash_counter > 30) {
         flash_counter = 0;
-        flash_state = !flash_state;
+        ds->flash_state = !ds->flash_state;
     }
     //int flashcount = 0;
     //TODO: invert the loops. And, we can bail on the inner loop after we find the first flash character.
@@ -196,7 +144,7 @@ void update_flash_state(cpu_state *cpu) {
             uint8_t character = raw_memory_read(cpu, addr);
             if ((character & 0b11000000) == 0x40) {
                 // mark line as dirty
-                dirty_line[y] = 1;
+                ds->dirty_line[y] = 1;
                 //render_text(x, y, character, flash_state);
                 //flashcount++;
             }
@@ -208,7 +156,10 @@ void update_flash_state(cpu_state *cpu) {
 
 // write a character to the display memory based on the text page memory address.
 // converts address to an X,Y coordinate then calls render_text to do it.
-void txt_memory_write(uint16_t address, uint8_t value) {
+void txt_memory_write(cpu_state *cpu, uint16_t address, uint8_t value) {
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    uint16_t TEXT_PAGE_START = ds->display_page_table->text_page_start;
+    uint16_t TEXT_PAGE_END = ds->display_page_table->text_page_end;
 
     // Strict bounds checking for text page 1
     if (address < TEXT_PAGE_START || address > TEXT_PAGE_END) {
@@ -239,15 +190,15 @@ void txt_memory_write(uint16_t address, uint8_t value) {
         return;
     }
 
-    if (display_mode == GRAPHICS_MODE && display_split_mode == SPLIT_SCREEN) {
+    if (ds->display_mode == GRAPHICS_MODE && ds->display_split_mode == SPLIT_SCREEN) {
         // update lines 21 - 24
         if (y_loc >= 20 && y_loc < 24) {
-            dirty_line[y_loc] = 1;
+            ds->dirty_line[y_loc] = 1;
         }
     }
 
     // update any line.
-    dirty_line[y_loc] = 1;
+    ds->dirty_line[y_loc] = 1;
 }
 
 

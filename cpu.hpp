@@ -86,6 +86,12 @@ namespace cpu_65c02 {
     extern int execute_next(cpu_state *cpu);
 }
 
+typedef enum {
+    MODULE_DISPLAY = 0,
+    //MODULE_SPEAKER,
+    MODULE_NUM_MODULES
+} module_id_t;
+
 struct cpu_state {
     uint64_t boot_time; 
     union {
@@ -182,7 +188,7 @@ struct cpu_state {
 
     execute_next_fn execute_next;
 
-    SDL_Window *window;
+    void *module_store[MODULE_NUM_MODULES];
 };
 
 #define HLT_INSTRUCTION 1
@@ -211,3 +217,6 @@ void set_clock_mode(cpu_state *cpu, clock_mode mode);
 
 const char* processor_get_name(int processor_type);
 
+void *get_module_state(cpu_state *cpu, module_id_t module_id);
+
+void set_module_state(cpu_state *cpu, module_id_t module_id, void *state);

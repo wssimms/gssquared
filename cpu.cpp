@@ -95,3 +95,11 @@ processor_model processor_models[NUM_PROCESSOR_TYPES] = {
 const char* processor_get_name(int processor_type) {
     return processor_models[processor_type].name;
 }
+
+void *get_module_state(cpu_state *cpu, module_id_t module_id) {
+    return cpu->module_store[module_id];
+}
+
+void set_module_state(cpu_state *cpu, module_id_t module_id, void *state) {
+    cpu->module_store[module_id] = state;
+}

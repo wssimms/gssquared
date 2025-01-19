@@ -394,11 +394,13 @@ int main(int argc, char *argv[]) {
         }
 #endif
     
+#if 0
     if (init_display_sdl(&CPUs[0])) {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "A little test.", NULL);
         fprintf(stderr, "Error initializing display\n");
         exit(1);
-    } 
+    }
+#endif
 
 #if 1
     // load platform roms   

@@ -20,7 +20,7 @@
 #include "debug.hpp"
 #include "cpu.hpp"
 #include "devices/keyboard/keyboard.hpp"
-
+#include "display/display.hpp"
 // Loops until there are no events in queue waiting to be read.
 
 void event_poll(cpu_state *cpu) {
@@ -37,7 +37,8 @@ void event_poll(cpu_state *cpu) {
                 break;
 
             case SDL_EVENT_MOUSE_BUTTON_DOWN:
-                SDL_SetWindowRelativeMouseMode(cpu->window, true);
+                display_capture_mouse(cpu, true);
+                //SDL_SetWindowRelativeMouseMode(cpu->window, true);
                 break;
         }
     }

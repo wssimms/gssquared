@@ -24,7 +24,7 @@
 #include "bus.hpp"
 #include "devices/speaker/speaker.hpp"
 #include "devices/loader.hpp"
-
+#include "display/display.hpp"
 // Software should be able to:
 // Read keyboard from register at $C000.
 // Write to the keyboard clear latch at $C010.
@@ -140,8 +140,15 @@ void handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
             loader_execute(cpu);
             return;
         }
+        if (key == SDLK_F2) {
+            toggle_display_color_mode(cpu);
+            force_display_update(cpu);
+            // TODO: maybe also set the sharp scale mode.
+            return;
+        }
         if (key == SDLK_F1) {
-            SDL_SetWindowRelativeMouseMode(cpu->window, false);
+            display_capture_mouse(cpu, false);
+            //SDL_SetWindowRelativeMouseMode(cpu->window, false);
             return;
         }
         if (key == SDLK_LEFT) { kb_key_pressed(0x08); return; }

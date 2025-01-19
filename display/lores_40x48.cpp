@@ -19,6 +19,7 @@
 #include "gs2.hpp"
 #include "cpu.hpp"
 #include "memory.hpp"
+#include "display.hpp"
 #include "text_40x24.hpp"
 #include "lores_40x48.hpp"
 
@@ -43,6 +44,10 @@ uint32_t lores_color_table[16] = {
 
 
 void render_lores(cpu_state *cpu, int x, int y, void *pixels, int pitch) {
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    display_page_t *display_page = ds->display_page_table;
+    uint16_t *TEXT_PAGE_TABLE = display_page->text_page_table;
+
     // Bounds checking
     if (x < 0 || x >= 40 || y < 0 || y >= 24) {
         return;
