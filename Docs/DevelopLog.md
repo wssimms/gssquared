@@ -2084,3 +2084,96 @@ But this is C++, and we need to allocate memory. What if I do an enum of 'names'
 the cpu_state has an array of void pointers. Each module that needs this type of storage gets a name assigned.
 When it needs its state, it typecasts the pointer to its correct type. Then the cpu_state doesn't care
 what the structs look like. If a module needs multiple chunks it can define its static struct to have them.
+
+## Jan 19, 2025
+
+OK that's done for the display code. Wasn't too bad. I even made it a class instead of a struct to use
+a constructor init. Will be pushing the codebase more into this direction.
+
+For color-mode switch, I need to figure out how to display lo-res on a greenscreen. And, I need color
+hi-res.
+
+To do hi-res properly I need to double the number of horizontal pixels to simulate the phase shifting.
+I think I probably also want to implement a border around the simulated NTSC screen. (GS will eventually require
+this because you can set the border color).
+
+these are pretty good discussions of hi-res:
+https://forums.atariage.com/topic/241626-double-hi-res-graphics/page/4/
+https://nicole.express/2024/phasing-in-and-out-of-existence.html
+
+Hm found a bug. There is a bizarro artifact. If there is text update on lines y=22 or =23, it gets
+blasted into the borders both bottom and right.
+
+I don't think I'm doing anything wrong. If I don't specify the dstrect or srcrect, it defaults to scaling the texture to the window size. If I
+specify dstrect, or, dstrect and srcrect, I get the artifacts in the odd places.
+
+Yep. If I select the opengl renderer, it works fine. Using the default renderer (specifying with 'null' in CreateRenderer) 
+I get the artifacts. WEIRD. And annoying.
+
+So now I'll have to read up on these. And I guess send in a bug report to SDL.
+
+ok Color Hi-res.
+
+Understanding the Apple II has the best discussion of this. That guy was a genius.
+
+Let's see if I can boil the rules down.
+1. Two adjacent one bits are white. I.e., even if we set a pixel as a color due to preceding 0 bit, a second 1 bit in a row will turn the previous dot and the current dot white.
+1. If even dot is turned on, they are violet.
+1. Odd dots are green.
+
+If the high bit of a hi-res byte is set, then the signal is delayed by 1/2 a dot, and the colors
+violet and green become blue and orange.
+
+Delayed and undelayed signals interfere with each other. So if we go from a 0 to 1 or 1 to 0, there will be special
+stuff happening at the edges of that intersection.
+
+"There are 560 dot positions in a row. Color depends on position. There are 140 violet,
+140 green, 140 blue, and 140 orange positions."
+
+"Any time you plot a green dot in the same 7-dot pattern as an orange dot, that orange dot
+turns to green because D7 had to be reset in that memory location to plot the green dot.
+
+Two adjacent color dots of the same color appear solid because of analog switch time and blurring. This is simulated
+on Apple2TS by drawing 3 purple dots in a row in a case like this.
+
+Pages 8-21 to 8-23:
+The first 14M period of a delayed pattern (bit 7 = 1) is controlled by the last dot of the previous pattern.
+Switching from 1 to 0 (delayed to undelayed) "will cut off the tail of the current pattern, cuts the last
+dot in half".
+cutting off or extending the dot has the effect of slightly changing the dot pattern and noticaebly,
+changing the coloring of the border dots.
+LORES colors 7 and 2 can be produced at even/odd memory addressing order.
+Colors D and 8 can be produced at odd/even borders.
+Colors B and E can be produced at odd/even or even/odd borders.
+Lores 7 can also be produced at the far left of the screen, and color E can produced
+at the far right.
+color 1 can be produced only at the far left the hires screen. orange hires dots at the right side of the screen
+are dark brown.
+
+So Apple IIts has handled some of this (the stuff in-line) , but not all of it (the stuff that crosses scanlines). This all sounds complex but it's a fairly simple set of rules, I think.
+
+In any event my idea of using the 560 dot positions seems correct.
+```
+                     0.1.2.3.4.5.6.
+2000: 01             *_______
+2400: 81             _*______
+2800: 02             __*_____
+2c00: 82             ___*____
+```
+creates a purple dot, then blue, then green, then orange, in very tight pixel positions.
+Numbers on the top are a whole dot position. The periods are a half dot position. My IIe monitor
+is super-fringy, you can clearly see a half dot, a full dot, and a half dot of each single color.
+
+If hi bit of a byte is set, we will plot into odd pixel positions. And pick color based on 
+bits being last=0, current =1; last=1, current=0; last=0, current=0; last=1, current=1. Keep a
+sliding window of 2 bits.
+
+So, a design choice. Do we make the entire Texture 560 pixels and change the scaling factor.
+Or, only change for hires? I think it would be simpler to do all of them. The text and lores
+code will need to change to plot twice as many horizontal pixels.
+
+Thinking about this - color fringe effect on split screen text and lores/hires, the text pixels will be
+colored exactly as if they were hires pixels with hi bit always cleared.
+So architecturally, perhaps we paint everything into 560, and have a post-processing step that does
+the coloration, which would be the same for all modes. Have to ponder how lores fits into this scheme
+too, i.e., how are the pixels shifted there..

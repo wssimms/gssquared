@@ -16,6 +16,7 @@
     * Apple IIe 80-column text mode - not started.
   * Low-resolution graphics - (Complete - works with Screen 1, 2, split-screen and full-screen).
   * High-resolution graphics - monochrome ('green screen version') done. Color hi-res not started.
+  * Green and Amber monochrome modes - done for text, hi-res. Lo-res not started. 
 * Storage Devices
   * Cassette - not started.  
   * Disk II Controller Card - Read-only working with DOS and ProDOS interleave disks.
