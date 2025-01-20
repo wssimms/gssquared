@@ -97,7 +97,11 @@ const char* processor_get_name(int processor_type) {
 }
 
 void *get_module_state(cpu_state *cpu, module_id_t module_id) {
-    return cpu->module_store[module_id];
+    void *state = cpu->module_store[module_id];
+    if (state == nullptr) {
+        fprintf(stderr, "Module %d not initialized\n", module_id);
+    }
+    return state;
 }
 
 void set_module_state(cpu_state *cpu, module_id_t module_id, void *state) {
