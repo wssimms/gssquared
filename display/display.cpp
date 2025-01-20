@@ -28,6 +28,7 @@
 #include "lores_40x48.hpp"
 #include "hgr_280x192.hpp"
 #include "platforms.hpp"
+#include "event_poll.hpp"
 
 
 display_page_t display_pages[NUM_DISPLAY_PAGES] = {
@@ -161,13 +162,6 @@ display_page_t display_pages[NUM_DISPLAY_PAGES] = {
 void set_display_page(cpu_state *cpu, display_page_number_t page) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     ds->display_page_table = &display_pages[page];
-
-/*     TEXT_PAGE_START = display_pages[page].text_page_start;
-    TEXT_PAGE_END = display_pages[page].text_page_end;
-    TEXT_PAGE_TABLE = display_pages[page].text_page_table;
-    HGR_PAGE_START = display_pages[page].hgr_page_start;
-    HGR_PAGE_END = display_pages[page].hgr_page_end;
-    HGR_PAGE_TABLE = display_pages[page].hgr_page_table; */
 }
 
 void set_display_page1(cpu_state *cpu) {
@@ -184,17 +178,12 @@ uint64_t init_display_sdl(display_state_t *ds) {
         return 1;
     }
 
-    const int SCALE_X = 4;
-    const int SCALE_Y = 4;
-    const int BASE_WIDTH = 280;
-    const int BASE_HEIGHT = 192;
-    
     ds->window = SDL_CreateWindow(
         "GSSquared - Apple ][ Emulator", 
         /* SDL_WINDOWPOS_UNDEFINED, 
         SDL_WINDOWPOS_UNDEFINED,  */
-        BASE_WIDTH * SCALE_X, 
-        BASE_HEIGHT * SCALE_Y, 
+        (BASE_WIDTH + BORDER_WIDTH*2) * SCALE_X, 
+        (BASE_HEIGHT + BORDER_HEIGHT*2) * SCALE_Y, 
         0 /* SDL_WINDOW_SHOWN */
     );
 
@@ -204,7 +193,7 @@ uint64_t init_display_sdl(display_state_t *ds) {
     }
 
     // Create renderer with nearest-neighbor scaling (sharp pixels)
-    ds->renderer = SDL_CreateRenderer(ds->window, NULL /* -1, 
+    ds->renderer = SDL_CreateRenderer(ds->window, "opengl" /* NULL */ /* -1, 
         SDL_RENDERER_ACCELERATED */ );
     
     if (!ds->renderer) {
@@ -263,7 +252,14 @@ void update_display(cpu_state *cpu) {
     }
 
     if (updated) {
-        SDL_RenderTexture(ds->renderer, ds->screenTexture, NULL, NULL);
+        SDL_FRect dstrect = {
+            (float)BORDER_WIDTH,
+            (float)BORDER_HEIGHT,
+            (float)BASE_WIDTH, 
+            (float)BASE_HEIGHT
+        };
+
+        SDL_RenderTexture(ds->renderer, ds->screenTexture, NULL, &dstrect);
         SDL_RenderPresent(ds->renderer);
     }
 }
@@ -341,6 +337,11 @@ void set_graphics_mode(cpu_state *cpu, display_graphics_mode_t mode) {
 void render_line(cpu_state *cpu, int y) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
 
+    if (y < 0 || y >= 24) {
+        return;
+    }
+
+    // this writes into texture - do not put border stuff here.
     SDL_Rect updateRect = {
         0,          // X position (left of window))
         y * 8,      // Y position (8 pixels per character)
@@ -358,8 +359,8 @@ void render_line(cpu_state *cpu, int y) {
         return;
     }
 
+    line_mode_t mode = ds->line_mode[y];
     for (int x = 0; x < 40; x++) {
-        line_mode_t mode = ds->line_mode[y];
         if (mode == LM_TEXT_MODE) {
             render_text(cpu, x, y, pixels, pitch);
         } else if (mode == LM_LORES_MODE) {

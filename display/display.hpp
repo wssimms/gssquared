@@ -21,6 +21,13 @@
 #include "cpu.hpp"
 #include "platforms.hpp"
 
+#define SCALE_X 4
+#define SCALE_Y 4
+#define BASE_WIDTH 280
+#define BASE_HEIGHT 192
+#define BORDER_WIDTH 10
+#define BORDER_HEIGHT 10
+
 // Graphics vs Text, C050 / C051
 typedef enum {
     TEXT_MODE = 0,
