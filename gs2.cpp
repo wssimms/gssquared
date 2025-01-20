@@ -270,13 +270,14 @@ void run_cpus(void) {
 
         if (cpu->clock_mode != CLOCK_FREE_RUN) {
             uint64_t sleep_loops = 0;
-            // busy wait sync cycle time
-            do {
-                sleep_loops++;
-            } while (SDL_GetTicksNS() < wakeup_time);
-
-            if (sleep_loops == 1) {
+            uint64_t current_time = SDL_GetTicksNS();
+            if (current_time > wakeup_time) {
                 cpu->clock_slip++;
+            } else {
+                // busy wait sync cycle time
+                do {
+                    sleep_loops++;
+                } while (SDL_GetTicksNS() < wakeup_time);
             }
         }
 
