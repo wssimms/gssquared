@@ -131,20 +131,25 @@ void update_flash_state(cpu_state *cpu) {
 
     // 2 times per second (every 30 frames), the state of flashing characters (those matching 0b01xxxxxx) must be reversed.
     static int flash_counter = 0;
-    flash_counter++;
-    if (flash_counter > 30) {
-        flash_counter = 0;
-        ds->flash_state = !ds->flash_state;
+    
+    if (++flash_counter < 30) {
+        return;
     }
+    flash_counter = 0;
+    ds->flash_state = !ds->flash_state;
+
     //int flashcount = 0;
+    // this is actually very wrong.
     //TODO: invert the loops. And, we can bail on the inner loop after we find the first flash character.
-    for (int x = 0; x < 40; x++) {
-        for (int y = 0; y < 24; y++) {
+
+    for (int y = 0; y < 24; y++) {
+        for (int x = 0; x < 40; x++) {
             uint16_t addr = TEXT_PAGE_TABLE[y] + x;
             uint8_t character = raw_memory_read(cpu, addr);
             if ((character & 0b11000000) == 0x40) {
                 // mark line as dirty
                 ds->dirty_line[y] = 1;
+                break; // stop after we find any flash char.
                 //render_text(x, y, character, flash_state);
                 //flashcount++;
             }
