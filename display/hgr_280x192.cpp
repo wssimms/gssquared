@@ -27,47 +27,128 @@ uint32_t hgr_mono_color_table[2] = {
     0x009933FF,
 };
 
-uint32_t hgr_color_table[DM_NUM_MODES] = {
+uint32_t hgr_mono_table[DM_NUM_MODES] = {
     0xFFFFFFFF, // color
     0xFFBF00FF, // amber.
-    0x009933FF
+    0x00FF55FF, // 0x009933FF  // green
 };
 
-/* uint16_t HGR_PAGE_START = 0x2000;
-uint16_t HGR_PAGE_END = 0x3FFF;
-uint16_t *HGR_PAGE_TABLE = HGR_PAGE_1_TABLE; */
+uint32_t hgr_color_table[4] = { //    Cur   Col   D7
+    0xDC43E1FF, // purple              1     0     0
+    0x40DE00FF, // green               1     1     0
+    0x00afffFF, // blue,               1     0     1 
+    0xff5000FF, // orange              1     1     1
+};
 
-void render_hgr(cpu_state *cpu, int x, int y, void *pixels, int pitch) {
-    //if (DEBUG(DEBUG_HGR)) fprintf(stdout, "render_hgr x: %d y: %d\n", x, y);
+
+void render_hgr_scanline_mono(cpu_state *cpu, int y, void *pixels, int pitch) {
     
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     display_color_mode_t color_mode = ds->color_mode;
-    uint32_t color_value = hgr_color_table[color_mode];
+    uint32_t color_value = hgr_mono_table[color_mode];
     display_page_t *display_page = ds->display_page_table;
     uint16_t *HGR_PAGE_TABLE = display_page->hgr_page_table;
 
-    // Bounds checking
-    if (x < 0 || x >= 40 || y < 0 || y >= 24) {
-        return;
-    }
-
-    // look up color key for top and bottom block
-    
     int pitchoff = pitch / 4;
-    int charoff = x * 7;
-    // Draw the character bitmap into the texture
+
+    uint8_t lastBitOn = 0; // set to 0 at start of scanline.
+
     uint32_t* texturePixels = (uint32_t*)pixels;
     for (int row = 0; row < 8; row++) {
-        uint16_t address = HGR_PAGE_TABLE[y] + (row * 0x0400) + x;
-        uint8_t character = raw_memory_read(cpu, address);
+        for (int x = 0; x < 40; x++) {
+            int charoff = x * 14;
 
-        uint32_t base = row * pitchoff;
-        //if (DEBUG(DEBUG_HGR)) fprintf(stdout, "row: %d base: %d character: %02X\n", row, base, character);
-        for (int bit = 0; bit < 7; bit++) {
-            uint32_t pixel = (character & 0x01) ? color_value : 0x00000000;
-//            hgr_mono_color_table[character & 0x01];
-            texturePixels[base + charoff + bit] = pixel;
-            character >>= 1;
+            uint16_t address = HGR_PAGE_TABLE[y] + (row * 0x0400) + x;
+            uint8_t character = raw_memory_read(cpu, address);
+            uint8_t ch_D7 = character & 0x80;
+
+            uint32_t base = row * pitchoff;
+
+            for (int bit = 0; bit < 14; bit+=2) {
+                uint8_t thisBitOn = (character & 0x01);
+                uint32_t pixel = thisBitOn ? color_value : 0x00000000;
+                if (ch_D7 == 0) { // no delay
+                    texturePixels[base + charoff + bit ] = pixel;
+                    texturePixels[base + charoff + bit + 1] = 0x00000000;
+                } else {
+                    texturePixels[base + charoff + bit ] = 0x00000000;
+                    texturePixels[base + charoff + bit + 1] = pixel;
+                }
+
+                if (thisBitOn && lastBitOn) { // if last bit was also on, then this is a "double wide white" pixel.
+                    texturePixels[base + charoff + bit - 1] = color_value;
+                    texturePixels[base + charoff + bit] = color_value;
+                    texturePixels[base + charoff + bit + 1] = color_value;
+                }
+
+                lastBitOn = (character & 0x01);
+
+                character >>= 1;
+            }
+        }
+    }
+}
+
+void render_hgr_scanline(cpu_state *cpu, int y, void *pixels, int pitch) {
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+
+    if (ds->color_mode != DM_COLOR_MODE) {
+        render_hgr_scanline_mono(cpu, y, pixels, pitch);
+    } else {
+        render_hgr_scanline_color(cpu, y, pixels, pitch);
+    }
+}
+
+void render_hgr_scanline_color(cpu_state *cpu, int y, void *pixels, int pitch) {
+    
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    display_color_mode_t color_mode = ds->color_mode;
+    //uint32_t color_value = hgr_color_table[color_mode];
+    display_page_t *display_page = ds->display_page_table;
+    uint16_t *HGR_PAGE_TABLE = display_page->hgr_page_table;
+
+    int pitchoff = pitch / 4;
+
+    uint8_t lastBitOn = 0; // set to 0 at start of scanline.
+    uint16_t pixel_column = 0;
+
+    uint32_t* texturePixels = (uint32_t*)pixels;
+    for (int row = 0; row < 8; row++) {
+        for (int x = 0; x < 40; x++) {
+            int charoff = x * 14;
+
+            uint16_t address = HGR_PAGE_TABLE[y] + (row * 0x0400) + x;
+            uint8_t character = raw_memory_read(cpu, address);
+            uint8_t ch_D7 = (character & 0x80) >> 7;
+
+            uint32_t base = row * pitchoff;
+
+            // color choice is two variables: odd or even pixel column. And D7 bit.
+
+            for (int bit = 0; bit < 14; bit+=2) {
+
+                uint8_t thisBitOn = (character & 0x01);
+                uint32_t color_value = hgr_color_table[(ch_D7 << 1) | (pixel_column&1) ];
+                uint32_t pixel = thisBitOn ? color_value : 0x00000000;
+                if (ch_D7 == 0) { // no delay
+                    texturePixels[base + charoff + bit ] = pixel;
+                    texturePixels[base + charoff + bit + 1] = pixel;
+                } else {
+                    texturePixels[base + charoff + bit + 1 ] = pixel;
+                    texturePixels[base + charoff + bit + 2] = pixel;
+                }
+
+                if (thisBitOn && lastBitOn) { // if last bit was also on, then this is a "double wide white" pixel.
+                    texturePixels[base + charoff + bit - 1] = 0xFFFFFFFF;
+                    texturePixels[base + charoff + bit] = 0xFFFFFFFF;
+                    texturePixels[base + charoff + bit + 1] = 0xFFFFFFFF;
+                }
+
+                lastBitOn = (character & 0x01);
+                pixel_column++;
+
+                character >>= 1;
+            }
         }
     }
 }

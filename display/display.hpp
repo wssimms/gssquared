@@ -21,9 +21,9 @@
 #include "cpu.hpp"
 #include "platforms.hpp"
 
-#define SCALE_X 4
+#define SCALE_X 2
 #define SCALE_Y 4
-#define BASE_WIDTH 280
+#define BASE_WIDTH 560
 #define BASE_HEIGHT 192
 #define BORDER_WIDTH 10
 #define BORDER_HEIGHT 10

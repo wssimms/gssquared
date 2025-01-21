@@ -42,46 +42,61 @@ uint32_t lores_color_table[16] = {
     0xFFFFFFFF
     };
 
-
-void render_lores(cpu_state *cpu, int x, int y, void *pixels, int pitch) {
+void render_lores_scanline(cpu_state *cpu, int y, void *pixels, int pitch) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     display_page_t *display_page = ds->display_page_table;
     uint16_t *TEXT_PAGE_TABLE = display_page->text_page_table;
 
     // Bounds checking
-    if (x < 0 || x >= 40 || y < 0 || y >= 24) {
+    if (y < 0 || y >= 24) {
         return;
     }
-    uint8_t character = raw_memory_read(cpu, TEXT_PAGE_TABLE[y] + x);
 
-    // look up color key for top and bottom block
-    uint32_t color_top = lores_color_table[character & 0x0F];
-    uint32_t color_bottom = lores_color_table[(character & 0xF0) >> 4];
+    for (int x = 0; x < 40; x++) {
+        uint8_t character = raw_memory_read(cpu, TEXT_PAGE_TABLE[y] + x);
 
-    int pitchoff = pitch / 4;
-    int charoff = x * 7;
-    // Draw the character bitmap into the texture
-    uint32_t* texturePixels = (uint32_t*)pixels;
-    for (int row = 0; row < 4; row++) {
-        uint32_t base = row * pitchoff;
-        texturePixels[base + charoff ] = color_top;
-        texturePixels[base + charoff + 1] = color_top;
-        texturePixels[base + charoff + 2] = color_top;
-        texturePixels[base + charoff + 3] = color_top;
-        texturePixels[base + charoff + 4] = color_top;
-        texturePixels[base + charoff + 5] = color_top;
-        texturePixels[base + charoff + 6] = color_top;
+        // look up color key for top and bottom block
+        uint32_t color_top = lores_color_table[character & 0x0F];
+        uint32_t color_bottom = lores_color_table[(character & 0xF0) >> 4];
+
+        int pitchoff = pitch / 4;
+        int charoff = x * 14;
+        // Draw the character bitmap into the texture
+        uint32_t* texturePixels = (uint32_t*)pixels;
+        for (int row = 0; row < 4; row++) {
+            uint32_t base = row * pitchoff;
+            texturePixels[base + charoff ] = color_top;
+            texturePixels[base + charoff + 1] = color_top;
+            texturePixels[base + charoff + 2] = color_top;
+            texturePixels[base + charoff + 3] = color_top;
+            texturePixels[base + charoff + 4] = color_top;
+            texturePixels[base + charoff + 5] = color_top;
+            texturePixels[base + charoff + 6] = color_top;
+            texturePixels[base + charoff + 7] = color_top;
+            texturePixels[base + charoff + 8] = color_top;
+            texturePixels[base + charoff + 9] = color_top;
+            texturePixels[base + charoff + 10] = color_top;
+            texturePixels[base + charoff + 11] = color_top;
+            texturePixels[base + charoff + 12] = color_top;
+            texturePixels[base + charoff + 13] = color_top;
+        }
+
+        for (int row = 4; row < 8; row++) {
+            uint32_t base = row * pitchoff;
+            texturePixels[base + charoff ] = color_bottom;
+            texturePixels[base + charoff + 1] = color_bottom;
+            texturePixels[base + charoff + 2] = color_bottom;
+            texturePixels[base + charoff + 3] = color_bottom;
+            texturePixels[base + charoff + 4] = color_bottom;
+            texturePixels[base + charoff + 5] = color_bottom;
+            texturePixels[base + charoff + 6] = color_bottom;
+            texturePixels[base + charoff + 7] = color_bottom;
+            texturePixels[base + charoff + 8] = color_bottom;
+            texturePixels[base + charoff + 9] = color_bottom;
+            texturePixels[base + charoff + 10] = color_bottom;
+            texturePixels[base + charoff + 11] = color_bottom;
+            texturePixels[base + charoff + 12] = color_bottom;
+            texturePixels[base + charoff + 13] = color_bottom;
+        }    
     }
-
-    for (int row = 4; row < 8; row++) {
-        uint32_t base = row * pitchoff;
-        texturePixels[base + charoff ] = color_bottom;
-        texturePixels[base + charoff + 1] = color_bottom;
-        texturePixels[base + charoff + 2] = color_bottom;
-        texturePixels[base + charoff + 3] = color_bottom;
-        texturePixels[base + charoff + 4] = color_bottom;
-        texturePixels[base + charoff + 5] = color_bottom;
-        texturePixels[base + charoff + 6] = color_bottom;
-
-    }    
 }

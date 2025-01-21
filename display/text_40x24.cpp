@@ -70,13 +70,14 @@ void pre_calculate_font (rom_data *rd) {
 uint32_t text_color_table[DM_NUM_MODES] = {
     0xFFFFFFFF, // color, keep it as-is
     0xFFBF00FF, // amber.
-    0x009933FF, // green.
+    0x00e64dFF, //0x009933FF, // green.
 };
 
 /**
- * render single character - in context of a locked texture of a whole display line.
+ * render group of 8 scanlines represented by one row of bytes of memory.
  */
-void render_text(cpu_state *cpu, int x, int y, void *pixels, int pitch) {
+
+void render_text_scanline(cpu_state *cpu, int y, void *pixels, int pitch) {
 
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     display_color_mode_t color_mode = ds->color_mode;
@@ -84,43 +85,60 @@ void render_text(cpu_state *cpu, int x, int y, void *pixels, int pitch) {
     uint16_t *TEXT_PAGE_TABLE = ds->display_page_table->text_page_table;
 
     // Bounds checking
-    if (x < 0 || x >= 40 || y < 0 || y >= 24) {
+    if (y < 0 || y >= 24) {
         return;
     }
 
-    uint8_t character = raw_memory_read(cpu, TEXT_PAGE_TABLE[y] + x);
+    for (int x = 0; x < 40; x++) {
 
-    // Calculate font offset (8 bytes per character, starting at 0x20)
-    const uint32_t* charPixels = &APPLE2_FONT_32[character * 56];
+        uint8_t character = raw_memory_read(cpu, TEXT_PAGE_TABLE[y] + x);
 
-    bool inverse = false;
-    // Check if top two bits are 0 (0x00-0x3F range)
-    if ((character & 0xC0) == 0) {
-        inverse = true;
-    } else if (((character & 0xC0) == 0x40)) {
-        inverse = ds->flash_state;
-    }
-    
-    // for inverse, xor the pixels with 0xFFFFFFFF to invert them.
-    uint32_t xor_mask = 0x00000000;
-    if (inverse) {
-        xor_mask = 0xFFFFFFFF;
-    }
+        // Calculate font offset (8 bytes per character, starting at 0x20)
+        const uint32_t* charPixels = &APPLE2_FONT_32[character * 56];
 
-    int pitchoff = pitch / 4;
-    int charoff = x * 7;
-    // Draw the character bitmap into the texture
-    uint32_t* texturePixels = (uint32_t*)pixels;
-    for (int row = 0; row < 8; row++) {
-        uint32_t base = row * pitchoff;
-        texturePixels[base + charoff ] = (charPixels[0] ^ xor_mask) & color_value;
-        texturePixels[base + charoff + 1] = (charPixels[1] ^ xor_mask) & color_value;
-        texturePixels[base + charoff + 2] = (charPixels[2] ^ xor_mask) & color_value;
-        texturePixels[base + charoff + 3] = (charPixels[3] ^ xor_mask) & color_value;
-        texturePixels[base + charoff + 4] = (charPixels[4] ^ xor_mask) & color_value;
-        texturePixels[base + charoff + 5] = (charPixels[5] ^ xor_mask) & color_value;
-        texturePixels[base + charoff + 6] = (charPixels[6] ^ xor_mask) & color_value;
-        charPixels += 7;
+        bool inverse = false;
+        // Check if top two bits are 0 (0x00-0x3F range)
+        if ((character & 0xC0) == 0) {
+            inverse = true;
+        } else if (((character & 0xC0) == 0x40)) {
+            inverse = ds->flash_state;
+        }
+        
+        // for inverse, xor the pixels with 0xFFFFFFFF to invert them.
+        uint32_t xor_mask = 0x00000000;
+        if (inverse) {
+            xor_mask = 0xFFFFFFFF;
+        }
+
+        int pitchoff = pitch / 4;
+        int charoff = x * 7 * 2; // draw characters "double wide" for new screen geometry
+        // Draw the character bitmap into the texture
+        uint32_t* texturePixels = (uint32_t*)pixels;
+        for (int row = 0; row < 8; row++) {
+            uint32_t base = row * pitchoff;
+            texturePixels[base + charoff ] = (charPixels[0] ^ xor_mask) & color_value;
+            texturePixels[base + charoff +1 ] = (charPixels[0] ^ xor_mask) & color_value;
+            
+            texturePixels[base + charoff + 2] = (charPixels[1] ^ xor_mask) & color_value;
+            texturePixels[base + charoff + 3] = (charPixels[1] ^ xor_mask) & color_value;
+
+            texturePixels[base + charoff + 4] = (charPixels[2] ^ xor_mask) & color_value;
+            texturePixels[base + charoff + 5] = (charPixels[2] ^ xor_mask) & color_value;
+            
+            texturePixels[base + charoff + 6] = (charPixels[3] ^ xor_mask) & color_value;
+            texturePixels[base + charoff + 7] = (charPixels[3] ^ xor_mask) & color_value;
+
+            texturePixels[base + charoff + 8] = (charPixels[4] ^ xor_mask) & color_value;
+            texturePixels[base + charoff + 9] = (charPixels[4] ^ xor_mask) & color_value;
+            
+            texturePixels[base + charoff + 10] = (charPixels[5] ^ xor_mask) & color_value;
+            texturePixels[base + charoff + 11] = (charPixels[5] ^ xor_mask) & color_value;
+            
+            texturePixels[base + charoff + 12] = (charPixels[6] ^ xor_mask) & color_value;
+            texturePixels[base + charoff + 13] = (charPixels[6] ^ xor_mask) & color_value;
+            
+            charPixels += 7;
+        }
     }
 }
 
@@ -138,29 +156,24 @@ void update_flash_state(cpu_state *cpu) {
     flash_counter = 0;
     ds->flash_state = !ds->flash_state;
 
-    //int flashcount = 0;
-    // this is actually very wrong.
-    //TODO: invert the loops. And, we can bail on the inner loop after we find the first flash character.
-
     for (int y = 0; y < 24; y++) {
+        // TODO: can change this to grab 64 bits at a time and check for flash chars by & 0xC0C0C0C0C0C0C0C0 and comparing to 0x4040... 
         for (int x = 0; x < 40; x++) {
             uint16_t addr = TEXT_PAGE_TABLE[y] + x;
             uint8_t character = raw_memory_read(cpu, addr);
             if ((character & 0b11000000) == 0x40) {
-                // mark line as dirty
                 ds->dirty_line[y] = 1;
-                break; // stop after we find any flash char.
-                //render_text(x, y, character, flash_state);
-                //flashcount++;
+                break;                           // stop after we find any flash char on a line.
             }
         }
     }
-    //if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Flash chars updated: %d\n", flashcount);
 }
 
-
-// write a character to the display memory based on the text page memory address.
-// converts address to an X,Y coordinate then calls render_text to do it.
+/**
+ * having written a character to the display memory, we need to update the display.
+ * this function identifies the line of the update and marks that line as dirty.
+ * Later, update_display() will be called and it will render the dirty lines.
+ */
 void txt_memory_write(cpu_state *cpu, uint16_t address, uint8_t value) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     uint16_t TEXT_PAGE_START = ds->display_page_table->text_page_start;
@@ -196,10 +209,8 @@ void txt_memory_write(cpu_state *cpu, uint16_t address, uint8_t value) {
     }
 
     if (ds->display_mode == GRAPHICS_MODE && ds->display_split_mode == SPLIT_SCREEN) {
-        // update lines 21 - 24
-        if (y_loc >= 20 && y_loc < 24) {
-            ds->dirty_line[y_loc] = 1;
-        }
+        // only update lines 21 - 24 if we're in split screen mode.
+        if (y_loc < 20) return;
     }
 
     // update any line.
@@ -207,9 +218,6 @@ void txt_memory_write(cpu_state *cpu, uint16_t address, uint8_t value) {
 }
 
 
-
 uint8_t txt_bus_read(cpu_state *cpu, uint16_t address) {
     return 0;
 }
-
-

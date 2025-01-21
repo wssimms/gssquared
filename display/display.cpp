@@ -209,7 +209,7 @@ uint64_t init_display_sdl(display_state_t *ds) {
     ds->screenTexture = SDL_CreateTexture(ds->renderer,
         SDL_PIXELFORMAT_RGBA8888,
         SDL_TEXTUREACCESS_STREAMING,
-        280, 192);
+        BASE_WIDTH, BASE_HEIGHT);
 
     if (!ds->screenTexture) {
         fprintf(stderr, "Error creating screen texture: %s\n", SDL_GetError());
@@ -345,7 +345,7 @@ void render_line(cpu_state *cpu, int y) {
     SDL_Rect updateRect = {
         0,          // X position (left of window))
         y * 8,      // Y position (8 pixels per character)
-        280,        // Width of line
+        BASE_WIDTH,        // Width of line
         8           // Height of line
     };
 
@@ -360,14 +360,13 @@ void render_line(cpu_state *cpu, int y) {
     }
 
     line_mode_t mode = ds->line_mode[y];
-    for (int x = 0; x < 40; x++) {
-        if (mode == LM_TEXT_MODE) {
-            render_text(cpu, x, y, pixels, pitch);
-        } else if (mode == LM_LORES_MODE) {
-            render_lores(cpu, x, y, pixels, pitch);
-        } else if (mode == LM_HIRES_MODE) {
-            render_hgr(cpu, x, y, pixels, pitch);
-        }
+    if (mode == LM_TEXT_MODE) {
+        render_text_scanline(cpu, y, pixels, pitch);
+    } else if (mode == LM_LORES_MODE) {
+        render_lores_scanline(cpu, y, pixels, pitch);
+    } else if (mode == LM_HIRES_MODE) {
+        //render_hgr_scanline_mono(cpu, y, pixels, pitch);
+        render_hgr_scanline(cpu, y, pixels, pitch);
     }
 
     SDL_UnlockTexture(ds->screenTexture);
