@@ -2177,3 +2177,16 @@ colored exactly as if they were hires pixels with hi bit always cleared.
 So architecturally, perhaps we paint everything into 560, and have a post-processing step that does
 the coloration, which would be the same for all modes. Have to ponder how lores fits into this scheme
 too, i.e., how are the pixels shifted there..
+
+## Jan 20, 2025
+
+It's the third Monday in January! You know what that means! It's National GSSquared Got Color Hi-Res Day!
+
+So the above wasn't too bad at all. 
+
+Like I did with the hgr function, move the x = 0 to 40 loops for text and lores into those routines.
+
+All dislay rendering is now done with scanlines, i.e., an entire row of pixels horizontally.
+This moves loop inside the render function, saving a bunch of function calls. Also makes
+the API for a display handler consistent across all display types.
+
