@@ -55,7 +55,7 @@ int execute_next(cpu_state *cpu) {
         fprintf(stdout, "[ %llu ]", cpu->cycles);
         uint64_t elapsed_time = current_time - cpu->boot_time;
         fprintf(stdout, "[eTime: %llu] ", elapsed_time);
-        float_t cycles_per_second = (cpu->cycles * 1000000000.0) / (elapsed_time * 1000.0);
+        float cycles_per_second = (cpu->cycles * 1000000000.0) / (elapsed_time * 1000.0);
         fprintf(stdout, "[eHz: %.0f] ", cycles_per_second);
     }
 
@@ -63,7 +63,7 @@ int execute_next(cpu_state *cpu) {
         uint64_t current_time = get_current_time_in_microseconds();
         uint64_t elapsed_time = current_time - cpu->boot_time;
         fprintf(stdout, "[eTime: %llu] ", elapsed_time);
-        float_t cycles_per_second = (cpu->cycles * 1000000000.0) / (elapsed_time * 1000.0);
+        float cycles_per_second = (cpu->cycles * 1000000000.0) / (elapsed_time * 1000.0);
         fprintf(stdout, "[eHz: %f] ", cycles_per_second);
         cpu->halt = HLT_INSTRUCTION;
     }
