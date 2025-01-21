@@ -28,6 +28,9 @@ if(APPLE)
     )
 endif()
 
+# Add SDL as a subdirectory and configure it
+add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
+
 # Set output directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
@@ -53,9 +56,6 @@ set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3 -ggdb3")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
-
-# Find SDL3 package
-find_package(SDL3 REQUIRED)
 
 # Build prodos block firmware
 add_custom_command(
@@ -100,24 +100,22 @@ add_library(gs2_cpu src/cpus/cpu_6502.cpp src/cpus/cpu_65c02.cpp )
 add_library(gs2_util src/util/media.cpp src/util/ResourceFile.cpp src/util/dialog.cpp )
 
 # Add the executable
-add_executable(gs2 gs2.cpp bus.cpp clock.cpp debug.cpp cpu.cpp memory.cpp opcodes.cpp test.cpp 
-    display/text_40x24.cpp display/lores_40x48.cpp display/hgr_280x192.cpp display/display.cpp
-    devices/loader.cpp 
-    devices/diskii.cpp
-    platforms.cpp
-    event_poll.cpp)
+add_executable(gs2 src/gs2.cpp src/bus.cpp src/clock.cpp src/debug.cpp src/cpu.cpp src/memory.cpp src/opcodes.cpp src/test.cpp 
+    src/display/text_40x24.cpp src/display/lores_40x48.cpp src/display/hgr_280x192.cpp src/display/display.cpp
+    src/devices/loader.cpp 
+    src/devices/diskii.cpp
+    src/platforms.cpp
+    src/event_poll.cpp)
 
-# Include SDL3 headers
-include_directories(${SDL3_INCLUDE_DIRS} 
+# Set up common include directories for all targets
+include_directories(
+    ${CMAKE_SOURCE_DIR}/src
     /usr/local/include
-    ${CMAKE_SOURCE_DIR}
-    PUBLIC
-        ${CMAKE_SOURCE_DIR}/src    # Makes "src" the root include directory
 )
 
 # Link SDL3 and required frameworks
 target_link_libraries(gs2 PRIVATE 
-    SDL3::SDL3
+    SDL3::SDL3-shared
     "-framework OpenGL" 
     "-framework Cocoa"
 )
@@ -137,3 +135,8 @@ target_link_libraries(gs2
 add_subdirectory(apps/nibblizer)
 
 add_subdirectory(apps/diskid)
+
+# Update the executable's include directories to remove redundant paths
+target_include_directories(gs2 PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
