@@ -1,4 +1,11 @@
+# This isn't very cross-platform helpful. But it's a start..
+
+# Set Merlin32 directory based on OS
+ifeq ($(shell uname),Darwin)
 MERLIN32DIR = ~/src/Merlin32_v1.1/MacOs
+else
+MERLIN32DIR = ~/src/Merlin32_v1.1/Linux
+endif
 
 all: pd_block_firmware.hpp
 
