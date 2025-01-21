@@ -12,7 +12,6 @@ tmp/*
 roms/*/*.rom
 roms/*/*.bin
 roms/*/base.addr
-Makefile
 bin
 bin/*
 lib/
@@ -22,3 +21,5 @@ disk_images/*
 **/_FileInformation.txt
 GSSquared.app/
 assets/img
+/Makefile
+!*/Makefile
