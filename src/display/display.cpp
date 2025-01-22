@@ -191,10 +191,13 @@ uint64_t init_display_sdl(display_state_t *ds) {
         fprintf(stderr, "Error creating window: %s\n", SDL_GetError());
         return 1;
     }
+    for (int i = 0; i < SDL_GetNumRenderDrivers(); i++) {
+        const char *name = SDL_GetRenderDriver(i);
+        printf("Render driver %d: %s\n", i, name);
+    }
 
     // Create renderer with nearest-neighbor scaling (sharp pixels)
-    ds->renderer = SDL_CreateRenderer(ds->window, "opengl" /* NULL */ /* -1, 
-        SDL_RENDERER_ACCELERATED */ );
+    ds->renderer = SDL_CreateRenderer(ds->window, NULL );
     
     if (!ds->renderer) {
         fprintf(stderr, "Error creating renderer: %s\n", SDL_GetError());
@@ -242,6 +245,12 @@ void init_display_font(rom_data *rd) {
  */
 void update_display(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+
+    // the backbuffer must be cleared each frame. The docs state this clearly
+    // but I didn't know what the backbuffer was. Also, I assumed doing it once
+    // at startup was enough. NOPE.
+    SDL_RenderClear(ds->renderer); 
+
     int updated = 0;
     for (int line = 0; line < 24; line++) {
         if (ds->dirty_line[line]) {
@@ -251,7 +260,7 @@ void update_display(cpu_state *cpu) {
         }
     }
 
-    if (updated) {
+ /*    if (updated) { */
         SDL_FRect dstrect = {
             (float)BORDER_WIDTH,
             (float)BORDER_HEIGHT,
@@ -261,7 +270,7 @@ void update_display(cpu_state *cpu) {
 
         SDL_RenderTexture(ds->renderer, ds->screenTexture, NULL, &dstrect);
         SDL_RenderPresent(ds->renderer);
-    }
+/*     } */
 }
 
 void force_display_update(cpu_state *cpu) {
