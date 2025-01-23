@@ -106,6 +106,7 @@ void render_hgr_scanline_color(cpu_state *cpu, int y, void *pixels, int pitch) {
     //uint32_t color_value = hgr_color_table[color_mode];
     display_page_t *display_page = ds->display_page_table;
     uint16_t *HGR_PAGE_TABLE = display_page->hgr_page_table;
+    uint8_t composite = true; // set to true if we are in composite mode.
 
     int pitchoff = pitch / 4;
 
@@ -133,13 +134,24 @@ void render_hgr_scanline_color(cpu_state *cpu, int y, void *pixels, int pitch) {
                 if (ch_D7 == 0) { // no delay
                     texturePixels[base + charoff + bit ] = pixel;
                     texturePixels[base + charoff + bit + 1] = pixel;
+                    if (composite && pixel_column >=2 && (pixel != 0x00000000) && (texturePixels[base + charoff + bit - 4] == pixel)  ) {
+                        texturePixels[base + charoff + bit - 2] = pixel;
+                        texturePixels[base + charoff + bit - 1] = pixel;
+                    }
                 } else {
                     texturePixels[base + charoff + bit + 1 ] = pixel;
                     texturePixels[base + charoff + bit + 2] = pixel;
+                    if (composite && pixel_column >= 2 &&  (pixel != 0x00000000) && (texturePixels[base + charoff + bit - 3] == pixel)) {
+                        texturePixels[base + charoff + bit] = pixel;
+                        texturePixels[base + charoff + bit - 1] = pixel;
+                    }
                 }
 
                 if (thisBitOn && lastBitOn) { // if last bit was also on, then this is a "double wide white" pixel.
-                    texturePixels[base + charoff + bit - 1] = 0xFFFFFFFF;
+                    // two pixels on apple ii is four pixels here. First, remake prior to white.
+                    if (pixel_column >= 1) texturePixels[base + charoff + bit - 2] = 0xFFFFFFFF;
+                    if (pixel_column >= 1) texturePixels[base + charoff + bit - 1] = 0xFFFFFFFF;
+                    // now this one as white.
                     texturePixels[base + charoff + bit] = 0xFFFFFFFF;
                     texturePixels[base + charoff + bit + 1] = 0xFFFFFFFF;
                 }
