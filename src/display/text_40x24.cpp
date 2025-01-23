@@ -208,12 +208,12 @@ void txt_memory_write(cpu_state *cpu, uint16_t address, uint8_t value) {
         return;
     }
 
-    if (ds->display_mode == GRAPHICS_MODE && ds->display_split_mode == SPLIT_SCREEN) {
-        // only update lines 21 - 24 if we're in split screen mode.
+    if (ds->display_mode == GRAPHICS_MODE && ds->display_graphics_mode == HIRES_MODE && ds->display_split_mode == SPLIT_SCREEN) {
+        // only update lines 21 - 24 if we're in split screen hires mode.
         if (y_loc < 20) return;
     }
 
-    // update any line.
+    // update any line. Dirty logic is same for text and lores.
     ds->dirty_line[y_loc] = 1;
 }
 
