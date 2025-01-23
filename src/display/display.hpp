@@ -77,6 +77,11 @@ typedef enum {
     NUM_DISPLAY_PAGES
 } display_page_number_t;
 
+typedef enum {
+    DISPLAY_WINDOWED_MODE = 0,
+    DISPLAY_FULLSCREEN_MODE = 1,
+    NUM_FULLSCREEN_MODES
+} display_fullscreen_mode_t;
 
 typedef class display_state_t {
 
@@ -87,6 +92,7 @@ public:
     SDL_Renderer* renderer ;
     SDL_Texture* screenTexture;
 
+    display_fullscreen_mode_t display_fullscreen_mode;
     display_color_mode_t color_mode;
     display_mode_t display_mode;
     display_split_mode_t display_split_mode;
@@ -123,6 +129,7 @@ void pre_calculate_font(rom_data *rd);
 void init_display_font(rom_data *rd);
 void set_display_color_mode(cpu_state *cpu, display_color_mode_t mode);
 void toggle_display_color_mode(cpu_state *cpu);
+void toggle_display_fullscreen(cpu_state *cpu);
 void update_line_mode(cpu_state *cpu);
 void set_display_mode(cpu_state *cpu, display_mode_t mode);
 void set_split_mode(cpu_state *cpu, display_split_mode_t mode);

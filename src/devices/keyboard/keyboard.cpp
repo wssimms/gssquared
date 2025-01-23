@@ -140,6 +140,11 @@ void handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
             loader_execute(cpu);
             return;
         }
+         if (key == SDLK_F3) {
+            toggle_display_fullscreen(cpu);
+            // TODO: maybe also set the sharp scale mode.
+            return;
+        }
         if (key == SDLK_F2) {
             toggle_display_color_mode(cpu);
             force_display_update(cpu);

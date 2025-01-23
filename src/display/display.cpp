@@ -178,19 +178,29 @@ uint64_t init_display_sdl(display_state_t *ds) {
         return 1;
     }
 
+    int window_width = (BASE_WIDTH + BORDER_WIDTH*2) * SCALE_X;
+    int window_height = (BASE_HEIGHT + BORDER_HEIGHT*2) * SCALE_Y;
+    float aspect_ratio = (float)window_width / (float)window_height
+    ;
     ds->window = SDL_CreateWindow(
         "GSSquared - Apple ][ Emulator", 
-        /* SDL_WINDOWPOS_UNDEFINED, 
-        SDL_WINDOWPOS_UNDEFINED,  */
         (BASE_WIDTH + BORDER_WIDTH*2) * SCALE_X, 
         (BASE_HEIGHT + BORDER_HEIGHT*2) * SCALE_Y, 
-        0 /* SDL_WINDOW_SHOWN */
+        SDL_WINDOW_RESIZABLE
     );
 
     if (!ds->window) {
-        fprintf(stderr, "Error creating window: %s\n", SDL_GetError());
+        fprintf(stderr, "Window could not be created! SDL_Error: %s\n", SDL_GetError());
         return 1;
     }
+
+    // Set minimum and maximum window sizes to maintain reasonable dimensions
+    SDL_SetWindowMinimumSize(ds->window, window_width / 2, window_height / 2);  // Half size
+    SDL_SetWindowMaximumSize(ds->window, window_width * 2, window_height * 2);  // 4x size
+    
+    // Set the window's aspect ratio to match the Apple II display (560:384)
+    SDL_SetWindowAspectRatio(ds->window, aspect_ratio, aspect_ratio);
+
     for (int i = 0; i < SDL_GetNumRenderDrivers(); i++) {
         const char *name = SDL_GetRenderDriver(i);
         printf("Render driver %d: %s\n", i, name);
@@ -502,6 +512,7 @@ display_state_t::display_state_t() {
     for (int i = 0; i < 24; i++) {
         dirty_line[i] = 0;
     }
+    display_fullscreen_mode = DISPLAY_WINDOWED_MODE;
     display_mode = TEXT_MODE;
     display_split_mode = FULL_SCREEN;
     display_graphics_mode = LORES_MODE;
@@ -549,4 +560,10 @@ void set_display_color_mode(cpu_state *cpu, display_color_mode_t mode) {
 void toggle_display_color_mode(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     ds->color_mode = (display_color_mode_t)((ds->color_mode + 1) % DM_NUM_MODES);
+}
+
+void toggle_display_fullscreen(cpu_state *cpu) {
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    ds->display_fullscreen_mode = (display_fullscreen_mode_t)((ds->display_fullscreen_mode + 1) % NUM_FULLSCREEN_MODES);
+    SDL_SetWindowFullscreen(ds->window, ds->display_fullscreen_mode);
 }
