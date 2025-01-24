@@ -1,5 +1,5 @@
 add_executable(nibblizer main.cpp)
 
 target_link_libraries(nibblizer PRIVATE
-    gs2_devices_diskii
+    gs2_devices_diskii_fmt
 )
