@@ -100,6 +100,7 @@ public:
     display_page_number_t display_page_num;
     display_page_t *display_page_table;
     bool flash_state;
+    int flash_counter;
 
     uint32_t dirty_line[24];
     line_mode_t line_mode[24]; // 0 = TEXT, 1 = LO RES GRAPHICS, 2 = HI RES GRAPHICS
@@ -108,12 +109,6 @@ public:
 
 
 extern uint32_t lores_color_table[16]; 
-//extern uint32_t dirty_line[24];
-//extern line_mode_t line_mode[24];
-
-/* extern display_mode_t display_mode;
-extern display_split_mode_t display_split_mode;
-extern display_graphics_mode_t display_graphics_mode; */
 
 void force_display_update(cpu_state *cpu);
 void update_display(cpu_state *cpu);

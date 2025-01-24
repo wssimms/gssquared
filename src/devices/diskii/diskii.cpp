@@ -214,7 +214,7 @@ struct diskII_controller {
     uint8_t drive_select;
 };
 
-diskII_controller diskII_slot[8]; // slots 0-7. We'll never use 0 etc.
+//diskII_controller diskII_slot[8]; // slots 0-7. We'll never use 0 etc.
 
 #define DEBUG_PH(slot, drive, phase, onoff) fprintf(stdout, "slot %d, drive %d, phase %d, onoff %d \n", slot, drive, phase, onoff)
 #define DEBUG_MOT(slot, drive, onoff) fprintf(stdout, "slot %d, drive %d, motor %d \n", slot, drive, onoff)
@@ -255,7 +255,8 @@ uint8_t read_nybble(diskII& disk) { // cause a shift.
 #endif
 }
 
-void mount_diskII(uint8_t slot, uint8_t drive, media_descriptor *media) {
+void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor *media) {
+    diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
 
     // TODO: detect DOS 3.3 or ProDOS and set the interleave accordingly.
     // if filename ends in .po, use po_phys_to_logical and po_logical_to_phys.
@@ -298,6 +299,8 @@ void unmount_diskII(uint8_t slot, uint8_t drive) {
  */
 
 uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
+    diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
+
     uint16_t addr = address - 0xC080;
     int reg = addr & 0x0F;
     uint8_t slot = addr >> 4;
@@ -439,8 +442,9 @@ void diskII_write_C0xx(cpu_state *cpu, uint16_t address, uint8_t value) {
 }
 
 
-void diskII_init() {
+void diskII_init(cpu_state *cpu) {
     // clear out and reset all potential slots etc to sane states.
+    diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
 
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 2; j++) {
@@ -457,18 +461,20 @@ void diskII_init() {
             diskII_slot[i].drive[j].read_shift_register = 0; // when bit position = 0, this is 0. As bit_position increments, we shift in the next bit of the byte at head_position.
             diskII_slot[i].drive[j].head_position = 0; // index into the track
             diskII_slot[i].drive[j].mark_cycles_turnoff = 0; // when DRIVES OFF, set this to current cpu cycles. Then don't actually set motor=0 until one second (1M cycles) has passed. Then reset this to 0.
-
         }
         diskII_slot[i].drive_select = 0;
     }
 }
 
 void init_slot_diskII(cpu_state *cpu, uint8_t slot) {
+    diskII_controller * diskII_slot = new diskII_controller[8];
+    // set in CPU so we can reference later
+    set_module_state(cpu, MODULE_DISKII, diskII_slot);
 
     fprintf(stdout, "diskII_register_slot %d\n", slot);
 
     // clear out and reset all potential slots etc to sane states.
-    diskII_init();
+    diskII_init(cpu);
 
     uint16_t slot_base = 0xC080 + (slot * 0x10);
 

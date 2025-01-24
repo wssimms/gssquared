@@ -522,6 +522,7 @@ display_state_t::display_state_t() {
     display_page_num = DISPLAY_PAGE_1;
     display_page_table = &display_pages[display_page_num];
     flash_state = false;
+    flash_counter = 0;
 }
 
 void init_mb_device_display(cpu_state *cpu) {

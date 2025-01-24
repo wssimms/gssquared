@@ -2,6 +2,10 @@
 
 ## Project Status (as of 2025-01-18)
 
+* Supported Platforms
+  * MacOS - the primary development platform. This will always be up to date.
+  * Linux - initial build complete. So far everything is working except audio.
+  * Windows - Not started.
 * CPUs
   * NMOS 6502 - Complete.
   * CMOS 6502 - not started.

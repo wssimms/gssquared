@@ -19,12 +19,6 @@
 
 #include "cpu.hpp"
 
-/* extern uint16_t TEXT_PAGE_START;
-extern uint16_t TEXT_PAGE_END;
-extern uint16_t *TEXT_PAGE_TABLE;
-extern uint16_t TEXT_PAGE_1_TABLE[24];
-extern uint16_t TEXT_PAGE_2_TABLE[24]; */
-
 void txt_memory_write(cpu_state *, uint16_t , uint8_t );
 void update_flash_state(cpu_state *cpu);
 void render_text_scanline(cpu_state *cpu, int y, void *pixels, int pitch);

@@ -133,7 +133,7 @@ void handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
             return; 
         }
         if (key == SDLK_F8) {
-            toggle_speaker_recording();
+            toggle_speaker_recording(cpu);
             return;
         }
         if (key == SDLK_F7) {

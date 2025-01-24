@@ -148,12 +148,12 @@ void update_flash_state(cpu_state *cpu) {
     uint16_t *TEXT_PAGE_TABLE = display_page->text_page_table;
 
     // 2 times per second (every 30 frames), the state of flashing characters (those matching 0b01xxxxxx) must be reversed.
-    static int flash_counter = 0;
     
-    if (++flash_counter < 30) {
+    
+    if (++(ds->flash_counter) < 30) {
         return;
     }
-    flash_counter = 0;
+    ds->flash_counter = 0;
     ds->flash_state = !ds->flash_state;
 
     for (int y = 0; y < 24; y++) {

@@ -2176,7 +2176,12 @@ Thinking about this - color fringe effect on split screen text and lores/hires, 
 colored exactly as if they were hires pixels with hi bit always cleared.
 So architecturally, perhaps we paint everything into 560, and have a post-processing step that does
 the coloration, which would be the same for all modes. Have to ponder how lores fits into this scheme
-too, i.e., how are the pixels shifted there..
+too, i.e., how are the pixels shifted there.. don't have to post-process. just draw using the hi-res algo,
+but draw the data from the text matrix.
+
+There will be an "RGB Monitor" mode that will have no doubling of color hires pixels and no text fringe; and 
+composite mode that will fringe text and blue the color hires.
+
 
 ## Jan 20, 2025
 
@@ -2190,3 +2195,44 @@ All dislay rendering is now done with scanlines, i.e., an entire row of pixels h
 This moves loop inside the render function, saving a bunch of function calls. Also makes
 the API for a display handler consistent across all display types.
 
+of course, it wasn't a bug - I had a brief exchange with the SDL lead dev and he pointed out
+I needed to do SDL_RenderClear() every single frame. This is part of the GPU voodoo I don't have
+experience with. But now I do! A little anyway.
+
+## Jan 22, 2025
+
+
+There are SDL variables that can make the drawing even blurrier. Experiment with them.
+
+For the color-stretch mode, I'd say, if I draw a color dot and two dots to the left is the same color,
+fill in the middle dot with same color.
+I am also not sure about the drawing the white dot algorithm as it is. Review it and compare to other examples.
+
+Hi-res tweaks. "Composite" mode is drawing too many pixels I think. Instead of 2 pixels (4 dots) maybe do 1.5 pixels (3 dots)?
+letters like lowercase 'm' are completely filled in, and that's not quite right..
+
+So I'm trying the Introducing the Apple II disk. It said it was iie only. it's running on my II+-ish.
+it understands lowercase, but, they are reversed. shift-letter gives me lowercase. letter gives me uppercase.
+I bet that's because my keyboard routines are not converting to uppercase when I am holding shift. That's funny.
+up and down arrow don't work because I never mapped them. Can't play the rabbit game then!
+
+## Jan 23, 2025
+
+To get sound working on the Linux build:
+install libasound2-dev libpulse-dev
+and doing a cmake reconfigure. Works great with the $15 USB speaker I bought. That's just crazy, and fun. I remember how expensive sound cards used to be. And that didn't even include the speakers.
+
+Experimenting with window resizing. I have it constraining size to the correct aspect ratio, and, 
+modifying the scale factor in the renderer to match. Now test full screen mode. We'll toggle that
+based on the F3 key since I already have F11 used for something else.
+
+I think there is a bug in the lo-res code now where on switching to lo-res mode it's not dirtying the lines
+to force a redraw. At least, my lo-res apple is not being drawn on boot of some of these disks. Ah, it was
+a change in the code that reacts to writes to text memory. I "optimized" it to only do text updates
+in lower portion when in graphics mode. But needed to also check to hi-res mode.
+
+Full screen mode works but it allows use of the wrong aspect ratio. I think in fullscreen mode we need to 
+force the scale to match aspect ratio, then center content inside the fullscreen window.
+
+[ ] in game code, window_width and height need to read the actual window size, or, use some other method
+to constrain the mouse movement.

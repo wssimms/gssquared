@@ -19,11 +19,67 @@
 
 #include "cpu.hpp"
 
+
+#define SAMPLE_BUFFER_SIZE (4096)
+
+
+#define EVENT_BUFFER_SIZE 128000
+
+struct EventBuffer {
+    uint64_t events[EVENT_BUFFER_SIZE];
+    int write_pos;
+    int read_pos;
+    int count;
+
+    EventBuffer() : write_pos(0), read_pos(0), count(0) {}
+
+    bool add_event(uint64_t cycle) {
+        if (count >= EVENT_BUFFER_SIZE) {
+            return false; // Buffer full
+        }
+        
+        events[write_pos] = cycle;
+        write_pos = (write_pos + 1) % EVENT_BUFFER_SIZE;
+        count++;
+        return true;
+    }
+
+    bool peek_oldest(uint64_t& cycle) {
+        if (count == 0) {
+            return false; // Buffer empty
+        }
+        cycle = events[read_pos];
+        return true;
+    }
+
+    bool pop_oldest(uint64_t& cycle) {
+        if (count == 0) {
+            return false; // Buffer empty
+        }
+        
+        cycle = events[read_pos];
+        read_pos = (read_pos + 1) % EVENT_BUFFER_SIZE;
+        count--;
+        return true;
+    }
+};
+
+typedef struct speaker_state_t {
+    //cpu_state *cpu = NULL;
+    FILE *speaker_recording = NULL;
+    SDL_AudioDeviceID device_id = 0;
+    SDL_AudioStream *stream = NULL;
+    int device_started = 0;
+    int polarity = 1;
+    int16_t working_buffer[SAMPLE_BUFFER_SIZE];
+    EventBuffer event_buffer;
+} speaker_state_t;
+
 void init_mb_speaker(cpu_state *cpu);
-void toggle_speaker_recording();
+void toggle_speaker_recording(cpu_state *cpu);
 void dump_full_speaker_event_log();
 void dump_partial_speaker_event_log(uint64_t cycles_now);
-void speaker_start();
+void speaker_start(cpu_state *cpu);
 void speaker_stop();
 //void audio_generate_frame(cpu_state *cpu);
 void audio_generate_frame(cpu_state *cpu, uint64_t last_cycle_window_start, uint64_t cycle_window_start);

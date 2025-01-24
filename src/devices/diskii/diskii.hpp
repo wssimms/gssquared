@@ -38,4 +38,4 @@
 #define DiskII_Q7H 0x0F
 
 void init_slot_diskII(cpu_state *cpu, uint8_t slot);
-void mount_diskII(uint8_t slot, uint8_t drive, media_descriptor *media);
+void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor *media);

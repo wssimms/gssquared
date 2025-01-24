@@ -455,7 +455,7 @@ int main(int argc, char *argv[]) {
         mounted_media.push_back(media);
 
         if (disk_mount.slot == 6) {
-            mount_diskII(disk_mount.slot, disk_mount.drive, media);
+            mount_diskII(&CPUs[0], disk_mount.slot, disk_mount.drive, media);
         } else if (disk_mount.slot == 5) {
             mount_prodos_block(disk_mount.slot, disk_mount.drive, media);
         } else {
