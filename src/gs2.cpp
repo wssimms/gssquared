@@ -38,7 +38,7 @@
 #include "devices/speaker/speaker.hpp"
 #include "devices/loader.hpp"
 #include "devices/thunderclock_plus/thunderclockplus.hpp"
-#include "devices/diskii.hpp"
+#include "devices/diskii/diskii.hpp"
 #include "devices/diskii/diskii_fmt.hpp"
 #include "devices/languagecard/languagecard.hpp"
 #include "devices/prodos_block/prodos_block.hpp"
