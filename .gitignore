@@ -22,4 +22,4 @@ disk_images/*
 GSSquared.app/
 assets/img
 /Makefile
-!*/Makefile
+!src/devices/prodos_block/Makefile
