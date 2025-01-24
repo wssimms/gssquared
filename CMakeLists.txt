@@ -74,7 +74,7 @@ add_custom_target(prodos_block_firmware
 
 add_library(gs2_devices_prodos_block src/devices/prodos_block/prodos_block.cpp )
 
-add_library(gs2_devices_game src/devices/game/gamecontroller.cpp )
+add_library(gs2_devices_game src/devices/game/gamecontroller.cpp src/devices/game/mousewheel.cpp )
 
 add_dependencies(gs2_devices_prodos_block prodos_block_firmware)
 
@@ -82,7 +82,7 @@ target_include_directories(gs2_devices_prodos_block PRIVATE
     ${CMAKE_SOURCE_DIR}/src/devices/prodos_block
 )
 
-add_library(gs2_devices_diskii
+add_library(gs2_devices_diskii_fmt
     src/devices/diskii/diskii_fmt.cpp
     src/devices/diskii/diskii_fmt.cpp
 )
@@ -103,7 +103,7 @@ add_library(gs2_util src/util/media.cpp src/util/ResourceFile.cpp src/util/dialo
 add_executable(gs2 src/gs2.cpp src/bus.cpp src/clock.cpp src/debug.cpp src/cpu.cpp src/memory.cpp src/opcodes.cpp src/test.cpp 
     src/display/text_40x24.cpp src/display/lores_40x48.cpp src/display/hgr_280x192.cpp src/display/display.cpp
     src/devices/loader.cpp 
-    src/devices/diskii.cpp
+    src/devices/diskii/diskii.cpp
     src/platforms.cpp
     src/event_poll.cpp)
 
@@ -124,7 +124,7 @@ target_link_libraries(gs2
     PUBLIC gs2_cpu 
     gs2_devices_tcp 
     gs2_devices_keyboard 
-    gs2_devices_diskii 
+    gs2_devices_diskii_fmt 
     gs2_devices_languagecard 
     gs2_devices_prodos_block
     gs2_devices_speaker
