@@ -40,4 +40,27 @@
 #define GAME_AN3_OFF 0xC05E
 #define GAME_AN3_ON  0xC05F
 
+enum game_input_type {
+    GAME_INPUT_TYPE_MOUSE = 0,
+    GAME_INPUT_TYPE_MOUSEWHEEL,
+    GAME_INPUT_TYPE_GAMEPAD,
+    NUM_GAME_INPUT_TYPES
+};
+
+typedef struct gamec_state_t {
+    enum game_input_type gtype[4];
+
+    int game_switch_0;
+    int game_switch_1;
+    int game_switch_2;
+
+    int game_input_trigger_0;
+    int game_input_trigger_1;
+    int game_input_trigger_2;
+    int game_input_trigger_3;
+
+    int mouse_wheel_pos_0; // only one wheel per mouse.
+    int paddle_flip_01;
+} gamec_state_t;
+
 void init_mb_game_controller(cpu_state *cpu);

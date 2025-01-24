@@ -90,6 +90,7 @@ namespace cpu_65c02 {
 typedef enum {
     MODULE_DISPLAY = 0,
     //MODULE_SPEAKER,
+    MODULE_GAMECONTROLLER,
     MODULE_NUM_MODULES
 } module_id_t;
 

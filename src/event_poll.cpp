@@ -21,6 +21,7 @@
 #include "cpu.hpp"
 #include "devices/keyboard/keyboard.hpp"
 #include "display/display.hpp"
+#include "devices/game/mousewheel.hpp"
 
 // Base dimensions for aspect ratio calculation
 #define WIN_BASE_WIDTH 560
@@ -66,6 +67,10 @@ void event_poll(cpu_state *cpu) {
             case SDL_EVENT_MOUSE_BUTTON_DOWN:
                 display_capture_mouse(cpu, true);
                 //SDL_SetWindowRelativeMouseMode(cpu->window, true);
+                break;
+
+            case SDL_EVENT_MOUSE_WHEEL:
+                handle_mouse_wheel(cpu, event.wheel.y);
                 break;
         }
     }
