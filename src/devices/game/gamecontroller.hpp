@@ -44,6 +44,7 @@ enum game_input_type {
     GAME_INPUT_TYPE_MOUSE = 0,
     GAME_INPUT_TYPE_MOUSEWHEEL,
     GAME_INPUT_TYPE_GAMEPAD,
+    GAME_INPUT_TYPE_JOYSTICK,
     NUM_GAME_INPUT_TYPES
 };
 
@@ -61,6 +62,9 @@ typedef struct gamec_state_t {
 
     int mouse_wheel_pos_0; // only one wheel per mouse.
     int paddle_flip_01;
+    SDL_Joystick *joystick0;
 } gamec_state_t;
 
 void init_mb_game_controller(cpu_state *cpu);
+void joystick_added(cpu_state *cpu, SDL_Event *event);
+void joystick_removed(cpu_state *cpu, SDL_Event *event);

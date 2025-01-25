@@ -2236,3 +2236,14 @@ force the scale to match aspect ratio, then center content inside the fullscreen
 
 [ ] in game code, window_width and height need to read the actual window size, or, use some other method
 to constrain the mouse movement.
+
+## Jan 24, 2025
+
+The new gamepad arrived. This one is bluetooth and wired (supposedly). Compatible with everything supposedly. Works
+on the Mac. I have it coded in to GS2 and it's working well. One notable thing, is if you go straight horizontal or vertical, it will scale to +/- 32767. IF you go diagonal, it will scale to +/- 21845. The range of motion on the joystick is actually circular, whereas on the original apple II joystick it was square. I get the rationale here, my recollection is that the Apple II stick would sometimes get bound up in the corners.
+
+This thing has a crazy number of controls. There are like throttle buttons on each side, that are pressure-sensitive (i.e.
+scale depending on how far you depress them). Four X / Y / A / B buttons. And of course the four-way nintendo style + control. I am unclear on how button mappings work, and it is possible I will have to switch to the "gamepad" API which supposedly handles all the axis and button mapping stuff for you. Look into that more.
+
+But I have successfully played the ole Choplifter with it. It's a lot easier with a proper joystick, even if it is
+tiny compared to my original II stick, which I really miss. (Those things were great).

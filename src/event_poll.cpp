@@ -22,6 +22,7 @@
 #include "devices/keyboard/keyboard.hpp"
 #include "display/display.hpp"
 #include "devices/game/mousewheel.hpp"
+#include "devices/game/gamecontroller.hpp"
 
 // Base dimensions for aspect ratio calculation
 #define WIN_BASE_WIDTH 560
@@ -42,6 +43,7 @@ void handle_window_resize(cpu_state *cpu, int new_w, int new_h) {
 }
 
 // Loops until there are no events in queue waiting to be read.
+static SDL_Joystick *joystick = NULL;
 
 void event_poll(cpu_state *cpu) {
     SDL_Event event;
@@ -71,6 +73,13 @@ void event_poll(cpu_state *cpu) {
 
             case SDL_EVENT_MOUSE_WHEEL:
                 handle_mouse_wheel(cpu, event.wheel.y);
+                break;
+            case SDL_EVENT_JOYSTICK_ADDED:
+                /* this event is sent for each hotplugged stick, but also each already-connected joystick during SDL_Init(). */
+                joystick_added(cpu, &event);
+                break;
+            case SDL_EVENT_JOYSTICK_REMOVED:
+                joystick_removed(cpu, &event);
                 break;
         }
     }
