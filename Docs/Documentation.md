@@ -33,7 +33,7 @@
   * .po - read only, 143K.
   * .hdv - any size block device, read/write, complete.
   * .2mg - read/write, for block devices, complete.
-  * .nib - not started.
+  * .nib - read only, 143K.
   * .woz - not started.
 * Sound - Complete and cycle accurate for 1MHz operation. Will need tweaking to work at higher CPU speeds.
 * I/O Devices
