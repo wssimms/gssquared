@@ -61,6 +61,10 @@ uint8_t memory_bus_read(cpu_state *cpu, uint16_t address) {
         } else return 0xEE;
     }
     if (address >= 0xC100 && address < 0xC800) { // Slot-card firmware.
+        uint8_t slot = (address / 0x100) & 0x7;
+        if (cpu->C8xx_slot != slot) {
+            call_C8xx_handler(cpu, slot);
+        }
         return raw_memory_read(cpu, address);
     }
     return 0xEE; /* TODO: should return a random value 'floating bus'*/
@@ -72,6 +76,13 @@ void memory_bus_write(cpu_state *cpu, uint16_t address, uint8_t value) {
     }
     if (address >= 0x2000 && address <= 0x5FFF) {
         hgr_memory_write(cpu, address, value);
+    }
+    if (address == 0xCFFF) {
+        cpu->C8xx_slot = 0xFF;
+        for (uint8_t page = 0; page < 8; page++) {
+            memory_map_page_both(cpu, page + 0xC8, cpu->main_ram_64 + (page + 0xC8) * 0x100, MEM_ROM);
+        }
+        return;
     }
     if (address >= C0X0_BASE && address < C0X0_BASE + C0X0_SIZE) {
         memory_write_handler funcptr =  C0xx_memory_write_handlers[address - C0X0_BASE];
