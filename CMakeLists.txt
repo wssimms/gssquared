@@ -35,6 +35,14 @@ if(APPLE)
         DEPENDS gs2
     )
     
+    # Add DMG creation target
+    add_custom_target(create-dmg
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/tmp/dmg_contents
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/packages/GSSquared.app ${CMAKE_BINARY_DIR}/tmp/dmg_contents/GSSquared.app
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/README.md ${CMAKE_BINARY_DIR}/tmp/dmg_contents/README.md
+        COMMAND hdiutil create -volname "GSSquared" -srcfolder ${CMAKE_BINARY_DIR}/tmp/dmg_contents -ov -format UDZO ${CMAKE_BINARY_DIR}/packages/GSSquared.dmg
+        DEPENDS mac-package
+    )
 endif()
 
 # Add SDL as a subdirectory and configure it
@@ -152,8 +160,7 @@ add_subdirectory(apps/diskid)
 target_include_directories(gs2 PRIVATE
     ${CMAKE_SOURCE_DIR}/src
 )
-
 # Meta-target that builds all packages
 add_custom_target(packages
-    DEPENDS mac-package mac-cli-package
+    DEPENDS mac-package mac-cli-package create-dmg
 )
