@@ -43,6 +43,7 @@
 #include "devices/languagecard/languagecard.hpp"
 #include "devices/prodos_block/prodos_block.hpp"
 #include "devices/game/gamecontroller.hpp"
+#include "devices/memoryexpansion/memexp.hpp"
 #include "platforms.hpp"
 #include "util/media.hpp"
 #include "util/dialog.hpp"
@@ -433,7 +434,8 @@ int main(int argc, char *argv[]) {
     init_slot_thunderclock(&CPUs[0],1);
     init_slot_diskII(&CPUs[0],6);
     init_prodos_block(&CPUs[0], 5);
-    
+    init_slot_memexp(&CPUs[0], 4);
+
     cpu_reset(&CPUs[0]);
 
     std::vector<media_descriptor *> mounted_media;
