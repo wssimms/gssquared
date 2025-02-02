@@ -2360,3 +2360,10 @@ That is pretty wild.
 
 This document is implying that it stores the extra 0 bits in a track stream in the sync nibbles. Will need to find a .woz 
 image of some crazy copy protected disk to test this. (And review with Applesauce).
+
+## Feb 2, 2025
+
+So I have some various stuff working to support the Apple II Memory Expansion Card.
+The C8xx mapping, for one, and CFFF de-mapping.
+Booting ProDOS, is causing a hang. I must have done something wrong. I will manually exercise
+the 'hardware' to test.
