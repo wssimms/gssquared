@@ -323,7 +323,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (gs2_app_values.console_mode) {
-        gs2_app_values.base_path = "./";
+        gs2_app_values.base_path = "./resources/";
     } else {
         gs2_app_values.base_path = SDL_GetBasePath();
     }

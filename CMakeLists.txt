@@ -19,13 +19,22 @@ if(APPLE)
     
     # Custom target for creating Mac app bundle
     add_custom_target(mac-package
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/GSSquared.app/Contents/MacOS
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/GSSquared.app/Contents/Resources
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gs2> ${CMAKE_BINARY_DIR}/GSSquared.app/Contents/MacOS/
-        COMMAND ${CMAKE_COMMAND} -E copy ${APP_ICON_MACOSX} ${CMAKE_BINARY_DIR}/GSSquared.app/Contents/Resources/
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/resources/Info.plist ${CMAKE_BINARY_DIR}/GSSquared.app/Contents/
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/MacOS
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gs2> ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/MacOS/
+        COMMAND ${CMAKE_COMMAND} -E copy ${APP_ICON_MACOSX} ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/roms
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/roms ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/roms
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/Info.plist ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/
         DEPENDS gs2
     )
+    add_custom_target(mac-cli-package ALL
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/roms
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/roms ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/roms
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gs2> ${CMAKE_BINARY_DIR}/packages/mac-cli/
+        DEPENDS gs2
+    )
+    
 endif()
 
 # Add SDL as a subdirectory and configure it
@@ -95,6 +104,8 @@ add_library(gs2_devices_keyboard     src/devices/keyboard/keyboard.cpp )
 
 add_library(gs2_devices_speaker     src/devices/speaker/speaker.cpp )
 
+add_library(gs2_devices_memexp     src/devices/memoryexpansion/memexp.cpp )
+
 add_library(gs2_cpu src/cpus/cpu_6502.cpp src/cpus/cpu_65c02.cpp )
 
 add_library(gs2_util src/util/media.cpp src/util/ResourceFile.cpp src/util/dialog.cpp )
@@ -129,6 +140,7 @@ target_link_libraries(gs2
     gs2_devices_prodos_block
     gs2_devices_speaker
     gs2_devices_game
+    gs2_devices_memexp
     gs2_util
 )
 
@@ -139,4 +151,9 @@ add_subdirectory(apps/diskid)
 # Update the executable's include directories to remove redundant paths
 target_include_directories(gs2 PRIVATE
     ${CMAKE_SOURCE_DIR}/src
+)
+
+# Meta-target that builds all packages
+add_custom_target(packages
+    DEPENDS mac-package mac-cli-package
 )

@@ -104,7 +104,7 @@ void init_slot_memexp(cpu_state *cpu, uint8_t slot) {
     memexp_d->data = new uint8_t[MEMEXP_SIZE];
     memexp_d->addr = 0;
 
-    ResourceFile *rom = new ResourceFile("resources/cards/memexp/memexp.rom", READ_ONLY);
+    ResourceFile *rom = new ResourceFile("roms/cards/memexp/memexp.rom", READ_ONLY);
     if (rom == nullptr) {
         fprintf(stderr, "Failed to load memexp.rom\n");
         return;
