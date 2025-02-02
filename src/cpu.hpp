@@ -92,6 +92,7 @@ typedef enum {
     MODULE_SPEAKER,
     MODULE_GAMECONTROLLER,
     MODULE_DISKII,
+    MODULE_MEMEXP,
     MODULE_NUM_MODULES
 } module_id_t;
 
@@ -179,6 +180,10 @@ struct cpu_state {
     uint8_t *main_rom_D0 = nullptr;
 
     memory_map *memory;
+
+    int8_t C8xx_slot;
+    void (*C8xx_handlers[8])(cpu_state *cpu) = {nullptr};
+
     uint64_t last_tick;
     uint64_t next_tick;
     uint64_t clock_slip = 0;
