@@ -258,21 +258,25 @@ uint8_t read_nybble(diskII& disk) { // cause a shift.
 void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor *media) {
     diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
 
-    // TODO: detect DOS 3.3 or ProDOS and set the interleave accordingly.
+    // Detect DOS 3.3 or ProDOS and set the interleave accordingly done by identify_media
     // if filename ends in .po, use po_phys_to_logical and po_logical_to_phys.
     // if filename ends in .do, use do_phys_to_logical and do_logical_to_phys.
     // if filename ends in .dsk, use do_phys_to_logical and do_logical_to_phys.
+    if (media->media_type == MEDIA_PRENYBBLE) {
+        // Load nib format image directly into diskII structure.
+        load_nib_image(diskII_slot[slot].drive[drive].nibblized, media->filename);
+    } else {
+        if (media->interleave == INTERLEAVE_PO) {
+            memcpy(diskII_slot[slot].drive[drive].nibblized.interleave_phys_to_logical, po_phys_to_logical, sizeof(interleave_t));
+            memcpy(diskII_slot[slot].drive[drive].nibblized.interleave_logical_to_phys, po_logical_to_phys, sizeof(interleave_t));
+        } else if (media->interleave == INTERLEAVE_DO) {
+            memcpy(diskII_slot[slot].drive[drive].nibblized.interleave_phys_to_logical, do_phys_to_logical, sizeof(interleave_t));
+            memcpy(diskII_slot[slot].drive[drive].nibblized.interleave_logical_to_phys, do_logical_to_phys, sizeof(interleave_t));
+        }
 
-    if (media->interleave == INTERLEAVE_PO) {
-        memcpy(diskII_slot[slot].drive[drive].nibblized.interleave_phys_to_logical, po_phys_to_logical, sizeof(interleave_t));
-        memcpy(diskII_slot[slot].drive[drive].nibblized.interleave_logical_to_phys, po_logical_to_phys, sizeof(interleave_t));
-    } else if (media->interleave == INTERLEAVE_DO) {
-        memcpy(diskII_slot[slot].drive[drive].nibblized.interleave_phys_to_logical, do_phys_to_logical, sizeof(interleave_t));
-        memcpy(diskII_slot[slot].drive[drive].nibblized.interleave_logical_to_phys, do_logical_to_phys, sizeof(interleave_t));
+        load_disk_image(diskII_slot[slot].drive[drive].media, media->filename); // pull this into diskii stuff somewhere.
+        emit_disk(diskII_slot[slot].drive[drive].nibblized, diskII_slot[slot].drive[drive].media, 0xFE);
     }
-
-    load_disk_image(diskII_slot[slot].drive[drive].media, media->filename); // pull this into diskii stuff somewhere.
-    emit_disk(diskII_slot[slot].drive[drive].nibblized, diskII_slot[slot].drive[drive].media, 0xFE);
 }
 
 void unmount_diskII(uint8_t slot, uint8_t drive) {

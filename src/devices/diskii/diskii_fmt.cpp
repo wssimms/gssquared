@@ -330,6 +330,21 @@ int load_disk_image(disk_image_t& disk_image, const char *filename) {
     return 0;
 }
 
+int load_nib_image(nibblized_disk_t& disk, const char *filename) {
+    FILE *fp = fopen(filename, "rb");
+    if (!fp) {
+        printf("Could not open %s\n", filename);
+        return -1;
+    }
+
+    for (int t = 0; t < TRACKS_PER_DISK; t++) {
+        fread(disk.tracks[t].data, 1, TRACK_MAX_SIZE, fp);
+    }
+
+    fclose(fp);
+    return 0;
+}
+
 void write_sector_62(sector_62_t& s62, const char *filename) {
     FILE *out_fp = fopen(filename, "wb");
     if (!out_fp) {
