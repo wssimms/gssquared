@@ -2240,10 +2240,123 @@ to constrain the mouse movement.
 ## Jan 24, 2025
 
 The new gamepad arrived. This one is bluetooth and wired (supposedly). Compatible with everything supposedly. Works
-on the Mac. I have it coded in to GS2 and it's working well. One notable thing, is if you go straight horizontal or vertical, it will scale to +/- 32767. IF you go diagonal, it will scale to +/- 21845. The range of motion on the joystick is actually circular, whereas on the original apple II joystick it was square. I get the rationale here, my recollection is that the Apple II stick would sometimes get bound up in the corners.
+on the Mac. I have it coded in to GS2 and it's working well. One notable thing, is if you go straight horizontal or vertical, it will scale to +/- 32767. IF you go diagonal, it will scale to +/- 24000 or so. The range of motion on the joystick is actually circular, whereas on the original apple II joystick it was square. I get the rationale here, my recollection is that the Apple II stick would sometimes get bound up in the corners.
 
 This thing has a crazy number of controls. There are like throttle buttons on each side, that are pressure-sensitive (i.e.
 scale depending on how far you depress them). Four X / Y / A / B buttons. And of course the four-way nintendo style + control. I am unclear on how button mappings work, and it is possible I will have to switch to the "gamepad" API which supposedly handles all the axis and button mapping stuff for you. Look into that more.
 
 But I have successfully played the ole Choplifter with it. It's a lot easier with a proper joystick, even if it is
 tiny compared to my original II stick, which I really miss. (Those things were great).
+
+This had some sample code that helped me get started.
+
+https://blog.rubenwardy.com/2023/01/24/using_sdl_gamecontroller/
+
+
+## Jan 25, 2025
+
+This doc has a pretty useful description of the hi-res circuitry.
+
+"Apple II Circuit Description"
+https://ia902301.us.archive.org/31/items/apple-ii-circuit-description/Image081317140426.merged.pdf
+
+also the game controller stuff. That is extremely simple. I am pondering building paddles.
+
+Need to re-do the gamecontroller logic to use the GameController API instead. This will help ensure compatibility with many different gamepad controller devices.
+
+Interesting thought: map the nintendo style + control to A Z ARROWS or IJKL as an option. If we put a single game onto a floppy, that disk image could have
+metadata to indicate what the controller - keyboard mapping should be. That is actually some hot stuff right there. Define some sort of metadata format.
+Probably JSON, easy to store and generate and work with.
+
+Other metadata: minimum system requirements. 
+
+## Jan 27, 2025
+
+had an idea. Do a "screen shot" key, that will dump $2000 to $3FFF to a file. Then we can write a hi-res tester that will much more easily
+allow us to test hi-res rendering. Like what I did with the audio recording and test stuff. Yah baby.
+
+## Jan 30, 2025
+
+looking at the disk II code. The program Applesauce actually visualizes a disk image showing the sectors, data, etc.
+There are some interesting differences in how mine looks versus their nibblization. First off, they show stuff on the quarter tracks.
+Like, why. Overall, my image is darker. Probably because of the quarter track thing. Anyway.
+Their nibblization has the following differences to mine:
+They have more Sync A bytes than I do. 120 vs 80.
+They have FEWER Sync B bytes. 6 vs 10.
+Fewer Sync C than me. 17 vs 20.
+Of course, in their thing, they display the sync bytes as 10 bit. Is that relevant to anything?
+That said, their gap duration is a bit LONGER than mine - 657 microseconds vs 626. This is because of the 10-bit thing.
+Perhaps I should *extend* my gaps a bit to make them the same number of microseconds. It's possible code isn't getting back
+to this part of the read loop fast enough, and skipping. Though that would feel like 'stop working' entirely since it would
+be exactly the same each time. Something to consider.
+
+I found a "blank.nib" file. That image does not look like clean conical slices. Every track is skewed relative to the last one.
+Inside a single track I'm fine. When we skip to the next track, we might have to wait a whole revolution. Whereas a regular inited
+disk is probably more like the skewed version (blank.nib) because there is no sector alignment on the Apple II. And that
+might affect performance. This would be implemented by starting the next track at the current location, and wrapping
+the write position around based on wherever the virtual head is. NOT resetting to 0. This would really depend on the specific
+init process used on a disk.
+
+Looking at "DOS 3.3 System Master.woz" which is another nibblied format - that DOES track the 10-bit vs 8-bit thing.
+These sectors are lined up in clean cones. And it has the quarter tracks too. Of course, .woz does not imply nibblized.
+It can contain other formats too.
+
+I think another difference between mine and the others, is that the blank space at the end of a track is all 0's in my image.
+And the gap is large - it amounts to almost an entire sector width.
+
+In blank.nib, the tracks are exactly 0x1A00 long as in mine. But, their tracks definitely do not always start with a sync gap.
+```
+0019F0: FF FF FF FF  FF FF FF FF  FF FF FF FF  FF FF FF FF  . . . . . . . . . . . . . . . .
+001A00: B2 B7 CE B2  B7 CE A6 E7  D9 AF 9B A6  E6 DA AE 9A  . . . . . . . . . . . . . . . .
+001A10: DC D9 9B 9A  CB CE B2 B7  CE FE F9 9B  AC DA DE AA  . . . . . . . . . . . . . . . .
+001A20: EB FF EB FF  FE FF FF FF  FF FF FF FF  FF FF FF FF  . . . . . . . . . . . . . . . .
+```
+
+We go from sync bytes directly into some data. Then sync pattern later. This is what generates the skewed pattern we see.
+
+This is being triggered by how much faster an image seems to boot up in apple2ts. I should time the same image in both
+a2ts and gs2. Do that tomorrow when I'm not yawning.
+
+Walking through the tracks in blank.nib one by one, each track starts with a different sector. F, then E, then D, etc.
+
+[ ] So, those two things to try: (1) pad out the sector gaps to make their uS duration similar to these other nibs; and do the skew
+thing. And if there are any bytes left, we should pad out with FF instead of with 00. (2) try just jumping to next track at
+same byte index, instead of resetting to 0.
+
+I did a fair bit of work today, on arqyv. Got the vm setup, got asimov mirrored. There are other sites to mirror. I'm going to
+need a lot more storage for those, likely (I'd prefer to just host here but Xfinity upload is too slow). If I ever get fiber again
+I can self-host it.
+
+So I can test this by d/l some nib format disks that are done this way and see how fast they are.
+
+## Jan 31, 2025
+
+So, add .nib support to the diskii routines.
+
+Kaves of Karkhan seems to boot and play. It's a copy-protected disk that uses AB as the sync byte instead of FF.
+There may be other differences too. But, the emulation works well enough to do this!
+
+## Feb 1, 2025
+
+The .Woz format document has some very interesting and useful info about copy protection schemes. And about the hardware.
+Take-aways:
+
+https://applesaucefdc.com/woz/reference1/
+
+"Every soft switch on an even address should actually return the value of the data latch."
+
+Also, "1 second delay after accessing the drive motor off" at $C088,X needs to be implemented.
+
+We might need a concept that the virtual disk is spinning underneath the head. E.g., each time we're read, check the CPU
+cycle count and move the virtual head position accordingly. 4uS per bit.
+
+Also, "When you do change tracks, you need to start the new bitstream at the same relative bitstream position – you cannot simply start the pointer at the beginning of the stream. You need to maintain the illusion of the head being over the same area of the disk, just shifted to a new track."
+
+This is for copy protection purposes. Finally,
+
+"Now that we are back to having long runs of 0s in the bitstream, we now need to emulate the MC3470 freaking out about them. The recommended method is that once we have passed three 0 bits in a row from the WOZ bitstream to the emulated disk controller card, we need to start passing in random bits until the WOZ bitstream contains a 1 bit. We then send the 1 and continue on with the real data."
+
+That is pretty wild. 
+
+This document is implying that it stores the extra 0 bits in a track stream in the sync nibbles. Will need to find a .woz 
+image of some crazy copy protected disk to test this. (And review with Applesauce).
