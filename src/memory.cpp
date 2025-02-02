@@ -83,6 +83,10 @@ void write_memory(cpu_state *cpu, uint16_t address, uint8_t value) {
         memory_bus_write(cpu, address, value);
         return;
     }
+    if (address == 0xCFFF) { // maybe we should always mark these as MEM_IO
+        memory_bus_write(cpu, address, value);
+        return;
+    }
     
     // ROM and "write protected RAM", don't write
     if (!cpu->memory->page_info[page].can_write) {
@@ -135,4 +139,24 @@ uint8_t read_byte_from_pc(cpu_state *cpu) {
     uint8_t opcode = read_byte(cpu, cpu->pc);
     cpu->pc++;
     return opcode;
+}
+
+void memory_map_page_both(cpu_state *cpu, uint16_t page, uint8_t *data, memory_type type) {
+    if (page > 0xFF) { // TODO: this is a bounds check hack for now. Must read number of pages somewhere.
+        return;
+    }
+    cpu->memory->page_info[page].type = type;
+    cpu->memory->pages_read[page] = data;
+    cpu->memory->pages_write[page] = data;
+}
+
+void register_C8xx_handler(cpu_state *cpu, uint8_t slot, void (*handler)(cpu_state *cpu)) {
+    cpu->C8xx_handlers[slot] = handler;
+}
+
+void call_C8xx_handler(cpu_state *cpu, uint8_t slot) {
+    if (cpu->C8xx_handlers[slot] != nullptr) {
+        cpu->C8xx_handlers[slot](cpu);
+    }
+    cpu->C8xx_slot = slot;
 }

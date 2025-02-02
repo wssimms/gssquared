@@ -36,4 +36,7 @@ void write_byte(cpu_state *cpu, uint16_t address, uint8_t value);
 void write_word(cpu_state *cpu, uint16_t address, uint16_t value);
 void store_byte(cpu_state *cpu, uint16_t address, uint8_t value);
 void store_word(cpu_state *cpu, uint16_t address, uint16_t value);
- uint8_t read_byte_from_pc(cpu_state *cpu);
+uint8_t read_byte_from_pc(cpu_state *cpu);
+void memory_map_page_both(cpu_state *cpu, uint16_t page, uint8_t *data, memory_type type);
+void register_C8xx_handler(cpu_state *cpu, uint8_t slot, void (*handler)(cpu_state *cpu));
+void call_C8xx_handler(cpu_state *cpu, uint8_t slot);
