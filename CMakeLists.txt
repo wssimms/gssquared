@@ -45,8 +45,12 @@ if(APPLE)
     )
 endif()
 
+# Scope shared libs around SDL and then turn it back off!!!
+set(BUILD_SHARED_LIBS ON)
 # Add SDL as a subdirectory and configure it
 add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
+#add_subdirectory(vendored/SDL_image EXCLUDE_FROM_ALL)
+set(BUILD_SHARED_LIBS OFF)
 
 # Set output directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
