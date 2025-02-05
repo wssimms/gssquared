@@ -2367,3 +2367,12 @@ So I have some various stuff working to support the Apple II Memory Expansion Ca
 The C8xx mapping, for one, and CFFF de-mapping.
 Booting ProDOS, is causing a hang. I must have done something wrong. I will manually exercise
 the 'hardware' to test.
+
+## Feb 4, 2025
+
+So, when there are things that are about to happen that we know will suck up a bunch of time (for example, opening a file dialog), we can Pause the audio stream until that call has completed. Other things in this realm would be, loading a floppy disk image.
+
+After opening a file dialog, our window is no longer in focus. I have to click to bring it into focus, then click again to open the dialog again.
+
+The dialog thing is only callable from the main thread. So we're back to considering, is this fine, or, do we need to put the CPU and audio into their own threads, to prevent stuff like this from interfering with the (one, really) realtime aspect to the software?
+

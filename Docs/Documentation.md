@@ -13,6 +13,7 @@
 * Keyboard - Complete.
 * Memory Expansion
   * Language Card - Complete.
+  * Apple II Memory Expansion Card - Complete.
 * Display Modes
   * Text
     * 40-column text mode - Complete. Supports normal, inverse, and flash; Screen 1 and 2.
@@ -109,45 +110,6 @@ slow down the clock.
 
 This is required for DOS 3.3 compatibility.
 
-### SmartPort / ProDOS Block-Device Interface
-
-SmartPort became a standard for: 5.25" drives, 3.5" drives, and some hard disk drives,
-for the ProDOS operating system.
-
-It is documented in the Apple IIgs Technical Reference Manual, chapter 7.
-
-$Cn01 - $20
-$Cn03 - $00
-$Cn05 - $03
-$Cn07 - $00 - "SmartPort Signature Byte"
-$CnFB - ?? - SmartPort ID Type Byte
-
-bit 7: extended
-Bits 6-2: Reserved
-Bit 1: SCSI
-Bit 0: RAM Card
-
-The ProDOS Dispatch address is at $CnFF. That byte indicates the address of the
-dispatch routine. if VV = value at $CnFF, then the ProDOS dispatch routine is at $CnVV.
-The SmartPort dispatch address is 3 bytes past that. 
-
-Both the Apple 3.5 Disk and the UniDisk 3.5 have the ability to override various
-internal routines, such as scanning for sector headers, etc. This was done to enable
-copy protection. We don't need to implement this. We will implement a generic UniDisk 3.5
-interface to simulate an 800K floppy. Attempts to call SetHook will just return an error.
-
-Our primary goal here is to support a simple block device interface, the fastest way to get
-disk storage on here so we can boot ProDOS < 2.0. on my apple II+.
-
-Some info is at:
-https://mirrors.apple2.org.za/Apple%20II%20Documentation%20Project/Companies/Apple/Documentation/Apple%20II%20Technical%20Notes%201989-09.pdf
-
-(Apple II Technical Notes)
-
-We would want to support this using ParaVirtualization. We will 'notice' and capture any JSR DISPATCH
-instructions. Then instead of performing the normal instruction emulation, we will instead call
-our paravirtual routines.
-
 
 ### RAMfast SCSI Interface
 
@@ -160,67 +122,6 @@ make more sense).
 
 There is a standardized device interface that ProDOS supports, called Pascal. This may be what
 became known as the SmartPort / ProDOS block-device interface. See above.
-
-
-## Other Devices
-
-### Thunderclock
-
-From "ThunderClock_Plus.pdf"
-
-For direct hardware access to a TCP (ThunderClock Plus):
-
-* Raise strobe for at least 40uS.
-  * CREG is 0xC0S0 (where S is slot number plus 8).
-  * Set bit STB (bit 2, value 0x04) high, and store the command plus the STB bit to card.
-  * Then set same value back with the STB low.
-* Then the data to be shifted out is 10 nibbles worth, 4 bits each.
-  * Seems like the high bit (bit 7) of CREG. Code does:
-
-CLK = $2
-STB = $4
-
-uPD1990AC hookup:
-	bit 0 = data in (to clock)
-	bit 1 = CLK
-	bit 2 = STB
-	bit 3 = C0
-	bit 4 = C1
-	bit 5 = C2
-	bit 7 = data out (to cpu)
-
-  LDA CREG,Y
-  ASL  ; data out bit to carry
-  ROR TEMP2 ; carry into bit 7 of TEMP2
-
-They call pushing data the the clock "IN". Reading data from the clock is "OUT".
-
-Reads the in bit. Sets the out bit.
-Then raises and lowers the clock.
-TIMRD = $18 - this puts it into read mode.
-They just use the same routine for both IN and OUT, depending on the mode.
-How weird.
-
-SO.
-
-When we get the strobe plus command $18, (bits 0b0001 1100):
-* calculate current time values, store into a 40-bit buffer.
-* each cycle where they then read and tick the clock, shift that
-* the 'read' just reads either the lowest or the highest bit, whichever it is.
-
-nibble 0: month (1 - 12 binary)
-nibble 1: day of week (0 - 6 BCD)
-nibble 2: date (tens place, 0-3 BCD)
-nibble 3: date units (0-9 BCD)
-nibble 4: hour (tens place, 0-2 BCD)
-nibble 5: hour units (0-9 BCD)
-nibble 6: minute (tens place, 0-5 BCD)
-nibble 7: minute units (0-9 BCD)
-nibble 8: second (tens place, 0-5 BCD)
-nibble 9: second units (0-9 BCD)
-
-So we need state tracking of the strobe; and state tracking of the 'clock' bit.
-
 
 # Building
 
