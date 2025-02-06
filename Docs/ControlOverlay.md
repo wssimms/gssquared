@@ -111,3 +111,131 @@ I am hoping SDL3 will take care of the operating system file picker stuff in a s
 
 When we detect infinite loop, don't crash out of the emulator.  Infinite loop is defined as "an instruction that jumps precisely to itself". Anything else is waiting for an event, like an interrupt.
 
+Instead of choosing slot as a list, we could drag and drop a slot card image onto a slot.? could be fun.
+
+# Overlay Drawing
+
+
+I see talk of pipelines. I think these are basically lists (arrays) of drawing commands to execute. Done as a data structure, so that you don't have to draw as a sequences of lines of code, but rather, executing a sort of virtual program.
+
+So, let's think about the primitives we need.
+
+1. Slot label
+1. Drive Icon
+
+
+So we want the Drive Icon to be in a tile that's a little bigger than the icon itself. And that tile background will be drawn in different colors depending on the cursor hover state. (Hover as determined by mouse position - should make it so this works during drag and drop).
+
+Second, Disk Running vs Disk Stopped. There will be some state. First, that state needs to be read from the diskII routines. The DiskII should have a method to query the state, and update it in our Drive Icon. I could draw this by just modifying the light. But it's just as easy to draw the whole thing. The entire thing is drawn anyway.
+
+Third, the drive number. Label Drive 1 and Drive 2 accordingly.
+
+Then we can draw the drive. So there are two steps:
+* draw background
+* draw drive
+
+There is additional state: the X and Y coordinates of the tile. The drive itself can be sized, and centered in the tile.
+
+## Containers
+
+We have a Container object. The Container holds:
+* List of Tiles
+* X, Y and W, H
+* Background Color
+* Layout direction (left to right / right to left; top to bottom / bottom to top).
+* Padding between tiles.
+* Visible - boolean - whether container is visible or not.
+* Active - boolean - whether a container and the tiles inside it are active (should allow interaction) or not.
+
+The purposes of a Container are:
+* grouping similar types of tiles, in a grid pattern
+* reducing the number of tiles that need to be checked for activity. Two levels: first the Container bounds, then the tile bounds.
+* render a variety of complex things with a single call.
+
+The Container will then lay out the elements inside it on a grid according to the layout direction. Get the largest W/H of any tile inside it. That controls the grid spacing. Then position the X,Y coords of each tile. Leaving the width and height separately. (Or, set by the child class).
+
+Container data structures will be created/modified on:
+* App startup
+* when a profile is loaded
+* a profile is edited
+* A disk image is mounted or unmounted.
+
+You will want to use Tiles of roughly similar size and shape inside a given container. 
+
+Tiles in a Container are drawn in the order they were added to the container.
+
+Containers are drawn in the order they were added to the Container list.
+
+## Tile
+
+A base Tile object is
+* Border color
+* Border width
+* X, Y
+* Width, Height
+* Background Color
+* Hover Action
+* Active / Inactive. Inactive = drawn grayed out and do not allow interaction.
+* Visible / Invisible. Keep place in list, but, treat as if it wasn't there for purposes of layout.
+* Click Callback
+
+### Drive Tile
+
+There is a Drive Tile Object. It is:
+* Drive Type
+* Drive State
+* Drive number (1 or 2)
+* Image Name (file name of disk image mounted on this drive)
+* Write Protected
+* Hover State
+
+Drive Type is:
+* DiskII
+* UniDisk 3.5
+* Profile
+* SCSI Disk
+
+Drive State is:
+* Disk Running
+* Disk Stopped
+
+Hover State is:
+* Hover
+* Not hover
+
+What if the Hover image was of a floppy disk with a label that is the image name? Then click on that to eject the disk? Maybe, hover over the slot more specifically.
+
+There will be starting out two containers. One for the slots, and one for the drives.
+
+### Buttons
+
+Buttons are a derived class of Tile. They are simple actuators:
+
+* Button Text
+* Button Image (one or the other)
+* Button Background Color
+* Button State (active, inactive)
+* Button Hover Color
+* Button Group ID
+
+The Button Group ID is like for radio buttons. When a button with a given ID is made active, all other buttons with the same ID are made inactive.
+
+### Slot Tile
+
+* Slot number
+* Slot Type (standard slot, Apple IIe memory slot, Apple IIgs memory slot, etc.)
+* Slot text (text descriptor of what's in the slot)
+
+### Text Tile
+
+A very simple tile that simply displays some text.
+
+* Pointer to string
+* Font
+* Font Color
+
+## Event handling
+
+Each entry to our event loop handler, (each 1/60th second), check for:
+* Mouse hover: is mouse in a container? If so, which tile is it in? Mark that tile as hover, and all others as not hover.
+* Mouse click: is mouse in container? If so, find if it's in a tile. If so, call the click callback for that tile.
