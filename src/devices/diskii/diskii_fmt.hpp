@@ -68,9 +68,9 @@ const int SECTORS_PER_TRACK = 16;
 const int SECTOR_SIZE = 0x0100;
 const int TRACK_MAX_SIZE = 0x1A00; // https://retrocomputing.stackexchange.com/questions/27691/apple-nibble-disk-format-specification
 
-const int GAP_A_SIZE = 80;
-const int GAP_B_SIZE = 10;
-const int GAP_C_SIZE = 20;
+const int GAP_A_SIZE = 149;
+const int GAP_B_SIZE = 8;
+const int GAP_C_SIZE = 21;
 const int ADDRESS_FIELD_SIZE = 15;
 const int DATA_FIELD_SIZE = 350;
 

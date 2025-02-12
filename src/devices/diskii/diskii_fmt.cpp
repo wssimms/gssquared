@@ -243,6 +243,16 @@ void emit_gap_c(track_t& track) {
 }
 
 /**
+ * Gap 4
+ * fill out the rest of the track with 0xFF
+ */
+void emit_gap_d(track_t& track) {
+    while (track.position < TRACK_MAX_SIZE) {
+        emit_track_byte(track, 0xFF);
+    }
+}
+
+/**
  * Encodes a byte as two 4-4 encoded bytes. Volume, track, sector, and checksum in the address field
  * are encoded this way.
  */
@@ -466,6 +476,7 @@ void emit_track(nibblized_disk_t& disk, disk_image_t& disk_image, int volume, in
         // loop in physical order.
         emit_sector(disk.tracks[track], (sector_t&)disk_image.sectors[track][disk.interleave_phys_to_logical[s]], volume, track, s);
     }
+    emit_gap_d(disk.tracks[track]);
 }
 
 /**
