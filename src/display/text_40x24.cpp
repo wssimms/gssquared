@@ -69,8 +69,8 @@ void pre_calculate_font (rom_data *rd) {
 
 uint32_t text_color_table[DM_NUM_MODES] = {
     0xFFFFFFFF, // color, keep it as-is
-    0xFFBF00FF, // amber.
     0x00e64dFF, //0x009933FF, // green.
+    0xFFBF00FF, // amber.
 };
 
 /**
