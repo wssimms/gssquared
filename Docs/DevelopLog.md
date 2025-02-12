@@ -2376,3 +2376,30 @@ After opening a file dialog, our window is no longer in focus. I have to click t
 
 The dialog thing is only callable from the main thread. So we're back to considering, is this fine, or, do we need to put the CPU and audio into their own threads, to prevent stuff like this from interfering with the (one, really) realtime aspect to the software?
 
+## Feb 9, 2025
+
+When the OSD is open, keyboard and mouse events should go to it. So, perhaps the event routine should do this: return true if the event was handled, false if not. 
+
+The joystick is now reading upside down in Choplifter. Is there a flag for controlling how the axes are read?
+
+## Feb 11, 2025
+
+Looking at Disk II code. When we switch tracks, we DO have the head in the same relative index into the track data. What we are not simulating, is the disk continuing to spin under the head when the CPU is off doing other stuff. 
+
+The math here should be:
+
+3.910us per bit. 
+
+| Gap | Our bits | Applesauce bits | Action | 
+|-----|----------|-----------------|------|
+| Gap A | 640 | 1198 | add 1198 - 640 / 8 = 69 bytes more FF |
+| Gap B | 80 | 60 | remove 1 byte FF |
+| Gap C | 160 | 168 | add 1 byte FF |
+
+Gap A is track start.
+
+Now, at end, we also need to write 0xFF to the end of the track buffer. So from whatever the index is, through 0x19FF.
+
+## Feb 12, 2025
+
+Bring checking of application-specific hot keys back into main event handler area, and out of 'keyboard'. We will have multiple keyboard handlers at some point.
