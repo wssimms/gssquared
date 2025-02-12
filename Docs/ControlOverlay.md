@@ -1,30 +1,18 @@
 # Control Overlay
 
-Since the graphics system of GSSquared operates like a video game, comprised of 60 frames per second
-and each frame being drawn from scratch, there are very interesting video game like possibilities
-for a control overlay.
+Since the graphics system of GSSquared operates like a video game, comprised of 60 frames per second and each frame being drawn from scratch, there are very interesting video game like possibilities for a control overlay.
 
 Instead of trying to rely on traditional GUI menuing system, we'll build our own. It will be streamlined, simple.
 
-Take your Apple II screen, whatever is going on on it. 
-Hit a key (Fsomething) to open the control panel.
+Take your Apple II screen, whatever is going on on it. Hit a key (Fsomething) to open the control panel.
 
-First, we will draw a white rectangle on the screen with a black border. It will be opaque, perhaps
-with 50% opactiy. Opaque enough to still have a sense of what is going on on the Apple II display
-remember, in video game world, we are layering things on top of each other in the view, from back to front.
-And, since we're drawing each frame this way, *everything on the apple ii screen will continue happily
-behind our semi-opaque control panel*! That will be uber-cool.
+First, we will draw a white rectangle on the screen with a black border. It will be opaque, perhaps with 50% opactiy. Opaque enough to still have a sense of what is going on on the Apple II display remember, in video game world, we are layering things on top of each other in the view, from back to front. And, since we're drawing each frame this way, *everything on the apple ii screen will continue happily behind our semi-opaque control panel*! That will be uber-cool.
 
-We can draw things with 0 opacity. (e.g., our control panel widgets). Then the background will not be visible
-behind them. We can use this to great effect.
+We can draw things with 0 opacity. (e.g., our control panel widgets). Then the background will not be visible behind them. We can use this to great effect.
 
-But we won't just draw it and be done with it. We will animate it sliding in
-from the left side of the screen. The rectangle (and all the things we draw over it)
-will be in a texture, and when we render the texture to the window.
+But we won't just draw it and be done with it. We will animate it sliding in from the left side of the screen. The rectangle (and all the things we draw over it) will be in a texture, and when we render the texture to the window.
 
-So, the first principle - in normal operation, you will not need separate windows to manage the
-virtual Apple. This means the controls will be readily available all the time, look and work exactly the
-same on any platform (mac, linux, windows). And, scale with the window size including up to full screen.
+So, the first principle - in normal operation, you will not need separate windows to manage the virtual Apple. This means the controls will be readily available all the time, look and work exactly the same on any platform (mac, linux, windows). And, scale with the window size including up to full screen.
 
 I AM contemplating a separate window for the *debugger*. But that is not something most users will use.
 
@@ -136,6 +124,33 @@ Then we can draw the drive. So there are two steps:
 
 There is additional state: the X and Y coordinates of the tile. The drive itself can be sized, and centered in the tile.
 
+## Assets
+
+An Asset is a texture, and a rectangle range. A simple asset is: one image, one rectangle.
+
+But we can have an AssetAtlas that is: one image, multiple rectangles.
+
+The abstraction here is that a simple asset is also an AssetAtlas, with only one rectangle.
+
+The rects have IDs.
+
+So an AssetAtlas has:
+* Texture
+* List of AtlasElements
+
+An AtlasElement is:
+* ID
+* X, Y
+* Width, Height
+
+An Atlas will have these methods:
+* get_rect(id) - return the rectangle for the AtlasElement with the given ID.
+
+* draw(id, x, y) - render the AtlasElement out of the texture to the current display at coordinates x,y
+
+So what is primary here? AssetAtlas. Then Asset_t refers to subsets of an AssetAtlas.
+
+
 ## Containers
 
 We have a Container object. The Container holds:
@@ -166,6 +181,35 @@ Tiles in a Container are drawn in the order they were added to the container.
 
 Containers are drawn in the order they were added to the Container list.
 
+There will be starting out several containers. 
+* slots
+* Drives
+* control buttons
+
+When there are changes to:
+* visibility of a Tile,
+* what Tiles are in a Container
+
+we need to re-run the Container layout.
+
+### Container Dimensions and Coordinates
+
+If we aren't careful, and we do a render with src and dst rects that are not the same size, we'll get a scaled image. This causes problems when we are checking for hover and click. So we need to make sure we are always rendering control panel elements using absolute, unscaled window coordinates. 
+
+So we define our window as 560 * SCALE and 192 * SCALE. Scale may vary as we make the window larger or smaller. So we can't rely on the original size. We need to:
+* read window size
+* scale mouse coordinates to window coordinates based on difference from original size.
+* Make sure containers etc are defined in terms of the "original size" coordinate system before scaling. 
+(Scaling is just to get from Apple II pixels, to window pixels, and, it's irrelevant to our drawing of the control panel elements).
+
+So the Window is 1120 + borders, by 768 plus borders, native pixels. That's our possible canvas for the Control Panel texture. Then we will ask this to draw into the window scaled by the current window scale. (Which is calculated whenever the window is resized.)
+
+We want the CP texture to be 1120x768 plus borders also, so that its 1:1 with window, and there is -no coordinate offset-. This gets around the mouse coordinate offset problem.
+
+We probably don't need to update the control panel with a very high frame rate. Right now is 60fps; can probably get by with 15-20fps, saving CPU.
+
+Do measurements on how long we're spending doing the event processing, and display update, on the control panel.
+
 ## Tile
 
 A base Tile object is
@@ -174,10 +218,14 @@ A base Tile object is
 * X, Y
 * Width, Height
 * Background Color
-* Hover Action
+* Hover State - Hovering, Not Hovering
+* Hover Color
 * Active / Inactive. Inactive = drawn grayed out and do not allow interaction.
 * Visible / Invisible. Keep place in list, but, treat as if it wasn't there for purposes of layout.
 * Click Callback
+
+If a Tiles has a border, we need to make the tile that many pixels bigger than requested, and, create a dst FRect for rendering the content that is the requested size that is where the content goes. So the content is always what is requested, and it may be offset by the border width. Also, when drawing image, we may want to be able to control the opacity.
+
 
 ### Drive Tile
 
@@ -187,7 +235,6 @@ There is a Drive Tile Object. It is:
 * Drive number (1 or 2)
 * Image Name (file name of disk image mounted on this drive)
 * Write Protected
-* Hover State
 
 Drive Type is:
 * DiskII
@@ -199,13 +246,8 @@ Drive State is:
 * Disk Running
 * Disk Stopped
 
-Hover State is:
-* Hover
-* Not hover
 
-What if the Hover image was of a floppy disk with a label that is the image name? Then click on that to eject the disk? Maybe, hover over the slot more specifically.
-
-There will be starting out two containers. One for the slots, and one for the drives.
+What if the Hover image was of a floppy disk with a label that is the image name? Then click on that to eject the disk?
 
 ### Buttons
 
@@ -220,11 +262,17 @@ Buttons are a derived class of Tile. They are simple actuators:
 
 The Button Group ID is like for radio buttons. When a button with a given ID is made active, all other buttons with the same ID are made inactive.
 
+The Callback can be done as a function pointer; or, we can just define lots of different subclasses of Button and callback() is a method that's overridden in each subclass. tomato, tomahto?
+
 ### Slot Tile
 
 * Slot number
 * Slot Type (standard slot, Apple IIe memory slot, Apple IIgs memory slot, etc.)
 * Slot text (text descriptor of what's in the slot)
+
+### Image Tile
+
+Just display an image.
 
 ### Text Tile
 
@@ -234,8 +282,58 @@ A very simple tile that simply displays some text.
 * Font
 * Font Color
 
+## Container Sub-clases
+
+Do I really need subclasses? Or just init different instances of Container? Try it as the latter first.
+
+### Drives Container
+### Slots Container
+### Control Buttons Container
+### Computer Type Display Container
+
+### Modal Selection Container
+
+Since we draw the Containers one at a time, and, we don't check for any overlap, a container later in the list will cover up a container earlier in the list. We can have the Modal container Visible flag change.
+
+Thus, we need to check events BACKWARDS in the Containers list. Draw bottom up - check top down.
+
 ## Event handling
 
 Each entry to our event loop handler, (each 1/60th second), check for:
 * Mouse hover: is mouse in a container? If so, which tile is it in? Mark that tile as hover, and all others as not hover.
 * Mouse click: is mouse in container? If so, find if it's in a tile. If so, call the click callback for that tile.
+
+# Assets
+
+Instead of having many different files we load, have a single file for display assets. This is called a "sprite sheet" or "texture atlas". 
+
+This uses a single texture that is preloaded into GPU memory. Then we have an array of image coordinates that map to various parts of the texture. Instead of creating lots of separate image handles, we're just tracking rects. And then drawing them is straightforward: blit a rectangle from the texture atlas to the display.
+
+For Disk Drives, we'll have for example variations of a Disk II:
+
+Drive light: on and off (x 2 versions)
+Drive sticker: 1 / 2 (x 2 versions)
+Drive door: open (umounted) / closed (mounted) (2 versions)
+
+That's four versions.
+So no multiple drawing calls. We just pick the right image and blit that.
+Same for UniDisk 3.5, and hard drive images.
+
+This will also be handy for all of the various buttons we want.
+
+Keep track of last state, and current state, and only redraw onto the cpTexture if the state has changed.
+So then we could have these rects:
+* drive light on and off
+* drive sticker 1 and 2
+* Disk II with drive open/closed.
+* Diskette with blank label
+
+8 images, instead of 8. We draw like this:
+
+* select Disk II image
+* Select sticker 1 / 2
+* select drive light on / off
+* if hovering, draw a diskette with a blank label.
+* draw the filename on the diskette image
+
+Again, only redraw if the state has changed.
