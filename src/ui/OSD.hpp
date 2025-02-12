@@ -52,6 +52,7 @@ protected:
     Container_t *drive_container = nullptr;
     Container_t *slot_container = nullptr;
     Container_t *mon_color_con = nullptr;
+    Container_t *speed_con = nullptr;
     MousePositionTile_t* mouse_pos = nullptr;
     AssetAtlas_t *aa = nullptr;
     SDL_Renderer *renderer = nullptr;

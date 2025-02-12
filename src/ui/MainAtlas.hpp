@@ -27,6 +27,10 @@ enum MainAtlas {
     ColorDisplayButton,
     GreenDisplayButton,
     AmberDisplayButton,
+    MHz1_0Button,
+    MHz2_8Button,
+    MHz4_0Button,
+    MHzInfinityButton,
     MainAtlas_count
 };
 

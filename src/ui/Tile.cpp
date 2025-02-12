@@ -164,7 +164,7 @@ Tile_t::Tile_t(const Style_t& initial_style) : style(initial_style) {}
      * @param hovering True if the mouse is now hovering, false otherwise.
      */
     void Tile_t::on_hover_changed(bool hovering) {
-        printf("tile:on_hover_changed: %d\n", hovering);
+        //printf("tile:on_hover_changed: %d\n", hovering);
         is_hovering = hovering;
     }
 

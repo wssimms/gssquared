@@ -79,6 +79,31 @@ void set_amber_display(void *data) {
     set_display_color_mode(cpu, DM_AMBER_MODE);
 }
 
+void set_mhz_1_0(void *data) {
+    printf("set_mhz_1_0 %p\n", data);
+    cpu_state *cpu = (cpu_state *)data;
+    set_clock_mode(cpu, CLOCK_1_024MHZ);
+}
+
+void set_mhz_2_8(void *data) {
+    printf("set_mhz_2_8 %p\n", data);
+    cpu_state *cpu = (cpu_state *)data;
+    set_clock_mode(cpu, CLOCK_2_8MHZ);
+}
+
+void set_mhz_4_0(void *data) {
+    printf("set_mhz_4_0 %p\n", data);
+    cpu_state *cpu = (cpu_state *)data;
+    set_clock_mode(cpu, CLOCK_2_8MHZ);
+}
+
+void set_mhz_infinity(void *data) {
+    printf("set_mhz_infinity %p\n", data);
+    cpu_state *cpu = (cpu_state *)data;
+    set_clock_mode(cpu, CLOCK_FREE_RUN);
+}
+
+
 /** -------------------------------------------------------------------------------------------------- */
 
 SDL_Window* OSD::get_window() { 
@@ -180,7 +205,7 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, int windo
     // Create another container, this one for slots.
     slot_container = new Container_t(renderer, 8, SC);  // Container for 8 slot buttons
     slot_container->set_position(100, 100);
-    slot_container->set_size(180, 350);
+    slot_container->set_size(180, 304);
 
     for (int i = 7; i >= 0; i--) {
         char slot_text[32];
@@ -193,8 +218,8 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, int windo
     slot_container->layout();
 
     mon_color_con = new Container_t(renderer, 3, SC);
-    mon_color_con->set_position(100, 500);
-    mon_color_con->set_size(225, 75);
+    mon_color_con->set_position(100, 510);
+    mon_color_con->set_size(200, 65);
 
     Style_t CB;
     CB.background_color = 0x00000000;
@@ -211,6 +236,25 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, int windo
     mon_color_con->add_tile(mc2, 1);
     mon_color_con->add_tile(mc3, 2);
     mon_color_con->layout();
+
+
+    speed_con = new Container_t(renderer, 4, SC);
+    speed_con->set_position(100, 450);
+    speed_con->set_size(260, 65);
+
+    Button_t *sp1 = new Button_t(aa, MHz1_0Button, CB);
+    Button_t *sp2 = new Button_t(aa, MHz2_8Button, CB);
+    Button_t *sp3 = new Button_t(aa, MHz4_0Button, CB);
+    Button_t *sp4 = new Button_t(aa, MHzInfinityButton, CB);
+    sp1->set_click_callback(set_mhz_1_0, cpu);
+    sp2->set_click_callback(set_mhz_2_8, cpu);
+    sp3->set_click_callback(set_mhz_4_0, cpu);
+    sp4->set_click_callback(set_mhz_infinity, cpu);
+    speed_con->add_tile(sp1, 0);
+    speed_con->add_tile(sp2, 1);
+    speed_con->add_tile(sp3, 2);
+    speed_con->add_tile(sp4, 3);
+    speed_con->layout();
 }
 
 void OSD::update() {
@@ -267,6 +311,7 @@ void OSD::render() {
         drive_container->render();
         slot_container->render();
         mon_color_con->render();
+        speed_con->render();
         mouse_pos->render(renderer);
         SDL_SetRenderTarget(renderer, nullptr);
 
@@ -283,10 +328,11 @@ bool OSD::event(const SDL_Event &event) {
         drive_container->handle_mouse_event(event);
         slot_container->handle_mouse_event(event);
         mon_color_con->handle_mouse_event(event);
+        speed_con->handle_mouse_event(event);
         // call separately since not in a container. Want it to always get mouse events no matter what.
         mouse_pos->handle_mouse_event(event);
     }
-    
+
     switch (event.type)
     {
         case SDL_EVENT_KEY_DOWN:
