@@ -202,6 +202,7 @@ struct diskII {
     uint16_t head_position = 0; // index into the track
     uint8_t bit_position = 0; // how many bits left in byte.
     uint8_t read_shift_register = 0; // when bit position = 0, this is 0. As bit_position increments, we shift in the next bit of the byte at head_position.
+    uint64_t last_read_cycle = 0;
 
     uint64_t mark_cycles_turnoff = 0; // when DRIVES OFF, set this to current cpu cycles. Then don't actually set motor=0 until one second (1M cycles) has passed. Then reset this to 0.
 
@@ -227,7 +228,7 @@ uint8_t read_nybble(diskII& disk) { // cause a shift.
     }
 
 #if 0
-    // Accelerated Version. Just return the next byte.
+    // thought this would be acclerated, but, is slower. Just return the next byte.
     disk.read_shift_register = disk.nibblized.tracks[disk.track/2].data[disk.head_position];
     if (disk.head_position++ >= 0x1A00) { // rotated around back to start.
         disk.head_position = 0;
@@ -427,6 +428,12 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
 
     /* ANY even address read will get the contents of the current nibble. */
     if (((reg & 0x01) == 0) && (seldrive.Q7 == 0 && seldrive.Q6 == 0)) {
+        // if more than X cycles have elapsed since last read, set bit_position to 0 and move head X bytes forward.
+        /* if (cpu->cycles - seldrive.last_read_cycle > 60) {
+            seldrive.bit_position = 0;
+            seldrive.head_position = (seldrive.head_position +  ((cpu->cycles - seldrive.last_read_cycle) / 32) ) % 0x1A00;
+        }
+        seldrive.last_read_cycle = cpu->cycles; */
         return read_nybble(seldrive);
     }
 
