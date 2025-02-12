@@ -2403,3 +2403,5 @@ Now, at end, we also need to write 0xFF to the end of the track buffer. So from 
 ## Feb 12, 2025
 
 Bring checking of application-specific hot keys back into main event handler area, and out of 'keyboard'. We will have multiple keyboard handlers at some point.
+
+Make speed control buttons.
