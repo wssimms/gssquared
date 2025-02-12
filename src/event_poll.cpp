@@ -23,6 +23,8 @@
 #include "display/display.hpp"
 #include "devices/game/mousewheel.hpp"
 #include "devices/game/gamecontroller.hpp"
+#include "devices/speaker/speaker.hpp"
+#include "devices/loader.hpp"
 
 // Base dimensions for aspect ratio calculation
 #define WIN_BASE_WIDTH 560
@@ -45,42 +47,87 @@ void handle_window_resize(cpu_state *cpu, int new_w, int new_h) {
 // Loops until there are no events in queue waiting to be read.
 static SDL_Joystick *joystick = NULL;
 
-void event_poll(cpu_state *cpu) {
-    SDL_Event event;
-    while(SDL_PollEvent(&event)) {
-        switch (event.type) {
-            case SDL_EVENT_QUIT:
-                if (DEBUG(DEBUG_GUI)) fprintf(stdout, "quit received, shutting down\n");
-                cpu->halt = HLT_USER;
-                break;
+bool handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
 
-            case SDL_EVENT_WINDOW_RESIZED: {
-                display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-                if (ds && ds->window) {
-                    handle_window_resize(cpu, event.window.data1, event.window.data2);
-                }
-                break;
+    // Ignore if only shift is pressed
+    /* uint16_t mod = event.key.keysym.mod;
+    SDL_Keycode key = event.key.keysym.sym; */
+    SDL_Keymod mod = event.key.mod;
+    SDL_Keycode key = event.key.key;
+
+    if ((mod & SDL_KMOD_CTRL) && (key == SDLK_F10)) {
+        reset_system(cpu); 
+        return true;
+    }
+
+    if (key == SDLK_F12) { 
+        cpu->halt = HLT_USER; 
+        return true;
+    }
+    if (key == SDLK_F9) { 
+        toggle_clock_mode(cpu);
+        return true; 
+    }
+    if (key == SDLK_F8) {
+        toggle_speaker_recording(cpu);
+        return true;
+    }
+    if (key == SDLK_F7) {
+        loader_execute(cpu);
+        return true;
+    }
+    if (key == SDLK_F3) {
+        toggle_display_fullscreen(cpu);
+        return true;
+    }
+    if (key == SDLK_F2) {
+        toggle_display_color_mode(cpu);
+        force_display_update(cpu);
+        return true;
+    }
+    if (key == SDLK_F1) {
+        display_capture_mouse(cpu, false);
+        //SDL_SetWindowRelativeMouseMode(cpu->window, false);
+        return true;
+    }
+    return false;
+
+}
+
+
+void event_poll(cpu_state *cpu, SDL_Event &event) {
+    switch (event.type) {
+        case SDL_EVENT_QUIT:
+            if (DEBUG(DEBUG_GUI)) fprintf(stdout, "quit received, shutting down\n");
+            cpu->halt = HLT_USER;
+            break;
+
+        case SDL_EVENT_WINDOW_RESIZED: {
+            display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+            if (ds && ds->window) {
+                handle_window_resize(cpu, event.window.data1, event.window.data2);
             }
-
-            case SDL_EVENT_KEY_DOWN:
-                handle_sdl_keydown(cpu, event);
-                break;
-
-            case SDL_EVENT_MOUSE_BUTTON_DOWN:
-                display_capture_mouse(cpu, true);
-                //SDL_SetWindowRelativeMouseMode(cpu->window, true);
-                break;
-
-            case SDL_EVENT_MOUSE_WHEEL:
-                handle_mouse_wheel(cpu, event.wheel.y);
-                break;
-            case SDL_EVENT_JOYSTICK_ADDED:
-                /* this event is sent for each hotplugged stick, but also each already-connected joystick during SDL_Init(). */
-                joystick_added(cpu, &event);
-                break;
-            case SDL_EVENT_JOYSTICK_REMOVED:
-                joystick_removed(cpu, &event);
-                break;
+            break;
         }
+
+        case SDL_EVENT_KEY_DOWN:
+            if (handle_sdl_keydown(cpu, event)) break;
+            handle_keydown_iiplus(cpu, event);
+
+        case SDL_EVENT_MOUSE_BUTTON_DOWN:
+            display_capture_mouse(cpu, true);
+            //SDL_SetWindowRelativeMouseMode(cpu->window, true);
+            break;
+
+        case SDL_EVENT_MOUSE_WHEEL:
+            handle_mouse_wheel(cpu, event.wheel.y);
+            break;
+        case SDL_EVENT_JOYSTICK_ADDED:
+            /* this event is sent for each hotplugged stick, but also each already-connected joystick during SDL_Init(). */
+            joystick_added(cpu, &event);
+            break;
+        case SDL_EVENT_JOYSTICK_REMOVED:
+            joystick_removed(cpu, &event);
+            break;
     }
 }

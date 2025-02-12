@@ -26,5 +26,5 @@
 /* uint8_t kb_memory_read(uint16_t address);
 void kb_memory_write(uint16_t address, uint8_t value); */
 void kb_key_pressed(uint8_t key);
-void handle_sdl_keydown(cpu_state *cpu, SDL_Event event);
+void handle_keydown_iiplus(cpu_state *cpu, SDL_Event event);
 void init_mb_keyboard(cpu_state *cpu);

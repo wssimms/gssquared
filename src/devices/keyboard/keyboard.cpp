@@ -22,9 +22,7 @@
 #include "debug.hpp"
 #include "keyboard.hpp"
 #include "bus.hpp"
-#include "devices/speaker/speaker.hpp"
-#include "devices/loader.hpp"
-#include "display/display.hpp"
+
 // Software should be able to:
 // Read keyboard from register at $C000.
 // Write to the keyboard clear latch at $C010.
@@ -83,7 +81,7 @@ void decode_key_mod(SDL_Keycode key, SDL_Keymod mod) {
     fprintf(stdout, "\n");
 }
 
-void handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
+void handle_keydown_iiplus(cpu_state *cpu, SDL_Event event) {
 
     // Ignore if only shift is pressed
     /* uint16_t mod = event.key.keysym.mod;
@@ -123,39 +121,11 @@ void handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
             key = key - 'a' + 1;
             kb_key_pressed(key);
             /* if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "control key pressed: %08X\n", key); */
-        } else if (key == SDLK_F10) { reset_system(cpu); return; }
+        }
     } 
     else {
         // convert lowercase characters to uppercase for Apple ][+
-        if (key == SDLK_F12) { cpu->halt = HLT_USER; return; }
-        if (key == SDLK_F9) { 
-            toggle_clock_mode(cpu);
-            return; 
-        }
-        if (key == SDLK_F8) {
-            toggle_speaker_recording(cpu);
-            return;
-        }
-        if (key == SDLK_F7) {
-            loader_execute(cpu);
-            return;
-        }
-         if (key == SDLK_F3) {
-            toggle_display_fullscreen(cpu);
-            // TODO: maybe also set the sharp scale mode.
-            return;
-        }
-        if (key == SDLK_F2) {
-            toggle_display_color_mode(cpu);
-            force_display_update(cpu);
-            // TODO: maybe also set the sharp scale mode.
-            return;
-        }
-        if (key == SDLK_F1) {
-            display_capture_mouse(cpu, false);
-            //SDL_SetWindowRelativeMouseMode(cpu->window, false);
-            return;
-        }
+       
         if (key == SDLK_LEFT) { kb_key_pressed(0x08); return; }
         if (key == SDLK_RIGHT) { kb_key_pressed(0x15); return; }
         if (key >= 'a' && key <= 'z') key = key - 'a' + 'A';
