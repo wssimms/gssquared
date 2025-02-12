@@ -279,7 +279,7 @@ void update_display(cpu_state *cpu) {
         };
 
         SDL_RenderTexture(ds->renderer, ds->screenTexture, NULL, &dstrect);
-        SDL_RenderPresent(ds->renderer);
+        /* SDL_RenderPresent(ds->renderer); */
 /*     } */
 }
 
@@ -556,11 +556,13 @@ void init_mb_device_display(cpu_state *cpu) {
 void set_display_color_mode(cpu_state *cpu, display_color_mode_t mode) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     ds->color_mode = mode;
+    force_display_update(cpu);
 }
 
 void toggle_display_color_mode(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     ds->color_mode = (display_color_mode_t)((ds->color_mode + 1) % DM_NUM_MODES);
+    force_display_update(cpu);
 }
 
 void toggle_display_fullscreen(cpu_state *cpu) {

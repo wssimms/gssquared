@@ -48,6 +48,8 @@
 #include "util/media.hpp"
 #include "util/dialog.hpp"
 
+#include "ui/OSD.hpp"
+
 /**
  * References: 
  * Apple Machine Language: Don Inman, Kurt Inman
@@ -90,6 +92,8 @@
  * 
  */
 
+/** Globals we haven't dealt properly with yet. */
+OSD *osd = nullptr;
 
 /**
  * initialize memory
@@ -225,7 +229,15 @@ void run_cpus(void) {
         if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_event_update > 16667000)
             || (cpu->clock_mode != CLOCK_FREE_RUN)) {
             current_time = SDL_GetTicksNS();
-            event_poll(cpu); // they say call "once per frame"
+            SDL_Event event;
+            while(SDL_PollEvent(&event)) {
+                if (!osd->event(event)) { // if osd doesn't handle it..
+                    event_poll(cpu, event); // they say call "once per frame"
+                }
+            }
+
+            osd->update();
+
             uint64_t event_time = SDL_GetTicksNS() - current_time;
             last_event_update = current_time;
         }
@@ -243,9 +255,16 @@ void run_cpus(void) {
         current_time = SDL_GetTicksNS();
         if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_display_update > 16667000)
             || (cpu->clock_mode != CLOCK_FREE_RUN)) {
-            event_poll(cpu); // they say call "once per frame"
+            /* SDL_Event event; // is this right??? Don't think this belongs here.. we already did above..
+            while(SDL_PollEvent(&event)) {
+                event_poll(cpu, event); // they say call "once per frame"
+            } */
+            //event_poll(cpu); // they say call "once per frame"
             update_flash_state(cpu);
             update_display(cpu);    
+            osd->render();
+            display_state_t *ds = (display_state_t *)get_module_state(&CPUs[0], MODULE_DISPLAY);
+            SDL_RenderPresent(ds->renderer);
             last_display_update = current_time;
         }
         INSTRUMENT(uint64_t displa
@@ -303,7 +322,6 @@ typedef struct {
     char *filename;
     media_descriptor *media;
 } disk_mount_t;
-
 
 gs2_app_t gs2_app_values;
 
@@ -465,11 +483,24 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    display_state_t *ds = (display_state_t *)get_module_state(&CPUs[0], MODULE_DISPLAY);
+    osd = new OSD(&CPUs[0], ds->renderer, ds->window,1120, 768);
+    // TODO: this should be handled differently. have osd save/restore?
+    int error = SDL_SetRenderTarget(ds->renderer, nullptr);
+    if (!error) {
+        fprintf(stderr, "Error setting render target: %s\n", SDL_GetError());
+        return 1;
+    }
+
 // the first time through (maybe the first couple times?) these will take
 // considerable time. do them now before main loop.
     update_display(&CPUs[0]); // check for events 60 times per second.
     for (int i = 0; i < 10; i++) {
-        event_poll(&CPUs[0]); // call first time to get things started.
+        SDL_Event event;
+        while(SDL_PollEvent(&event)) {
+            event_poll(&CPUs[0], event); // call first time to get things started.
+            //osd->event(event);
+        }
     }
 
     //toggle_speaker_recording();
