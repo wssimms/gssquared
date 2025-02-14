@@ -31,6 +31,7 @@ enum MainAtlas {
     MHz2_8Button,
     MHz4_0Button,
     MHzInfinityButton,
+    ResetButton,
     MainAtlas_count
 };
 
