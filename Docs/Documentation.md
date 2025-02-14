@@ -123,55 +123,6 @@ make more sense).
 There is a standardized device interface that ProDOS supports, called Pascal. This may be what
 became known as the SmartPort / ProDOS block-device interface. See above.
 
-# Building
-
-If you want to help create build tooling for Windows, let me know! All of this should work on all 3 platforms courtesy of SDL3.
-
-## MacOS
-
-gs2 is currently built on a Mac using:
-
-* clang
-* SDL3 downloaded and built from the SDL web site.
-* git
-
-I use vscode as my IDE, but, this isn't required.
-
-```
-git clone xxxxxxx
-cd xxxxxxx
-mkdir build
-mkdir vendored
-cd vendored
-git clone https://github.com/libsdl-org/SDL.git
-git clone https://github.com/libsdl-org/SDL_image.git
-cd ..
-mkdir build
-cmake -DCMAKE_BUILD_TYPE=Release .
-make
-```
-
-## Linux
-
-gs2 is currently build on Linux using:
-
-* clang
-* SDL3 downloaded and built from the SDL web site.
-* SDL_image downloaded and built from the SDL web site.
-* git
-
-```
-git clone ******
-cd ******
-mkdir vendored
-cd vendored
-git clone https://github.com/libsdl-org/SDL.git
-git clone https://github.com/libsdl-org/SDL_image.git
-cd ..
-mkdir build
-cmake -DCMAKE_BUILD_TYPE=Release .
-make
-```
 
 ## Code Organization
 
