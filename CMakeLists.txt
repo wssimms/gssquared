@@ -157,6 +157,7 @@ add_executable(gs2 src/gs2.cpp src/bus.cpp src/clock.cpp src/debug.cpp src/cpu.c
 # Set up common include directories for all targets
 include_directories(
     ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/vendored/SDL/include
     /usr/local/include
 )
 
@@ -164,9 +165,14 @@ include_directories(
 target_link_libraries(gs2 PRIVATE 
     SDL3::SDL3-shared
     SDL3_image::SDL3_image-shared
-    "-framework OpenGL" 
-    "-framework Cocoa"
 )
+
+if(APPLE)
+    target_link_libraries(gs2 PRIVATE
+        "-framework OpenGL" 
+        "-framework Cocoa"
+    )
+endif()
 
 target_link_libraries(gs2 
     PUBLIC gs2_cpu 
@@ -189,6 +195,7 @@ add_subdirectory(apps/diskid)
 # Update the executable's include directories to remove redundant paths
 target_include_directories(gs2 PRIVATE
     ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/vendored/SDL/include
     ${CMAKE_SOURCE_DIR}/vendored/SDL_image/include
 )
 
