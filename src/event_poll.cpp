@@ -113,6 +113,7 @@ void event_poll(cpu_state *cpu, SDL_Event &event) {
         case SDL_EVENT_KEY_DOWN:
             if (handle_sdl_keydown(cpu, event)) break;
             handle_keydown_iiplus(cpu, event);
+            break;
 
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
             display_capture_mouse(cpu, true);
