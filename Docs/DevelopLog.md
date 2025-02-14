@@ -2398,10 +2398,51 @@ The math here should be:
 
 Gap A is track start.
 
-Now, at end, we also need to write 0xFF to the end of the track buffer. So from whatever the index is, through 0x19FF.
+Now, at end, we also need to write 0xFF to the end of the track buffer. So from whatever the index is, through 0x19FF. That I did. Didn't make a difference.
+
+I don't measure much difference at this point between the A2 emulator I downloaded and GS2.
 
 ## Feb 12, 2025
 
 Bring checking of application-specific hot keys back into main event handler area, and out of 'keyboard'. We will have multiple keyboard handlers at some point.
 
 Make speed control buttons.
+
+## Feb 13, 2025
+
+thinking about halt. Two things shouldn't crash the emulator:
+* Halt (STP instruction)
+* jump to self (infinite loop).
+
+Now, we can treat the second as a case of the first. So what we want to do on a HLT, is, continue the event loop but stop executing instructions on the CPU. OK, this has been taken care of. On reset, halt is cleared. We only exit the event loop if halt is set to HLT_USER. (i.e., F12 or window close).
+
+I disabled the jump to self test. We may want to enable it under special circumstances (i.e., running the test suite).
+
+### Reset button
+
+that was pretty quick.
+
+### Power On / Power Off Button
+
+Isolate the stuff that allocates memory, etc, and starts up the CPU. This is as distinguished from setting up the display window, and other host-level stuff.
+
+Like, I should do something! The big daddy is to mount new disk images from the OSD. So let's work on that.
+
+### Need to draw a black background with 100% opacity before we draw anything else in the OSD. Or, just fill the rest of the OSD. I may not be filling the entire thing.
+
+### Hook up mount disk image code
+
+let's do the naive approach first - change out the disk image from inside the callback handler. Apparently these are called from the event loop. We may assume it will take some significant amount of time to process the mount. That means we will likely need to fire off a thread to do it. But, start first and then measure.
+
+Create a util/mount_unmount.cpp file to handle these.
+
+## Feb 14, 2025
+
+We need some kind of hook between the OSD display stuff, and something we can query to get and manipulate the status of disk drives, from a higher level than the diskii module for instance. From the GUI, we need to:
+
+mount media
+unmount media
+write protect media (eventually)
+query status (running, mounted, write protected, etc.)
+
+The status will tell us how to display the particular widget in the OSD.
