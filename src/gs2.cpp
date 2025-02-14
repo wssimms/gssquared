@@ -47,6 +47,7 @@
 #include "platforms.hpp"
 #include "util/media.hpp"
 #include "util/dialog.hpp"
+#include "util/mount.hpp"
 
 #include "ui/OSD.hpp"
 
@@ -214,16 +215,19 @@ void run_cpus(void) {
         uint64_t last_cycle_count = cpu->cycles;
         uint64_t last_cycle_time = SDL_GetTicksNS();
 
-        while (cpu->cycles - last_cycle_count < 17008) { // 1/60th second.
-            if (cpu->pc == 0xC5C0) {
-                printf("ParaVirtual Trap PC: %04X\n", cpu->pc);
-                prodos_block_pv_trap(cpu);
-            }
+        if (! cpu->halt) {
+            while (cpu->cycles - last_cycle_count < 17008) { // 1/60th second.
+                if (cpu->pc == 0xC5C0) {
+                    printf("ParaVirtual Trap PC: %04X\n", cpu->pc);
+                    prodos_block_pv_trap(cpu);
+                }
 
-            if ((cpu->execute_next)(cpu) > 0) { // never returns 0 right now
-               break;
+                if ((cpu->execute_next)(cpu) > 0) { // never returns 0 right now
+                    break;
+                }
             }
         }
+
         uint64_t current_time;
 
         if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_event_update > 16667000)
@@ -279,7 +283,7 @@ void run_cpus(void) {
             last_5sec_update = current_time;
         }
 
-        if (cpu->halt) {
+        if (cpu->halt == HLT_USER) {
             update_display(cpu); // update one last time to show the last state.
             break;
         }
@@ -316,12 +320,6 @@ void reset_system(cpu_state *cpu) {
     reset_languagecard(cpu); // reset language card
 }
 
-typedef struct {
-    int slot;
-    int drive;
-    char *filename;
-    media_descriptor *media;
-} disk_mount_t;
 
 gs2_app_t gs2_app_values;
 
@@ -456,14 +454,16 @@ int main(int argc, char *argv[]) {
 
     cpu_reset(&CPUs[0]);
 
-    std::vector<media_descriptor *> mounted_media;
+    //std::vector<media_descriptor *> mounted_media;
 
     // mount disks - AFTER device init.
     while (!disks_to_mount.empty()) {
         disk_mount_t disk_mount = disks_to_mount.back();
         disks_to_mount.pop_back();
 
-        printf("Mounting disk %s in slot %d drive %d\n", disk_mount.filename, disk_mount.slot, disk_mount.drive);
+        mount_media(&CPUs[0], disk_mount);
+
+/*         printf("Mounting disk %s in slot %d drive %d\n", disk_mount.filename, disk_mount.slot, disk_mount.drive);
         media_descriptor * media = new media_descriptor();
         media->filename = disk_mount.filename;
         if (identify_media(*media) != 0) {
@@ -471,16 +471,16 @@ int main(int argc, char *argv[]) {
             exit(1);
         }
         display_media_descriptor(*media);
-
-        mounted_media.push_back(media);
-
-        if (disk_mount.slot == 6) {
+ */
+/*         mounted_media.push_back(media);
+ */
+/*         if (disk_mount.slot == 6) {
             mount_diskII(&CPUs[0], disk_mount.slot, disk_mount.drive, media);
         } else if (disk_mount.slot == 5) {
             mount_prodos_block(disk_mount.slot, disk_mount.drive, media);
         } else {
             fprintf(stderr, "Invalid slot. Expected 5 or 6\n");
-        }
+        } */
     }
 
     display_state_t *ds = (display_state_t *)get_module_state(&CPUs[0], MODULE_DISPLAY);

@@ -25,6 +25,7 @@
 struct cpu_state CPUs[MAX_CPUS];
 
 void cpu_reset(cpu_state *cpu) {
+    cpu->halt = 0; // if we were STPed etc.
     cpu->pc = read_word(cpu, RESET_VECTOR);
 }
 
