@@ -19,7 +19,7 @@
 #pragma once
 
 #include "util/media.hpp"
-
+#include "util/mount.hpp"
 #define DiskII_Ph0_Off 0x00
 #define DiskII_Ph0_On 0x01
 #define DiskII_Ph1_Off 0x02
@@ -39,3 +39,5 @@
 
 void init_slot_diskII(cpu_state *cpu, uint8_t slot);
 void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor *media);
+void unmount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive);
+drive_status_t diskii_status(cpu_state *cpu, uint64_t key);

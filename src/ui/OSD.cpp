@@ -21,6 +21,7 @@
 #include <SDL3/SDL_render.h>
 #include <SDL3_image/SDL_image.h>
 
+#include "cpu.hpp"
 #include "DiskII_Button.hpp"
 #include "MousePositionTile.hpp"
 #include "Container.hpp"
@@ -30,6 +31,7 @@
 #include "OSD.hpp"
 
 #include "display/display.hpp"
+#include "util/mount.hpp"
 
 // we need to use data passed to us, and pass it to the ShowOpenFileDialog, so when the file select event
 // comes back later, we know which drive this was for.
@@ -38,9 +40,22 @@
 /** handle file dialog callback */
 static void /* SDLCALL */ file_dialog_callback(void* userdata, const char* const* filelist, int filter)
 {
+    if (filelist[0] == nullptr) return; // user cancelled dialog
+
+    OSD *osd = (OSD *)userdata;
+
     // returns callback: /Users/bazyar/src/AppleIIDisks/33master.dsk when selecting
     // a disk image file.
     printf("file_dialog_callback: %s\n", filelist[0]);
+    // 1. unmount current image (if present).
+    // 2. mount new image.
+    disk_mount_t dm;
+    dm.filename = (char *)filelist[0];
+    dm.slot = 6;
+    dm.drive = 0;
+    osd->cpu->mounts->unmount_media(osd->cpu, dm);
+    osd->cpu->mounts->mount_media(osd->cpu, dm);
+    SDL_RaiseWindow(osd->get_window());
 }
 
 void diskii_button_click(void *data) {
@@ -53,7 +68,7 @@ void diskii_button_click(void *data) {
 
     printf("diskii button clicked\n");
     SDL_ShowOpenFileDialog(file_dialog_callback, 
-        nullptr, 
+        data, 
         osd->get_window(),
         filters,
         sizeof(filters)/sizeof(SDL_DialogFileFilter),
@@ -103,6 +118,12 @@ void set_mhz_infinity(void *data) {
     set_clock_mode(cpu, CLOCK_FREE_RUN);
 }
 
+void click_reset_cpu(void *data) {
+    printf("click_reset_cpu %p\n", data);
+    cpu_state *cpu = (cpu_state *)data;
+    cpu_reset(cpu);
+}
+
 
 /** -------------------------------------------------------------------------------------------------- */
 
@@ -111,7 +132,8 @@ SDL_Window* OSD::get_window() {
 }
 
 OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, int window_width, int window_height) 
-    : renderer(rendererp), window(windowp), window_w(window_width), window_h(window_height) {
+    : renderer(rendererp), window(windowp), window_w(window_width), window_h(window_height), cpu(cpu) {
+
     cpTexture = SDL_CreateTexture(renderer,
         SDL_PIXELFORMAT_RGBA8888,
         SDL_TEXTUREACCESS_TARGET,
@@ -166,29 +188,29 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, int windo
     aa->set_elements(MainAtlas_count, asset_rects);
 
     // Create a container for our drive buttons
-    drive_container = new Container_t(renderer, 10, CS);  // Increased to 5 to accommodate the mouse position tile
+    Container_t *drive_container = new Container_t(renderer, 10, CS);  // Increased to 5 to accommodate the mouse position tile
     drive_container->set_position(660, 70);
     drive_container->set_size(415, 600);
+    containers.push_back(drive_container);
 
     // Create the buttons
-    diskii_button1 = new DiskII_Button_t(aa, DiskII_Open, DS);
-    diskii_button1->set_disk_slot(6);
-    diskii_button1->set_disk_number(1);
+    diskii_button1 = new DiskII_Button_t(aa, DiskII_Open, DS); // this needs to have our disk key . or alternately use a different callback.
+    diskii_button1->set_key(0x601);
     diskii_button2 = new DiskII_Button_t(aa, DiskII_Closed, DS);
-    diskii_button2->set_disk_slot(6);
-    diskii_button2->set_disk_number(2);
+    diskii_button2->set_key(0x602);
     diskii_button2->set_disk_running(true);
     diskii_button2->set_disk_mounted(true);
 
     mouse_pos = new MousePositionTile_t();
 
-    diskii_button1->set_click_callback(diskii_button_click);
+    diskii_button1->set_click_callback(diskii_button_click, this);
     
     mouse_pos->set_position(100,600) ;
     mouse_pos->set_size(150,20);
     mouse_pos->set_background_color(0xFFFFFFFF);  // White background
     mouse_pos->set_border_color(0x000000FF);      // Black border
     mouse_pos->set_border_width(1);
+    
 
     /* unidisk_button1->set_size(button_width, button_height); */
     /* unidisk_button2->set_size(button_width, button_height); */
@@ -203,7 +225,7 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, int windo
     drive_container->layout();
 
     // Create another container, this one for slots.
-    slot_container = new Container_t(renderer, 8, SC);  // Container for 8 slot buttons
+    Container_t *slot_container = new Container_t(renderer, 8, SC);  // Container for 8 slot buttons
     slot_container->set_position(100, 100);
     slot_container->set_size(180, 304);
 
@@ -214,12 +236,13 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, int windo
         slot->set_size(160, 20);
         slot_container->add_tile(slot, 7 - i);    // Add in reverse order (7 to 0)
     }
-    
     slot_container->layout();
+    containers.push_back(slot_container);
 
-    mon_color_con = new Container_t(renderer, 3, SC);
+    Container_t *mon_color_con = new Container_t(renderer, 3, SC);
     mon_color_con->set_position(100, 510);
     mon_color_con->set_size(200, 65);
+    containers.push_back(mon_color_con);
 
     Style_t CB;
     CB.background_color = 0x00000000;
@@ -237,10 +260,10 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, int windo
     mon_color_con->add_tile(mc3, 2);
     mon_color_con->layout();
 
-
-    speed_con = new Container_t(renderer, 4, SC);
+    Container_t *speed_con = new Container_t(renderer, 4, SC);
     speed_con->set_position(100, 450);
     speed_con->set_size(260, 65);
+    containers.push_back(speed_con);
 
     Button_t *sp1 = new Button_t(aa, MHz1_0Button, CB);
     Button_t *sp2 = new Button_t(aa, MHz2_8Button, CB);
@@ -255,6 +278,15 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, int windo
     speed_con->add_tile(sp3, 2);
     speed_con->add_tile(sp4, 3);
     speed_con->layout();
+
+    Container_t *gen_con = new Container_t(renderer, 10, SC);
+    gen_con->set_position(5, 100);
+    gen_con->set_size(65, 300);
+    Button_t *b1 = new Button_t(aa, ResetButton, CB);
+    b1->set_click_callback(click_reset_cpu, cpu);
+    gen_con->add_tile(b1, 0);
+    gen_con->layout();
+    containers.push_back(gen_con);
 }
 
 void OSD::update() {
@@ -308,10 +340,10 @@ void OSD::render() {
         
         // Render the container and its buttons into the cpTexture
         SDL_SetRenderTarget(renderer, cpTexture);
-        drive_container->render();
-        slot_container->render();
-        mon_color_con->render();
-        speed_con->render();
+        for (Container_t* container : containers) {
+            container->render();
+        }
+
         mouse_pos->render(renderer);
         SDL_SetRenderTarget(renderer, nullptr);
 
@@ -325,10 +357,10 @@ bool OSD::event(const SDL_Event &event) {
     bool active = (currentSlideStatus == SLIDE_IN);
     if (active) {
         // Let containers have a stab at the event
-        drive_container->handle_mouse_event(event);
-        slot_container->handle_mouse_event(event);
-        mon_color_con->handle_mouse_event(event);
-        speed_con->handle_mouse_event(event);
+        for (Container_t* container : containers) {
+            container->handle_mouse_event(event);
+        }
+        
         // call separately since not in a container. Want it to always get mouse events no matter what.
         mouse_pos->handle_mouse_event(event);
     }

@@ -166,6 +166,7 @@ In DOS at $B800 lives the "prenibble routine" . I could perhaps steal that. hehe
 #include "util/media.hpp"
 #include "devices/diskii/diskii_fmt.hpp"
 #include "debug.hpp"
+#include "util/mount.hpp"
 
 uint8_t diskII_firmware[256] = {
  0xA2,  0x20,  0xA0,  0x00,   0xA2,  0x03,  0x86,  0x3C,   0x8A,  0x0A,  0x24,  0x3C,   0xF0,  0x10,  0x05,  0x3C,  
@@ -194,7 +195,7 @@ struct diskII {
     uint8_t phase2;
     uint8_t phase3;
     uint8_t last_phase_on;
-    uint8_t motor;
+    bool motor;
     uint8_t Q7 = 0;
     uint8_t Q6 = 0;
     uint8_t write_protect = 0; // 1 = write protect, 0 = not write protect
@@ -206,6 +207,7 @@ struct diskII {
 
     uint64_t mark_cycles_turnoff = 0; // when DRIVES OFF, set this to current cpu cycles. Then don't actually set motor=0 until one second (1M cycles) has passed. Then reset this to 0.
 
+    bool is_mounted = false;
     disk_image_t media;
     nibblized_disk_t nibblized;
 };
@@ -223,7 +225,7 @@ struct diskII_controller {
 
 uint8_t read_nybble(diskII& disk) { // cause a shift.
 
-    if (disk.motor == 0) { // return the same data every time if motor is off.
+    if (!disk.motor) { // return the same data every time if motor is off.
         return disk.read_shift_register;
     }
 
@@ -259,6 +261,11 @@ uint8_t read_nybble(diskII& disk) { // cause a shift.
 void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor *media) {
     diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
 
+    if (diskII_slot[slot].drive[drive].is_mounted) {
+        fprintf(stderr, "Disk already mounted\n");
+        unmount_diskII(cpu, slot, drive);
+    }
+
     // Detect DOS 3.3 or ProDOS and set the interleave accordingly done by identify_media
     // if filename ends in .po, use po_phys_to_logical and po_logical_to_phys.
     // if filename ends in .do, use do_phys_to_logical and do_logical_to_phys.
@@ -277,11 +284,30 @@ void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor 
 
         load_disk_image(diskII_slot[slot].drive[drive].media, media->filename); // pull this into diskii stuff somewhere.
         emit_disk(diskII_slot[slot].drive[drive].nibblized, diskII_slot[slot].drive[drive].media, 0xFE);
+        diskII_slot[slot].drive[drive].is_mounted = true;
     }
 }
 
-void unmount_diskII(uint8_t slot, uint8_t drive) {
+void unmount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive) {
+    diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
+
+    // reset all the track parameters to default to prepare for loading a new image.
+    for (int i = 0; i < 35; i++) {
+        diskII_slot[slot].drive[drive].nibblized.tracks[i].size = 0;
+        diskII_slot[slot].drive[drive].nibblized.tracks[i].position = 0;
+    }
+    diskII_slot[slot].drive[drive].is_mounted = false;
+
     // TODO: this will write the disk image back to disk.
+}
+
+drive_status_t diskii_status(cpu_state *cpu, uint64_t key) {
+    diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
+    uint8_t slot = key >> 8;
+    uint8_t drive = key & 0xFF;
+    diskII &seldrive = diskII_slot[slot].drive[drive];
+
+    return {seldrive.is_mounted, nullptr /* seldrive.media.filename */, seldrive.motor, seldrive.track};
 }
 
 /**

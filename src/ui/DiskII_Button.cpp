@@ -29,10 +29,8 @@
  * and additional visual elements can be drawn on top.
  */
 
-void DiskII_Button_t::set_disk_slot(int slot) { disk_slot = slot; }
-int DiskII_Button_t::get_disk_slot() const { return disk_slot; }
-void DiskII_Button_t::set_disk_number(int num) { disk_number = num; }
-int DiskII_Button_t::get_disk_number() const { return disk_number; }
+void DiskII_Button_t::set_key(uint64_t k) { key = k; }
+uint64_t DiskII_Button_t::get_key() const { return key; }
 void DiskII_Button_t::set_disk_running(bool running) { disk_running = running; }
 bool DiskII_Button_t::get_disk_running() const { return disk_running; }
 void DiskII_Button_t::set_disk_mounted(bool mounted) { disk_mounted = mounted; }
@@ -55,14 +53,14 @@ void DiskII_Button_t::render(SDL_Renderer* renderer) {
 
         // Additional rendering can be added here
         // This space intentionally left empty for manual implementation
-        if (disk_number == 1) aa->draw(DiskII_Drive1, content_x + 4, content_y + 4);
+        if ((key & 0xFF) == 1) aa->draw(DiskII_Drive1, content_x + 4, content_y + 4);
         else aa->draw(DiskII_Drive2, content_x + 4, content_y + 4);
 
         if (disk_running) aa->draw(DiskII_DriveLightOn, content_x + 30, content_y + 69);
 
         SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
         char text[32];
-        snprintf(text, sizeof(text), "Slot %d", disk_slot);
+        snprintf(text, sizeof(text), "Slot %d", (key >> 8));
         SDL_RenderDebugText(renderer, content_x + 62, content_y + 84, text);
         
         // TODO: if mounted and hovering, show the disk image name over the drive

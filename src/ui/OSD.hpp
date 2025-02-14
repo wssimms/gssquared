@@ -16,6 +16,8 @@
  */
 #pragma once
 
+#include <vector>
+
 #include <SDL3/SDL.h>
 
 #include "cpu.hpp"
@@ -46,13 +48,18 @@ protected:
     int currentSlideStatus = SLIDE_OUT;
     int slidePosition = -slidePositionMax;
     int slidePositionDelta = slidePositionDeltaMax;
-    
+
     DiskII_Button_t *diskii_button1 = nullptr;
     DiskII_Button_t *diskii_button2 = nullptr;
-    Container_t *drive_container = nullptr;
+
+    std::vector<Container_t *> containers;
+
+/*     Container_t *drive_container = nullptr;
     Container_t *slot_container = nullptr;
     Container_t *mon_color_con = nullptr;
     Container_t *speed_con = nullptr;
+    Container_t *gen_con = nullptr; */
+
     MousePositionTile_t* mouse_pos = nullptr;
     AssetAtlas_t *aa = nullptr;
     SDL_Renderer *renderer = nullptr;
@@ -62,6 +69,9 @@ protected:
     int window_h = 0;
 
 public:
+    cpu_state *cpu = nullptr;
+    
+
     /**
      * @brief Constructs the OSD with the given renderer and window.
      * 

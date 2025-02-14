@@ -22,6 +22,7 @@
 #include <SDL3/SDL.h>
 
 #include "memoryspecs.hpp"
+
 //#include "clock.hpp"
 
 #define MAX_CPUS 1
@@ -69,7 +70,9 @@ enum processor_type {
     NUM_PROCESSOR_TYPES
 };
 
+// a couple forward declarations
 struct cpu_state;
+class Mounts;
 
 typedef int (*execute_next_fn)(cpu_state *cpu);
 
@@ -195,6 +198,8 @@ struct cpu_state {
     clock_mode clock_mode = CLOCK_FREE_RUN;
 
     execute_next_fn execute_next;
+
+    Mounts *mounts;
 
     void *module_store[MODULE_NUM_MODULES];
 };

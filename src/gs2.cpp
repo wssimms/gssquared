@@ -454,6 +454,8 @@ int main(int argc, char *argv[]) {
 
     cpu_reset(&CPUs[0]);
 
+    CPUs[0].mounts = new Mounts();
+
     //std::vector<media_descriptor *> mounted_media;
 
     // mount disks - AFTER device init.
@@ -461,7 +463,7 @@ int main(int argc, char *argv[]) {
         disk_mount_t disk_mount = disks_to_mount.back();
         disks_to_mount.pop_back();
 
-        mount_media(&CPUs[0], disk_mount);
+        CPUs[0].mounts->mount_media(&CPUs[0], disk_mount);
 
 /*         printf("Mounting disk %s in slot %d drive %d\n", disk_mount.filename, disk_mount.slot, disk_mount.drive);
         media_descriptor * media = new media_descriptor();
