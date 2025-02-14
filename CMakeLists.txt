@@ -3,10 +3,13 @@ cmake_minimum_required(VERSION 3.10)
 # Set the project name
 project(gssquared)
 
+# Set default to static for our internal libraries
+set(BUILD_SHARED_LIBS OFF)
+
 # Mac-specific settings
 if(APPLE)
-    set(CMAKE_OSX_SYSROOT "/Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk")
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "15.2")
+    set(CMAKE_OSX_SYSROOT "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0")
 
     # Mac-specific bundle configuration
     set(MACOSX_BUNDLE_ICON_FILE gs2.icns)
@@ -45,12 +48,22 @@ if(APPLE)
     )
 endif()
 
-# Scope shared libs around SDL and then turn it back off!!!
-set(BUILD_SHARED_LIBS ON)
-# Add SDL as a subdirectory and configure it
-add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
-#add_subdirectory(vendored/SDL_image EXCLUDE_FROM_ALL)
-set(BUILD_SHARED_LIBS OFF)
+function(configure_sdl_builds)
+    set(BUILD_SHARED_LIBS ON)
+    
+    # Force SDL to build with the correct SDK
+    if(APPLE)
+        set(CMAKE_OSX_SYSROOT "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk" CACHE PATH "SDK path" FORCE)
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "Deployment target" FORCE)
+    endif()
+    
+    set(SDL_SHARED ON)
+    
+    # Force rebuild SDL with these settings
+    add_subdirectory(${CMAKE_SOURCE_DIR}/vendored/SDL EXCLUDE_FROM_ALL)
+    add_subdirectory(${CMAKE_SOURCE_DIR}/vendored/SDL_image EXCLUDE_FROM_ALL)
+    set(BUILD_SHARED_LIBS OFF)
+endfunction()
 
 # Set output directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
@@ -66,6 +79,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # Set the compiler to Clang++
 set(CMAKE_CXX_COMPILER clang++)
+
+configure_sdl_builds()
 
 # Set default build type to Release if not specified
 if(NOT CMAKE_BUILD_TYPE)
@@ -120,7 +135,16 @@ add_library(gs2_devices_memexp     src/devices/memoryexpansion/memexp.cpp )
 
 add_library(gs2_cpu src/cpus/cpu_6502.cpp src/cpus/cpu_65c02.cpp )
 
-add_library(gs2_util src/util/media.cpp src/util/ResourceFile.cpp src/util/dialog.cpp )
+add_library(gs2_util src/util/media.cpp src/util/ResourceFile.cpp src/util/dialog.cpp src/util/mount.cpp )
+
+add_library(gs2_ui src/ui/AssetAtlas.cpp src/ui/Container.cpp src/ui/DiskII_Button.cpp 
+    src/ui/MousePositionTile.cpp src/ui/OSD.cpp src/ui/Tile.cpp src/ui/Button.cpp src/ui/MainAtlas.cpp
+)
+
+target_include_directories(gs2_ui PUBLIC
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/vendored/SDL_image/include
+)
 
 # Add the executable
 add_executable(gs2 src/gs2.cpp src/bus.cpp src/clock.cpp src/debug.cpp src/cpu.cpp src/memory.cpp src/opcodes.cpp src/test.cpp 
@@ -139,6 +163,7 @@ include_directories(
 # Link SDL3 and required frameworks
 target_link_libraries(gs2 PRIVATE 
     SDL3::SDL3-shared
+    SDL3_image::SDL3_image-shared
     "-framework OpenGL" 
     "-framework Cocoa"
 )
@@ -154,6 +179,7 @@ target_link_libraries(gs2
     gs2_devices_game
     gs2_devices_memexp
     gs2_util
+    gs2_ui
 )
 
 add_subdirectory(apps/nibblizer)
@@ -163,7 +189,9 @@ add_subdirectory(apps/diskid)
 # Update the executable's include directories to remove redundant paths
 target_include_directories(gs2 PRIVATE
     ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/vendored/SDL_image/include
 )
+
 # Meta-target that builds all packages
 add_custom_target(packages
     DEPENDS mac-package mac-cli-package create-dmg
