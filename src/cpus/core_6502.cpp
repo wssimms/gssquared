@@ -1081,10 +1081,10 @@ int execute_next(cpu_state *cpu) {
             {
                 absaddr_t thisaddr = cpu->pc-1;
                 cpu->pc = read_word_from_pc(cpu);
-                if (thisaddr == cpu->pc) {
+                /* if (thisaddr == cpu->pc) {
                     fprintf(stdout, " JUMP TO SELF INFINITE LOOP JMP $%04X\n", cpu->pc);
                     cpu->halt = HLT_INSTRUCTION;
-                }
+                } */
                 if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, " $%04X", cpu->pc);
             }
             break;
