@@ -96,6 +96,7 @@ typedef enum {
     MODULE_GAMECONTROLLER,
     MODULE_DISKII,
     MODULE_MEMEXP,
+    MODULE_LANGCARD,
     MODULE_NUM_MODULES
 } module_id_t;
 

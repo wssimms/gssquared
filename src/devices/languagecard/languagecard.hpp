@@ -65,6 +65,12 @@
 #define ROM_NONE            0b010
 #define RAM_RAM             0b011
 
+struct languagecard_state_t {
+    uint32_t FF_BANK_1;
+    uint32_t FF_READ_ENABLE;
+    uint32_t FF_PRE_WRITE;
+    uint32_t _FF_WRITE_ENABLE;
+};
 
 void init_slot_languagecard(cpu_state *cpu, uint8_t slot);
 void reset_languagecard(cpu_state *cpu);
