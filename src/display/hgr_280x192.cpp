@@ -140,7 +140,7 @@ void render_hgr_scanline_color(cpu_state *cpu, int y, void *pixels, int pitch) {
                     }
                 } else {
                     texturePixels[base + charoff + bit + 1 ] = pixel;
-                    if (pixel_column < 278) texturePixels[base + charoff + bit + 2] = pixel; // add bounds check
+                    if ((charoff + bit + 2) < 560) texturePixels[base + charoff + bit + 2] = pixel; // add bounds check
                     if (composite && pixel_column >= 2 &&  (pixel != 0x00000000) && (texturePixels[base + charoff + bit - 3] == pixel)) {
                         texturePixels[base + charoff + bit] = pixel;
                         texturePixels[base + charoff + bit - 1] = pixel;
