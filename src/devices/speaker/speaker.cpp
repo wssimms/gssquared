@@ -94,7 +94,16 @@ void audio_generate_frame(cpu_state *cpu, uint64_t cycle_window_start, uint64_t 
             contribution += speaker_state->polarity;
             cyc++;
         }
-        working_buffer[samp] = ((float)contribution / (float)cycles_per_sample) * 0x6000;
+ //       working_buffer[samp] = ((float)contribution / (float)cycles_per_sample) * 0x6000;
+        if (cycles_per_sample > 0) {  // Prevent division by zero
+            float sample_value = ((float)contribution / (float)cycles_per_sample) * 0x6000;
+            // Clamp the value to valid int16_t range
+            if (sample_value > 32767.0f) sample_value = 32767.0f;
+            if (sample_value < -32768.0f) sample_value = -32768.0f;
+            working_buffer[samp] = (int16_t)sample_value;
+        } else {
+            working_buffer[samp] = 0;  // Safe default when we can't calculate
+        }
         contribution = 0;
     }
     // copy samples out to audio stream
