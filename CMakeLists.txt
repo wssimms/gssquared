@@ -88,8 +88,13 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Define flags for different build types
-set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3 -ggdb3")
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3 -ggdb3 -fsanitize=address,undefined -fno-omit-frame-pointer")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+
+# When using sanitizers, we need to link with them too
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address,undefined")
+endif()
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
