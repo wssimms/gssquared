@@ -4,7 +4,7 @@
 
 * Supported Platforms
   * MacOS - the primary development platform. This will always be up to date.
-  * Linux - initial build complete. So far everything is working except audio.
+  * Linux - Can now build Linux binary. All features working.
   * Windows - Not started.
 * CPUs
   * NMOS 6502 - Complete.
@@ -13,14 +13,14 @@
 * Keyboard - Complete.
 * Memory Expansion
   * Language Card - Complete.
-  * Apple II Memory Expansion Card - Complete.
+  * Apple II Memory Expansion Card ("Slinky")- Complete.
 * Display Modes
   * Text
     * 40-column text mode - Complete. Supports normal, inverse, and flash; Screen 1 and 2.
-    * Apple II+ 80-column text mode. not started.
+    * Apple II+ 80-column text mode - not started.
     * Apple IIe 80-column text mode - not started.
   * Low-resolution graphics - (Complete - works with Screen 1, 2, split-screen and full-screen).
-  * High-resolution graphics - monochrome ('green screen version') done. Color hi-res not started.
+  * High-resolution graphics - monochrome ('green screen version') done; Color "rgb mode" done; Color "composite mode" done.
   * Green and Amber monochrome modes - done for text, hi-res. Lo-res not started. 
 * Storage Devices
   * Cassette - not started.  
@@ -40,7 +40,8 @@
 * I/O Devices
   * Printer / parallel port - not started.
   * Printer / serial port - not started.
-  * Joystick / paddles - initial implementation, with mouse. Work in progress. GamePad support coming.
+  * ImageWriter printer emulation - not started.
+  * Joystick / paddles - initial implementation, with mouse. Work in progress. GamePad support started, needs refactored.
   * Shift-key mod and Lowercase Character Generator. Not started.
 * Clocks
   * Thunderclock - read of time implemented. Interrupts, writing clock - not implemented. Needs testing.
