@@ -242,7 +242,8 @@ uint8_t read_nybble(diskII& disk) { // cause a shift.
         // get next value from head_position to read_shift_register, increment head position.
         disk.read_shift_register = disk.nibblized.tracks[disk.track/2].data[disk.head_position];
         // "spin" the virtual diskette a little more
-        if (disk.head_position++ >= 0x1A00) { // rotated around back to start.
+        disk.head_position++;
+        if (disk.head_position >= 0x1A00) { // rotated around back to start.
             disk.head_position = 0;
         }
     }
