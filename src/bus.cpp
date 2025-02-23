@@ -67,7 +67,16 @@ uint8_t memory_bus_read(cpu_state *cpu, uint16_t address) {
         }
         return raw_memory_read(cpu, address);
     }
-    return 0xEE; /* TODO: should return a random value 'floating bus'*/
+    /* Identifcal with what's in memory_bus_write */
+    if (address == 0xCFFF) {
+        cpu->C8xx_slot = 0xFF;
+        for (uint8_t page = 0; page < 8; page++) {
+            memory_map_page_both(cpu, page + 0xC8, cpu->main_io_4 + (page + 0x08) * 0x100, MEM_IO);
+        }
+        return raw_memory_read(cpu, address);
+    }
+    return cpu->memory->pages_read[address / GS2_PAGE_SIZE][address % GS2_PAGE_SIZE];
+//    return 0xEE; /* TODO: should return a random value 'floating bus'*/
 }
 
 void memory_bus_write(cpu_state *cpu, uint16_t address, uint8_t value) {
@@ -80,7 +89,7 @@ void memory_bus_write(cpu_state *cpu, uint16_t address, uint8_t value) {
     if (address == 0xCFFF) {
         cpu->C8xx_slot = 0xFF;
         for (uint8_t page = 0; page < 8; page++) {
-            memory_map_page_both(cpu, page + 0xC8, cpu->main_ram_64 + (page + 0xC8) * 0x100, MEM_ROM);
+            memory_map_page_both(cpu, page + 0xC8, cpu->main_io_4 + (page + 0x08) * 0x100, MEM_IO);
         }
         return;
     }
