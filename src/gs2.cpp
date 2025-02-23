@@ -38,6 +38,7 @@
 #include "devices/speaker/speaker.hpp"
 #include "devices/loader.hpp"
 #include "devices/thunderclock_plus/thunderclockplus.hpp"
+#include "devices/prodos_clock/prodos_clock.hpp"
 #include "devices/diskii/diskii.hpp"
 #include "devices/diskii/diskii_fmt.hpp"
 #include "devices/languagecard/languagecard.hpp"
@@ -48,7 +49,7 @@
 #include "util/media.hpp"
 #include "util/dialog.hpp"
 #include "util/mount.hpp"
-
+#include "util/reset.hpp"
 #include "ui/OSD.hpp"
 
 /**
@@ -201,6 +202,7 @@ void run_cpus(void) {
     uint64_t last_time_window_start = 0;
     uint64_t last_cycle_window_start = 0;
 
+
     while (1) {
 
         INSTRUMENT(std::cout << "last_cycle_count: " << last_cycle_count << " last_cycle_time: " << last_cycle_time << std::endl;)
@@ -215,8 +217,10 @@ void run_cpus(void) {
         uint64_t last_cycle_count = cpu->cycles;
         uint64_t last_cycle_time = SDL_GetTicksNS();
 
+        uint64_t cycles_for_this_burst = clock_mode_info[cpu->clock_mode].cycles_per_burst;
+
         if (! cpu->halt) {
-            while (cpu->cycles - last_cycle_count < 17008) { // 1/60th second.
+            while (cpu->cycles - last_cycle_count < cycles_for_this_burst) { // 1/60th second.
                 if (cpu->pc == 0xC5C0) {
                     printf("ParaVirtual Trap PC: %04X\n", cpu->pc);
                     prodos_block_pv_trap(cpu);
@@ -312,12 +316,6 @@ void run_cpus(void) {
         last_time_window_start = time_window_start;
         last_cycle_window_start = cycle_window_start;
     }
-}
-
-void reset_system(cpu_state *cpu) {
-    cpu_reset(cpu);
-    init_default_memory_map(cpu);
-    reset_languagecard(cpu); // reset language card
 }
 
 
@@ -439,6 +437,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     set_cpu_processor(&CPUs[0], platform->processor_type);
+    CPUs[0].mounts = new Mounts(&CPUs[0]); // TODO: this should happen in a CPU constructor.
 
     init_display_font(rd);
 
@@ -447,14 +446,14 @@ int main(int argc, char *argv[]) {
     init_slot_languagecard(&CPUs[0],0);
     init_mb_speaker(&CPUs[0]);
     init_mb_game_controller(&CPUs[0]);
-    init_slot_thunderclock(&CPUs[0],1);
+    //init_slot_thunderclock(&CPUs[0],1);
+    init_slot_prodosclock(&CPUs[0], 1);
     init_slot_diskII(&CPUs[0],6);
     init_prodos_block(&CPUs[0], 5);
     init_slot_memexp(&CPUs[0], 4);
 
     cpu_reset(&CPUs[0]);
 
-    CPUs[0].mounts = new Mounts();
 
     //std::vector<media_descriptor *> mounted_media;
 
@@ -463,7 +462,7 @@ int main(int argc, char *argv[]) {
         disk_mount_t disk_mount = disks_to_mount.back();
         disks_to_mount.pop_back();
 
-        CPUs[0].mounts->mount_media(&CPUs[0], disk_mount);
+        CPUs[0].mounts->mount_media(disk_mount);
 
 /*         printf("Mounting disk %s in slot %d drive %d\n", disk_mount.filename, disk_mount.slot, disk_mount.drive);
         media_descriptor * media = new media_descriptor();

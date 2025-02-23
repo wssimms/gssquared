@@ -29,25 +29,30 @@ void cpu_reset(cpu_state *cpu) {
     cpu->pc = read_word(cpu, RESET_VECTOR);
 }
 
-uint64_t HZ_RATES[] = {
+clock_mode_info_t clock_mode_info[NUM_CLOCK_MODES] = {
+    { 0, 0, 17008 },
+    { 1020500, (1000000000 / 1020500)+1, 17008 },
+    { 2800000, (1000000000 / 2800000), 46666 },
+    { 4000000, (1000000000 / 4000000), 66665 }
+};
+
+/* uint64_t HZ_RATES[] = {
     0,
+    4000000,
     2800000,
     1020500
 };
 
 // 1000000000 / cpu->HZ_RATE
 uint64_t cycle_durations_ns[] = {
-    0, // 357,
+    0, // free run
+    1000000000 / 4000000, // Apple //c+
     1000000000 / 2800000, // 2.8MHz IIGS,
     (1000000000 / 1020500)+1, // 1020500, Apple II+/IIe - +1 for rounding error, it's actually 979.9
 };
 
-/* // cpu->cycle_duration_ns * info.denom / info.numer
-uint64_t cycle_durations_ticks[] = {
-    8,
-    8,
-    23
-}; */
+uint64_t cycles_per_burst[] = { 17008, 66665, 46666, 17008 };
+ */
 
 void set_clock_mode(cpu_state *cpu, clock_mode mode) {
     // Get the conversion factor for mach_absolute_time to nanoseconds
@@ -58,9 +63,9 @@ void set_clock_mode(cpu_state *cpu, clock_mode mode) {
     // immediately in order to avoid weird calculations around.
     // So add a "speedshift" cpu flag.
 
-    cpu->HZ_RATE = HZ_RATES[mode];
+    cpu->HZ_RATE = clock_mode_info[mode].hz_rate;
     // Lookup time per emulated cycle
-    cpu->cycle_duration_ns = cycle_durations_ns[mode];
+    cpu->cycle_duration_ns = clock_mode_info[mode].cycle_duration_ns;
 
     cpu->clock_mode = mode;
     fprintf(stdout, "Clock mode: %d HZ_RATE: %llu cycle_duration_ns: %llu \n", cpu->clock_mode, cpu->HZ_RATE, cpu->cycle_duration_ns);

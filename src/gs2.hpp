@@ -20,6 +20,8 @@
 #include <unistd.h>
 #include <stdint.h>
 
+#include "cpu.hpp"
+
 /* Address types */
 typedef uint8_t zpaddr_t;
 typedef uint16_t absaddr_t;
@@ -35,3 +37,5 @@ typedef struct gs2_app_t {
 } gs2_app_t;
 
 extern gs2_app_t gs2_app_values;
+
+void init_default_memory_map(cpu_state *cpu);

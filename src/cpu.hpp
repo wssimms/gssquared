@@ -22,6 +22,7 @@
 #include <SDL3/SDL.h>
 
 #include "memoryspecs.hpp"
+#include "clock.hpp"
 
 //#include "clock.hpp"
 
@@ -31,13 +32,6 @@
 #define IRQ_VECTOR 0xFFFE
 #define NMI_VECTOR 0xFFFA
 #define RESET_VECTOR 0xFFFC
-
-typedef enum clock_mode {
-    CLOCK_FREE_RUN = 0,
-    CLOCK_2_8MHZ,
-    CLOCK_1_024MHZ,
-    NUM_CLOCK_MODES
-} clock_mode;
 
 struct memory_page {
     uint8_t data[GS2_PAGE_SIZE];
@@ -97,6 +91,8 @@ typedef enum {
     MODULE_DISKII,
     MODULE_MEMEXP,
     MODULE_LANGCARD,
+    MODULE_THUNDERCLOCK,
+    MODULE_PRODOS_CLOCK,
     MODULE_NUM_MODULES
 } module_id_t;
 

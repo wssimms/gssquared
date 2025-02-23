@@ -17,6 +17,26 @@
 
 #pragma once
 
+#include "cpu.hpp"
+
+struct cpu_state; // forward declaration
+
+typedef enum clock_mode {
+    CLOCK_FREE_RUN = 0,
+    CLOCK_1_024MHZ,
+    CLOCK_2_8MHZ,
+    CLOCK_4MHZ,
+    NUM_CLOCK_MODES
+} clock_mode;
+
+typedef struct {
+    uint64_t hz_rate;
+    uint64_t cycle_duration_ns;
+    uint64_t cycles_per_burst;
+} clock_mode_info_t;
+
+extern clock_mode_info_t clock_mode_info[NUM_CLOCK_MODES];
+
 void emulate_clock_cycle(cpu_state *cpu) ;
 
 void incr_cycles(cpu_state *cpu) ;
