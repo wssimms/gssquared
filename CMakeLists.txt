@@ -128,6 +128,8 @@ add_library(gs2_devices_diskii_fmt
     src/devices/diskii/diskii_fmt.cpp
 )
 
+add_library(gs2_devices_prodos_clock src/devices/prodos_clock/prodos_clock.cpp )
+
 add_library(gs2_devices_tcp    src/devices/thunderclock_plus/thunderclockplus.cpp )
 
 add_library(gs2_devices_languagecard     src/devices/languagecard/languagecard.cpp )
@@ -140,7 +142,7 @@ add_library(gs2_devices_memexp     src/devices/memoryexpansion/memexp.cpp )
 
 add_library(gs2_cpu src/cpus/cpu_6502.cpp src/cpus/cpu_65c02.cpp )
 
-add_library(gs2_util src/util/media.cpp src/util/ResourceFile.cpp src/util/dialog.cpp src/util/mount.cpp )
+add_library(gs2_util src/util/media.cpp src/util/ResourceFile.cpp src/util/dialog.cpp src/util/mount.cpp src/util/reset.cpp )
 
 add_library(gs2_ui src/ui/AssetAtlas.cpp src/ui/Container.cpp src/ui/DiskII_Button.cpp 
     src/ui/MousePositionTile.cpp src/ui/OSD.cpp src/ui/Tile.cpp src/ui/Button.cpp src/ui/MainAtlas.cpp
@@ -186,6 +188,7 @@ target_link_libraries(gs2
     gs2_devices_diskii_fmt 
     gs2_devices_languagecard 
     gs2_devices_prodos_block
+    gs2_devices_prodos_clock
     gs2_devices_speaker
     gs2_devices_game
     gs2_devices_memexp
