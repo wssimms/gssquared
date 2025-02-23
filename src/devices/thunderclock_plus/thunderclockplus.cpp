@@ -18,8 +18,17 @@
 #include <time.h>
 #include <stdint.h>
 #include <stdio.h>
+
+#include "debug.hpp"
+
 #include "cpu.hpp"
+
 #include "bus.hpp"
+#include "memory.hpp"
+
+#include "thunderclockplus.hpp"
+
+#include "util/ResourceFile.hpp"
 
 /*
 
@@ -102,7 +111,7 @@ void thunderclock_write_register(cpu_state *cpu, uint16_t address, uint8_t value
         }
     }
     if ((thunderclock_command_register & TCP_CLK) && ((value & TCP_CLK) == 0)) {
-        // shift the time register right.
+        // shift the time register right on a 1 to 0 transition of the clock bit.
         fprintf(stderr, "Thunderclock Plus CLK tick - shift time right\n");
         thunderclock_time_register >>= 1;
     }
@@ -112,9 +121,43 @@ void thunderclock_write_register(cpu_state *cpu, uint16_t address, uint8_t value
 
 }
 
+void map_rom_thunderclock(cpu_state *cpu) {
+    thunderclock_state * thunderclock_d = (thunderclock_state *)get_module_state(cpu, MODULE_THUNDERCLOCK);
+    uint8_t *dp = thunderclock_d->rom->get_data();
+    for (uint8_t page = 0; page < 8; page++) {
+        memory_map_page_both(cpu, page + 0xC8, dp + (page * 0x100), MEM_IO);
+    }
+    if (DEBUG(DEBUG_THUNDERCLOCK)) {
+        printf("mapped in thunderclock $C800-$CFFF\n");
+    }
+}
+
 void init_slot_thunderclock(cpu_state *cpu, int slot) {
     uint16_t thunderclock_cmd_reg = THUNDERCLOCK_CMD_REG_BASE + (slot << 4);
     fprintf(stderr, "Thunderclock Plus init at SLOT %d address %X\n", slot, thunderclock_cmd_reg);
+
+    thunderclock_state * thunderclock_d = new thunderclock_state;
+
+    set_module_state(cpu, MODULE_THUNDERCLOCK, thunderclock_d);
+
+    ResourceFile *rom = new ResourceFile("roms/cards/tcp/tcp.rom", READ_ONLY);
+    if (rom == nullptr) {
+        fprintf(stderr, "Failed to load tcp.rom\n");
+        return;
+    }
+    rom->load();
+    thunderclock_d->rom = rom;
+
+    // memory-map the page. Refactor to have a method to get and set memory map.
+    uint8_t *rom_data = thunderclock_d->rom->get_data();
+
+    // load the firmware into the slot memory -- refactor this
+    for (int i = 0; i < 256; i++) {
+        raw_memory_write(cpu, 0xC000 + (slot * 0x0100) + i, rom_data[i]);
+    }
+
     register_C0xx_memory_read_handler(thunderclock_cmd_reg, thunderclock_read_register);
     register_C0xx_memory_write_handler(thunderclock_cmd_reg, thunderclock_write_register);
+
+    register_C8xx_handler(cpu, slot, map_rom_thunderclock);
 }

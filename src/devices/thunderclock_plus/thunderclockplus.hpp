@@ -18,5 +18,10 @@
 #pragma once
 
 #include "cpu.hpp"
+#include "util/ResourceFile.hpp"
+
+struct thunderclock_state {
+    ResourceFile *rom;
+};
 
 void init_slot_thunderclock(cpu_state *cpu, int slot);
