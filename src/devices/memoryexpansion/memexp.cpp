@@ -91,7 +91,7 @@ void map_rom_memexp(cpu_state *cpu) {
     memexp_data * memexp_d = (memexp_data *)get_module_state(cpu, MODULE_MEMEXP);
     uint8_t *dp = memexp_d->rom->get_data();
     for (uint8_t page = 0; page < 8; page++) {
-        memory_map_page_both(cpu, page + 0xC8, dp + 0x800 + (page * 0x100), MEM_ROM);
+        memory_map_page_both(cpu, page + 0xC8, dp + 0x800 + (page * 0x100), MEM_IO);
     }
     if (DEBUG(DEBUG_MEMEXP)) {
         printf("mapped in memexp $C800-$CFFF\n");
