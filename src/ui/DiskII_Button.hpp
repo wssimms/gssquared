@@ -17,8 +17,9 @@
 
 #pragma once
 
-#include "Button.hpp"
 #include <SDL3/SDL.h>
+#include "Button.hpp"
+#include "util/mount.hpp"
 
 /**
  * @brief A specialized button class for DiskII drive interface.
@@ -30,26 +31,21 @@
 class DiskII_Button_t : public Button_t {
 protected:
     uint64_t key;
-/*     int disk_slot = 6;
-    int disk_number = 1; */
-    bool disk_running = false;
-    bool disk_mounted = false;
+    drive_status_t status;
 
 public:
     // Inherit constructors from Button_t
     using Button_t::Button_t;
 
     // Disk state setters and getters
-    /* void set_disk_slot(int slot);
+    void set_disk_slot(int slot);
     int get_disk_slot() const;
     void set_disk_number(int num);
-    int get_disk_number() const; */
+    int get_disk_number() const;
+    void set_disk_status(drive_status_t status);
+
     void set_key(uint64_t k);
     uint64_t get_key() const;
-    void set_disk_running(bool running);
-    bool get_disk_running() const;
-    void set_disk_mounted(bool mounted);
-    bool get_disk_mounted() const;
 
     // Override render to add disk-specific rendering
     void render(SDL_Renderer* renderer) override;

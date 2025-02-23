@@ -32,17 +32,24 @@
 
 #include "display/display.hpp"
 #include "util/mount.hpp"
-
+#include "util/reset.hpp"
 // we need to use data passed to us, and pass it to the ShowOpenFileDialog, so when the file select event
 // comes back later, we know which drive this was for.
 // TODO: only allow one of these to be open at a time. If one is already open, disregard.
+
+struct diskii_callback_data_t {
+    OSD *osd;
+    uint64_t key;
+};
 
 /** handle file dialog callback */
 static void /* SDLCALL */ file_dialog_callback(void* userdata, const char* const* filelist, int filter)
 {
     if (filelist[0] == nullptr) return; // user cancelled dialog
 
-    OSD *osd = (OSD *)userdata;
+    diskii_callback_data_t *data = (diskii_callback_data_t *)userdata;
+
+    OSD *osd = data->osd;
 
     // returns callback: /Users/bazyar/src/AppleIIDisks/33master.dsk when selecting
     // a disk image file.
@@ -51,15 +58,16 @@ static void /* SDLCALL */ file_dialog_callback(void* userdata, const char* const
     // 2. mount new image.
     disk_mount_t dm;
     dm.filename = (char *)filelist[0];
-    dm.slot = 6;
-    dm.drive = 0;
-    osd->cpu->mounts->unmount_media(osd->cpu, dm);
-    osd->cpu->mounts->mount_media(osd->cpu, dm);
+    dm.slot = data->key >> 8;
+    dm.drive = data->key & 0xFF;
+    osd->cpu->mounts->unmount_media(dm);
+    osd->cpu->mounts->mount_media(dm);
     SDL_RaiseWindow(osd->get_window());
 }
 
-void diskii_button_click(void *data) {
-    OSD *osd = (OSD *)data;
+void diskii_button_click(void *userdata) {
+    diskii_callback_data_t *data = (diskii_callback_data_t *)userdata;
+    OSD *osd = data->osd;
 
     static const SDL_DialogFileFilter filters[] = {
         { "Disk Images",  "do;po;woz;dsk;hdv;2mg" },
@@ -68,7 +76,7 @@ void diskii_button_click(void *data) {
 
     printf("diskii button clicked\n");
     SDL_ShowOpenFileDialog(file_dialog_callback, 
-        data, 
+        userdata, 
         osd->get_window(),
         filters,
         sizeof(filters)/sizeof(SDL_DialogFileFilter),
@@ -109,7 +117,7 @@ void set_mhz_2_8(void *data) {
 void set_mhz_4_0(void *data) {
     printf("set_mhz_4_0 %p\n", data);
     cpu_state *cpu = (cpu_state *)data;
-    set_clock_mode(cpu, CLOCK_2_8MHZ);
+    set_clock_mode(cpu, CLOCK_4MHZ);
 }
 
 void set_mhz_infinity(void *data) {
@@ -121,7 +129,7 @@ void set_mhz_infinity(void *data) {
 void click_reset_cpu(void *data) {
     printf("click_reset_cpu %p\n", data);
     cpu_state *cpu = (cpu_state *)data;
-    cpu_reset(cpu);
+    system_reset(cpu);
 }
 
 
@@ -150,8 +158,12 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, int windo
     
     SDL_RenderClear(renderer);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+
+    // make the background opaque and black.
+    SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
+    SDL_RenderFillRect(renderer, NULL);
+
     SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xC0);
-    //SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x80);
     SDL_FRect rect = {0, 50, (float)(window_w-100), (float)(window_h-100)};
     SDL_RenderFillRect(renderer, &rect);
     
@@ -189,29 +201,26 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, int windo
 
     // Create a container for our drive buttons
     Container_t *drive_container = new Container_t(renderer, 10, CS);  // Increased to 5 to accommodate the mouse position tile
-    drive_container->set_position(660, 70);
+    drive_container->set_position(600, 70);
     drive_container->set_size(415, 600);
     containers.push_back(drive_container);
 
     // Create the buttons
     diskii_button1 = new DiskII_Button_t(aa, DiskII_Open, DS); // this needs to have our disk key . or alternately use a different callback.
-    diskii_button1->set_key(0x601);
+    diskii_button1->set_key(0x600);
+    diskii_button1->set_click_callback(diskii_button_click, new diskii_callback_data_t{this, 0x600});
+
     diskii_button2 = new DiskII_Button_t(aa, DiskII_Closed, DS);
-    diskii_button2->set_key(0x602);
-    diskii_button2->set_disk_running(true);
-    diskii_button2->set_disk_mounted(true);
+    diskii_button2->set_key(0x601);
+    diskii_button2->set_click_callback(diskii_button_click, new diskii_callback_data_t{this, 0x601});
 
     mouse_pos = new MousePositionTile_t();
-
-    diskii_button1->set_click_callback(diskii_button_click, this);
-    
     mouse_pos->set_position(100,600) ;
     mouse_pos->set_size(150,20);
     mouse_pos->set_background_color(0xFFFFFFFF);  // White background
     mouse_pos->set_border_color(0x000000FF);      // Black border
     mouse_pos->set_border_width(1);
     
-
     /* unidisk_button1->set_size(button_width, button_height); */
     /* unidisk_button2->set_size(button_width, button_height); */
 
@@ -318,6 +327,16 @@ void OSD::update() {
             slidePositionDelta = slidePositionDelta + slidePositionAcceleration;
         }
     }
+
+    static int updCount=0;
+    if (updCount++ > 60) {
+        updCount = 0;
+        cpu->mounts->dump();
+    }
+
+    // update disk status
+    diskii_button1->set_disk_status(cpu->mounts->media_status(0x600));
+    diskii_button2->set_disk_status(cpu->mounts->media_status(0x601));
 }
 
 /** Draw the control panel (if visible) */

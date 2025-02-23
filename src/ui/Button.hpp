@@ -44,7 +44,7 @@ protected:
     int assetID = 0;
     int group_id = 0;          // For grouping related buttons
     ButtonType_t buttonType;    // Type of button (text or image)
-
+    
     /**
      * @brief Updates button size based on the current asset.
      */

@@ -1,3 +1,20 @@
+/*
+ *   Copyright (c) 2025 Jawaid Bazyar
+
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <unordered_map>
 
 #include "cpu.hpp"
@@ -13,8 +30,12 @@
  * U = Unit (key & 0xFF)
  **/
 
+int Mounts::register_drive(drive_type_t drive_type, uint64_t key) {
+    mounted_media[key].drive_type = drive_type;
+    return 0;
+}
 
-int Mounts::mount_media(cpu_state *cpu, disk_mount_t disk_mount) {
+int Mounts::mount_media(disk_mount_t disk_mount) {
 
     fprintf(stdout,"Mounting disk %s in slot %d drive %d\n", disk_mount.filename, disk_mount.slot, disk_mount.drive);
     media_descriptor * media = new media_descriptor();
@@ -31,7 +52,7 @@ int Mounts::mount_media(cpu_state *cpu, disk_mount_t disk_mount) {
 
     // TODO: this should look up what type of disk device is in the slot
     if (disk_mount.slot == 6) {
-        mount_diskII(&CPUs[0], disk_mount.slot, disk_mount.drive, media);
+        mount_diskII(cpu, disk_mount.slot, disk_mount.drive, media);
         mounted_media[key].drive_type = DRIVE_TYPE_DISKII;
     } else if (disk_mount.slot == 5) {
         mount_prodos_block(disk_mount.slot, disk_mount.drive, media);
@@ -43,12 +64,12 @@ int Mounts::mount_media(cpu_state *cpu, disk_mount_t disk_mount) {
     return key;
 }
 
-int Mounts::unmount_media(cpu_state *cpu, disk_mount_t disk_mount) {
+int Mounts::unmount_media(disk_mount_t disk_mount) {
     // TODO
     return false;
 }
 
-drive_status_t Mounts::media_status(cpu_state *cpu, uint64_t key) {
+drive_status_t Mounts::media_status(uint64_t key) {
     auto it = mounted_media.find(key);
     if (it == mounted_media.end()) {
         return {false, nullptr, false, 0};
@@ -58,6 +79,12 @@ drive_status_t Mounts::media_status(cpu_state *cpu, uint64_t key) {
     } /* else if (it->second.drive_type == DRIVE_TYPE_PRODOS_BLOCK) {
         return prodos_block_status(cpu, key);
     } */
+   return {false, nullptr, false, 0};
 }
 
-
+void Mounts::dump() {
+    for (auto it = mounted_media.begin(); it != mounted_media.end(); it++) {
+        drive_status_t status = media_status(it->first);
+        fprintf(stdout, "Mounted media: %llu typ: %d mnt: %d mot:%d pos: %d\n", it->first, it->second.drive_type, status.is_mounted, status.motor_on, status.position);
+    }
+}
