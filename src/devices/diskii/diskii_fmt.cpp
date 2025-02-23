@@ -19,7 +19,7 @@
 #include <stdint.h>
 
 #include "diskii_fmt.hpp"
-
+#include "debug.hpp"
 
 
 interleave_t po_phys_to_logical = {   // also Pascal Order.
@@ -418,8 +418,10 @@ void emit_nibblized_sector(track_t& track, sector_t& in) {
     sector_62_t nbuf; // don't need to preinitialize, woz prenibble does it.
 
     prenibble(in, nbuf);
-    printf("raw buffer out from PRENIBBLE\n");
-    dump_sector_62(nbuf);
+    if (DEBUG(DEBUG_DISKII_FORMAT)) {
+        printf("raw buffer out from PRENIBBLE\n");
+        dump_sector_62(nbuf);
+    }
 
     // don't need to reorder now, just emit to track.
     uint8_t last = 0;
@@ -454,12 +456,12 @@ void emit_data_field(track_t& track, sector_t& in) {
  */
 void emit_sector(track_t& tr, sector_t& in, uint8_t volume, uint8_t track, uint8_t sector) {
     // each sector after gap A is address, gap2, data, gap3
-    printf("Emitting track %d, sector %d\n", track, sector);
+    if (DEBUG(DEBUG_DISKII)) printf("Emitting track %d, sector %d\n", track, sector);
     emit_address_field(tr, volume, track, sector);
     emit_gap_b(tr);
     emit_data_field(tr, in);
     emit_gap_c(tr);
-    printf("Track position: %d\n", tr.position);
+    if (DEBUG(DEBUG_DISKII)) printf("Track position: %d\n", tr.position);
 }
 
 /**
