@@ -25,6 +25,7 @@
 #include "devices/game/gamecontroller.hpp"
 #include "devices/speaker/speaker.hpp"
 #include "devices/loader.hpp"
+#include "util/reset.hpp"
 
 // Base dimensions for aspect ratio calculation
 #define WIN_BASE_WIDTH 560
@@ -56,7 +57,7 @@ bool handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
     SDL_Keycode key = event.key.key;
 
     if ((mod & SDL_KMOD_CTRL) && (key == SDLK_F10)) {
-        reset_system(cpu); 
+        system_reset(cpu); 
         return true;
     }
 
