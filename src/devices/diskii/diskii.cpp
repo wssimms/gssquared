@@ -308,6 +308,12 @@ drive_status_t diskii_status(cpu_state *cpu, uint64_t key) {
     uint8_t drive = key & 0xFF;
     diskII &seldrive = diskII_slot[slot].drive[drive];
 
+    if (seldrive.motor == 1 && seldrive.mark_cycles_turnoff != 0 && ((cpu->cycles > seldrive.mark_cycles_turnoff))) {
+        if (DEBUG(DEBUG_DISKII)) printf("motor off: %llu %llu cycles\n", cpu->cycles, seldrive.mark_cycles_turnoff);
+        seldrive.motor = 0;
+        seldrive.mark_cycles_turnoff = 0;
+    }
+
     return {seldrive.is_mounted, nullptr /* seldrive.media.filename */, seldrive.motor, seldrive.track};
 }
 
@@ -408,14 +414,17 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
             seldrive.phase3 = 1;
             seldrive.last_phase_on = 3;
             break;
-        case DiskII_Motor_Off:
+        case DiskII_Motor_Off:          // turns off BOTH drives
             if (DEBUG(DEBUG_DISKII)) DEBUG_MOT(slot, drive, seldrive.motor);
             // if motor already off, do nothing.
-            if (seldrive.motor == 1) {
-                seldrive.mark_cycles_turnoff = cpu->cycles + 750000;
-                if (DEBUG(DEBUG_DISKII)) printf("schedule motor off at %llu (is now %llu)\n", seldrive.mark_cycles_turnoff, cpu->cycles);
+            if (diskII_slot[slot].drive[0].motor == 1) {
+                diskII_slot[slot].drive[0].mark_cycles_turnoff = cpu->cycles + 1000000;
+                if (DEBUG(DEBUG_DISKII)) printf("schedule motor off at %llu (is now %llu)\n", diskII_slot[slot].drive[0].mark_cycles_turnoff, cpu->cycles);
             }
-            //seldrive.motor = 0;
+            if (diskII_slot[slot].drive[1].motor == 1) {
+                diskII_slot[slot].drive[1].mark_cycles_turnoff = cpu->cycles + 1000000;
+                if (DEBUG(DEBUG_DISKII)) printf("schedule motor off at %llu (is now %llu)\n", diskII_slot[slot].drive[1].mark_cycles_turnoff, cpu->cycles);
+            }
             break;
         case DiskII_Motor_On:
             if (DEBUG(DEBUG_DISKII)) DEBUG_MOT(slot, drive, seldrive.motor);
@@ -543,5 +552,21 @@ void init_slot_diskII(cpu_state *cpu, uint8_t slot) {
         raw_memory_write(cpu, 0xC000 + (slot * 0x0100) + i, diskII_firmware[i]);
     }
 
+    // register drives with mounts for status reporting
+    uint64_t key = (slot << 8) | 0;
+    cpu->mounts->register_drive(DRIVE_TYPE_DISKII, key);
+    cpu->mounts->register_drive(DRIVE_TYPE_DISKII, key + 1);
+
 }
 
+void diskii_reset(cpu_state *cpu) {
+    diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
+    printf("diskii_reset\n");
+    // TODO: this should be a callback from the CPU reset handler.
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 2; j++) {
+            diskII_slot[i].drive[j].motor = 0;
+            diskII_slot[i].drive[j].mark_cycles_turnoff = 0;
+        }
+    }
+}
