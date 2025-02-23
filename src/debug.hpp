@@ -34,9 +34,12 @@ extern uint64_t debug_level;
 #define DEBUG_LANGCARD 0x1000
 #define DEBUG_GAME 0x2000
 #define DEBUG_MEMEXP 0x4000
+#define DEBUG_MOUNTS 0x8000
+#define DEBUG_DISKII_FORMAT 0x10000
+#define DEBUG_THUNDERCLOCK 0x20000
 
 #define DEBUG_ANY 0xFFFFFFFF
-#define DEBUG_BOOT_FLAG DEBUG_KEYBOARD | DEBUG_LANGCARD
+#define DEBUG_BOOT_FLAG 0 /* DEBUG_DISKII */
 
 #define DEBUG(flag) (debug_level & flag)
 
