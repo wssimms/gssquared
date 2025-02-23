@@ -2446,3 +2446,174 @@ write protect media (eventually)
 query status (running, mounted, write protected, etc.)
 
 The status will tell us how to display the particular widget in the OSD.
+
+## Feb 15, 2025
+
+Fixed a bug in the system - only 48K RAM was being allocated but of course the language card was using memory locations above that. Somehow that was working on the Mac, mostly, but blew chunks quickly on Linux. Enabled bounds checking in CMake Debug and rapidly diagnosed the problem, as well as a few other bounds problems.
+
+The checks also identify memory leaks. There is a small amount of that going on right now. Of course we largely don't deallocate any memory on shutdown. Investigate later.
+
+## Feb 16, 2025
+
+We are now successfully mounting disk images at runtime. Was able to play Oregon Trail which requires flipping back and forth between two disks. And, can pretty reliably switch disks in DOS / ProDOS and CAT/CATALOG etc.
+
+The OSD display of the drives does not track the actual drive status though. Have to somehow tie that in.
+
+Getting close. However, the diskii drive motor never turns off. Here's what is happening:
+* drive is running
+* sector read
+* drive off sent
+* timer is set
+* but the disk code never hits any diskii softswitches again, so I never get a chance to see the timer expired and to turn the motor off.
+
+So, the diskII module needs to be called periodically to check on timers and update state.
+
+I need a way for a slot to register a callback, called whenever a timer expires. SDL has SDL_AddTimer(), however, I am thinking of a more general purpose mechanism. Some devices will ultimately need to generate interrupts on the basis of timers.
+
+Also, diskII needs a reset handler. From UTA2: "Pressing RESET causes the delay timer to clear and turns off the drive almost immediately."
+
+ok, some progress. Drive status working. Need to be able to unmount, not just mount new media.
+
+I sort of have mounting image on Drive 2 working. However, I get an I/O error or infinite spin the first time I catalog,d2. SEems like I'm overlooking a state change to drive 2 somewhere. If I then RESET, and try again, it works. OK. When I've booted, and then I do a catalog,s6,d2, it turns on the motor on drive 1, not drive 2! I reset, then do it again, then it turns on the motor on drive 2!
+
+It's not seeing my motor on after doing drive_select 1 the first time:
+I have a drive 0 motor 0 for some reason..
+
+```
+slot 6, drive 0, motor 0
+slot 6, drive 0, drive_select 1
+```
+
+second time it does it:
+```
+slot 6, drive 1, motor 0
+slot 6, drive 1, drive_select 1
+slot 6, drive 1, motor 1
+```
+
+doing catalogs, the wrong motor drive light is coming on sometimes.
+
+I guess I will need to read the UTA2 again. 
+
+Whatever drive was last selected, if I try to catalog the other one, it barfs with I/O error. Then doing it again, works. It's probably not reading anything, it does a lot of CHUGGAS to try to reset the head, and then still fails, so gets I/O error.
+
+## Feb 18, 2025
+
+Thunderclock Plus firmware is now loaded, and confirmed working with ProDOS 1.1.1 disk. TCP DOS utils disk also worked.
+
+It is however acting le funky using the TCP ProDOS utils disk. Dos 3.3 one booted and worked.. like it is reading register C090 => 00 in an infinite loop, never returning.
+That's not cool, bro.
+
+something caused cpu->cycle count to reset to 0; is it my reset routine or something? That's not right. cycle count should be set to 0 only on power up.
+
+Apparently the CFFF to disable slot card map into C800, works on read or write. So tweaked that.
+
+Trying to troubleshoot why the TCP c800 firmware isn't coming in and out properly. Here's the deal:
+
+* whenever CnXX is read or written to, C8xx is enabled for that slot. IF it's not already enabled?
+* read or write to CFFF turns that rom off.
+* in memory_read, if the page type is RAM or ROM, we're fine. I just changed it so that if the page type is IO, we call the memory_bus_read handler.
+* However, this means once a page is set to I/O, we are not reading memory values from the ROM.
+
+In memory_bus_read after checking all the various I/O addresses, I return by reading the memory mapped value, instead of returning 0xEE. So far that seems to be working okay.
+
+Now, still have the issue where we get infinite C090 reads. ok, the demo program 'clock' is doing "-TUT" which is loading the sys program TUT. That is what is infinite looping. I think that loads a new ProDOS command called TIME. TIME %, TIME #, etc then generate some output the basic program reads in.
+
+Clock is a cute program that displays a seconds-ticking clock with moving hour, minute, and second hand. The DOS33 version works.
+I must be missing a hardware command somehow. There is a program TEST on the DOS33 disk. It says my thunderclock is not operating properly.
+
+```
+Thunderclock Plus write register C090 value 40
+Thunderclock Plus write register C090 value 0
+```
+
+in VirtualII, if I do this:
+```
+C0f0:40
+c0f0:00
+c0f0
+c0f0-60
+c0f8 (clear interrupt)
+c0f0-40
+
+So on a pure read, 0x20 is the interrupt set bit.
+
+So it's turning on interrupts. And I'm not generating one, so it is probably then turning interrupts off and saying you failed, I didn't get an interrupt.
+
+
+This is what I get when I tell it to set the interrupt rate to 1/64 sec.
+```
+Thunderclock Plus write register C090 value 0
+Thunderclock Plus write register C090 value 20
+Thunderclock Plus write register C090 value 24
+Thunderclock Plus write register C090 value 20
+Thunderclock Plus write register C090 value 40
+Thunderclock Plus write register C090 value 40
+Thunderclock Plus write register C090 value 40
+```
+
+The behavior of Cn00, C800, CFFF seems that once a particular slot is latched in, you HAVE to CFFF to disconnect it, and only then can you enable a different slot. This behavior is unclear.
+
+This is correct. The first card hit will "hold on" until CFFF is accessed. 
+
+## Feb 19, 2025
+
+I have the data sheet for the UPD1990AC which is the clock chip used in the Thunderclock Plus. It is not very clear, it's in Japanglish. 
+
+I did a detour and implemented a "generic prodos clock" device. This supports only month date day of week hour minute. But it's something.
+
+The main bit of the TCP that will be complex, is supporting its timer interrupts. There is also a "test mode" which says it increments every counter in parallel 1024 hz. like, why, what does this do. I see that other emulators also moved to support No Slot Clock, and, generic prodos clock, instead of the TCP. Though one does attempt to emulate the TCP interrupt timers.
+
+Consider this. We run chunks of 6502 code in bursts of 17,000 cycles, 60 times per second. In order to support a timer interrupt of 1/64, 1/256, and 1/2048 second intervals, we would need to create an event queue and have the CPU loop pick those events up each iteration. Because we don't execute the code evenly (i.e., it's fullspeed during each burst) then we can't use real system timers. And that's probably okay.
+
+So, the timer routine would "post" an event to occur based on a calculated number of cycles.
+
+```
+cpu->cycles + (cycles_per_second / 64)
+cpu->cycles + (cycles_per_second / 256)
+cpu->cycles + (cycles_per_second / 2048)
+```
+
+if at the top of the cpu instruction handler we have hit this timer, we call the device interrupt handler.
+
+Let's think about this a bit too from the perspective of something like a serial card, where we may want to generate an IRQ on an incoming character. Characters do come in quite a lot faster than 1/60th second. They'll get buffered of course, but, if we have it in interrupt mode, in a separate thread, and it comes in while executing code, we want to trigger the interrupt. Even if not an interrupt, we want to set the "data ready" flag. nah, character ready check would just check a buffer. That's no biggy. It's more specifically interrupt stuff where we want to use this queue.
+
+We will need this same stuff when we get to the IIgs emulation, since it has a variety of built-in IRQ generating devices.
+
+So, this is a proposal for an Interrupt event queue. And it will be a lot like the audio event queue. Do we actually need a queue? What if we just emulate IRQ systems. I.e., each device or slot triggers IRQ. All the IRQs are ORd together. Interrupt handler has to search for the device that triggered it. 
+
+We'll have some callbacks that can be registered for timers / etc. Each iteration through the CPU loop, we call the routine. The routine will set a flag if the timer IRQ should fire.
+
+IRQ status for the devices stored in a 64 bit bitfield. We can check for -any- IRQ by checking if that value is non-zero. The position of each one bit indicates which devices' callback to call. They can be registered in an array of callback handlers (up to 64 of them).
+
+Instead of an ordered set or something, just do this sort of optimized thing:
+
+* bit field - each bit is assigned to a particular device.
+* array of handlers, array element corresponding to the bit position.
+* array of "next cycle triggers", also corresponding to the bit position.
+* once a trigger is called, the bit is cleared.
+* if the device wants, it sets the bit again.
+* Each time a next cycle trigger is reached, the next cycle is determined and stored. As an optimization so we don't scan the list every time, we scan it only when it needs to be updated.
+* Whenever a event is registered, if the cycle desired is less than current next cycle trigger, we update the trigger to that.
+
+## Feb 22, 2025
+
+Taking a look at OpenEmulator, another Mac A2 emu. It is Mac specific, they claim other platforms coming but never got done.
+
+Uses 3D effects to simulate CRT monitor "barrel distortion" and such. I think it's overkill. It's fairly accurate I think. It's flash mode is quite a bit faster than mine. I may have that wrong. I can check on the IIe. I do!
+
+Clock speed: only 1MHz and Free Run are working correctly. 2.8 and 4MHz are not working right. They are both reading at like 1.2-1.4mhz effective rate.
+
+
+I had an idea about the audio/speaker handler.
+Whenever C030 is tweaked, have it write directly into the audio buffer. However, the problem there is that could take up a lot of real cpu time.
+
+another idea: whenever we change clock speed, flush current audio buffer and reset parameters so the new buffer is calculated only at new clock speed.
+
+Maybe I need to tweak the number of clock cycles we run each burst. In fact that might be the issue with 2.8MHz and 4MHz. We need to run more emulated cycles at higher clock speeds. Let's see..
+
+In free run mode, we run 17000 cycles per burst. Then we check to execute audio, video, and events only once every 1/60th second realtime.
+
+In 1MHz mode, we run 17000 cycles per burst. Then check. Then sleep until next burst. So yeah, we definitely need to run more cycles at higher clock speeds. OK, easily done.. That's not quite right. When I do a simple lookup table, the flash gets faster. What? Ah my lookup table is in the wrong order. still not right. Duh have to use the lookup table, not just define it. THERE WE GO.
+
+Uh, all the sudden audio is working correctly at higher speeds.

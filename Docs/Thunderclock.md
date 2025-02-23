@@ -16,12 +16,18 @@ STB = $4
 
 uPD1990AC hookup:
 	bit 0 = data in (to clock)
-	bit 1 = CLK
-	bit 2 = STB
+	bit 1 = CLK (clock)
+	bit 2 = STB (strobe)
 	bit 3 = C0
 	bit 4 = C1
 	bit 5 = C2
 	bit 7 = data out (to cpu)
+
+Read:
+  bit 5 = 1 if interrupt is set
+  bit 6 = ??? tends to always be 1
+  bit 7 = data out (to cpu)
+
 
   LDA CREG,Y
   ASL  ; data out bit to carry
@@ -54,3 +60,34 @@ nibble 8: second (tens place, 0-5 BCD)
 nibble 9: second units (0-9 BCD)
 
 So we need state tracking of the strobe; and state tracking of the 'clock' bit.
+
+## Registers
+
+### C080 + Y
+
+This is the command register.
+
+* $00 - disables interrupts
+* $18 - read mode
+* $40 - enables interrupts
+
+### C088 + Y
+
+This clears the interrupt. Ohhh, I wonder if the ProDOS code is trying to use interrupts and we're not ever setting the interrupt flag.
+
+There is this:
+
+
+## Firmware
+
+The firmware seems to be at:
+
+https://mirrors.apple2.org.za/Apple%20II%20Documentation%20Project/Interface%20Cards/Clock/Thunderware%20Thunderclock/ROM%20Images/Thunderclock%20Plus%20ROM.bin
+
+It's a 2K file, but, only the first 1K has code in it. The second 1K is all 0xFF.
+
+the first page is mapped to Cn00 - CnFF.
+
+Then the whole 1K is mapped to C800 - CBFF. I should say, the whole 2k file is mapped to C800 - CFFF.
+
+Let's just map the firmware in and see if it sees my fake hardware.
