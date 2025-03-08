@@ -570,3 +570,29 @@ void toggle_display_fullscreen(cpu_state *cpu) {
     ds->display_fullscreen_mode = (display_fullscreen_mode_t)((ds->display_fullscreen_mode + 1) % NUM_FULLSCREEN_MODES);
     SDL_SetWindowFullscreen(ds->window, ds->display_fullscreen_mode);
 }
+
+void display_dump_file(cpu_state *cpu, const char *filename, uint16_t base_addr, uint16_t sizer) {
+    FILE *fp = fopen(filename, "wb");
+    if (fp == NULL) {
+        fprintf(stderr, "Error: Could not open %s for writing\n", filename);
+        return;
+    }
+    // Write 8192 bytes (0x2000) from memory starting at base_addr
+    for (uint16_t offset = 0; offset < sizer; offset++) {
+        uint8_t byte = raw_memory_read(cpu, base_addr + offset);
+        fwrite(&byte, 1, 1, fp);
+    }
+    fclose(fp);
+}
+
+void display_dump_hires_page(cpu_state *cpu, int page) {
+    uint16_t base_addr = (page == 1) ? 0x2000 : 0x4000;
+    display_dump_file(cpu, "dump.hgr", base_addr, 0x2000);
+    fprintf(stdout, "Dumped HGR page %d to dump.hgr\n", page);
+}
+
+void display_dump_text_page(cpu_state *cpu, int page) {
+    uint16_t base_addr = (page == 1) ? 0x0400 : 0x0800;
+    display_dump_file(cpu, "dump.txt", base_addr, 0x0400);
+    fprintf(stdout, "Dumped TXT page %d to dump.txt\n", page);
+}

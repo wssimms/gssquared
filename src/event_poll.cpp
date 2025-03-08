@@ -77,6 +77,30 @@ bool handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
         loader_execute(cpu);
         return true;
     }
+    if (key == SDLK_F6) {
+        if (mod & SDL_KMOD_CTRL) {
+            // dump hires image page 1
+            display_dump_text_page(cpu, 1);
+            return true;
+        }
+        if (mod & SDL_KMOD_SHIFT) {
+            // dump hires image page 2
+            display_dump_text_page(cpu, 2);
+            return true;
+        }
+    }
+    if (key == SDLK_F7) {
+        if (mod & SDL_KMOD_CTRL) {
+            // dump hires image page 1
+            display_dump_hires_page(cpu, 1);
+            return true;
+        }
+        if (mod & SDL_KMOD_SHIFT) {
+            // dump hires image page 2
+            display_dump_hires_page(cpu, 2);
+            return true;
+        }
+    }
     if (key == SDLK_F3) {
         toggle_display_fullscreen(cpu);
         return true;

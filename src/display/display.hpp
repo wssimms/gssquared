@@ -130,3 +130,5 @@ void set_display_mode(cpu_state *cpu, display_mode_t mode);
 void set_split_mode(cpu_state *cpu, display_split_mode_t mode);
 void set_graphics_mode(cpu_state *cpu, display_graphics_mode_t mode);
 void display_capture_mouse(cpu_state *cpu, bool capture);
+void display_dump_hires_page(cpu_state *cpu, int page);
+void display_dump_text_page(cpu_state *cpu, int page);
