@@ -58,7 +58,9 @@ void audio_generate_frame(cpu_state *cpu, uint64_t cycle_window_start, uint64_t 
     uint64_t queued_samples = SDL_GetAudioStreamQueued(speaker_state->stream);
     if (queued_samples < 100) { printf("queue underrun %llu\n", queued_samples); 
         // attempt to calculate how much time slipped and generate that many samples
-        memset(working_buffer, 0, 1000 * sizeof(int16_t));
+        for (int x = 0; x < 1000; x++) {
+            working_buffer[x] = speaker_state->last_sample;
+        }
         SDL_PutAudioStreamData(speaker_state->stream, working_buffer, 1000*sizeof(int16_t));
     }
 
@@ -101,8 +103,9 @@ void audio_generate_frame(cpu_state *cpu, uint64_t cycle_window_start, uint64_t 
             if (sample_value > 32767.0f) sample_value = 32767.0f;
             if (sample_value < -32768.0f) sample_value = -32768.0f;
             working_buffer[samp] = (int16_t)sample_value;
+            speaker_state->last_sample = (int16_t)sample_value;
         } else {
-            working_buffer[samp] = 0;  // Safe default when we can't calculate
+            working_buffer[samp] = speaker_state->last_sample;  // Safe default when we can't calculate
         }
         contribution = 0;
     }
