@@ -23,16 +23,17 @@
 
 #include "cpu.hpp"
 #include "DiskII_Button.hpp"
+#include "Unidisk_Button.hpp"
 #include "MousePositionTile.hpp"
 #include "Container.hpp"
 #include "AssetAtlas.hpp"
 #include "Style.hpp"
 #include "MainAtlas.hpp"
 #include "OSD.hpp"
-
 #include "display/display.hpp"
 #include "util/mount.hpp"
 #include "util/reset.hpp"
+
 // we need to use data passed to us, and pass it to the ShowOpenFileDialog, so when the file select event
 // comes back later, we know which drive this was for.
 // TODO: only allow one of these to be open at a time. If one is already open, disregard.
@@ -75,6 +76,25 @@ void diskii_button_click(void *userdata) {
     };
 
     printf("diskii button clicked\n");
+    SDL_ShowOpenFileDialog(file_dialog_callback, 
+        userdata, 
+        osd->get_window(),
+        filters,
+        sizeof(filters)/sizeof(SDL_DialogFileFilter),
+        nullptr,
+        false);
+}
+
+void unidisk_button_click(void *userdata) {
+    diskii_callback_data_t *data = (diskii_callback_data_t *)userdata;
+    OSD *osd = data->osd;
+
+    static const SDL_DialogFileFilter filters[] = {
+        { "Disk Images",  "po;dsk;hdv;2mg" },
+        { "All files",   "*" }
+    };
+
+    printf("unidisk button clicked\n");
     SDL_ShowOpenFileDialog(file_dialog_callback, 
         userdata, 
         osd->get_window(),
@@ -221,14 +241,19 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, int windo
     mouse_pos->set_border_color(0x000000FF);      // Black border
     mouse_pos->set_border_width(1);
     
-    /* unidisk_button1->set_size(button_width, button_height); */
-    /* unidisk_button2->set_size(button_width, button_height); */
+    unidisk_button1 = new Unidisk_Button_t(aa, Unidisk_Face, DS); // this needs to have our disk key . or alternately use a different callback.
+    unidisk_button1->set_key(0x500);
+    unidisk_button1->set_click_callback(unidisk_button_click, new diskii_callback_data_t{this, 0x500});
+
+    unidisk_button2 = new Unidisk_Button_t(aa, Unidisk_Face, DS); // this needs to have our disk key . or alternately use a different callback.
+    unidisk_button2->set_key(0x501);
+    unidisk_button2->set_click_callback(unidisk_button_click, new diskii_callback_data_t{this, 0x501});
 
     // Add buttons to container
     drive_container->add_tile(diskii_button1, 0);
     drive_container->add_tile(diskii_button2, 1);
-    /* drive_container.add_tile(unidisk_button1, 2); */
-    /* drive_container.add_tile(unidisk_button2, 3); */
+    drive_container->add_tile(unidisk_button1, 2);
+    drive_container->add_tile(unidisk_button2, 3);
 
     // Initial layout
     drive_container->layout();

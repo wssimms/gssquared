@@ -51,7 +51,7 @@ int Mounts::mount_media(disk_mount_t disk_mount) {
     mounted_media[key].key = key;
 
     // TODO: this should look up what type of disk device is in the slot
-    if (disk_mount.slot == 6) {
+    if (disk_mount.slot == 6) { // TODO: instead of based on slot, should be based on the card type in the slot.
         mount_diskII(cpu, disk_mount.slot, disk_mount.drive, media);
         mounted_media[key].drive_type = DRIVE_TYPE_DISKII;
     } else if (disk_mount.slot == 5) {

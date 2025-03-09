@@ -23,6 +23,7 @@
 #include "cpu.hpp"
 
 #include "DiskII_Button.hpp"
+#include "Unidisk_Button.hpp"
 #include "Container.hpp"
 #include "MousePositionTile.hpp"
 #include "AssetAtlas.hpp"
@@ -51,6 +52,8 @@ protected:
 
     DiskII_Button_t *diskii_button1 = nullptr;
     DiskII_Button_t *diskii_button2 = nullptr;
+    Unidisk_Button_t *unidisk_button1 = nullptr;
+    Unidisk_Button_t *unidisk_button2 = nullptr;
 
     std::vector<Container_t *> containers;
 

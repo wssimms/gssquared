@@ -32,6 +32,8 @@ enum MainAtlas {
     MHz4_0Button,
     MHzInfinityButton,
     ResetButton,
+    Unidisk_Face,
+    Unidisk_Light,
     MainAtlas_count
 };
 
