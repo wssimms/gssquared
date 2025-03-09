@@ -73,10 +73,10 @@ bool handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
         toggle_speaker_recording(cpu);
         return true;
     }
-    if (key == SDLK_F7) {
+    /* if (key == SDLK_F7) {
         loader_execute(cpu);
         return true;
-    }
+    } */
     if (key == SDLK_F6) {
         if (mod & SDL_KMOD_CTRL) {
             // dump hires image page 1
