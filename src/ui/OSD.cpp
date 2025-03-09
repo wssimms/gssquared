@@ -149,7 +149,7 @@ void set_mhz_infinity(void *data) {
 void click_reset_cpu(void *data) {
     printf("click_reset_cpu %p\n", data);
     cpu_state *cpu = (cpu_state *)data;
-    system_reset(cpu);
+    system_reset(cpu, false);
 }
 
 

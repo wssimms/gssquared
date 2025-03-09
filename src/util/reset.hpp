@@ -17,4 +17,4 @@
 
 #include "cpu.hpp"
 
-void system_reset(cpu_state *cpu);
+void system_reset(cpu_state *cpu, bool cold_start);

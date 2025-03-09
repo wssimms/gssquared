@@ -57,7 +57,11 @@ bool handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
     SDL_Keycode key = event.key.key;
 
     if ((mod & SDL_KMOD_CTRL) && (key == SDLK_F10)) {
-        system_reset(cpu); 
+        if (mod & SDL_KMOD_ALT) {
+            system_reset(cpu, true); 
+        } else {
+            system_reset(cpu, false); 
+        }
         return true;
     }
 
