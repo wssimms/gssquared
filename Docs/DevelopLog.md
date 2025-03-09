@@ -928,17 +928,11 @@ This implies we need to keep the screen mode per line. i.e. each of the 24 lines
    dhires
 
 The display overall would also have a color vs monochrome mode.
-And we need to keep track of the "color-killer" mode: in mixed text and graphics mode,
-the text is color-fringed. In pure text mode, the display is set to only display white pixels.
-Actually this implies that even on lines in text mode, we might need to draw the text with
-the slight pixel-shift and color-fringed effect. In which case, all buffers would always be
-560 wide. And, we would likely post-process the color-fringe effect. I.e., draw a scanline
-(or, 8 scanlines), then apply filtering to color the bits. Then render.
+And we need to keep track of the "color-killer" mode: in mixed text and graphics mode, the text is color-fringed. In pure text mode, the display is set to only display white pixels. Actually this implies that even on lines in text mode, we might need to draw the text with the slight pixel-shift and color-fringed effect. In which case, all buffers would always be 560 wide. And, we would likely post-process the color-fringe effect. I.e., draw a scanline (or, 8 scanlines), then apply filtering to color the bits. Then render.
 
 In monochrome mode, a pixel is just on or off. no color. But, probably still pixel-shifted.
 
-Depending on how intricate this all gets, we may even need to use a large pixel resolution than 560x192.
-Would have to read up on the Apple II NTSC stuff in more detail.
+Depending on how intricate this all gets, we may even need to use a large pixel resolution than 560x192. Would have to read up on the Apple II NTSC stuff in more detail.
 
 ```
 // Source rectangle (original dimensions)
@@ -2604,9 +2598,7 @@ Uses 3D effects to simulate CRT monitor "barrel distortion" and such. I think it
 
 Clock speed: only 1MHz and Free Run are working correctly. 2.8 and 4MHz are not working right. They are both reading at like 1.2-1.4mhz effective rate.
 
-
-I had an idea about the audio/speaker handler.
-Whenever C030 is tweaked, have it write directly into the audio buffer. However, the problem there is that could take up a lot of real cpu time.
+I had an idea about the audio/speaker handler. Whenever C030 is tweaked, have it write directly into the audio buffer. However, the problem there is that could take up a lot of real cpu time.
 
 another idea: whenever we change clock speed, flush current audio buffer and reset parameters so the new buffer is calculated only at new clock speed.
 
@@ -2616,4 +2608,51 @@ In free run mode, we run 17000 cycles per burst. Then we check to execute audio,
 
 In 1MHz mode, we run 17000 cycles per burst. Then check. Then sleep until next burst. So yeah, we definitely need to run more cycles at higher clock speeds. OK, easily done.. That's not quite right. When I do a simple lookup table, the flash gets faster. What? Ah my lookup table is in the wrong order. still not right. Duh have to use the lookup table, not just define it. THERE WE GO.
 
-Uh, all the sudden audio is working correctly at higher speeds.
+(I consolidated all the clock mode variables into a single place).
+
+Uh, all the sudden audio is working correctly at higher speeds. It seems the audio code was written correctly, but, I was calling it in the wrong context.
+
+WHEE!!!!
+
+Reading some of the OpenEmulator code. It draws pixels out purely as a bitstream, then, it uses OpenGL shaders to render the pixels in different modes (RGB, Composite). The shader is readable-ish. It uses vector processing in the GPU, I see reference to PI in there. So it's definitely implementing something like the approach I've been testing on in hgr5 - simulating a color wheel.
+
+hgr5 and hgr6 differ in how they handle starting the scan line. On the first couple pixels, we do not have enough prior pixel data to do a proper average from. So what should we start it with?  hgr5 averages only the samples we have. hgr6 averages the samples we have with zeroes.
+
+Once you're 3-4 pixels into the scanline, it actually seems to be working really well.
+
+If we adopt this technique, then we could use it for every mode. And I have been digging into this because handling DHR the way I've been doing HR is going to be problematic - it will just be too complex. But DHR with this color wheel thing will be pretty straightforward. Also, text with fringing in mixed mode will work this way too. Just emit the same bit stream. And lo-res would work this way too.
+
+## Feb 23, 2025
+
+I just had an incident where there was a blip, and then the audio got delayed by a good 30-45 seconds or so. So there may be some edge case bug where we get out of sync due to some bad math somewhere. It's definitely much improved.
+
+When I stuff audio data into the buffer because we're running low on samples, I fill it with 0's. That is causing clicks. I should probably decay the signal over time like I saw mentioned in some other projects. Alternatively, fill the buffer with the last value. Let's say we tail it off - multiply by 1 / (time since last event).
+
+Trying the "repeat last sample" method. Now we are still running out of samples in certain cases. One such case is when the emulator window is obscured. like, just click to bring a browser window to completely cover it. Something will have interrupted execution long enough to bring the effective cycles per second to 800khz. It's not bringing it up, it's covering it. The Mac must be doing something weird. Maybe there is a task priority setting; I should learn more about this memory compression business.
+
+Another event that can trigger a buffer underrun is dragging the window to another screen.
+
+## Feb 27, 2025
+
+been programming my brain with NTSC stuff over the last week. I am starting to get a clear picture of it. The section of UTA2 page 8-20 is making sense.
+
+The display emulation in OpenEmulator is the best one I've found. By far the most accurate. It processes in a number of steps. First, it creates a bitmap of 1/0 signal that is delayed or undelayed in a 560x192 grid. Good, that's basically what I came up with, though it generates it a little differently than I did. But that difference doesn't matter.
+Two, it then applies a number of shaders to that data. A shader is just a small function/program that runs inside a GPU. OE is using the OpenGL 3D API to run shaders. It has shaders that do all kinds of crazy stuff, like project the display onto a curved surface of a simulated CRT tube, handle brightness and color hue controls, etc. I'm not interested in going that crazy, as I think those effects interfere with the usability of the emulator. (Though, they accurately simulate how frustrating it was to use computers on cheap monitors in the 1980s!)
+The basic shader in OE though compares a phase signal to the bit pattern to calculate the color of each pixels, and, also performs multiple samples of each pixel at slightly different places to simulate blur that occurs because an old CRT can't shift its beams around very fast. (It is this that causes 010101 to generate solid green for instance even though every other pixel is off, and, that shows alternating green and black stripes on screen on a high-frequency-response CRT like the AppleColor RGB on the IIgs.)
+I've got a utility program that can read a hires file and output a PPM image of the display (PGM, as it's in grayscale right now). Next step is to apply the logic from the shaders and see if I can get a good color output.
+
+## Mar 6, 2025
+
+Finally, success!! There were a few issues with the ./comp version of the openemulator display code. First, -33 needed to be coded as +33 offset. Second, the matrices in the openemulator code were transposed (row/column) from the perspective of my matrix multiply routines, at least. Flipping that fixed a bunch of issues. Finally, the C++ code that applied the filters was not right. Claude identified it was not looking at the neighboring pixels correctly. Once fixed, I am successfully convering hi-res data files into composite-style images!
+
+They look really good.
+
+Next step is to clean up the code, modularize it, make it so it can be a library. Then see if there are obvious optimizations that can be made to speed it up for emulator purposes. I don't know if it will be fast enough. But we can test and give it the old college try!
+
+
+## Mar 8, 2025
+
+Added some hot keys to dump the hires and text pages to files.
+
+Added support to hot-mount disk images into the 3.5 drives in slot 5, and display their icons.
+
