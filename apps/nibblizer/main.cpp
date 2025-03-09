@@ -20,8 +20,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-
+#include "debug.hpp"
 #include "devices/diskii/diskii_fmt.hpp"
+
+/* Copy here because I'm too lazy to pull in debug.hpp/cpp from the main tree */
+uint64_t debug_level = 0 /* DEBUG_DISKII_FORMAT */;
 
 /**
  * for now, read only!
