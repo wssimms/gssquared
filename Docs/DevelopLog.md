@@ -2656,3 +2656,13 @@ Added some hot keys to dump the hires and text pages to files.
 
 Added support to hot-mount disk images into the 3.5 drives in slot 5, and display their icons.
 
+## Mar 9, 2025
+
+there are some double hires pictures in /asimov/images/productivity/graphics/misc/picpacdoubleres.dsk
+They are, however, compressed somehow. 
+
+Got some info on forcing a cold start reset:
+
+ $3f2/3f3 hold the warmstart vector. $3f4 is the "checksum"; if $3F3 XOR'd with $a5 is equal to $3f4, then do a warmstart.
+
+ So on ctrl-alt-F10 (reset) set $3f2-$3f4 to $00 $00 $00. 
