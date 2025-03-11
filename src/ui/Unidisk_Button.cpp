@@ -54,9 +54,9 @@ void Unidisk_Button_t::render(SDL_Renderer* renderer) {
 
     // Additional rendering can be added here
     // This space intentionally left empty for manual implementation
-    /* if ((key & 0xFF) == 0) aa->draw(Unidisk_Drive1, content_x + 4, content_y + 4);
-    else aa->draw(Unidisk_Drive2, content_x + 4, content_y + 4);
- */
+    if ((key & 0xFF) == 0) aa->draw(Unidisk_Drive1, content_x + 11, content_y + 31);
+    else aa->draw(Unidisk_Drive2, content_x + 11, content_y + 31);
+ 
     if (status.motor_on) aa->draw(Unidisk_Light, content_x + 2, content_y + 40);
 
     SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);

@@ -34,6 +34,8 @@
 #include "util/mount.hpp"
 #include "util/reset.hpp"
 
+#define MOUSE_POSITION_TILE 0
+
 // we need to use data passed to us, and pass it to the ShowOpenFileDialog, so when the file select event
 // comes back later, we know which drive this was for.
 // TODO: only allow one of these to be open at a time. If one is already open, disregard.
@@ -234,13 +236,15 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, int windo
     diskii_button2->set_key(0x601);
     diskii_button2->set_click_callback(diskii_button_click, new diskii_callback_data_t{this, 0x601});
 
+#if MOUSE_POSITION_TILE
     mouse_pos = new MousePositionTile_t();
     mouse_pos->set_position(100,600) ;
     mouse_pos->set_size(150,20);
     mouse_pos->set_background_color(0xFFFFFFFF);  // White background
     mouse_pos->set_border_color(0x000000FF);      // Black border
     mouse_pos->set_border_width(1);
-    
+#endif
+
     unidisk_button1 = new Unidisk_Button_t(aa, Unidisk_Face, DS); // this needs to have our disk key . or alternately use a different callback.
     unidisk_button1->set_key(0x500);
     unidisk_button1->set_click_callback(unidisk_button_click, new diskii_callback_data_t{this, 0x500});
@@ -387,8 +391,12 @@ void OSD::render() {
         for (Container_t* container : containers) {
             container->render();
         }
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
 
+#if MOUSE_POSITION_TILE
         mouse_pos->render(renderer);
+#endif
+
         SDL_SetRenderTarget(renderer, nullptr);
 
         // now render the cpTexture into window
@@ -405,8 +413,10 @@ bool OSD::event(const SDL_Event &event) {
             container->handle_mouse_event(event);
         }
         
+#if MOUSE_POSITION_TILE 
         // call separately since not in a container. Want it to always get mouse events no matter what.
         mouse_pos->handle_mouse_event(event);
+#endif
     }
 
     switch (event.type)
