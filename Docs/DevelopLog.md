@@ -2666,3 +2666,12 @@ Got some info on forcing a cold start reset:
  $3f2/3f3 hold the warmstart vector. $3f4 is the "checksum"; if $3F3 XOR'd with $a5 is equal to $3f4, then do a warmstart.
 
  So on ctrl-alt-F10 (reset) set $3f2-$3f4 to $00 $00 $00. 
+
+ A remaining speaker issue - certain things cause the cpu to halt, but the speaker code is still running and then I'm not sure what happens.
+ This occurs on invalid opcodes as well as "infinite jump" loops.
+
+ So on a halt we stop executing code. But perhaps should continue to increment the cycle counter like we expect..
+ on a reset, we restart the cpu but the audio code is then out of sync. ok incrementing cycle counter anyway (based on expected cycles) is working there.
+
+ Our audio beeps are very buzzy. We're not filtering the audio in any way.
+ 
