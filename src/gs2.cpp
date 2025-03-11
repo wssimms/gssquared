@@ -230,6 +230,10 @@ void run_cpus(void) {
                     break;
                 }
             }
+        } else {
+            // fake-increment cycle counter to keep audio in sync.
+            last_cycle_count = cpu->cycles;
+            cpu->cycles += cycles_for_this_burst;
         }
 
         uint64_t current_time;
