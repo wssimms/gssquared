@@ -1215,13 +1215,13 @@ int execute_next(cpu_state *cpu) {
 
         case OP_HLT_IMP: /* HLT */
             {
-                cpu->halt = HLT_INSTRUCTION;
+                //cpu->halt = HLT_INSTRUCTION;
             }
             break;
 
         default:
             fprintf(stdout, "Unknown opcode: %04X: 0x%02X", cpu->pc-1, opcode);
-            cpu->halt = HLT_INSTRUCTION;
+            //cpu->halt = HLT_INSTRUCTION;
     }
     if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "\n");
 
