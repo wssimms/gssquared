@@ -50,18 +50,19 @@ void audio_generate_frame(cpu_state *cpu, uint64_t cycle_window_start, uint64_t 
 
     if (cycle_window_start == 0 && cycle_window_end == 0) {
         printf("audio_generate_frame: first time send empty frame and a bit more\n");
-        memset(working_buffer, 0, 1000 * sizeof(int16_t));
-        SDL_PutAudioStreamData(speaker_state->stream, working_buffer, 1000*sizeof(int16_t));
+        memset(working_buffer, 0, 735 * sizeof(int16_t));
+        SDL_PutAudioStreamData(speaker_state->stream, working_buffer, 735*sizeof(int16_t));
+        SDL_PutAudioStreamData(speaker_state->stream, working_buffer, 735*sizeof(int16_t));
         return;
     }
 
     uint64_t queued_samples = SDL_GetAudioStreamQueued(speaker_state->stream);
-    if (queued_samples < 100) { printf("queue underrun %llu\n", queued_samples); 
+    if (queued_samples < 735) { printf("queue underrun %llu\n", queued_samples); 
         // attempt to calculate how much time slipped and generate that many samples
-        for (int x = 0; x < 1000; x++) {
+        for (int x = 0; x < 735; x++) {
             working_buffer[x] = speaker_state->last_sample;
         }
-        SDL_PutAudioStreamData(speaker_state->stream, working_buffer, 1000*sizeof(int16_t));
+        SDL_PutAudioStreamData(speaker_state->stream, working_buffer, 735*sizeof(int16_t));
     }
 
     // is it more accurate to convert cycles to time then to samples??
@@ -174,8 +175,10 @@ void init_mb_speaker(cpu_state *cpu) {
     SDL_PutAudioStreamData(speaker_state->stream, speaker_state->working_buffer, 735*sizeof(int16_t));
 
     if (DEBUG(DEBUG_SPEAKER)) fprintf(stdout, "init_speaker\n");
-    register_C0xx_memory_read_handler(0xC030, speaker_memory_read);
-    register_C0xx_memory_write_handler(0xC030, speaker_memory_write);
+    for (uint16_t addr = 0xC030; addr <= 0xC03F; addr++) {
+        register_C0xx_memory_read_handler(addr, speaker_memory_read);
+        register_C0xx_memory_write_handler(addr, speaker_memory_write);
+    }
 }
 
 void speaker_start(cpu_state *cpu) {
