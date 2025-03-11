@@ -34,6 +34,8 @@ enum MainAtlas {
     ResetButton,
     Unidisk_Face,
     Unidisk_Light,
+    Unidisk_Drive1,
+    Unidisk_Drive2,
     MainAtlas_count
 };
 
