@@ -237,6 +237,9 @@ void run_cpus(void) {
         }
 
         uint64_t current_time;
+        uint64_t audio_time;
+        uint64_t display_time;
+        uint64_t event_time;
 
         if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_event_update > 16667000)
             || (cpu->clock_mode != CLOCK_FREE_RUN)) {
@@ -250,7 +253,7 @@ void run_cpus(void) {
 
             osd->update();
 
-            uint64_t event_time = SDL_GetTicksNS() - current_time;
+            event_time = SDL_GetTicksNS() - current_time;
             last_event_update = current_time;
         }
 
@@ -259,7 +262,7 @@ void run_cpus(void) {
         if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_audio_update > 16667000)
             || (cpu->clock_mode != CLOCK_FREE_RUN)) {            
             audio_generate_frame(cpu, last_cycle_window_start, cycle_window_start);
-            uint64_t audio_time = SDL_GetTicksNS() - current_time;
+            audio_time = SDL_GetTicksNS() - current_time;
             last_audio_update = current_time;
         }
 
@@ -277,16 +280,17 @@ void run_cpus(void) {
             osd->render();
             display_state_t *ds = (display_state_t *)get_module_state(&CPUs[0], MODULE_DISPLAY);
             SDL_RenderPresent(ds->renderer);
+            display_time = SDL_GetTicksNS() - current_time;
             last_display_update = current_time;
         }
-        INSTRUMENT(uint64_t displa
-        y_time = SDL_GetTicksNS() - current_time;)
+        INSTRUMENT(uint64_t display_time = SDL_GetTicksNS() - current_time;)
 
         /* Emit 5-second Stats */
         current_time = SDL_GetTicksNS();
         if (current_time - last_5sec_update > 5000000000) {
             uint64_t delta = cpu->cycles - last_5sec_cycles;
             fprintf(stdout, "%llu delta %llu cycles clock-mode: %d CPS: %f MHz [ slips: %llu, busy: %llu, sleep: %llu]\n", delta, cpu->cycles, cpu->clock_mode, (float)delta / float(5000000) , cpu->clock_slip, cpu->clock_busy, cpu->clock_sleep);
+            fprintf(stdout, "event_time: %10llu, audio_time: %10llu, display_time: %10llu, total: %10llu\n", event_time, audio_time, display_time, event_time + audio_time + display_time);
             last_5sec_cycles = cpu->cycles;
             last_5sec_update = current_time;
         }
@@ -304,6 +308,7 @@ void run_cpus(void) {
             uint64_t current_time = SDL_GetTicksNS();
             if (current_time > wakeup_time) {
                 cpu->clock_slip++;
+                printf("Clock slip: event_time: %10llu, audio_time: %10llu, display_time: %10llu, total: %10llu\n", event_time, audio_time, display_time, event_time + audio_time + display_time);
             } else {
                 // busy wait sync cycle time
                 do {
