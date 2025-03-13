@@ -173,6 +173,8 @@ void set_display_page2(cpu_state *cpu) {
 }
 
 uint64_t init_display_sdl(display_state_t *ds) {
+    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
+
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         fprintf(stderr, "Error initializing SDL: %s\n", SDL_GetError());
         return 1;
@@ -213,6 +215,9 @@ uint64_t init_display_sdl(display_state_t *ds) {
         fprintf(stderr, "Error creating renderer: %s\n", SDL_GetError());
         return 1;
     }
+
+    const char *rname = SDL_GetRendererName(ds->renderer);
+    printf("Renderer: %s\n", rname);
 
     // Set scaling quality to nearest neighbor for sharp pixels
     /* SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0"); */
