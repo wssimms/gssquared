@@ -46,3 +46,8 @@ Weird. So Control-S enabled audio. Seems like maybe there is some reason sound i
 
 gs2: prodos 8 v1.9 boots partially, cursor flashes over a . in the upper left, but does not complete booting.
 oe: boots and it's a pretty good synthesizer using the apple ii speaker.
+
+## applevision.dsk
+
+works correctly.
+
