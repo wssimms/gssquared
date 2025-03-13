@@ -41,3 +41,8 @@ OE has audio. according to Claude you can toggle the speaker by hitting any addr
 I added that to GS2, and still no audio in Lode Runner.
 there is lode runner disassembly at github.
 Weird. So Control-S enabled audio. Seems like maybe there is some reason sound is disabled by default?
+
+## timelord.dsk
+
+gs2: prodos 8 v1.9 boots partially, cursor flashes over a . in the upper left, but does not complete booting.
+oe: boots and it's a pretty good synthesizer using the apple ii speaker.

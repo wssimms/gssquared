@@ -2674,4 +2674,7 @@ Got some info on forcing a cold start reset:
  on a reset, we restart the cpu but the audio code is then out of sync. ok incrementing cycle counter anyway (based on expected cycles) is working there.
 
  Our audio beeps are very buzzy. We're not filtering the audio in any way.
- 
+
+ ## Mar 12, 2025
+
+ On the Mac, "App Nap" changes execution priority, probably triggers memory unloading / compression etc., when an app is not the foreground. There are ways to disable this - you can set a flag via finder, and you can do it programmatically. The latter Claude says requires tying in to Objective C - erk why? 

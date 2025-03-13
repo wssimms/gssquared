@@ -28,7 +28,7 @@
   * ProDOS Block-Device Interface - complete.
   * SmartPort / ProDOS Block-Device Interface - Not started.
   * RAMfast SCSI Interface - Not started.
-  * Pascal Storage Device - Not started.
+  * Pascal Storage Device - Not started. (Same as generic ProDOS-compatible?)
 * Disk Image Formats
   * .do, .dsk - read only, 143K.
   * .po - read only, 143K.
@@ -36,7 +36,7 @@
   * .2mg - read/write, for block devices, complete.
   * .nib - read only, 143K.
   * .woz - not started.
-* Sound - Complete and cycle accurate for 1MHz operation. Will need tweaking to work at higher CPU speeds.
+* Sound - Complete for 1MHz operation. Does work at higher speeds, but, results are comical.
 * I/O Devices
   * Printer / parallel port - not started.
   * Printer / serial port - not started.
@@ -45,7 +45,7 @@
   * Shift-key mod and Lowercase Character Generator. Not started.
 * Clocks
   * Thunderclock - read of time implemented. Interrupts, writing clock - not implemented. Needs testing.
-  * Generic ProDOS-compatible Clock - not started.
+  * Generic ProDOS-compatible Clock - complete, read-only.
 
 ## ROMs
 
