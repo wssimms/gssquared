@@ -2663,18 +2663,22 @@ They are, however, compressed somehow.
 
 Got some info on forcing a cold start reset:
 
- $3f2/3f3 hold the warmstart vector. $3f4 is the "checksum"; if $3F3 XOR'd with $a5 is equal to $3f4, then do a warmstart.
+$3f2/3f3 hold the warmstart vector. $3f4 is the "checksum"; if $3F3 XOR'd with $a5 is equal to $3f4, then do a warmstart.
 
- So on ctrl-alt-F10 (reset) set $3f2-$3f4 to $00 $00 $00. 
+So on ctrl-alt-F10 (reset) set $3f2-$3f4 to $00 $00 $00. 
 
- A remaining speaker issue - certain things cause the cpu to halt, but the speaker code is still running and then I'm not sure what happens.
- This occurs on invalid opcodes as well as "infinite jump" loops.
+A remaining speaker issue - certain things cause the cpu to halt, but the speaker code is still running and then I'm not sure what happens.
+This occurs on invalid opcodes as well as "infinite jump" loops.
 
- So on a halt we stop executing code. But perhaps should continue to increment the cycle counter like we expect..
- on a reset, we restart the cpu but the audio code is then out of sync. ok incrementing cycle counter anyway (based on expected cycles) is working there.
+So on a halt we stop executing code. But perhaps should continue to increment the cycle counter like we expect..
+on a reset, we restart the cpu but the audio code is then out of sync. ok incrementing cycle counter anyway (based on expected cycles) is working there.
 
- Our audio beeps are very buzzy. We're not filtering the audio in any way.
+Our audio beeps are very buzzy. We're not filtering the audio in any way.
 
- ## Mar 12, 2025
+## Mar 12, 2025
 
- On the Mac, "App Nap" changes execution priority, probably triggers memory unloading / compression etc., when an app is not the foreground. There are ways to disable this - you can set a flag via finder, and you can do it programmatically. The latter Claude says requires tying in to Objective C - erk why? 
+On the Mac, "App Nap" changes execution priority, probably triggers memory unloading / compression etc., when an app is not the foreground. There are ways to disable this - you can set a flag via finder, and you can do it programmatically. The latter Claude says requires tying in to Objective C - erk why? 
+
+It does not seem like App Nap is the culprit. When I flagellate a Alacritty window over top, it doesn't cause the same issues as using a Cursor window.
+Hinting to use opengl, cause the problem a lot less also, though opengl itself is slower than metal. Keep an eye on it.
+
