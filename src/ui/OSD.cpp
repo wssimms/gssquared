@@ -316,6 +316,10 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, int windo
     speed_con->add_tile(sp3, 2);
     speed_con->add_tile(sp4, 3);
     speed_con->layout();
+    speed_btn_10 = sp1;
+    speed_btn_28 = sp2;
+    speed_btn_40 = sp3;
+    speed_btn_8 = sp4;
 
     Container_t *gen_con = new Container_t(renderer, 10, SC);
     gen_con->set_position(5, 100);
@@ -366,6 +370,21 @@ void OSD::update() {
     // update disk status
     diskii_button1->set_disk_status(cpu->mounts->media_status(0x600));
     diskii_button2->set_disk_status(cpu->mounts->media_status(0x601));
+
+    // background color update based on clock speed to highlight current button.
+    speed_btn_10->set_background_color(0x000000FF);
+    speed_btn_28->set_background_color(0x000000FF);
+    speed_btn_40->set_background_color(0x000000FF);
+    speed_btn_8->set_background_color(0x000000FF);
+    if (cpu->clock_mode == CLOCK_1_024MHZ) {
+        speed_btn_10->set_background_color(0x00FF00FF);
+    } else if (cpu->clock_mode == CLOCK_2_8MHZ) {
+        speed_btn_28->set_background_color(0x00FF00FF);
+    } else if (cpu->clock_mode == CLOCK_4MHZ) {
+        speed_btn_40->set_background_color(0x00FF00FF);
+    } else if (cpu->clock_mode == CLOCK_FREE_RUN) {
+        speed_btn_8->set_background_color(0x00FF00FF);
+    }
 }
 
 /** Draw the control panel (if visible) */

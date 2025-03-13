@@ -173,7 +173,9 @@ void set_display_page2(cpu_state *cpu) {
 }
 
 uint64_t init_display_sdl(display_state_t *ds) {
-    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
+    
+    // TODO: this is to suggest opengl. metal backlogs periodically.
+    //SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         fprintf(stderr, "Error initializing SDL: %s\n", SDL_GetError());
