@@ -269,7 +269,7 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManag
 
     for (int i = 7; i >= 0; i--) {
         char slot_text[128];
-        snprintf(slot_text, sizeof(slot_text), "Slot %d: %s", i, slot_manager->get_device(i)->name);
+        snprintf(slot_text, sizeof(slot_text), "Slot %d: %s", i, slot_manager->get_device(static_cast<SlotType_t>(i))->name);
         Button_t* slot = new Button_t(slot_text, SS);
         slot->set_size(300, 20);
         slot_container->add_tile(slot, 7 - i);    // Add in reverse order (7 to 0)

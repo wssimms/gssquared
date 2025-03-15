@@ -20,10 +20,10 @@
 
 /* #include <mach/mach_time.h> */
 
+#include "gs2.hpp"
 #include "debug.hpp"
 #include "bus.hpp"
 #include "devices/speaker/speaker.hpp"
-
 
 /**
  * Each audio frame is for 735 samples (44100 samples/second, 1/60th second)
@@ -140,7 +140,7 @@ void speaker_memory_write(cpu_state *cpu, uint16_t address, uint8_t value) {
     log_speaker_blip(cpu);
 }
 
-void init_mb_speaker(cpu_state *cpu, uint8_t slot) {
+void init_mb_speaker(cpu_state *cpu, SlotType_t slot) {
 
     speaker_state_t *speaker_state = new speaker_state_t;
 

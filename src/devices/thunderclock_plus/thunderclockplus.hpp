@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include "gs2.hpp"
 #include "cpu.hpp"
 #include "util/ResourceFile.hpp"
 
@@ -24,4 +25,4 @@ struct thunderclock_state {
     ResourceFile *rom;
 };
 
-void init_slot_thunderclock(cpu_state *cpu, uint8_t slot);
+void init_slot_thunderclock(cpu_state *cpu, SlotType_t slot);

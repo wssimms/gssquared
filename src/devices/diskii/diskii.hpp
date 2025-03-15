@@ -37,7 +37,7 @@
 #define DiskII_Q7L 0x0E
 #define DiskII_Q7H 0x0F
 
-void init_slot_diskII(cpu_state *cpu, uint8_t slot);
+void init_slot_diskII(cpu_state *cpu, SlotType_t slot);
 void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor *media);
 void unmount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive);
 drive_status_t diskii_status(cpu_state *cpu, uint64_t key);

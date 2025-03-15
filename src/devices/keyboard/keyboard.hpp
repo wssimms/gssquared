@@ -18,6 +18,7 @@
 #pragma once
 
 #include <SDL3/SDL.h>
+#include "gs2.hpp"
 #include "cpu.hpp"
 
 #define KB_LATCH_ADDRESS 0xC000
@@ -27,4 +28,4 @@
 void kb_memory_write(uint16_t address, uint8_t value); */
 void kb_key_pressed(uint8_t key);
 void handle_keydown_iiplus(cpu_state *cpu, SDL_Event event);
-void init_mb_keyboard(cpu_state *cpu, uint8_t slot);
+void init_mb_keyboard(cpu_state *cpu, SlotType_t slot);

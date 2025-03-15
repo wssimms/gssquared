@@ -98,7 +98,7 @@ void map_rom_memexp(cpu_state *cpu) {
     }
 }
 
-void init_slot_memexp(cpu_state *cpu, uint8_t slot) {
+void init_slot_memexp(cpu_state *cpu, SlotType_t slot) {
     memexp_data * memexp_d = new memexp_data;
     // set in CPU so we can reference later
     memexp_d->data = new uint8_t[MEMEXP_SIZE];

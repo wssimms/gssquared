@@ -21,7 +21,7 @@
  */
 
 #include <SDL3/SDL.h>
-
+#include "gs2.hpp"
 #include "cpu.hpp"
 #include "bus.hpp"
 #include "debug.hpp"
@@ -205,7 +205,7 @@ void joystick_removed(cpu_state *cpu, SDL_Event *event) {
     }
 }
 
-void init_mb_game_controller(cpu_state *cpu, uint8_t slot) {
+void init_mb_game_controller(cpu_state *cpu, SlotType_t slot) {
     SDL_InitSubSystem(SDL_INIT_JOYSTICK);
     // alloc and init display state
     gamec_state_t *ds = new gamec_state_t;

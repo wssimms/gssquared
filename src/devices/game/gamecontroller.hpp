@@ -15,6 +15,9 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#pragma once
+
+#include "gs2.hpp"
 #include "cpu.hpp"
 
 // TODO: get these from the display subsystem. Maybe even query the window.
@@ -65,6 +68,6 @@ typedef struct gamec_state_t {
     SDL_Joystick *joystick0;
 } gamec_state_t;
 
-void init_mb_game_controller(cpu_state *cpu, uint8_t slot);
+void init_mb_game_controller(cpu_state *cpu, SlotType_t slot);
 void joystick_added(cpu_state *cpu, SDL_Event *event);
 void joystick_removed(cpu_state *cpu, SDL_Event *event);

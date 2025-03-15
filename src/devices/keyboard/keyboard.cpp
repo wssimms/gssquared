@@ -135,7 +135,7 @@ void handle_keydown_iiplus(cpu_state *cpu, SDL_Event event) {
     /* if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "key pressed: %08X\n", key); */
 }
 
-void init_mb_keyboard(cpu_state *cpu, uint8_t slot) {
+void init_mb_keyboard(cpu_state *cpu, SlotType_t slot) {
     if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "init_keyboard\n");
     register_C0xx_memory_read_handler(0xC000, kb_memory_read);
     register_C0xx_memory_read_handler(0xC010, kb_memory_read);

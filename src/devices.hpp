@@ -21,14 +21,14 @@ typedef enum device_id {
 
 struct DeviceMap_t {
     device_id id;
-    uint8_t slot;
+    SlotType_t slot;
 };
 
 struct Device_t {
     device_id id;
     const char *name;
-    void (*power_on)(cpu_state *cpu, uint8_t slot_number);
-    void (*power_off)(cpu_state *cpu, uint8_t slot_number);
+    void (*power_on)(cpu_state *cpu, SlotType_t slot_number);
+    void (*power_off)(cpu_state *cpu, SlotType_t slot_number);
 };
 
 Device_t *get_device(device_id id);

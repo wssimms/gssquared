@@ -453,7 +453,9 @@ int main(int argc, char *argv[]) {
 
         Device_t *device = get_device(dm.id);
         device->power_on(&CPUs[0], dm.slot);
-        slot_manager->register_slot(device, dm.slot);
+        if (dm.slot != SLOT_NONE) {
+            slot_manager->register_slot(device, dm.slot);
+        }
     }
 
     cpu_reset(&CPUs[0]);

@@ -41,4 +41,4 @@ typedef struct memexp_data {
     ResourceFile *rom;
 } memexp_data;
 
-void init_slot_memexp(cpu_state *cpu, uint8_t slot);
+void init_slot_memexp(cpu_state *cpu, SlotType_t slot);

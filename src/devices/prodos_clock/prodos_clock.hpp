@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include "gs2.hpp"
 #include "cpu.hpp"
 #include "util/ResourceFile.hpp"
 
@@ -28,4 +29,4 @@ struct prodos_clock_state {
     char buf[64];    
 };
 
-void init_slot_prodosclock(cpu_state *cpu, uint8_t slot);
+void init_slot_prodosclock(cpu_state *cpu, SlotType_t slot);

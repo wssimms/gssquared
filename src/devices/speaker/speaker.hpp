@@ -19,7 +19,6 @@
 
 #include "cpu.hpp"
 
-
 #define SAMPLE_BUFFER_SIZE (4096)
 
 
@@ -76,7 +75,7 @@ typedef struct speaker_state_t {
     EventBuffer event_buffer;
 } speaker_state_t;
 
-void init_mb_speaker(cpu_state *cpu, uint8_t slot);
+void init_mb_speaker(cpu_state *cpu, SlotType_t slot);
 void toggle_speaker_recording(cpu_state *cpu);
 void dump_full_speaker_event_log();
 void dump_partial_speaker_event_log(uint64_t cycles_now);

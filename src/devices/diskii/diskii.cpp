@@ -513,7 +513,7 @@ void diskII_init(cpu_state *cpu) {
     }
 }
 
-void init_slot_diskII(cpu_state *cpu, uint8_t slot) {
+void init_slot_diskII(cpu_state *cpu, SlotType_t slot) {
     diskII_controller * diskII_slot = new diskII_controller[8];
     // set in CPU so we can reference later
     set_module_state(cpu, MODULE_DISKII, diskII_slot);

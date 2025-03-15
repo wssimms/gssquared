@@ -96,7 +96,7 @@ void prodos_clock_write_register(cpu_state *cpu, uint16_t address, uint8_t value
     }
 }
 
-void init_slot_prodosclock(cpu_state *cpu, uint8_t slot) {
+void init_slot_prodosclock(cpu_state *cpu, SlotType_t slot) {
     fprintf(stderr, "ProDOS_Clock init at SLOT %d\n", slot);
 
     prodos_clock_state * prodosclock_d = new prodos_clock_state;

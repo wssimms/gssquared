@@ -34,5 +34,5 @@
 #define PD_ERROR_WRITE_PROTECTED 0x2B
 
 void prodos_block_pv_trap(cpu_state *cpu);
-void init_prodos_block(cpu_state *cpu, uint8_t slot);
+void init_prodos_block(cpu_state *cpu, SlotType_t slot);
 void mount_prodos_block(uint8_t slot, uint8_t drive, media_descriptor *media);

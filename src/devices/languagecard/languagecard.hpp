@@ -47,6 +47,7 @@
  * 
  */
 
+#include "gs2.hpp"
 #include "cpu.hpp"
 #include "memory.hpp"
 #include "bus.hpp"
@@ -72,5 +73,5 @@ struct languagecard_state_t {
     uint32_t _FF_WRITE_ENABLE;
 };
 
-void init_slot_languagecard(cpu_state *cpu, uint8_t slot);
+void init_slot_languagecard(cpu_state *cpu, SlotType_t slot);
 void reset_languagecard(cpu_state *cpu);
