@@ -2682,3 +2682,10 @@ On the Mac, "App Nap" changes execution priority, probably triggers memory unloa
 It does not seem like App Nap is the culprit. When I flagellate a Alacritty window over top, it doesn't cause the same issues as using a Cursor window.
 Hinting to use opengl, cause the problem a lot less also, though opengl itself is slower than metal. Keep an eye on it.
 
+## Mar 14, 2025
+
+Created some abstractions for a SystemConfig. This is the selection of a platform, and a list of devices and their slots. Currently pre-define several of these, with only an Apple II+ fully speced out. Eventually, default configs for each type of system will be here, and, users will be able to clone, customize, load and save their own configs.
+
+As part of this, the OSD now displays the name of the card in each slot that has one.
+
+This also cleans up the init code in gs2.cpp, which now iterates through the data structure to initialize devices. Next step is to gracefully de-initialize them on exit. And then, we'll have the framework we need to support powering a system on and off, and changing config at runtime.
