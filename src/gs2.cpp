@@ -34,17 +34,9 @@
 #include "test.hpp"
 #include "display/text_40x24.hpp"
 #include "event_poll.hpp"
-#include "devices/keyboard/keyboard.hpp"
 #include "devices/speaker/speaker.hpp"
 #include "devices/loader.hpp"
-#include "devices/thunderclock_plus/thunderclockplus.hpp"
-#include "devices/prodos_clock/prodos_clock.hpp"
-#include "devices/diskii/diskii.hpp"
-#include "devices/diskii/diskii_fmt.hpp"
-#include "devices/languagecard/languagecard.hpp"
 #include "devices/prodos_block/prodos_block.hpp"
-#include "devices/game/gamecontroller.hpp"
-#include "devices/memoryexpansion/memexp.hpp"
 #include "platforms.hpp"
 #include "util/media.hpp"
 #include "util/dialog.hpp"
@@ -464,17 +456,6 @@ int main(int argc, char *argv[]) {
         slot_manager->register_slot(device, dm.slot);
     }
 
-    /* init_mb_keyboard(&CPUs[0], 0);
-    init_mb_device_display(&CPUs[0],0);
-    init_slot_languagecard(&CPUs[0],0);
-    init_mb_speaker(&CPUs[0],0);
-    init_mb_game_controller(&CPUs[0],0);
-    //init_slot_thunderclock(&CPUs[0],1);
-    init_slot_prodosclock(&CPUs[0], 1);
-    init_slot_diskII(&CPUs[0], 6);
-    init_prodos_block(&CPUs[0], 5);
-    init_slot_memexp(&CPUs[0], 4); */
-
     cpu_reset(&CPUs[0]);
 
     //std::vector<media_descriptor *> mounted_media;
@@ -506,10 +487,6 @@ int main(int argc, char *argv[]) {
             //osd->event(event);
         }
     }
-
-    //toggle_speaker_recording();
-    // do not start speaker until after all the expensive stuff is done.
-    //speaker_start(); // final init of speaker.
 
     run_cpus();
 
