@@ -28,4 +28,4 @@ struct prodos_clock_state {
     char buf[64];    
 };
 
-void init_slot_prodosclock(cpu_state *cpu, int slot);
+void init_slot_prodosclock(cpu_state *cpu, uint8_t slot);

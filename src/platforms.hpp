@@ -23,8 +23,16 @@
 #include "clock.hpp"
 #include "util/ResourceFile.hpp"
 
+typedef enum PlatformId_t {
+    PLATFORM_APPLE_II = 0,
+    PLATFORM_APPLE_II_PLUS,
+    PLATFORM_APPLE_IIE,
+    PLATFORM_APPLE_IIE_ENHANCED,
+    PLATFORM_END
+} PlatformId_t;
+
 struct platform_info {
-    const int id;               // Human readable name
+    const PlatformId_t id;               // Human readable name
     const char* name;           // Human readable name
     const char* rom_dir;        // Directory under roms/
     uint16_t rom_base_addr;    // Base address for the roms

@@ -205,7 +205,7 @@ void joystick_removed(cpu_state *cpu, SDL_Event *event) {
     }
 }
 
-void init_mb_game_controller(cpu_state *cpu) {
+void init_mb_game_controller(cpu_state *cpu, uint8_t slot) {
     SDL_InitSubSystem(SDL_INIT_JOYSTICK);
     // alloc and init display state
     gamec_state_t *ds = new gamec_state_t;

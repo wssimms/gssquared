@@ -65,6 +65,6 @@ typedef struct gamec_state_t {
     SDL_Joystick *joystick0;
 } gamec_state_t;
 
-void init_mb_game_controller(cpu_state *cpu);
+void init_mb_game_controller(cpu_state *cpu, uint8_t slot);
 void joystick_added(cpu_state *cpu, SDL_Event *event);
 void joystick_removed(cpu_state *cpu, SDL_Event *event);

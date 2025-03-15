@@ -140,7 +140,7 @@ void speaker_memory_write(cpu_state *cpu, uint16_t address, uint8_t value) {
     log_speaker_blip(cpu);
 }
 
-void init_mb_speaker(cpu_state *cpu) {
+void init_mb_speaker(cpu_state *cpu, uint8_t slot) {
 
     speaker_state_t *speaker_state = new speaker_state_t;
 

@@ -532,7 +532,7 @@ display_state_t::display_state_t() {
     flash_counter = 0;
 }
 
-void init_mb_device_display(cpu_state *cpu) {
+void init_mb_device_display(cpu_state *cpu, uint8_t slot) {
     // alloc and init display state
     display_state_t *ds = new display_state_t;
 

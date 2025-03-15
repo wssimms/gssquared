@@ -118,7 +118,7 @@ void free_display(cpu_state *cpu);
 
 void txt_memory_write(uint16_t , uint8_t );
 void update_flash_state(cpu_state *cpu);
-void init_mb_device_display(cpu_state *cpu);
+void init_mb_device_display(cpu_state *cpu, uint8_t slot);
 void render_line(cpu_state *cpu, int y);
 void pre_calculate_font(rom_data *rd);
 void init_display_font(rom_data *rd);

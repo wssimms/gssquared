@@ -26,10 +26,10 @@
 #include "util/dialog.hpp"
 
 static  platform_info platforms[] = {
-    { 0, "Apple II", "apple2", 0xD000, PROCESSOR_6502, CLOCK_1_024MHZ },
-    { 1, "Apple II Plus", "apple2_plus", 0xD000, PROCESSOR_6502, CLOCK_1_024MHZ },
-    { 2, "Apple IIe",     "apple2e", 0xD000, PROCESSOR_6502, CLOCK_1_024MHZ },
-    { 3, "Apple IIe Enhanced",     "apple2e_enhanced", 0xD000, PROCESSOR_65C02, CLOCK_1_024MHZ },
+    { PLATFORM_APPLE_II, "Apple II", "apple2", 0xD000, PROCESSOR_6502, CLOCK_1_024MHZ },
+    { PLATFORM_APPLE_II_PLUS, "Apple II Plus", "apple2_plus", 0xD000, PROCESSOR_6502, CLOCK_1_024MHZ },
+    { PLATFORM_APPLE_IIE, "Apple IIe",     "apple2e", 0xD000, PROCESSOR_6502, CLOCK_1_024MHZ },
+    { PLATFORM_APPLE_IIE_ENHANCED, "Apple IIe Enhanced",     "apple2e_enhanced", 0xD000, PROCESSOR_65C02, CLOCK_1_024MHZ },
     // Add more platforms as needed:
     // { "Apple IIc",         "apple2c" },
     // { "Apple IIc Plus",    "apple2c_plus" },

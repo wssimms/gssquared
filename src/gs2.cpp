@@ -51,6 +51,8 @@
 #include "util/mount.hpp"
 #include "util/reset.hpp"
 #include "ui/OSD.hpp"
+#include "systemconfig.hpp"
+#include "slots.hpp"
 
 /**
  * References: 
@@ -333,7 +335,7 @@ gs2_app_t gs2_app_values;
 int main(int argc, char *argv[]) {
     std::cout << "Booting GSSquared!" << std::endl;
 
-    int platform_id = 1;  // default to Apple II Plus
+    int platform_id = PLATFORM_APPLE_II_PLUS;  // default to Apple II Plus
     int opt;
     
     char slot_str[2], drive_str[2], filename[256];
@@ -450,51 +452,43 @@ int main(int argc, char *argv[]) {
 
     init_display_font(rd);
 
-    init_mb_keyboard(&CPUs[0]);
-    init_mb_device_display(&CPUs[0]);
+    SystemConfig_t *system_config = get_system_config(1);
+
+    SlotManager_t *slot_manager = new SlotManager_t();
+
+    for (int i = 0; system_config->device_map[i].id != DEVICE_ID_END; i++) {
+        DeviceMap_t dm = system_config->device_map[i];
+
+        Device_t *device = get_device(dm.id);
+        device->power_on(&CPUs[0], dm.slot);
+        slot_manager->register_slot(device, dm.slot);
+    }
+
+    /* init_mb_keyboard(&CPUs[0], 0);
+    init_mb_device_display(&CPUs[0],0);
     init_slot_languagecard(&CPUs[0],0);
-    init_mb_speaker(&CPUs[0]);
-    init_mb_game_controller(&CPUs[0]);
+    init_mb_speaker(&CPUs[0],0);
+    init_mb_game_controller(&CPUs[0],0);
     //init_slot_thunderclock(&CPUs[0],1);
     init_slot_prodosclock(&CPUs[0], 1);
-    init_slot_diskII(&CPUs[0],6);
+    init_slot_diskII(&CPUs[0], 6);
     init_prodos_block(&CPUs[0], 5);
-    init_slot_memexp(&CPUs[0], 4);
+    init_slot_memexp(&CPUs[0], 4); */
 
     cpu_reset(&CPUs[0]);
-
 
     //std::vector<media_descriptor *> mounted_media;
 
     // mount disks - AFTER device init.
     while (!disks_to_mount.empty()) {
         disk_mount_t disk_mount = disks_to_mount.back();
-        disks_to_mount.pop_back();
+        disks_to_mount.pop_back(); 
 
         CPUs[0].mounts->mount_media(disk_mount);
-
-/*         printf("Mounting disk %s in slot %d drive %d\n", disk_mount.filename, disk_mount.slot, disk_mount.drive);
-        media_descriptor * media = new media_descriptor();
-        media->filename = disk_mount.filename;
-        if (identify_media(*media) != 0) {
-            fprintf(stderr, "Failed to identify media %s\n", disk_mount.filename);
-            exit(1);
-        }
-        display_media_descriptor(*media);
- */
-/*         mounted_media.push_back(media);
- */
-/*         if (disk_mount.slot == 6) {
-            mount_diskII(&CPUs[0], disk_mount.slot, disk_mount.drive, media);
-        } else if (disk_mount.slot == 5) {
-            mount_prodos_block(disk_mount.slot, disk_mount.drive, media);
-        } else {
-            fprintf(stderr, "Invalid slot. Expected 5 or 6\n");
-        } */
     }
 
     display_state_t *ds = (display_state_t *)get_module_state(&CPUs[0], MODULE_DISPLAY);
-    osd = new OSD(&CPUs[0], ds->renderer, ds->window,1120, 768);
+    osd = new OSD(&CPUs[0], ds->renderer, ds->window, slot_manager, 1120, 768);
     // TODO: this should be handled differently. have osd save/restore?
     int error = SDL_SetRenderTarget(ds->renderer, nullptr);
     if (!error) {

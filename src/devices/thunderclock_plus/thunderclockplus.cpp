@@ -132,7 +132,7 @@ void map_rom_thunderclock(cpu_state *cpu) {
     }
 }
 
-void init_slot_thunderclock(cpu_state *cpu, int slot) {
+void init_slot_thunderclock(cpu_state *cpu, uint8_t slot) {
     uint16_t thunderclock_cmd_reg = THUNDERCLOCK_CMD_REG_BASE + (slot << 4);
     fprintf(stderr, "Thunderclock Plus init at SLOT %d address %X\n", slot, thunderclock_cmd_reg);
 

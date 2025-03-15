@@ -161,8 +161,8 @@ SDL_Window* OSD::get_window() {
     return window; 
 }
 
-OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, int window_width, int window_height) 
-    : renderer(rendererp), window(windowp), window_w(window_width), window_h(window_height), cpu(cpu) {
+OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManager_t *slot_manager, int window_width, int window_height) 
+    : renderer(rendererp), window(windowp), window_w(window_width), window_h(window_height), cpu(cpu), slot_manager(slot_manager) {
 
     cpTexture = SDL_CreateTexture(renderer,
         SDL_PIXELFORMAT_RGBA8888,
@@ -265,13 +265,13 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, int windo
     // Create another container, this one for slots.
     Container_t *slot_container = new Container_t(renderer, 8, SC);  // Container for 8 slot buttons
     slot_container->set_position(100, 100);
-    slot_container->set_size(180, 304);
+    slot_container->set_size(320, 304);
 
     for (int i = 7; i >= 0; i--) {
-        char slot_text[32];
-        snprintf(slot_text, sizeof(slot_text), "Slot %d", i);
+        char slot_text[128];
+        snprintf(slot_text, sizeof(slot_text), "Slot %d: %s", i, slot_manager->get_device(i)->name);
         Button_t* slot = new Button_t(slot_text, SS);
-        slot->set_size(160, 20);
+        slot->set_size(300, 20);
         slot_container->add_tile(slot, 7 - i);    // Add in reverse order (7 to 0)
     }
     slot_container->layout();

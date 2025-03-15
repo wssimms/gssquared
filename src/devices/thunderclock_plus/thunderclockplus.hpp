@@ -24,4 +24,4 @@ struct thunderclock_state {
     ResourceFile *rom;
 };
 
-void init_slot_thunderclock(cpu_state *cpu, int slot);
+void init_slot_thunderclock(cpu_state *cpu, uint8_t slot);

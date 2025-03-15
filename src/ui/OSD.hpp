@@ -21,6 +21,7 @@
 #include <SDL3/SDL.h>
 
 #include "cpu.hpp"
+#include "slots.hpp"
 
 #include "DiskII_Button.hpp"
 #include "Unidisk_Button.hpp"
@@ -49,7 +50,8 @@ protected:
     int currentSlideStatus = SLIDE_OUT;
     int slidePosition = -slidePositionMax;
     int slidePositionDelta = slidePositionDeltaMax;
-
+    SlotManager_t *slot_manager = nullptr;
+    
     DiskII_Button_t *diskii_button1 = nullptr;
     DiskII_Button_t *diskii_button2 = nullptr;
     Unidisk_Button_t *unidisk_button1 = nullptr;
@@ -60,12 +62,6 @@ protected:
     Button_t *speed_btn_8 = nullptr;
 
     std::vector<Container_t *> containers;
-
-/*     Container_t *drive_container = nullptr;
-    Container_t *slot_container = nullptr;
-    Container_t *mon_color_con = nullptr;
-    Container_t *speed_con = nullptr;
-    Container_t *gen_con = nullptr; */
 
     MousePositionTile_t* mouse_pos = nullptr;
     AssetAtlas_t *aa = nullptr;
@@ -87,7 +83,7 @@ public:
      * @param window_width Width of the window
      * @param window_height Height of the window
      */
-    OSD(cpu_state *cpu,SDL_Renderer *rendererp, SDL_Window *windowp, int window_width, int window_height);
+    OSD(cpu_state *cpu,SDL_Renderer *rendererp, SDL_Window *windowp, SlotManager_t *slot_manager, int window_width, int window_height);
 
     /**
      * @brief Gets the SDL window associated with this OSD.
