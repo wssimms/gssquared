@@ -164,11 +164,12 @@ In DOS at $B800 lives the "prenibble routine" . I could perhaps steal that. hehe
 #include "bus.hpp"
 #include "diskii.hpp"
 #include "util/media.hpp"
+#include "util/ResourceFile.hpp"
 #include "devices/diskii/diskii_fmt.hpp"
 #include "debug.hpp"
 #include "util/mount.hpp"
 
-uint8_t diskII_firmware[256] = {
+/* uint8_t diskII_firmware[256] = {
  0xA2,  0x20,  0xA0,  0x00,   0xA2,  0x03,  0x86,  0x3C,   0x8A,  0x0A,  0x24,  0x3C,   0xF0,  0x10,  0x05,  0x3C,  
  0x49,  0xFF,  0x29,  0x7E,   0xB0,  0x08,  0x4A,  0xD0,   0xFB,  0x98,  0x9D,  0x56,   0x03,  0xC8,  0xE8,  0x10,  
  0xE5,  0x20,  0x58,  0xFF,   0xBA,  0xBD,  0x00,  0x01,   0x0A,  0x0A,  0x0A,  0x0A,   0x85,  0x2B,  0xAA,  0xBD,  
@@ -185,7 +186,7 @@ uint8_t diskII_firmware[256] = {
  0x59,  0xD6,  0x02,  0xD0,   0x87,  0xA0,  0x00,  0xA2,   0x56,  0xCA,  0x30,  0xFB,   0xB1,  0x26,  0x5E,  0x00,  
  0x03,  0x2A,  0x5E,  0x00,   0x03,  0x2A,  0x91,  0x26,   0xC8,  0xD0,  0xEE,  0xE6,   0x27,  0xE6,  0x3D,  0xA5,  
  0x3D,  0xCD,  0x00,  0x08,   0xA6,  0x2B,  0x90,  0xDB,   0x4C,  0x01,  0x08,  0x00,   0x00,  0x00,  0x00,  0x00,  
-};
+}; */
 
 struct diskII {
     uint8_t rw_mode; // 0 = read, 1 = write
@@ -534,6 +535,16 @@ void init_slot_diskII(cpu_state *cpu, SlotType_t slot) {
 
     fprintf(stdout, "diskII_register_slot %d\n", slot);
 
+    ResourceFile *rom = new ResourceFile("roms/cards/diskii/diskii_firmware.rom", READ_ONLY);
+    if (rom == nullptr) {
+        fprintf(stderr, "Failed to load diskii/diskii_firmware.rom\n");
+        return;
+    }
+    rom->load();
+
+    // memory-map the page. Refactor to have a method to get and set memory map.
+    uint8_t *rom_data = (uint8_t *)(rom->get_data());
+
     // clear out and reset all potential slots etc to sane states.
     diskII_init(cpu);
 
@@ -563,7 +574,7 @@ void init_slot_diskII(cpu_state *cpu, SlotType_t slot) {
 
     // load the firmware into the slot memory
     for (int i = 0; i < 256; i++) {
-        raw_memory_write(cpu, 0xC000 + (slot * 0x0100) + i, diskII_firmware[i]);
+        raw_memory_write(cpu, 0xC000 + (slot * 0x0100) + i, rom_data[i]);
     }
 
     // register drives with mounts for status reporting
