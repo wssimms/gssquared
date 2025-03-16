@@ -26,7 +26,8 @@
 #define PD_CMD_PUT 0xC081
 #define PD_CMD_EXECUTE 0xC082
 #define PD_ERROR_GET 0xC083
-
+#define PD_STATUS1_GET 0xC084
+#define PD_STATUS2_GET 0xC085
 
 typedef struct media_t {
     FILE *file;
@@ -49,6 +50,8 @@ struct pdblock_cmd_buffer {
     uint8_t index;
     uint8_t cmd[MAX_PD_BUFFER_SIZE];
     uint8_t error;
+    uint8_t status1;
+    uint8_t status2;
 };
 
 struct pdblock2_data {

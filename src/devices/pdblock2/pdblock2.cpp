@@ -36,6 +36,7 @@ void pdblock2_print_cmdbuffer(pdblock_cmd_buffer *pdb) {
 
 uint8_t pdblock2_status(cpu_state *cpu, uint8_t slot, uint8_t drive) {
     pdblock2_data * pdblock_d = (pdblock2_data *)get_module_state(cpu, MODULE_PD_BLOCK2);
+    
     if (pdblock_d->prodosblockdevices[slot][drive].file == nullptr) {
         return 0x01; // device not ready
     }
@@ -94,14 +95,14 @@ void pdblock2_execute(cpu_state *cpu) {
 
     pdblock2_data * pdblock_d = (pdblock2_data *)get_module_state(cpu, MODULE_PD_BLOCK2);
 
-    pdblock2_print_cmdbuffer(&pdblock_d->cmd_buffer);
+    if (DEBUG(DEBUG_PD_BLOCK)) pdblock2_print_cmdbuffer(&pdblock_d->cmd_buffer);
 
     uint8_t cksum = 0;
     for (int i = 0; i < pdblock_d->cmd_buffer.index; i++) {
         cksum ^= pdblock_d->cmd_buffer.cmd[i];
     }
     if (cksum != 0x00) {
-        printf("pdblock2_execute: Checksum error\n");
+        if (DEBUG(DEBUG_PD_BLOCK)) printf("pdblock2_execute: Checksum error\n");
         pdblock_d->cmd_buffer.error = 0x01;
         return;
     }
@@ -118,50 +119,41 @@ void pdblock2_execute(cpu_state *cpu) {
         drive = (dev >> 7) & 0b1;
     } else {
         // TODO: return some kind of error
-        printf("pdblock2_execute: Version not supported\n");
+        if (DEBUG(DEBUG_PD_BLOCK)) printf("pdblock2_execute: Version not supported\n");
         pdblock_d->cmd_buffer.error = 0x01;
         return;
     }
 
-    printf("pdblock2_execute: Unit: %02X, Block: %04X, Addr: %04X, CMD: %02X\n", unit, block, addr, cmd);
-
+    if (DEBUG(DEBUG_PD_BLOCK)) printf("pdblock2_execute: Unit: %02X, Block: %04X, Addr: %04X, CMD: %02X\n", unit, block, addr, cmd);
+    uint8_t st = pdblock2_status(cpu, slot, drive);
+    if (st) {
+        pdblock_d->cmd_buffer.error = PD_ERROR_NO_DEVICE;
+        return;
+    }
     if (cmd == 0x00) {
-        uint8_t st = pdblock2_status(cpu, slot, drive);
-        if (st) {
-            pdblock_d->cmd_buffer.error = PD_ERROR_NO_DEVICE;
-        } else {
-            // return status data.
-            /* cpu->C = 0; // clear error flag.
-            cpu->a_lo = 0x00;
-            cpu->x_lo = 0x40;
-            cpu->y_lo = 0x06; */
-        }
+        media_descriptor *media = pdblock_d->prodosblockdevices[slot][drive].media;
+        pdblock_d->cmd_buffer.error = 0x00;
+        pdblock_d->cmd_buffer.status1 = media->block_count & 0xFF;
+        pdblock_d->cmd_buffer.status2 = (media->block_count >> 8) & 0xFF;
     } else if (cmd == 0x01) {
-        uint8_t st = pdblock2_status(cpu, slot, drive);
-        if (st) {
-            pdblock_d->cmd_buffer.error = PD_ERROR_NO_DEVICE;
-        } else {
-            pdblock2_read_block(cpu, slot, drive, block, addr);
-            pdblock_d->cmd_buffer.error = 0x00;
-        }
+        pdblock2_read_block(cpu, slot, drive, block, addr);
+        pdblock_d->cmd_buffer.error = 0x00;
+        pdblock_d->cmd_buffer.status1 = 0x00;
+        pdblock_d->cmd_buffer.status2 = 0x00;
     } else if (cmd == 0x02) {
-        uint8_t st = pdblock2_status(cpu, slot, drive);
-        if (st) {
-            pdblock_d->cmd_buffer.error = PD_ERROR_NO_DEVICE;
-        } else {
-            pdblock2_write_block(cpu, slot, drive, block, addr);
-            pdblock_d->cmd_buffer.error = 0x00;
-        }
-    } else if (cmd == 0x03) { // 
+        pdblock2_write_block(cpu, slot, drive, block, addr);
+        pdblock_d->cmd_buffer.error = 0x00;
+        pdblock_d->cmd_buffer.status1 = 0x00;
+        pdblock_d->cmd_buffer.status2 = 0x00;
+    } else if (cmd == 0x03) { // not implemented
         pdblock_d->cmd_buffer.error = PD_ERROR_NO_DEVICE;
     }
-    //pv_return(cpu);
 }
 
 void mount_pdblock2(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor *media) {
     pdblock2_data * pdblock_d = (pdblock2_data *)get_module_state(cpu, MODULE_PD_BLOCK2);
 
-    printf("Mounting ProDOS block device %s slot %d drive %d\n", media->filename, slot, drive);
+    if (DEBUG(DEBUG_PD_BLOCK)) printf("Mounting ProDOS block device %s slot %d drive %d\n", media->filename, slot, drive);
 
     FILE *fp = fopen(media->filename, "r+b");
     if (fp == nullptr) {
@@ -176,16 +168,16 @@ void pdblock2_write_C0x0(cpu_state *cpu, uint16_t addr, uint8_t data) {
     pdblock2_data * pdblock_d = (pdblock2_data *)get_module_state(cpu, MODULE_PD_BLOCK2);
 
     if ((addr & 0xF) == 0x00) {
-        printf("PD_CMD_RESET: %02X\n", data);
+        if (DEBUG(DEBUG_PD_BLOCK)) printf("PD_CMD_RESET: %02X\n", data);
         pdblock_d->cmd_buffer.index = 0;
     } else if ((addr & 0xF) == 0x01) {
-        printf("PD_CMD_PUT: %02X\n", data);
+        if (DEBUG(DEBUG_PD_BLOCK)) printf("PD_CMD_PUT: %02X\n", data);
         if (pdblock_d->cmd_buffer.index < MAX_PD_BUFFER_SIZE) {
             pdblock_d->cmd_buffer.cmd[pdblock_d->cmd_buffer.index] = data;
             pdblock_d->cmd_buffer.index++;
         }
     } else if ((addr & 0xF) == 0x02) {
-        printf("PD_CMD_EXECUTE: %02X\n", data);
+        if (DEBUG(DEBUG_PD_BLOCK)) printf("PD_CMD_EXECUTE: %02X\n", data);
         pdblock2_execute(cpu);
         pdblock_d->cmd_buffer.index = 0;
     } 
@@ -193,17 +185,26 @@ void pdblock2_write_C0x0(cpu_state *cpu, uint16_t addr, uint8_t data) {
 
 uint8_t pdblock2_read_C0x0(cpu_state *cpu, uint16_t addr) {
     pdblock2_data * pdblock_d = (pdblock2_data *)get_module_state(cpu, MODULE_PD_BLOCK2);
+    uint8_t val;
 
     if ((addr & 0xF) == 0x03) {
-        printf("PD_ERROR_GET\n");
-        return pdblock_d->cmd_buffer.error;
-    }
-    else return 0xE0;
+        val = pdblock_d->cmd_buffer.error;
+        if (DEBUG(DEBUG_PD_BLOCK)) printf("PD_ERROR_GET: %02X\n", val);
+        return val;
+    } else if ((addr & 0xF) == 0x04) {
+        val = pdblock_d->cmd_buffer.status1;
+        if (DEBUG(DEBUG_PD_BLOCK)) printf("PD_STATUS1_GET: %02X\n", val);
+        return val;
+    } else if ((addr & 0xF) == 0x05) {
+        val = pdblock_d->cmd_buffer.status2;
+        if (DEBUG(DEBUG_PD_BLOCK)) printf("PD_STATUS2_GET: %02X\n", val);
+        return val;
+    } else return 0xE0;
 }
 
 void init_pdblock2(cpu_state *cpu, SlotType_t slot)
 {
-    printf("Initializing ProDOS Block2 slot %d\n", slot);
+    if (DEBUG(DEBUG_PD_BLOCK)) printf("Initializing ProDOS Block2 slot %d\n", slot);
     pdblock2_data * pdblock_d = new pdblock2_data;
     // set in CPU so we can reference later
     set_module_state(cpu, MODULE_PD_BLOCK2, pdblock_d);
@@ -229,5 +230,7 @@ void init_pdblock2(cpu_state *cpu, SlotType_t slot)
     register_C0xx_memory_write_handler((slot * 0x10) + PD_CMD_PUT, pdblock2_write_C0x0);
     register_C0xx_memory_write_handler((slot * 0x10) + PD_CMD_EXECUTE, pdblock2_write_C0x0);
     register_C0xx_memory_read_handler((slot * 0x10) + PD_ERROR_GET, pdblock2_read_C0x0);
+    register_C0xx_memory_read_handler((slot * 0x10) + PD_STATUS1_GET, pdblock2_read_C0x0);
+    register_C0xx_memory_read_handler((slot * 0x10) + PD_STATUS2_GET, pdblock2_read_C0x0);
 
 }
