@@ -2705,6 +2705,8 @@ I am also going to make the following changes to the build system to simplify th
   * Such firmware will be loaded like any other ROM image asset.
   * Then we can just distribute the ROMs with the main gs2 source code.
 
+Instead of putting roms in assets, we have the roms/ directory in the project root. So this is where they go. They are copied from here into resources/roms and Resources/roms on build-package.
+
 This will greatly simplify other people building.
 
 What is distinction between assets and resources? Assets is predominately image data; perhaps also sound data eventually. Resources are things like ROMs, and other data that is not user-visible.
@@ -2716,3 +2718,45 @@ Resources is either: *.app/Contents/Resources/ on Mac, or ./resources/ on Linux 
 The system ROMs; should I bother combining them? Why not just load them individually and directly in the code? We now have the handy routine to make it easy to load ROM and other asset files.
 
 ok the new pdblock2 device is working. This eliminates the poorly thought-out Paravirtualization stuff. Maybe in the future we can do this better - for example, this could let us PV DOS33 RWTS routines so DOS33 could use super-fast disk access.
+
+I did not properly implement the PD_STATUS command. It wants A=0, X/Y = number of blocks on device, and CLC. 
+
+```
+LDA ERR,X
+PHA
+LDA STATUS1,X
+PHA
+LDA STATUS2,X
+TAX
+PLA
+TAY
+PLA
+CMP
+RTS
+```
+
+This will let us return the correct number of blocks on the device (something the old PV wasn't even doing).
+
+Interestingly, if no disk is mounted, PD_STATUS does return an error 0x28 and trying to boot with c500g causes it to jump to BASIC. However, if it's unmounted and you do PR#5, it retries in an infinite loop to boot. Weird. Is that because it's constantly trying to output data and thus calling the boot routine over and over?
+
+Double-check to make sure we can't mount a disk that is not 140K onto a disk ii.
+
+## Mar 16, 2025
+
+```
+<> Media Descriptor: /Users/bazyar/src/gssquared/newdisk.nib
+  Media Type: PRE-NYBBLE
+  Interleave: NONE
+  Block Size: 256
+  Block Count: 560
+  File Size: 232960
+  Data Offset: 0
+  Write Protected: No
+  DOS 3.3 Volume: 254
+Disk image is not 140K
+```
+
+The size check I added to diskII mount fails on anything except a raw 140K disk image. Media Descriptor should populate Data Size. OK that's fixed, and I fixed a bug where trying to mount a .nib wasn't setting all the right properties.
+
+I still see the occasional issue where booting dos3.3, trying to catalog,s6,d2, drive 1 lights up instead of drive 2. Reset then do it again, and it works.
+
