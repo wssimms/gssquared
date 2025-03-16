@@ -78,9 +78,9 @@ drive_status_t Mounts::media_status(uint64_t key) {
     }
     if (it->second.drive_type == DRIVE_TYPE_DISKII) {
         return diskii_status(cpu, key);
-    } /* else if (it->second.drive_type == DRIVE_TYPE_PRODOS_BLOCK) {
-        return prodos_block_status(cpu, key);
-    } */
+    } else if (it->second.drive_type == DRIVE_TYPE_PRODOS_BLOCK) {
+        return pdblock2_osd_status(cpu, key);
+    }
    return {false, nullptr, false, 0};
 }
 

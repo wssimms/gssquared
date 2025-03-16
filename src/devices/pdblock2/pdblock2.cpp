@@ -24,7 +24,7 @@
 #include "devices/pdblock2/pdblock2.hpp"
 #include "util/media.hpp"
 #include "util/ResourceFile.hpp"
-
+#include "util/mount.hpp"
 
 void pdblock2_print_cmdbuffer(pdblock_cmd_buffer *pdb) {
     printf("PD_CMD_BUFFER: ");
@@ -32,6 +32,33 @@ void pdblock2_print_cmdbuffer(pdblock_cmd_buffer *pdb) {
         printf("%02X ", pdb->cmd[i]);
     }
     printf("\n");
+}
+
+drive_status_t pdblock2_osd_status(cpu_state *cpu, uint64_t key) {
+    pdblock2_data * pdblock_d = (pdblock2_data *)get_module_state(cpu, MODULE_PD_BLOCK2);
+    uint8_t slot = key >> 8;
+    uint8_t drive = key & 0xFF;
+    media_t seldrive = pdblock_d->prodosblockdevices[slot][drive];
+
+    bool motor = false;
+
+    uint64_t curtime = SDL_GetTicksNS();
+    if (curtime - seldrive.last_block_access_time < 1000000000) {
+        motor = true;
+    }
+    /* if (seldrive.motor == 1 && seldrive.mark_cycles_turnoff != 0 && ((cpu->cycles > seldrive.mark_cycles_turnoff))) {
+        if (DEBUG(DEBUG_DISKII)) printf("motor off: %llu %llu cycles\n", cpu->cycles, seldrive.mark_cycles_turnoff);
+        seldrive.motor = 0;
+        seldrive.mark_cycles_turnoff = 0;
+    } */
+    const char *fname = nullptr;
+    bool mounted = false;
+    if (seldrive.media) {
+        fname = seldrive.media->filestub;
+        mounted = true;
+    }
+
+    return {mounted, fname, motor, seldrive.last_block_accessed};
 }
 
 uint8_t pdblock2_status(cpu_state *cpu, uint8_t slot, uint8_t drive) {
@@ -68,6 +95,8 @@ void pdblock2_read_block(cpu_state *cpu, uint8_t slot, uint8_t drive, uint16_t b
         // TODO: So we need a dma_write_memory and dma_read_memory set of routines that do that.
         write_memory(cpu, addr + i, block_buffer[i]); 
     }
+    pdblock_d->prodosblockdevices[slot][drive].last_block_accessed = block;
+    pdblock_d->prodosblockdevices[slot][drive].last_block_access_time = SDL_GetTicksNS();
     //debug_dump_memory(cpu, addr, addr + media[slot][drive].block_size);
 }
 
@@ -78,15 +107,15 @@ void pdblock2_write_block(cpu_state *cpu, uint8_t slot, uint8_t drive, uint16_t 
     static uint8_t block_buffer[512];
     FILE *fp = pdblock_d->prodosblockdevices[slot][drive].file;
     media_descriptor *media = pdblock_d->prodosblockdevices[slot][drive].media;
-    
+
     for (int i = 0; i < media->block_size; i++) {
         // TODO: for dma we want to simulate the memory map but do not want to burn cycles.
         block_buffer[i] = read_memory(cpu, addr + i); 
     }
     fseek(fp, media->data_offset + (block * media->block_size), SEEK_SET);
     fwrite(block_buffer, 1, media->block_size, fp);
-
-    //debug_dump_memory(cpu, addr, addr + media[slot][drive].block_size);
+    pdblock_d->prodosblockdevices[slot][drive].last_block_accessed = block;
+    pdblock_d->prodosblockdevices[slot][drive].last_block_access_time = SDL_GetTicksNS();
 }
 
 void pdblock2_execute(cpu_state *cpu) {

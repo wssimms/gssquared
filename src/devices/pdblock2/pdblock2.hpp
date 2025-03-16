@@ -20,6 +20,7 @@
 #include "gs2.hpp"
 #include "cpu.hpp"
 #include "util/media.hpp"
+#include "util/mount.hpp"
 
 #define MAX_PD_BUFFER_SIZE 16
 #define PD_CMD_RESET 0xC080
@@ -32,6 +33,8 @@
 typedef struct media_t {
     FILE *file;
     media_descriptor *media;
+    int last_block_accessed;
+    uint64_t last_block_access_time;
 } media_t;
 
 
@@ -82,3 +85,4 @@ enum pdblock_cmd {
 void pdblock2_execute(cpu_state *cpu);
 void init_pdblock2(cpu_state *cpu, SlotType_t slot);
 void mount_pdblock2(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor *media);
+drive_status_t pdblock2_osd_status(cpu_state *cpu, uint64_t key);

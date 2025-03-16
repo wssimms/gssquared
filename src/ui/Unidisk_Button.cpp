@@ -36,7 +36,7 @@ void Unidisk_Button_t::set_disk_status(drive_status_t statusx) {
     status = statusx;
 }
 
-    /**
+/**
  * @brief Renders the Unidisk button with additional drive-specific elements.
  * @param renderer The SDL renderer to use.
  */
@@ -53,16 +53,24 @@ void Unidisk_Button_t::render(SDL_Renderer* renderer) {
     get_content_position(&content_x, &content_y);
 
     // Additional rendering can be added here
-    // This space intentionally left empty for manual implementation
     if ((key & 0xFF) == 0) aa->draw(Unidisk_Drive1, content_x + 11, content_y + 31);
     else aa->draw(Unidisk_Drive2, content_x + 11, content_y + 31);
  
-    if (status.motor_on) aa->draw(Unidisk_Light, content_x + 2, content_y + 40);
+    if (status.motor_on) aa->draw(Unidisk_Light, content_x, content_y + 30);
 
     SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
     char text[32];
     snprintf(text, sizeof(text), "Slot %llu", (key >> 8));
     SDL_RenderDebugText(renderer, content_x + 62, content_y + 75, text);
     
+    if (is_hovering && status.filename) {
+        float text_width = (float)(strlen(status.filename) * 8);
+        float text_x = (float)((174 - text_width) / 2);
+        SDL_FRect rect = { content_x + text_x-5, content_y + 40, text_width+10, 16};
+        SDL_SetRenderDrawColor(renderer, 0x80, 0x80, 0xFF, 0x80);
+        SDL_RenderFillRect(renderer, &rect);
+        SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+        SDL_RenderDebugText(renderer, content_x + text_x, content_y + 44, status.filename);
+    }
     // TODO: if mounted and hovering, show the disk image name over the drive
 }

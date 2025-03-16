@@ -370,6 +370,8 @@ void OSD::update() {
     // update disk status
     diskii_button1->set_disk_status(cpu->mounts->media_status(0x600));
     diskii_button2->set_disk_status(cpu->mounts->media_status(0x601));
+    unidisk_button1->set_disk_status(cpu->mounts->media_status(0x500));
+    unidisk_button2->set_disk_status(cpu->mounts->media_status(0x501));
 
     // background color update based on clock speed to highlight current button.
     speed_btn_10->set_background_color(0x000000FF);
