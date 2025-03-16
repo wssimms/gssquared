@@ -114,6 +114,7 @@ typedef struct media_descriptor {
     uint16_t block_size = 0;
     uint32_t block_count = 0;
     uint64_t file_size = 0;
+    uint64_t data_size = 0;
     bool write_protected = false;
     uint16_t dos33_volume = 254;
 } media_descriptor;

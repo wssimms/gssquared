@@ -159,6 +159,7 @@ int display_media_descriptor(media_descriptor& md) {
     std::cout << "  Block Size: " << md.block_size << std::endl;
     std::cout << "  Block Count: " << md.block_count << std::endl;
     std::cout << "  File Size: " << md.file_size << std::endl;
+    std::cout << "  Data Size: " << md.data_size << std::endl;
     std::cout << "  Data Offset: " << md.data_offset << std::endl;
     std::cout << "  Write Protected: " << (md.write_protected ? "Yes" : "No") << std::endl;
     std::cout << "  DOS 3.3 Volume: " << md.dos33_volume << std::endl;
@@ -253,9 +254,10 @@ int identify_media(media_descriptor& md) {
             std::cerr << "Unknown image format: " << hdr.image_format << std::endl;
             return -1;
         }
-        md.file_size = hdr.bytes_count;
+        md.file_size = get_file_size(md.filename);
         md.block_count = hdr.block_count;
         md.block_size = hdr.bytes_count / hdr.block_count;
+        md.data_size = hdr.bytes_count;
         md.data_offset = hdr.header_size;
         md.write_protected = (hdr.flag & FLAG_LOCKED) != 0;
         md.dos33_volume = (hdr.flag & FLAG_DOS33) != 0 ? (hdr.flag & FLAG_DOS33_VOL_MASK) : 254; // if not set, then 254
@@ -266,6 +268,7 @@ int identify_media(media_descriptor& md) {
         md.file_size = get_file_size(md.filename);
         md.block_size = 512;
         md.block_count = md.file_size / md.block_size;
+        md.data_size = md.file_size;
         md.interleave = INTERLEAVE_NONE;
         md.data_offset = 0;
     } else if (compare_suffix(md.filename, ".do") || compare_suffix(md.filename, ".dsk")) {
@@ -278,6 +281,7 @@ int identify_media(media_descriptor& md) {
         }
         md.block_size = 256;
         md.block_count = md.file_size / md.block_size;
+        md.data_size = md.file_size;
         md.interleave = INTERLEAVE_DO;
         md.data_offset = 0;
         md.write_protected = true;
@@ -292,6 +296,7 @@ int identify_media(media_descriptor& md) {
         }
         md.block_size = 256;
         md.block_count = md.file_size / md.block_size;
+        md.data_size = md.file_size;
         md.interleave = INTERLEAVE_PO;
         md.data_offset = 0;
         md.write_protected = true;
@@ -299,6 +304,7 @@ int identify_media(media_descriptor& md) {
     } else if (compare_suffix(md.filename, ".nib")) {
         md.media_type = MEDIA_PRENYBBLE;
         md.file_size = get_file_size(md.filename);
+        md.data_size = 140 * 1024;
         md.block_size = 256;
         md.block_count = 560; // assumed 560 sectors on a 143K diskette.
         md.interleave = INTERLEAVE_NONE;

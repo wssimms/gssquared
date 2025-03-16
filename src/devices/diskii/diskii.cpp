@@ -268,7 +268,7 @@ void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor 
         unmount_diskII(cpu, slot, drive);
     }
 
-    if (media->file_size != 140 * 1024) {
+    if (media->data_size != 140 * 1024) {
         fprintf(stderr, "Disk image is not 140K\n");
         return;
     }
@@ -280,6 +280,7 @@ void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor 
     if (media->media_type == MEDIA_PRENYBBLE) {
         // Load nib format image directly into diskII structure.
         load_nib_image(diskII_slot[slot].drive[drive].nibblized, media->filename);
+        printf("Mounted pre-nibblized disk %s\n", media->filestub);
     } else {
         if (media->interleave == INTERLEAVE_PO) {
             memcpy(diskII_slot[slot].drive[drive].nibblized.interleave_phys_to_logical, po_phys_to_logical, sizeof(interleave_t));
@@ -291,10 +292,10 @@ void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor 
 
         load_disk_image(diskII_slot[slot].drive[drive].media, media->filename); // pull this into diskii stuff somewhere.
         emit_disk(diskII_slot[slot].drive[drive].nibblized, diskII_slot[slot].drive[drive].media, 0xFE);
-        diskII_slot[slot].drive[drive].is_mounted = true;
-        diskII_slot[slot].drive[drive].media_d = media;
         printf("Mounted disk %s\n", media->filestub);
     }
+    diskII_slot[slot].drive[drive].is_mounted = true;
+    diskII_slot[slot].drive[drive].media_d = media;
 }
 
 void unmount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive) {
