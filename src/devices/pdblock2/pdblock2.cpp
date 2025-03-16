@@ -96,6 +96,16 @@ void pdblock2_execute(cpu_state *cpu) {
 
     pdblock2_print_cmdbuffer(&pdblock_d->cmd_buffer);
 
+    uint8_t cksum = 0;
+    for (int i = 0; i < pdblock_d->cmd_buffer.index; i++) {
+        cksum ^= pdblock_d->cmd_buffer.cmd[i];
+    }
+    if (cksum != 0x00) {
+        printf("pdblock2_execute: Checksum error\n");
+        pdblock_d->cmd_buffer.error = 0x01;
+        return;
+    }
+
     uint8_t version = pdblock_d->cmd_buffer.cmd[0] ;
     if (version == 0x01) {
         // TODO: version 1 command
