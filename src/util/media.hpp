@@ -105,6 +105,7 @@ typedef enum media_interleave_t {
 
 typedef struct media_descriptor {
     const char *filename = nullptr;
+    const char *filestub = nullptr;
     FILE *fp = nullptr;
     media_type_t media_type = MEDIA_BLK;
     media_interleave_t interleave = INTERLEAVE_NONE;

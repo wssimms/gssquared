@@ -210,6 +210,7 @@ struct diskII {
     bool is_mounted = false;
     disk_image_t media;
     nibblized_disk_t nibblized;
+    media_descriptor *media_d;
 };
 
 struct diskII_controller {
@@ -263,8 +264,13 @@ void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor 
     diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
 
     if (diskII_slot[slot].drive[drive].is_mounted) {
-        fprintf(stderr, "Disk already mounted\n");
+        fprintf(stderr, "A disk already mounted, unmounting it.\n");
         unmount_diskII(cpu, slot, drive);
+    }
+
+    if (media->file_size != 140 * 1024) {
+        fprintf(stderr, "Disk image is not 140K\n");
+        return;
     }
 
     // Detect DOS 3.3 or ProDOS and set the interleave accordingly done by identify_media
@@ -286,6 +292,8 @@ void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor 
         load_disk_image(diskII_slot[slot].drive[drive].media, media->filename); // pull this into diskii stuff somewhere.
         emit_disk(diskII_slot[slot].drive[drive].nibblized, diskII_slot[slot].drive[drive].media, 0xFE);
         diskII_slot[slot].drive[drive].is_mounted = true;
+        diskII_slot[slot].drive[drive].media_d = media;
+        printf("Mounted disk %s\n", media->filestub);
     }
 }
 
@@ -298,7 +306,7 @@ void unmount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive) {
         diskII_slot[slot].drive[drive].nibblized.tracks[i].position = 0;
     }
     diskII_slot[slot].drive[drive].is_mounted = false;
-
+    diskII_slot[slot].drive[drive].media_d = nullptr;
     // TODO: this will write the disk image back to disk.
 }
 
@@ -313,8 +321,13 @@ drive_status_t diskii_status(cpu_state *cpu, uint64_t key) {
         seldrive.motor = 0;
         seldrive.mark_cycles_turnoff = 0;
     }
+    const char *fname = nullptr;
+    if (seldrive.media_d) {
+        fname = seldrive.media_d->filestub;
+        /* printf("diskii_status: %s\n", fname); */
+    }
 
-    return {seldrive.is_mounted, nullptr /* seldrive.media.filename */, seldrive.motor, seldrive.track};
+    return {seldrive.is_mounted, fname, seldrive.motor, seldrive.track};
 }
 
 /**

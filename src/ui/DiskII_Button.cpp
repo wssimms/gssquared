@@ -36,7 +36,7 @@ void DiskII_Button_t::set_disk_status(drive_status_t statusx) {
     status = statusx;
 }
 
-    /**
+/**
  * @brief Renders the DiskII button with additional drive-specific elements.
  * @param renderer The SDL renderer to use.
  */
@@ -58,10 +58,18 @@ void DiskII_Button_t::render(SDL_Renderer* renderer) {
 
     if (status.motor_on) aa->draw(DiskII_DriveLightOn, content_x + 30, content_y + 69);
 
-    SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
     char text[32];
     snprintf(text, sizeof(text), "Slot %llu", (key >> 8));
+    SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
     SDL_RenderDebugText(renderer, content_x + 62, content_y + 84, text);
-    
+    if (is_hovering && status.filename) {
+        float text_width = (float)(strlen(status.filename) * 8);
+        float text_x = (float)((174 - text_width) / 2);
+        SDL_FRect rect = { content_x + text_x-5, content_y + 36, text_width+10, 16};
+        SDL_SetRenderDrawColor(renderer, 0x80, 0x80, 0xFF, 0x80);
+        SDL_RenderFillRect(renderer, &rect);
+        SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+        SDL_RenderDebugText(renderer, content_x + text_x, content_y + 40, status.filename);
+    }
     // TODO: if mounted and hovering, show the disk image name over the drive
 }

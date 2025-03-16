@@ -191,6 +191,40 @@ int display_2mg_header(format_2mg_t& hdr) {
     return 0;
 }
 
+/**
+ * Extracts the filename portion from a full pathname.
+ * 
+ * @param pathname The full path to extract the filename from
+ * @return A newly allocated string containing just the filename portion
+ *         (caller is responsible for freeing this memory)
+ */
+char* extract_filename(const char* pathname) {
+    if (!pathname) {
+        return nullptr;
+    }
+    
+    // Find the last directory separator (handle both Unix and Windows paths)
+    const char* lastSlash = strrchr(pathname, '/');
+    const char* lastBackslash = strrchr(pathname, '\\');
+    
+    // Determine which separator was found last (if any)
+    const char* lastSeparator = nullptr;
+    if (lastSlash && lastBackslash) {
+        lastSeparator = (lastSlash > lastBackslash) ? lastSlash : lastBackslash;
+    } else if (lastSlash) {
+        lastSeparator = lastSlash;
+    } else {
+        lastSeparator = lastBackslash;
+    }
+    
+    // If no separator was found, the entire string is the filename
+    const char* filename = lastSeparator ? lastSeparator + 1 : pathname;
+    
+    // Allocate memory for the new string and copy the filename
+    char* result = strndup(filename, 18); // limit to 16 characters.
+    return result;
+}
+
 int identify_media(media_descriptor& md) {
     if (compare_suffix(md.filename, ".2mg")) {
         format_2mg_t hdr;
@@ -273,6 +307,7 @@ int identify_media(media_descriptor& md) {
         std::cerr << "Unknown media type: " << md.filename << std::endl;
         return -1;
     }
+    md.filestub = extract_filename(md.filename);
     return 0;
 }
 

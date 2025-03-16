@@ -31,7 +31,7 @@ typedef struct {
 
 struct drive_status_t {
     bool is_mounted;
-    char *filename;
+    const char *filename;
     bool motor_on;
     int position;
 };
