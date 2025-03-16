@@ -128,6 +128,8 @@ add_library(gs2_devices_diskii_fmt
     src/devices/diskii/diskii_fmt.cpp
 )
 
+add_library(gs2_devices_pdblock2 src/devices/pdblock2/pdblock2.cpp )
+
 add_library(gs2_devices_prodos_clock src/devices/prodos_clock/prodos_clock.cpp )
 
 add_library(gs2_devices_tcp    src/devices/thunderclock_plus/thunderclockplus.cpp )
@@ -159,7 +161,9 @@ add_executable(gs2 src/gs2.cpp src/bus.cpp src/clock.cpp src/debug.cpp src/cpu.c
     src/devices/loader.cpp 
     src/devices/diskii/diskii.cpp
     src/platforms.cpp
-    src/event_poll.cpp)
+    src/event_poll.cpp
+    src/devices.cpp src/slots.cpp src/systemconfig.cpp
+    )
 
 # Set up common include directories for all targets
 include_directories(
@@ -192,6 +196,7 @@ target_link_libraries(gs2
     gs2_devices_speaker
     gs2_devices_game
     gs2_devices_memexp
+    gs2_devices_pdblock2
     gs2_util
     gs2_ui
 )
