@@ -10,6 +10,7 @@
 #include "devices/diskii/diskii.hpp"
 #include "devices/memoryexpansion/memexp.hpp"
 #include "devices/thunderclock_plus/thunderclockplus.hpp"
+#include "devices/pdblock2/pdblock2.hpp"
 
 Device_t NoDevice = {
         DEVICE_ID_END,
@@ -58,7 +59,7 @@ Device_t Devices[NUM_DEVICE_IDS] = {
     {
         DEVICE_ID_PRODOS_BLOCK,
         "Generic ProDOS Block",
-        init_prodos_block,
+        NULL, //init_prodos_block,
         NULL
     },
     {
@@ -83,6 +84,12 @@ Device_t Devices[NUM_DEVICE_IDS] = {
         DEVICE_ID_THUNDER_CLOCK,
         "Thunder Clock Plus",
         init_slot_thunderclock,
+        NULL
+    },
+    {
+        DEVICE_ID_PD_BLOCK2,
+        "Generic ProDOS Block 2",
+        init_pdblock2,
         NULL
     },
 };

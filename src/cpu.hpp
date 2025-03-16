@@ -93,6 +93,7 @@ typedef enum {
     MODULE_LANGCARD,
     MODULE_THUNDERCLOCK,
     MODULE_PRODOS_CLOCK,
+    MODULE_PD_BLOCK2,
     MODULE_NUM_MODULES
 } module_id_t;
 

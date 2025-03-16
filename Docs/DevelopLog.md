@@ -2689,3 +2689,30 @@ Created some abstractions for a SystemConfig. This is the selection of a platfor
 As part of this, the OSD now displays the name of the card in each slot that has one.
 
 This also cleans up the init code in gs2.cpp, which now iterates through the data structure to initialize devices. Next step is to gracefully de-initialize them on exit. And then, we'll have the framework we need to support powering a system on and off, and changing config at runtime.
+
+## Mar 15, 2025
+
+I've never been thrilled with the prodos block implementation. It relies on "ParaVirtualization" - something performs a JSR to a particular address, then we trap that in the CPU instruction execution loop and call a handler. Currently, this address is hardcoded in that loop, so the device in question is hard-wired to a specific slot.
+
+I also just thought about a weakness in the design of devices, how we store state information in a block identified by an ID assigned to the device. This will prevent us from having multiple instances of the same device type in different slots. Is that something people care about in an emulator? Is there anything out there that requires having two Disk II controllers / 4 drives? Old timey BBS might have had a setup like that, but in emulatorville everyone gets a free hard drive, so.. The obvious solution is to use new slot data structure to store that data. 
+
+I am also going to make the following changes to the build system to simplify the process. We currently have system dependencies on python, and as65 from Brutal Deluxe.
+
+* Populate system ROMs into the assets directory
+* Firmware we build will be in separate projects.
+  * For instance: ProDOS Block firmware; system roms download and combine.
+  * These are copied into resources/roms; and resources/cards. These files then stored in repo.
+  * Such firmware will be loaded like any other ROM image asset.
+  * Then we can just distribute the ROMs with the main gs2 source code.
+
+This will greatly simplify other people building.
+
+What is distinction between assets and resources? Assets is predominately image data; perhaps also sound data eventually. Resources are things like ROMs, and other data that is not user-visible.
+
+Do I need this distinction? Let's put ROMs in assets. These are "inputs". They are processed. Then copied into the Resources directory.
+
+Resources is either: *.app/Contents/Resources/ on Mac, or ./resources/ on Linux (or Mac when run from the command line).
+
+The system ROMs; should I bother combining them? Why not just load them individually and directly in the code? We now have the handy routine to make it easy to load ROM and other asset files.
+
+ok the new pdblock2 device is working. This eliminates the poorly thought-out Paravirtualization stuff. Maybe in the future we can do this better - for example, this could let us PV DOS33 RWTS routines so DOS33 could use super-fast disk access.

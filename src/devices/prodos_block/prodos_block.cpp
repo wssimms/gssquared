@@ -139,7 +139,7 @@ void prodos_block_pv_trap(cpu_state *cpu) {
     pv_return(cpu);
 }
 
-void mount_prodos_block(uint8_t slot, uint8_t drive, media_descriptor *media) {
+void mount_prodos_block(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor *media) {
     printf("Mounting ProDOS block device %s slot %d drive %d\n", media->filename, slot, drive);
 
     FILE *fp = fopen(media->filename, "r+b");

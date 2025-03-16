@@ -16,6 +16,7 @@ typedef enum device_id {
     DEVICE_ID_DISK_II,
     DEVICE_ID_MEM_EXPANSION,
     DEVICE_ID_THUNDER_CLOCK,
+    DEVICE_ID_PD_BLOCK2,
     NUM_DEVICE_IDS
 } device_id;
 

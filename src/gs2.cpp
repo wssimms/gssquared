@@ -215,10 +215,10 @@ void run_cpus(void) {
 
         if (! cpu->halt) {
             while (cpu->cycles - last_cycle_count < cycles_for_this_burst) { // 1/60th second.
-                if (cpu->pc == 0xC5C0) {
+                /* if (cpu->pc == 0xC5C0) {
                     printf("ParaVirtual Trap PC: %04X\n", cpu->pc);
                     prodos_block_pv_trap(cpu);
-                }
+                } */
 
                 if ((cpu->execute_next)(cpu) > 0) { // never returns 0 right now
                     break;
