@@ -12,10 +12,6 @@ compile_commands.json
 **/.venv
 tmp/
 tmp/*
-roms/*/*.rom
-roms/*/*.bin
-roms/*/base.addr
-roms/cards/*/*.rom
 bin
 bin/*
 lib/
@@ -25,9 +21,12 @@ disk_images/*
 **/*_Output.txt
 **/_FileInformation.txt
 GSSquared.app/
-assets/img
 assets/*
+!assets/img/
+assets/img/*
+!assets/img/atlas.png
 resources/*
 /Makefile
 !src/devices/prodos_block/Makefile
 packages/*
+.DS_Store
