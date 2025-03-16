@@ -227,6 +227,7 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManag
     drive_container->set_size(415, 600);
     containers.push_back(drive_container);
 
+    // TODO: create buttons based on what is in slots.
     // Create the buttons
     diskii_button1 = new DiskII_Button_t(aa, DiskII_Open, DS); // this needs to have our disk key . or alternately use a different callback.
     diskii_button1->set_key(0x600);
@@ -235,15 +236,6 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManag
     diskii_button2 = new DiskII_Button_t(aa, DiskII_Closed, DS);
     diskii_button2->set_key(0x601);
     diskii_button2->set_click_callback(diskii_button_click, new diskii_callback_data_t{this, 0x601});
-
-#if MOUSE_POSITION_TILE
-    mouse_pos = new MousePositionTile_t();
-    mouse_pos->set_position(100,600) ;
-    mouse_pos->set_size(150,20);
-    mouse_pos->set_background_color(0xFFFFFFFF);  // White background
-    mouse_pos->set_border_color(0x000000FF);      // Black border
-    mouse_pos->set_border_width(1);
-#endif
 
     unidisk_button1 = new Unidisk_Button_t(aa, Unidisk_Face, DS); // this needs to have our disk key . or alternately use a different callback.
     unidisk_button1->set_key(0x500);
@@ -258,6 +250,15 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManag
     drive_container->add_tile(diskii_button2, 1);
     drive_container->add_tile(unidisk_button1, 2);
     drive_container->add_tile(unidisk_button2, 3);
+
+#if MOUSE_POSITION_TILE
+    mouse_pos = new MousePositionTile_t();
+    mouse_pos->set_position(100,600) ;
+    mouse_pos->set_size(150,20);
+    mouse_pos->set_background_color(0xFFFFFFFF);  // White background
+    mouse_pos->set_border_color(0x000000FF);      // Black border
+    mouse_pos->set_border_width(1);
+#endif
 
     // Initial layout
     drive_container->layout();
@@ -367,6 +368,7 @@ void OSD::update() {
         cpu->mounts->dump();
     }
 
+    // TODO: iterate over all drives based on what's in slots.
     // update disk status
     diskii_button1->set_disk_status(cpu->mounts->media_status(0x600));
     diskii_button2->set_disk_status(cpu->mounts->media_status(0x601));
