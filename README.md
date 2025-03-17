@@ -86,3 +86,24 @@ make
 
 If you want to help create build tooling for Windows, let me know! All of this should work on all 3 platforms courtesy of SDL3.
 
+## Creating Distribution Packages
+
+```
+make packages
+```
+
+This will create a 'packages' directory with the following structure:
+
+```
+packages/
+├── mac-cli/
+├── linux-package/
+├── GSSquared.dmg
+├── GSSquared.app/
+```
+
+The mac-package and mac-cli-package are the same, but the mac-cli-package is used to create a DMG file for the macOS app bundle.
+
+Only the appropriate package types for the platform you're building on will be created.
+
+"make", "make all", "make mac-dev" or "make linux-dev" will create a resources directory in the build tree, for local testing.
