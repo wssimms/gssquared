@@ -81,16 +81,56 @@ endif()
 if(UNIX AND NOT APPLE)
     # Linux-specific configuration here
     
+    # Find the SDL libraries regardless of their exact filenames
+    file(GLOB SDL3_LIB "${CMAKE_SOURCE_DIR}/lib/libSDL3.so*")
+    file(GLOB SDL3_IMAGE_LIB "${CMAKE_SOURCE_DIR}/lib/libSDL3_image.so*")
+    
+    # If .so files are not found, try other library suffixes (some Linux distros might use different suffixes)
+    if(NOT SDL3_LIB)
+        file(GLOB SDL3_LIB "${CMAKE_SOURCE_DIR}/lib/libSDL3*.so*")
+        if(NOT SDL3_LIB)
+            message(WARNING "Could not find libSDL3 in ${CMAKE_SOURCE_DIR}/lib/")
+        endif()
+    endif()
+    
+    if(NOT SDL3_IMAGE_LIB)
+        file(GLOB SDL3_IMAGE_LIB "${CMAKE_SOURCE_DIR}/lib/libSDL3_image*.so*")
+        if(NOT SDL3_IMAGE_LIB)
+            message(WARNING "Could not find libSDL3_image in ${CMAKE_SOURCE_DIR}/lib/")
+        endif()
+    endif()
+    
     # Custom target for creating Linux package
     add_custom_target(linux-package
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/roms
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/roms ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/roms
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gs2> ${CMAKE_BINARY_DIR}/packages/linux-cli/
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/img
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/img/atlas.png        
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/img/atlas.png
+        # Copy SDL dynamic libraries
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/linux-cli/lib
+        COMMAND bash -c "if [ ! -z \"${SDL3_LIB}\" ]; then ${CMAKE_COMMAND} -E copy_if_different ${SDL3_LIB} ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/; fi"
+        COMMAND bash -c "if [ ! -z \"${SDL3_IMAGE_LIB}\" ]; then ${CMAKE_COMMAND} -E copy_if_different ${SDL3_IMAGE_LIB} ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/; fi"
+        # Create symlinks if necessary for libraries - using shell to check if files exist first
+        COMMAND bash -c "if [ -f ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/libSDL3.so.0 ] && [ ! -f ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/libSDL3.so ]; then ln -sf libSDL3.so.0 ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/libSDL3.so; fi"
+        COMMAND bash -c "if [ -f ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/libSDL3_image.so.0 ] && [ ! -f ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/libSDL3_image.so ]; then ln -sf libSDL3_image.so.0 ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/libSDL3_image.so; fi"
+        # Fix up runtime paths with patchelf or chrpath - Linux tools for changing RPATH
+        COMMAND bash -c "if command -v patchelf >/dev/null 2>&1; then \
+            patchelf --set-rpath '$$ORIGIN/lib' ${CMAKE_BINARY_DIR}/packages/linux-cli/gs2 && \
+            (if [ -f ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/libSDL3_image.so ]; then \
+                patchelf --set-rpath '$$ORIGIN' ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/libSDL3_image.so; \
+            fi) \
+        elif command -v chrpath >/dev/null 2>&1; then \
+            chrpath -r '$$ORIGIN/lib' ${CMAKE_BINARY_DIR}/packages/linux-cli/gs2 && \
+            (if [ -f ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/libSDL3_image.so ]; then \
+                chrpath -r '$$ORIGIN' ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/libSDL3_image.so; \
+            fi) \
+        else \
+            echo 'WARNING: Neither patchelf nor chrpath found. RPATH not set for Linux package.'; \
+        fi"
         DEPENDS gs2
     )
-    # Custom target for creating Linux package
+    # Custom target for development environment resources
     add_custom_target(linux-dev ALL
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/roms
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/roms ${CMAKE_BINARY_DIR}/resources/roms
