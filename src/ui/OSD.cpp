@@ -218,7 +218,7 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManag
     SS.padding = 4;
     SS.border_width = 1;
 
-    aa = new AssetAtlas_t(renderer, (char *)"assets/img/atlas.png");
+    aa = new AssetAtlas_t(renderer, (char *)"img/atlas.png");
     aa->set_elements(MainAtlas_count, asset_rects);
 
     // Create a container for our drive buttons

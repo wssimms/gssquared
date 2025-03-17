@@ -28,6 +28,8 @@ if(APPLE)
         COMMAND ${CMAKE_COMMAND} -E copy ${APP_ICON_MACOSX} ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/roms
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/roms ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/roms
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/img
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/img/atlas.png
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/Info.plist ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/
         DEPENDS gs2
     )
@@ -35,6 +37,8 @@ if(APPLE)
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/roms
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/roms ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/roms
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gs2> ${CMAKE_BINARY_DIR}/packages/mac-cli/
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/img
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/img/atlas.png
         DEPENDS gs2
     )
     

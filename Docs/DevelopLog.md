@@ -2760,3 +2760,4 @@ The size check I added to diskII mount fails on anything except a raw 140K disk 
 
 I still see the occasional issue where booting dos3.3, trying to catalog,s6,d2, drive 1 lights up instead of drive 2. Reset then do it again, and it works.
 
+Doing a little thinking about how we might handle demos that change screen modes in tight cycle loops to create interesting (albeit useless) effects. Instead of immediately changing screen mode variables, we could post an event to a queue. Then when we render a video frame, do it scanline by scanline regardless of mode. And keep track of the events, switching modes as we go. This is a fair bit of work to get a couple of demos working that if you want you can watch in OE or another emulator. I think the question will come down to, do any actual useful programs (games, etc.) do these tricks.

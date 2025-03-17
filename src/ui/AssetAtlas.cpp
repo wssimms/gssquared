@@ -21,17 +21,24 @@
 #include <SDL3/SDL_render.h>
 #include <SDL3_image/SDL_image.h>
 
+#include "gs2.hpp"
 #include "AssetAtlas.hpp"
-
+#include "util/dialog.hpp"
 
 AssetAtlas_t::AssetAtlas_t(SDL_Renderer *renderer, char *path, int target_w, int target_h) : renderer(renderer)
 {
     elementCount = 1;
     elements = &default_element;
 
-    SDL_Surface* original = IMG_Load(path);
+    std::string filename_t;
+    filename_t.assign(gs2_app_values.base_path);
+    filename_t.append(path);
+
+    SDL_Surface* original = IMG_Load(filename_t.c_str());
     if (!original) {
-        throw std::runtime_error("Failed to load image");
+        char error_message[256];
+        snprintf(error_message, sizeof(error_message), "Failed to load image: %s", path);
+        system_failure(error_message);
     }
     
     if (target_w > 0 && target_h > 0) {
