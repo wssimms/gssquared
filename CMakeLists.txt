@@ -24,6 +24,7 @@ if(APPLE)
     add_custom_target(mac-package
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/MacOS
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Frameworks
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gs2> ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/MacOS/
         COMMAND ${CMAKE_COMMAND} -E copy ${APP_ICON_MACOSX} ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/roms
@@ -31,6 +32,13 @@ if(APPLE)
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/img
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/img/atlas.png
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/Info.plist ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/
+        # Copy SDL dynamic libraries
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/libSDL3.dylib ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Frameworks/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/libSDL3_image.dylib ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Frameworks/
+        # Fix up runtime paths with install_name_tool if needed
+        COMMAND install_name_tool -change @rpath/libSDL3.0.dylib @executable_path/../Frameworks/libSDL3.dylib ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/MacOS/gs2
+        COMMAND install_name_tool -change @rpath/libSDL3_image.0.dylib @executable_path/../Frameworks/libSDL3_image.dylib ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/MacOS/gs2
+        COMMAND install_name_tool -change @rpath/libSDL3.0.dylib @executable_path/../Frameworks/libSDL3.dylib ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Frameworks/libSDL3_image.dylib
         DEPENDS gs2
     )
     add_custom_target(mac-cli-package
@@ -39,6 +47,14 @@ if(APPLE)
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gs2> ${CMAKE_BINARY_DIR}/packages/mac-cli/
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/img
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/img/atlas.png
+        # Copy SDL dynamic libraries
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/mac-cli/lib
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/libSDL3.dylib ${CMAKE_BINARY_DIR}/packages/mac-cli/lib/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/libSDL3_image.dylib ${CMAKE_BINARY_DIR}/packages/mac-cli/lib/
+        # Fix up runtime paths
+        COMMAND install_name_tool -change @rpath/libSDL3.0.dylib @executable_path/lib/libSDL3.dylib ${CMAKE_BINARY_DIR}/packages/mac-cli/gs2
+        COMMAND install_name_tool -change @rpath/libSDL3_image.0.dylib @executable_path/lib/libSDL3_image.dylib ${CMAKE_BINARY_DIR}/packages/mac-cli/gs2
+        COMMAND install_name_tool -change @rpath/libSDL3.0.dylib @executable_path/lib/libSDL3.dylib ${CMAKE_BINARY_DIR}/packages/mac-cli/lib/libSDL3_image.dylib
         DEPENDS gs2
     )
     
@@ -49,6 +65,15 @@ if(APPLE)
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/README.md ${CMAKE_BINARY_DIR}/tmp/dmg_contents/README.md
         COMMAND hdiutil create -volname "GSSquared" -srcfolder ${CMAKE_BINARY_DIR}/tmp/dmg_contents -ov -format UDZO ${CMAKE_BINARY_DIR}/packages/GSSquared.dmg
         DEPENDS mac-package
+    )
+    
+    # Custom target for development environment resources
+    add_custom_target(mac-dev ALL
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/roms
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/roms ${CMAKE_BINARY_DIR}/resources/roms
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/img
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/resources/img/atlas.png
+        DEPENDS gs2
     )
 endif()
 
@@ -62,7 +87,15 @@ if(UNIX AND NOT APPLE)
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/roms ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/roms
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gs2> ${CMAKE_BINARY_DIR}/packages/linux-cli/
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/img
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/img/atlas.png
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/img/atlas.png        
+        DEPENDS gs2
+    )
+    # Custom target for creating Linux package
+    add_custom_target(linux-dev ALL
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/roms
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/roms ${CMAKE_BINARY_DIR}/resources/roms
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/img
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/resources/img/atlas.png
         DEPENDS gs2
     )
 endif()
@@ -234,11 +267,11 @@ target_include_directories(gs2 PRIVATE
 # Meta-target that builds all packages
 if(APPLE)
     add_custom_target(packages
-        DEPENDS mac-package mac-cli-package create-dmg
+        DEPENDS mac-package mac-cli-package create-dmg mac-dev
     )
 elseif(UNIX AND NOT APPLE)
     add_custom_target(packages
-        DEPENDS linux-package
+        DEPENDS linux-package linux-dev
     )
 else()
     add_custom_target(packages
