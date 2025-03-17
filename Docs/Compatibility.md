@@ -69,5 +69,5 @@ This crashes on boot at address 0x0914 in both GS2 and OE, on both II+ and IIe m
 Works in II+ on OE. 
 Hangs during boot on GS2 after showing the prodos splash screen. Drive light is still on.
 Will need to trace this and see what's going on. Is supposed to work on Apple II plus and standard 6502. So who knows what is going on..
-Though, OE II plus seems to have a IIe style 80 column card. What.
+Though, OE II plus seems to have an 80 column card that activates on PR#3.
 
