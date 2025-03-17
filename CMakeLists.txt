@@ -52,6 +52,21 @@ if(APPLE)
     )
 endif()
 
+# Linux-specific settings
+if(UNIX AND NOT APPLE)
+    # Linux-specific configuration here
+    
+    # Custom target for creating Linux package
+    add_custom_target(linux-package
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/roms
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/roms ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/roms
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gs2> ${CMAKE_BINARY_DIR}/packages/linux-cli/
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/img
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/img/atlas.png
+        DEPENDS gs2
+    )
+endif()
+
 function(configure_sdl_builds)
     set(BUILD_SHARED_LIBS ON)
     
@@ -217,6 +232,16 @@ target_include_directories(gs2 PRIVATE
 )
 
 # Meta-target that builds all packages
-add_custom_target(packages
-    DEPENDS mac-package mac-cli-package create-dmg
-)
+if(APPLE)
+    add_custom_target(packages
+        DEPENDS mac-package mac-cli-package create-dmg
+    )
+elseif(UNIX AND NOT APPLE)
+    add_custom_target(packages
+        DEPENDS linux-package
+    )
+else()
+    add_custom_target(packages
+        COMMENT "No package targets defined for this platform"
+    )
+endif()
