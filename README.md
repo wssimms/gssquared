@@ -39,13 +39,11 @@ I use vscode as my IDE, but, this isn't required.
 ```
 git clone xxxxxxx
 cd xxxxxxx
-mkdir build
-mkdir vendored
+mkdir -p vendored
 cd vendored
 git clone https://github.com/libsdl-org/SDL.git
 git clone https://github.com/libsdl-org/SDL_image.git
 cd ..
-mkdir build
 cmake -DCMAKE_BUILD_TYPE=Release .
 make
 ```
