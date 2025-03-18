@@ -26,6 +26,7 @@ assets/*
 assets/img/*
 !assets/img/atlas.png
 !assets/img/gs2.icns
+!assets/Info.plist
 resources/*
 /Makefile
 !src/devices/prodos_block/Makefile
