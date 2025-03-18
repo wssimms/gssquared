@@ -5,10 +5,10 @@ GSSquared is a complete emulator for the Apple II series of computers. It is wri
 It uses the SDL3 library for graphics, sound, and I/O. This is a video game-oriented library and suits an emulator well. And, it's cross-platform.
 
 The code base builds and has been tested on:
-    * MacBook Pro M1
-    * Mac Intel
-    * Mac Mini M4
-    * Ubuntu Linux 22.04 (x64 AMD)
+* MacBook Pro M1
+* Mac Intel
+* Mac Mini M4
+* Ubuntu Linux 22.04 (x64 AMD)
 
 I am hoping I can get someone else to build on Windows. :-)
 
