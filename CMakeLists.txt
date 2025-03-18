@@ -62,6 +62,7 @@ if(APPLE)
     
     # Add DMG creation target
     add_custom_target(create-dmg
+        COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/tmp/dmg_contents
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/tmp/dmg_contents
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/packages/GSSquared.app ${CMAKE_BINARY_DIR}/tmp/dmg_contents/GSSquared.app
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/README.md ${CMAKE_BINARY_DIR}/tmp/dmg_contents/README.md
