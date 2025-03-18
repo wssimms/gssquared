@@ -72,12 +72,11 @@ gs2 is currently build on Linux using:
 ```
 git clone ******
 cd ******
-mkdir vendored
+mkdir -p vendored
 cd vendored
 git clone https://github.com/libsdl-org/SDL.git
 git clone https://github.com/libsdl-org/SDL_image.git
 cd ..
-mkdir build
 cmake -DCMAKE_BUILD_TYPE=Release .
 make
 ```
