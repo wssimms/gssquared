@@ -4,15 +4,21 @@ GSSquared is a complete emulator for the Apple II series of computers. It is wri
 
 It uses the SDL3 library for graphics, sound, and I/O. This is a video game-oriented library and suits an emulator well. And, it's cross-platform.
 
-To date, development has been Mac-only. The code base builds on a Mac M1.
+The code base builds and has been tested on:
+    MacBook Pro M1
+    Mac Intel
+    Mac Mini M4
+    Ubuntu Linux 22.04 (x64 AMD)
 
-Eventually (hopefully, soon) I will build for Linux. I am hoping I can get someone else to build on Windows. :-)
+I am hoping I can get someone else to build on Windows. :-)
 
 # Building
 
 General Build Instructions:
 
 ## Build for Production
+
+Production builds are optimized for performance.
 
 ```
 cmake -DCMAKE_BUILD_TYPE=Release .
@@ -21,12 +27,16 @@ make
 
 ## Build for Debug
 
+Debug enables a variety of assertions, turns off optimizations, and enables memory leak and buffer overrun checking.
+
 ```
 cmake -DCMAKE_BUILD_TYPE=Debug .
 make
 ```
 
 ## MacOS
+
+GSSquared will build on both Intel and Apple Silicon Macs.
 
 gs2 is currently built on a Mac using:
 
@@ -37,8 +47,8 @@ gs2 is currently built on a Mac using:
 I use vscode as my IDE, but, this isn't required.
 
 ```
-git clone xxxxxxx
-cd xxxxxxx
+git clone https://github.com/jawaidbazyar2/gssquared.git
+cd gssquared
 mkdir -p vendored
 cd vendored
 git clone https://github.com/libsdl-org/SDL.git
@@ -50,11 +60,10 @@ make
 
 ### Mac App Bundle
 
-Gets installed into GSSquared.app/
+After building, you can create a Mac App Bundle and .dmg file. The packages are built into the packages/ directory.
 
 ```
-cmake -DCMAKE_BUILD_TYPE=Release
-make mac-package
+make packages
 ```
 
 
@@ -68,8 +77,8 @@ gs2 is currently build on Linux using:
 * git
 
 ```
-git clone ******
-cd ******
+git clone https://github.com/jawaidbazyar2/gssquared.git
+cd gssquared
 mkdir -p vendored
 cd vendored
 git clone https://github.com/libsdl-org/SDL.git
@@ -78,6 +87,16 @@ cd ..
 cmake -DCMAKE_BUILD_TYPE=Release .
 make
 ```
+
+### Linux App Distribution
+
+After building, you can create a folder that contains libraries and assets for linux.
+
+```
+make packages
+```
+
+Creates packages/linux-cli/ directory that has a runnable binary.
 
 ## Windows
 
@@ -93,8 +112,8 @@ This will create a 'packages' directory with the following structure:
 
 ```
 packages/
+├── linux-cli/
 ├── mac-cli/
-├── linux-package/
 ├── GSSquared.dmg
 ├── GSSquared.app/
 ```
