@@ -32,3 +32,5 @@ resources/*
 !src/devices/prodos_block/Makefile
 packages/*
 .DS_Store
+vendored/SDL/
+vendored/SDL_image/
