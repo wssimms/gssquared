@@ -75,6 +75,10 @@ gs2 is currently build on Linux using:
 * SDL3 downloaded and built from the SDL web site.
 * SDL_image downloaded and built from the SDL web site.
 * git
+* You need the following libraries installed:
+    * libasound2-dev
+    * libpulse-dev
+    * libudev-dev
 
 ```
 git clone https://github.com/jawaidbazyar2/gssquared.git
@@ -123,3 +127,19 @@ The mac-package and mac-cli-package are the same, but the mac-cli-package is use
 Only the appropriate package types for the platform you're building on will be created.
 
 "make", "make all", "make mac-dev" or "make linux-dev" will create a resources directory in the build tree, for local testing.
+
+# Documentation
+
+Check out the [KeyboardShortcuts.md](Docs/KeyboardShortcuts.md) file for a list of keyboard shortcuts needed to operate.
+
+# Affiliated Programs
+
+If you build from source, you will also get a couple of other programs:
+
+## diskid
+
+Analyzes a disk image and prints information about it.
+
+## nibblizer
+
+Convert a disk image file (140K 5.25 .do, .po, .dsk) to nibblized format (e.g. .nib). For testing. 
