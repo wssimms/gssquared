@@ -34,7 +34,7 @@ cmake -DCMAKE_BUILD_TYPE=Debug .
 make
 ```
 
-## MacOS
+## macOS
 
 GSSquared will build on both Intel and Apple Silicon Macs.
 
