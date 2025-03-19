@@ -48,8 +48,7 @@ I use vscode as my IDE, but, this isn't required.
 
 ```
 git clone https://github.com/jawaidbazyar2/gssquared.git
-cd gssquared
-cd vendored
+cd gssquared/vendored
 git clone https://github.com/libsdl-org/SDL.git
 git clone https://github.com/libsdl-org/SDL_image.git
 cd ..
