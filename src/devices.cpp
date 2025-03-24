@@ -11,6 +11,7 @@
 #include "devices/memoryexpansion/memexp.hpp"
 #include "devices/thunderclock_plus/thunderclockplus.hpp"
 #include "devices/pdblock2/pdblock2.hpp"
+#include "devices/parallel/parallel.hpp"
 
 Device_t NoDevice = {
         DEVICE_ID_END,
@@ -92,6 +93,12 @@ Device_t Devices[NUM_DEVICE_IDS] = {
         init_pdblock2,
         NULL
     },
+    {
+        DEVICE_ID_PARALLEL,
+        "Apple II Parallel Interface",
+        init_slot_parallel,
+        NULL
+    }
 };
 
 Device_t *get_device(device_id id) {

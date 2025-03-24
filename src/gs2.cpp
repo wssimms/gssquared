@@ -287,6 +287,7 @@ void run_cpus(void) {
             fprintf(stdout, "event_time: %10llu, audio_time: %10llu, display_time: %10llu, total: %10llu\n", event_time, audio_time, display_time, event_time + audio_time + display_time);
             last_5sec_cycles = cpu->cycles;
             last_5sec_update = current_time;
+            //parallel_check_close(cpu);
         }
 
         if (cpu->halt == HLT_USER) {

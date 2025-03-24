@@ -24,4 +24,10 @@ For testing, and initial deployment, we will want to have a printer capture mode
 
 ## Laser Printers
 
-We ought to be able to handle a laser printer. 
+There was no software that handled PostScript on the IIe/IIc. People did use LaserWriters but those could apparently emulate an ImageWriter.
+
+# Initial Test Implementation
+
+The implementation is very simple. I have created assemblable source from the Apple II Parallel Card manual, circa 1978 version. For the initial implementation, 
+
+I need to implement something that will flush and close the file after some period of inactivity. Let's say after 5 seconds, it will close the file. Whenever file is not open and a new write comes in, reopen the file in append mode. Also, close the file on a ctrl-reset.

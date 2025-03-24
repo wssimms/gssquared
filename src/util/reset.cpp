@@ -20,6 +20,7 @@
 #include "cpu.hpp"
 #include "devices/diskii/diskii.hpp"
 #include "devices/languagecard/languagecard.hpp"
+#include "devices/parallel/parallel.hpp"
 #include "memory.hpp"
 
 // TODO: implement register_reset_handler so a device can register a reset handler.
@@ -38,4 +39,5 @@ void system_reset(cpu_state *cpu, bool cold_start)  {
     diskii_reset(cpu);
     init_default_memory_map(cpu);
     reset_languagecard(cpu); // reset language card
+    parallel_reset(cpu);
 }
