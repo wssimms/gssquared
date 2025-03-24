@@ -18,8 +18,7 @@ Each character is 7 x 8 pixels.
 280 / 7 = 40 columns.
 192 / 8 = 24 rows.
 
-Pixel size: Each character is made up of a 5x7 pixel bitmap, but displayed as a 7x8 character cell on the screen.
-there will be 1 pixel of padding on each side of the character.
+Pixel size: Each character is made up of a 5x7 pixel bitmap, but displayed as a 7x8 character cell on the screen. there will be 1 pixel of padding on each side of the character.
 
 Testing the TIGR library.
 
