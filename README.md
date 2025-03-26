@@ -12,9 +12,20 @@ The code base builds and has been tested on:
 
 I am hoping I can get someone else to build on Windows. :-)
 
+# Download Binary
+
+A binary release is available at [https://github.com/jawaidbazyar2/gssquared/releases](https://github.com/jawaidbazyar2/gssquared/releases).
+
 # Building
 
 General Build Instructions:
+
+To build GSSquared, you will need the following:
+* clang C compiler
+* SDL3 downloaded and built from the SDL web site. (Specific steps for this are below.)
+* git
+
+I use vscode as my IDE, but, this isn't required to build.
 
 ## Build for Production
 
@@ -38,13 +49,8 @@ make
 
 GSSquared will build on both Intel and Apple Silicon Macs.
 
-gs2 is currently built on a Mac using:
-
-* clang
-* SDL3 downloaded and built from the SDL web site.
-* git
-
-I use vscode as my IDE, but, this isn't required.
+You will need:
+* Mac OSX 15 SDK
 
 ```
 git clone https://github.com/jawaidbazyar2/gssquared.git
@@ -69,12 +75,8 @@ make packages
 
 ## Linux
 
-gs2 is currently build on Linux using:
+gs2 will currently build on Ubuntu Linux 22.04.
 
-* clang
-* SDL3 downloaded and built from the SDL web site.
-* SDL_image downloaded and built from the SDL web site.
-* git
 * You need the following libraries installed:
     * libasound2-dev
     * libpulse-dev
