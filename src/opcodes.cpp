@@ -18,6 +18,7 @@
 #include <iostream>
 #include <unistd.h>
 
+#include "gs2.hpp"
 #include "opcodes.hpp"
 
 const char * opcode_names[256] = { 
