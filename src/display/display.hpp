@@ -83,6 +83,12 @@ typedef enum {
     NUM_FULLSCREEN_MODES
 } display_fullscreen_mode_t;
 
+typedef enum {
+    DISPLAY_HGR_MODEL_ORIG = 0,
+    DISPLAY_HGR_MODEL_OE,
+    NUM_DISPLAY_HGR_MODELS
+} display_hgr_model_t;
+
 typedef class display_state_t {
 
 public:
@@ -99,6 +105,8 @@ public:
     display_graphics_mode_t display_graphics_mode;
     display_page_number_t display_page_num;
     display_page_t *display_page_table;
+    display_hgr_model_t display_hgr_model;
+    SDL_ScaleMode display_scale_mode;
     bool flash_state;
     int flash_counter;
 
@@ -132,3 +140,5 @@ void set_graphics_mode(cpu_state *cpu, display_graphics_mode_t mode);
 void display_capture_mouse(cpu_state *cpu, bool capture);
 void display_dump_hires_page(cpu_state *cpu, int page);
 void display_dump_text_page(cpu_state *cpu, int page);
+void flip_display_hgr_model(cpu_state *cpu);
+void flip_display_scale_mode(cpu_state *cpu);

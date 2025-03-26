@@ -50,10 +50,15 @@ At startup time:
    * buildHires40Font(MODEL_IIE, 0);
    * setupConfig();
    * init_hgr_LUT();
+   * Create bit image frame buffer - 560 x 192 bytes.
 
 In main loop:
-   * processAppleIIFrame_LUT(graymap, hgrdecode_LUT_outputImage);
-      * this needs to be modified to be called for 8-scanline-chunks instead of the entire frame.
+   * For each dirty "line" (8 scanlines) call the appropriate mode function to update the bit image frame buffer.
+   * Call the composite renderer to render just the 8 scanlines. call generateHiresScanLine() for each of the 8 scanlines.
+   *   processAppleIIFrame_LUT(graymap, hgrdecode_LUT_outputImage);
+
+
+Let's have the new code in the same area as the current code, and have an if statement to 
 
 ## Video modes - generation of bitstream.
 

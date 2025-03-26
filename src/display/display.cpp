@@ -29,7 +29,8 @@
 #include "hgr_280x192.hpp"
 #include "platforms.hpp"
 #include "event_poll.hpp"
-
+#include "display/displayng.hpp"
+#include "display/hgr.hpp"
 
 display_page_t display_pages[NUM_DISPLAY_PAGES] = {
     {
@@ -162,6 +163,7 @@ display_page_t display_pages[NUM_DISPLAY_PAGES] = {
 void set_display_page(cpu_state *cpu, display_page_number_t page) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     ds->display_page_table = &display_pages[page];
+    ds->display_page_num = page;
 }
 
 void set_display_page1(cpu_state *cpu) {
@@ -357,6 +359,28 @@ void set_graphics_mode(cpu_state *cpu, display_graphics_mode_t mode) {
     update_line_mode(cpu);
 }
 
+void flip_display_hgr_model(cpu_state *cpu) {
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    if (ds->display_hgr_model == DISPLAY_HGR_MODEL_ORIG) {
+        ds->display_hgr_model = DISPLAY_HGR_MODEL_OE;
+    } else {
+        ds->display_hgr_model = DISPLAY_HGR_MODEL_ORIG;
+    }
+    force_display_update(cpu);
+}
+
+void flip_display_scale_mode(cpu_state *cpu) {
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+
+    if (ds->display_scale_mode == SDL_SCALEMODE_LINEAR) {
+        ds->display_scale_mode = SDL_SCALEMODE_NEAREST;
+    } else {
+        ds->display_scale_mode = SDL_SCALEMODE_LINEAR;
+    }
+    SDL_SetTextureScaleMode(ds->screenTexture, ds->display_scale_mode);
+    force_display_update(cpu);
+}
+
 // TODO: this code can likely lock the whole screen, so we do one lock
 // (relatively expensive) instead of one lock per line.
 
@@ -392,7 +416,11 @@ void render_line(cpu_state *cpu, int y) {
         render_lores_scanline(cpu, y, pixels, pitch);
     } else if (mode == LM_HIRES_MODE) {
         //render_hgr_scanline_mono(cpu, y, pixels, pitch);
-        render_hgr_scanline(cpu, y, pixels, pitch);
+        if (ds->display_hgr_model == DISPLAY_HGR_MODEL_ORIG) {
+            render_hgr_scanline(cpu, y, pixels, pitch);
+        } else {
+            render_hgrng_scanline(cpu, y, (uint8_t *)pixels);
+        }
     }
 
     SDL_UnlockTexture(ds->screenTexture);
@@ -530,11 +558,15 @@ display_state_t::display_state_t() {
     display_page_table = &display_pages[display_page_num];
     flash_state = false;
     flash_counter = 0;
+    display_hgr_model = DISPLAY_HGR_MODEL_OE;
+    display_scale_mode = SDL_SCALEMODE_LINEAR;
 }
 
 void init_mb_device_display(cpu_state *cpu, SlotType_t slot) {
     // alloc and init display state
     display_state_t *ds = new display_state_t;
+
+    init_displayng();
 
     // set in CPU so we can reference later
     set_module_state(cpu, MODULE_DISPLAY, ds);
