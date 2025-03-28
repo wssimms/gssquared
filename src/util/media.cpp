@@ -300,7 +300,7 @@ int identify_media(media_descriptor& md) {
         md.interleave = INTERLEAVE_PO;
         md.data_offset = 0;
         md.write_protected = true;
-        md.dos33_volume = 254; // might want to try to snag this from the DOS33 VTOC
+        md.dos33_volume = 0x01; // might want to try to snag this from the DOS33 VTOC
     } else if (compare_suffix(md.filename, ".nib")) {
         md.media_type = MEDIA_PRENYBBLE;
         md.file_size = get_file_size(md.filename);

@@ -278,6 +278,7 @@ void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor 
     // if filename ends in .po, use po_phys_to_logical and po_logical_to_phys.
     // if filename ends in .do, use do_phys_to_logical and do_logical_to_phys.
     // if filename ends in .dsk, use do_phys_to_logical and do_logical_to_phys.
+    
     if (media->media_type == MEDIA_PRENYBBLE) {
         // Load nib format image directly into diskII structure.
         load_nib_image(diskII_slot[slot].drive[drive].nibblized, media->filename);
@@ -292,8 +293,8 @@ void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor 
         }
 
         load_disk_image(diskII_slot[slot].drive[drive].media, media->filename); // pull this into diskii stuff somewhere.
-        emit_disk(diskII_slot[slot].drive[drive].nibblized, diskII_slot[slot].drive[drive].media, 0xFE);
-        printf("Mounted disk %s\n", media->filestub);
+        emit_disk(diskII_slot[slot].drive[drive].nibblized, diskII_slot[slot].drive[drive].media, media->dos33_volume);
+        printf("Mounted disk %s volume %d\n", media->filestub, media->dos33_volume);
     }
     diskII_slot[slot].drive[drive].is_mounted = true;
     diskII_slot[slot].drive[drive].media_d = media;
