@@ -221,9 +221,9 @@ struct diskII_controller {
 
 //diskII_controller diskII_slot[8]; // slots 0-7. We'll never use 0 etc.
 
-#define DEBUG_PH(slot, drive, phase, onoff) fprintf(stdout, "slot %d, drive %d, phase %d, onoff %d \n", slot, drive, phase, onoff)
-#define DEBUG_MOT(slot, drive, onoff) fprintf(stdout, "slot %d, drive %d, motor %d \n", slot, drive, onoff)
-#define DEBUG_DS(slot, drive, onoff) fprintf(stdout, "slot %d, drive %d, drive_select %d \n", slot, drive, onoff)
+#define DEBUG_PH(slot, drive, phase, onoff) fprintf(stdout, "PH: slot %d, drive %d, phase %d, onoff %d \n", slot, drive, phase, onoff)
+#define DEBUG_MOT(slot, drive, onoff) fprintf(stdout, "MOT: slot %d, drive %d, motor %d \n", slot, drive, onoff)
+#define DEBUG_DS(slot, drive, onoff) fprintf(stdout, "DS:slot %d, drive %d, drive_select %d \n", slot, drive, onoff)
 
 uint8_t read_nybble(diskII& disk) { // cause a shift.
 
@@ -372,7 +372,7 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
     int8_t cur_track = seldrive.track;
 
     uint8_t read_value = 0xEE;
-
+    int8_t cur_phase = cur_track % 4;
     switch (reg) {
         case DiskII_Ph0_Off:    
             if (DEBUG(DEBUG_DISKII))  DEBUG_PH(slot, drive, 0, 0);
@@ -380,9 +380,9 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
             break;
         case DiskII_Ph0_On:
             if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 0, 1);
-            if (last_phase_on == 1) {
+            if (cur_phase == 1) {
                 diskII_slot[slot].drive[drive].track--;
-            } else if (last_phase_on == 3) {
+            } else if (cur_phase == 3) {
                 seldrive.track++;
             }
             seldrive.phase0 = 1;
@@ -394,9 +394,9 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
             break;
         case DiskII_Ph1_On:
             if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 1, 1);
-            if (last_phase_on ==2) {
+            if (cur_phase == 2) {
                 seldrive.track--;
-            } else if (last_phase_on == 0) {
+            } else if (cur_phase == 0) {
                 seldrive.track++;
             }
             seldrive.phase1 = 1;
@@ -408,9 +408,9 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
             break;
         case DiskII_Ph2_On:
             if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 2, 1);
-            if (last_phase_on == 3) {
+            if (cur_phase == 3) {
                 seldrive.track--;
-            } else if (last_phase_on == 1) {
+            } else if (cur_phase == 1) {
                 seldrive.track++;
             }
             seldrive.phase2 = 1;
@@ -422,9 +422,9 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
             break;
         case DiskII_Ph3_On:
             if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 3, 1);
-            if (last_phase_on == 0) {
+            if (cur_phase == 0) {
                 seldrive.track--;
-            } else if (last_phase_on == 2) {
+            } else if (cur_phase == 2) {
                 seldrive.track++;
             }
             seldrive.phase3 = 1;

@@ -2765,3 +2765,161 @@ Doing a little thinking about how we might handle demos that change screen modes
 
 thinking about data flow for OSD. Storage devices should Register with the OSD. either the OSD, or the Mount Manager. Mount Manager can be a standalone thing. OSD then uses Mounts to get drive / disk status etc. Currently the disk buttons / status are manually called (by name). so use Mount as an abstraction for both. Ultimately other things in the system might want drive info.
 Device init registers. Device de-init de-registers with Mounts.
+
+## Mar 27, 2025
+
+Going to dive into debugging ProDOS 2.4.3 hanging on boot. It's getting stuck in a loop around $D380-$D3FF. There are two loops.
+The first is this:
+
+```
+ | PC: $D3A5, A: $FF, X: $60, Y: $FF, P: $A5, S: $99 || D3A5: LDA $C08C,X   [#01] <- $C0EC
+ | PC: $D3A8, A: $01, X: $60, Y: $FF, P: $25, S: $99 || D3A8: BPL #$FB => $D3A5 (taken)
+ | PC: $D3A5, A: $01, X: $60, Y: $FF, P: $25, S: $99 || D3A5: LDA $C08C,X   [#03] <- $C0EC
+ | PC: $D3A8, A: $03, X: $60, Y: $FF, P: $25, S: $99 || D3A8: BPL #$FB => $D3A5 (taken)
+ | PC: $D3A5, A: $03, X: $60, Y: $FF, P: $25, S: $99 || D3A5: LDA $C08C,X   [#07] <- $C0EC
+ | PC: $D3A8, A: $07, X: $60, Y: $FF, P: $25, S: $99 || D3A8: BPL #$FB => $D3A5 (taken)
+ | PC: $D3A5, A: $07, X: $60, Y: $FF, P: $25, S: $99 || D3A5: LDA $C08C,X   [#0F] <- $C0EC
+ | PC: $D3A8, A: $0F, X: $60, Y: $FF, P: $25, S: $99 || D3A8: BPL #$FB => $D3A5 (taken)
+ | PC: $D3A5, A: $0F, X: $60, Y: $FF, P: $25, S: $99 || D3A5: LDA $C08C,X   [#1F] <- $C0EC
+ | PC: $D3A8, A: $1F, X: $60, Y: $FF, P: $25, S: $99 || D3A8: BPL #$FB => $D3A5 (taken)
+ | PC: $D3A5, A: $1F, X: $60, Y: $FF, P: $25, S: $99 || D3A5: LDA $C08C,X   [#3F] <- $C0EC
+ | PC: $D3A8, A: $3F, X: $60, Y: $FF, P: $25, S: $99 || D3A8: BPL #$FB => $D3A5 (taken)
+ | PC: $D3A5, A: $3F, X: $60, Y: $FF, P: $25, S: $99 || D3A5: LDA $C08C,X   [#7F] <- $C0EC
+ | PC: $D3A8, A: $7F, X: $60, Y: $FF, P: $25, S: $99 || D3A8: BPL #$FB => $D3A5 (taken)
+ | PC: $D3A5, A: $7F, X: $60, Y: $FF, P: $25, S: $99 || D3A5: LDA $C08C,X   [#FF] <- $C0EC
+ | PC: $D3A8, A: $FF, X: $60, Y: $FF, P: $A5, S: $99 || D3A8: BPL #$FB => $D3A5
+ | PC: $D3AA, A: $FF, X: $60, Y: $FF, P: $A5, S: $99 || D3AA: CMP #$D5   M: FF  N: D5  S: 2A  Z:0 C:1 N:0 V:0
+```
+
+That is code loading a value from the disk and looking for the marker $D5.
+
+And then later it's spinning around here:
+```
+ | PC: $D385, A: $01, X: $60, Y: $00, P: $24, S: $95 || D385: LDX #$11
+ | PC: $D387, A: $01, X: $11, Y: $00, P: $24, S: $95 || D387: DEX
+ | PC: $D388, A: $01, X: $10, Y: $00, P: $24, S: $95 || D388: BNE #$FD => $D387 (taken)
+ | PC: $D387, A: $01, X: $10, Y: $00, P: $24, S: $95 || D387: DEX
+ | PC: $D388, A: $01, X: $0F, Y: $00, P: $24, S: $95 || D388: BNE #$FD => $D387 (taken)
+...
+ | PC: $D387, A: $01, X: $01, Y: $00, P: $24, S: $95 || D387: DEX
+ | PC: $D388, A: $01, X: $00, Y: $00, P: $26, S: $95 || D388: BNE #$FD => $D387
+ | PC: $D38A, A: $01, X: $00, Y: $00, P: $26, S: $95 || D38A: INC $D36F $D36F   [#01]
+ | PC: $D38D, A: $01, X: $00, Y: $00, P: $24, S: $95 || D38D: BNE #$03 => $D392 (taken)
+ | PC: $D392, A: $01, X: $00, Y: $00, P: $24, S: $95 || D392: SEC
+ | PC: $D393, A: $01, X: $00, Y: $00, P: $25, S: $95 || D393: SBC #$01   M: 01  N: 01  S: 00  Z:1 C:1 N:0 V:0
+ | PC: $D395, A: $00, X: $00, Y: $00, P: $27, S: $95 || D395: BNE #$EE => $D385
+ | PC: $D397, A: $00, X: $00, Y: $00, P: $27, S: $95 || D397: RTS [#D170] <- S[0x01 96]$D171
+```
+
+it's updating a variable at $D36F. there are some other vars here too. 
+
+Short version, it's scanning track data and not getting what it is expecting.
+ok the track is starting at 0 and it's hammering it CHUGGA style. About 35 times as we'd expect. This is the C600 boot loader here.
+we get to real track 5 (done loading prodos) and then it jumps into D1xx. 
+Then it's jumping back and forth between track 1 halftracks 0 and 1.
+
+So is it doing that to try to rehome on the track, or, are my disk2 register emulation not working as expected?
+
+It's cycling doing :
+* turn off all phases 
+* ph1 on
+* ph2 off
+* ph0 on
+* ph1 off
+* turn off all phases
+
+repeat.
+
+OpenEmulator won't boot my image.nib. 
+
+looking at my output .nib, first difference is AppleSauce is using Volume 001, whereas I'm using volume 254.
+Second thing, my sector order/numbers are wrong. 
+
+It was track 0 sector 1 as 03 00 05 00 ...
+I have it as all 0's.
+My sector that has 03 00 05 00 is marked as Sector E.
+
+So I am generating the sectors incorrectly. The boot code is working ok for whatever reason, but when it switches to the ProDOS 2.4.3 code it barfs.
+
+First thing to try, is use Volume 001 like a ProDOS disk should.
+
+If Interleave = ProDOS, use volume 1.
+Oh, nibblizer is not using the media descriptor thing and is manually generating DOS33 interleave and volume 254. Ergh.
+ok, nibblizer is fixed. It converts a .po image to a .nib and this boots in OE. Also boots in Virtual2.
+The volume deal did not fix ProDOS 243.
+
+I did confirm with nibblizer that we are generating the right interleave etc. So it must think it's on the wrong track. Or it is on the wrong track. The phase cycling above is the indication.
+
+## Mar 28, 2025
+
+ok, I got some source snippets for these routines. John mentioned a couple possibilities. First, if we don't get an address field in 2000 nybbles then we generate a RDERR - this is a branch to $D3FB. I am not executing that.
+
+The code being hit is the "fast seek routine".
+
+It's the "fast seek" routine that keeps cycling over and over. It is trying to seek back to track 0, starting at halftrack A. However, it gets to halftrack 1 and then sticks there.
+CURTRK starts at 0, and TRKN is also 0.
+
+```
+ | PC: $D122, A: $00, X: $0C, Y: $FF, P: $26, S: $99 || D122: JSR $D133 [#D124] -> S[0x01 98]$D133
+ | PC: $D133, A: $00, X: $0C, Y: $FF, P: $26, S: $97 || D133: STA $D372   [#00] <- $D372
+ | PC: $D136, A: $00, X: $0C, Y: $FF, P: $26, S: $97 || D136: CMP $D35A   [#0A] <- $D35A   M: 00  N: 0A  S: F6  Z:0 C:0 N:1 V:0
+```
+Current track is A. Desired track is 0. We go from this to:
+```
+ | PC: $D122, A: $00, X: $0C, Y: $FF, P: $26, S: $99 || D122: JSR $D133 [#D124] -> S[0x01 98]$D133
+ | PC: $D133, A: $00, X: $0C, Y: $FF, P: $26, S: $97 || D133: STA $D372   [#00] <- $D372
+ | PC: $D136, A: $00, X: $0C, Y: $FF, P: $26, S: $97 || D136: CMP $D35A   [#02] <- $D35A   M: 00  N: 02  S: FE  Z:0 C:0 N:1 V:0
+```
+track 5 to track 1?
+How did D35A change to that in one call to JSR SEEK?
+ok look at this...
+
+ | PC: $0975, A: $65, X: $65, Y: $20, P: $20, S: $A1 || 0975: LDA $C080,XPH: slot 6, drive 0, phase 2, onoff 1
+new (internal track): 10, realtrack 5, halftrack 0
+ | PC: $D190, A: $63, X: $63, Y: $00, P: $24, S: $95 || D190: LDA $C080,XPH: slot 6, drive 0, phase 1, onoff 1
+new (internal track): 11, realtrack 5, halftrack 1
+ | PC: $D190, A: $61, X: $61, Y: $01, P: $24, S: $95 || D190: LDA $C080,XPH: slot 6, drive 0, phase 0, onoff 1
+new (internal track): 10, realtrack 5, halftrack 0
+
+The first step we are going in the wrong direction a half track. Then when we end all these seeks we end up at track 1 (02) instead of 0.
+I wonder if it's got code somewhere I'm not seeing that reads the track number from the disk to update CURTRK. Yes, at D171 it takes the read TRACK number and calls CLRPHASE.
+
+Is it possible that from the first to 2nd step we're not decremending the track number when we should? A half track down from track 5/0 is track 4/1, not 5/1. No, we count in half-tracks. 
+
+```
+ | PC: $D190, A: $61, X: $61, Y: $FF, P: $24, S: $96 || D190: LDA $C080,XPH: slot 6, drive 0, phase 0, onoff 1
+ | PC: $D190, A: $66, X: $66, Y: $03, P: $24, S: $96 || D190: LDA $C080,XPH: slot 6, drive 0, phase 3, onoff 0
+ | PC: $D190, A: $64, X: $64, Y: $02, P: $24, S: $96 || D190: LDA $C080,XPH: slot 6, drive 0, phase 2, onoff 0
+ | PC: $D190, A: $62, X: $62, Y: $01, P: $24, S: $96 || D190: LDA $C080,XPH: slot 6, drive 0, phase 1, onoff 0
+ | PC: $D190, A: $60, X: $60, Y: $00, P: $24, S: $96 || D190: LDA $C080,XPH: slot 6, drive 0, phase 0, onoff 0
+ | PC: $D190, A: $66, X: $66, Y: $03, P: $24, S: $95 || D190: LDA $C080,XPH: slot 6, drive 0, phase 3, onoff 0
+ | PC: $D190, A: $64, X: $64, Y: $02, P: $24, S: $95 || D190: LDA $C080,XPH: slot 6, drive 0, phase 2, onoff 0
+ | PC: $D190, A: $62, X: $62, Y: $01, P: $24, S: $95 || D190: LDA $C080,XPH: slot 6, drive 0, phase 1, onoff 0
+ | PC: $D190, A: $60, X: $60, Y: $00, P: $24, S: $95 || D190: LDA $C080,XPH: slot 6, drive 0, phase 0, onoff 0
+ | PC: $D190, A: $63, X: $63, Y: $00, P: $24, S: $95 || D190: LDA $C080,XPH: slot 6, drive 0, phase 1, onoff 1
+new (internal track): 11, realtrack 5, halftrack 1
+ | PC: $D190, A: $64, X: $64, Y: $00, P: $24, S: $95 || D190: LDA $C080,XPH: slot 6, drive 0, phase 2, onoff 0
+ | PC: $D190, A: $61, X: $61, Y: $01, P: $24, S: $95 || D190: LDA $C080,XPH: slot 6, drive 0, phase 0, onoff 1
+new (internal track): 10, realtrack 5, halftrack 0
+
+```
+when we turn phase 1 on on that 3rd from last line, the code says:
+```
+case DiskII_Ph1_On:
+            if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 1, 1);
+            if (last_phase_on ==2) {
+                seldrive.track--;
+            } else if (last_phase_on == 0) {
+                seldrive.track++;
+            }
+            seldrive.phase1 = 1;
+            seldrive.last_phase_on = 1;
+            break;
+```
+the last phase on was 0 (first line) so we increment the track - which is probably wrong.
+
+UTA2 - "Even numbered tracks are phase-0 aligned, and odd-numbered tracks are phase-2 aligned".
+This means that if we're on track 5, we're aligned with phase 1, which means turning on phase 1 will DECREMENT the track.
+ok so instead of using "last phase" . last phase is not indicative necessarily. because we might be *changing direction* of movement.
+
+Dude, that is working.
