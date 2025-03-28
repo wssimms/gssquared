@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include "debug.hpp"
 #include "devices/diskii/diskii_fmt.hpp"
-
+#include "util/media.hpp"
 /* Copy here because I'm too lazy to pull in debug.hpp/cpp from the main tree */
 uint64_t debug_level = 0 /* DEBUG_DISKII_FORMAT */;
 
@@ -63,10 +63,23 @@ int main(int argc, char *argv[]) {
     }
     input_filename = argv[optind];
 
+    media_descriptor md;
+    md.filename = input_filename;
+    identify_media(md);
+    display_media_descriptor(md);
+
     nibblized_disk_t disk = { };       // start with zeroed disk.
-    memcpy(disk.interleave_phys_to_logical, do_phys_to_logical, sizeof(interleave_t));
-    memcpy(disk.interleave_logical_to_phys, do_logical_to_phys, sizeof(interleave_t));
+   /*  memcpy(disk.interleave_phys_to_logical, do_phys_to_logical, sizeof(interleave_t));
+    memcpy(disk.interleave_logical_to_phys, do_logical_to_phys, sizeof(interleave_t)); */
     
+    if (md.interleave == INTERLEAVE_PO) {
+        memcpy(disk.interleave_phys_to_logical, po_phys_to_logical, sizeof(interleave_t));
+        memcpy(disk.interleave_logical_to_phys, po_logical_to_phys, sizeof(interleave_t));
+    } else if (md.interleave == INTERLEAVE_DO) {
+        memcpy(disk.interleave_phys_to_logical, do_phys_to_logical, sizeof(interleave_t));
+        memcpy(disk.interleave_logical_to_phys, do_logical_to_phys, sizeof(interleave_t));
+    }
+
     sector_t sectors[16];
     disk_image_t disk_image;
 
@@ -79,7 +92,7 @@ int main(int argc, char *argv[]) {
         dump_disk_image(disk_image);
     }
 
-    emit_disk(disk, disk_image, DEFAULT_VOLUME);
+    emit_disk(disk, disk_image, md.dos33_volume);
     write_disk(disk, output_filename);
 
     if (verbose) {
