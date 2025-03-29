@@ -372,7 +372,7 @@ int main(int argc, char *argv[]) {
                     disks_to_mount.push_back({slot, drive, strndup(filename, 256)});
                     break;
                 default:
-                    fprintf(stderr, "Usage: %s [-p platform] [-a program.bin] [-b loader.bin]\n", argv[0]);
+                    fprintf(stderr, "Usage: %s [-p platform] [-a program.bin] [-b loader.bin] [-dsXdX=filename]\n", argv[0]);
                     exit(1);
             }
         }
