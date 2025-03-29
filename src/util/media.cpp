@@ -273,10 +273,10 @@ int identify_media(media_descriptor& md) {
         md.data_offset = 0;
     } else if (compare_suffix(md.filename, ".do") || compare_suffix(md.filename, ".dsk")) {
         md.media_type = MEDIA_NYBBLE;
-        // if file size is not 143K, then error.
+        // if file size is not 140K, then error.
         md.file_size = get_file_size(md.filename);
         if (md.file_size != 560 * 256) {
-            std::cerr << "File size is not 143K: " << md.filename << std::endl;
+            std::cerr << "File size is not 140K: " << md.filename << std::endl;
             return -1;
         }
         md.block_size = 256;
@@ -284,22 +284,24 @@ int identify_media(media_descriptor& md) {
         md.data_size = md.file_size;
         md.interleave = INTERLEAVE_DO;
         md.data_offset = 0;
-        md.write_protected = true;
+        md.write_protected = false /*true*/;
         md.dos33_volume = 254; // might want to try to snag this from the DOS33 VTOC
     } else if (compare_suffix(md.filename, ".po")) {
         md.media_type = MEDIA_NYBBLE;
-                // if file size is not 143K, then error.
+        // if file size is 140K, it's a 5.25 image.
         md.file_size = get_file_size(md.filename);
-        if (md.file_size != 560 * 256) {
-            std::cerr << "File size is not 143K: " << md.filename << std::endl;
-            return -1;
+        if (md.file_size == 560 * 256) {
+            md.media_type = MEDIA_NYBBLE;
+            md.block_size = 256;
+        md.block_size = 256;        } else {
+            md.media_type = MEDIA_BLK;
+            md.block_size = 512;
         }
-        md.block_size = 256;
         md.block_count = md.file_size / md.block_size;
         md.data_size = md.file_size;
         md.interleave = INTERLEAVE_PO;
         md.data_offset = 0;
-        md.write_protected = true;
+        md.write_protected = false /*true*/;
         md.dos33_volume = 0x01; // might want to try to snag this from the DOS33 VTOC
     } else if (compare_suffix(md.filename, ".nib")) {
         md.media_type = MEDIA_PRENYBBLE;

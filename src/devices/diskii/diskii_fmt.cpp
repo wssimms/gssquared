@@ -493,7 +493,7 @@ void emit_disk(nibblized_disk_t& disk, disk_image_t& disk_image, int volume) {
     }
 }
 
-void write_disk(nibblized_disk_t& disk, const char *filename) {
+void write_nibblized_disk(nibblized_disk_t& disk, const char *filename) {
     FILE *out_fp = fopen(filename, "wb");
     if (!out_fp) {
         printf("Could not open %s for writing\n", filename);

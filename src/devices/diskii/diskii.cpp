@@ -204,6 +204,7 @@ struct diskII {
     uint16_t head_position = 0; // index into the track
     uint8_t bit_position = 0; // how many bits left in byte.
     uint8_t read_shift_register = 0; // when bit position = 0, this is 0. As bit_position increments, we shift in the next bit of the byte at head_position.
+    uint8_t write_shift_register = 0; 
     uint64_t last_read_cycle = 0;
 
     uint64_t mark_cycles_turnoff = 0; // when DRIVES OFF, set this to current cpu cycles. Then don't actually set motor=0 until one second (1M cycles) has passed. Then reset this to 0.
@@ -261,8 +262,30 @@ uint8_t read_nybble(diskII& disk) { // cause a shift.
 #endif
 }
 
+void write_nybble(diskII& disk) { // cause a shift.
+
+    printf("write_nybble: track %d, head_position %d, write_shift_register %02X\n", disk.track, disk.head_position, disk.write_shift_register);
+
+    disk.bit_position = 0;
+
+    // get next value from head_position to read_shift_register, increment head position.
+    disk.nibblized.tracks[disk.track/2].data[disk.head_position] = disk.write_shift_register;
+    // "spin" the virtual diskette a little more
+    disk.head_position++;
+    if (disk.head_position >= 0x1A00) { // rotated around back to start.
+        disk.head_position = 0;
+    }
+
+    return;
+}
+
 void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor *media) {
     diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
+
+    if (media->data_size != 560 * 256) {
+        fprintf(stderr, "Disk image is not 140K\n");
+        return;
+    }
 
     if (diskII_slot[slot].drive[drive].is_mounted) {
         fprintf(stderr, "A disk already mounted, unmounting it.\n");
@@ -465,13 +488,24 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
             /* if (seldrive.Q7 == 0) {
                 return read_nybble(seldrive);
             } */
+           /**
+            * when Q6L is read, and Q7H was previously set (written) then we need to write the byte to the disk.
+            */
+            if (seldrive.Q7 == 1 || seldrive.Q6 == 1) {
+                write_nybble(seldrive);
+                //seldrive.Q7 = 0;
+            }
             break;
         case DiskII_Q6H:
             seldrive.Q6 = 1;
             break;
         case DiskII_Q7L:
             seldrive.Q7 = 0;
-            if (seldrive.Q6 == 0) return seldrive.write_protect<<7; // write protect sense. Return hi bit set (write protected)
+            if (seldrive.Q6 == 1) { // Q6H then Q7L is a write protect sense.
+                uint8_t xwp = seldrive.write_protect << 7;
+                printf("wp: Q7: %d, Q6: %d, wp: %d %02X\n", seldrive.Q7, seldrive.Q6, seldrive.write_protect, xwp);
+                return xwp; // write protect sense. Return hi bit set (write protected)
+            }
             break;
         case DiskII_Q7H:
             seldrive.Q7 = 1;
@@ -501,6 +535,28 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
 }
 
 void diskII_write_C0xx(cpu_state *cpu, uint16_t address, uint8_t value) {
+     diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
+
+    uint16_t addr = address - 0xC080;
+    int reg = addr & 0x0F;
+    uint8_t slot = addr >> 4;
+    int drive = diskII_slot[slot].drive_select;
+
+    diskII &seldrive = diskII_slot[slot].drive[drive];
+    // TODO: need to handle the case where the motor is off.
+    // store the value being written into the write_shift_register. It will be stored in the disk image when Q6L is tweaked in read.
+    switch (reg) {
+        case DiskII_Q6H:
+            printf("Q6H set write_shift_register=%02X\n", value);
+            seldrive.write_shift_register = value;
+            seldrive.Q6 = 1;
+            break;
+        case DiskII_Q7H:
+            printf("Q7H set write_shift_register=%02X\n", value);
+            seldrive.write_shift_register = value;
+            seldrive.Q7 = 1;
+            break;
+    }
     return;
 }
 
@@ -519,7 +575,7 @@ void diskII_init(cpu_state *cpu) {
             diskII_slot[i].drive[j].motor = 0;
             diskII_slot[i].drive[j].last_phase_on = 0;
             diskII_slot[i].drive[j].image_index = 0;
-            diskII_slot[i].drive[j].write_protect = 1;
+            diskII_slot[i].drive[j].write_protect = 0 /* 1 */ ;
             diskII_slot[i].drive[j].bit_position = 0; // how many bits left in byte.
             diskII_slot[i].drive[j].read_shift_register = 0; // when bit position = 0, this is 0. As bit_position increments, we shift in the next bit of the byte at head_position.
             diskII_slot[i].drive[j].head_position = 0; // index into the track

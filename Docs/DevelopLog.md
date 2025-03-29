@@ -2919,9 +2919,19 @@ case DiskII_Ph1_On:
 the last phase on was 0 (first line) so we increment the track - which is probably wrong.
 
 UTA2 - "Even numbered tracks are phase-0 aligned, and odd-numbered tracks are phase-2 aligned".
-This means that if we're on track 5, we're aligned with phase 1, which means turning on phase 1 will DECREMENT the track.
+This means that if we're on track 5, we're aligned with phase 2, which means turning on phase 1 will DECREMENT the track.
 ok so instead of using "last phase" . last phase is not indicative necessarily. because we might be *changing direction* of movement.
 
 Dude, that is working.
 
 So, I see one of the "acceleration" things people talk about is probably setting all the prodos timer values to low numbers for track seeking, the phase on-off tables at $D373. We could detect when ProDOS is loaded and running and then set those variables to all be 1 or something, to minimize the amount of waiting around for a virtual disk head to move.
+
+## Mar 29, 2025
+
+I have two major pieces to do at the Apple II Plus stage:
+* Writing to floppy images.
+* Videx VideoTerm 80-column support.
+
+I might want to take a stab at returning reasonable value for "floating bus reads". Doesn't seem to be preventing anything from working right now though.
+
+See DiskII.md for notes on writing to floppy images.

@@ -117,6 +117,6 @@ extern interleave_t cpm_order;
 void dump_disk_image(disk_image_t& disk_image);
 int load_disk_image(disk_image_t& disk_image, const char *filename);
 void emit_disk(nibblized_disk_t& disk, disk_image_t& disk_image, int volume);
-void write_disk(nibblized_disk_t& disk, const char *filename);
+void write_nibblized_disk(nibblized_disk_t& disk, const char *filename);
 void dump_disk(nibblized_disk_t& disk);
 int load_nib_image(nibblized_disk_t& disk, const char *filename);

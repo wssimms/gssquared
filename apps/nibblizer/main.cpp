@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
     }
 
     emit_disk(disk, disk_image, md.dos33_volume);
-    write_disk(disk, output_filename);
+    write_nibblized_disk(disk, output_filename);
 
     if (verbose) {
         dump_disk(disk);
