@@ -30,6 +30,7 @@ Comparing OE to GS2, GS2 is accurately replicating some extremely high frequency
 
 OE does not support .2mg files.
 Does not boot on GS2, disk spins forever and no visible boot process proceeds.
+This is an 800k .2mg disk. Still won't boot on GS2.
 
 ## Lode Runner
 
@@ -46,6 +47,8 @@ Weird. So Control-S enabled audio. Seems like maybe there is some reason sound i
 
 gs2: prodos 8 v1.9 boots partially, cursor flashes over a . in the upper left, but does not complete booting.
 oe: boots and it's a pretty good synthesizer using the apple ii speaker.
+
+Timelord now boots after the Disk II head movement fix.
 
 ## applevision.dsk
 
@@ -70,4 +73,18 @@ Works in II+ on OE.
 Hangs during boot on GS2 after showing the prodos splash screen. Drive light is still on.
 Will need to trace this and see what's going on. Is supposed to work on Apple II plus and standard 6502. So who knows what is going on..
 Though, OE II plus seems to have an 80 column card that activates on PR#3.
+
+## Locksmith 6.0
+
+"Scan Disk" is not working.
+locksmith ability to quarter track isn't going to work the way the code is written now.
+16 sector fast disk claims "address" field is missing on every sector and track. I wonder if this is all due to lack of quarter-track support.
+This did not work in the previous iteration of the code either.
+
+## Glider
+
+This boots far enough to say "LOADING GLIDER..." but then hangs. Docs say on a II+ it requires a mouse.
+hard looping at $0E86. This is a tight loop BIT $C019 BMI $0E86. I.e., it's looking for NOT VBL. Then it looks for VBL, and exits when it has seen VBL not and then VBL plus.
+
+The Apple II plus did not have the VBL register.
 
