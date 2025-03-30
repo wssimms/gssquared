@@ -98,6 +98,12 @@ void unidisk_button_click(void *userdata) {
     diskii_callback_data_t *data = (diskii_callback_data_t *)userdata;
     OSD *osd = data->osd;
 
+    if (osd->cpu->mounts->media_status(data->key).is_mounted) {
+        disk_mount_t dm;
+        osd->cpu->mounts->unmount_media(data->key);
+        return;
+    }
+    
     static const SDL_DialogFileFilter filters[] = {
         { "Disk Images",  "po;dsk;hdv;2mg" },
         { "All files",   "*" }

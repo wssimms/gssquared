@@ -77,13 +77,13 @@ int Mounts::unmount_media(uint64_t key) {
         return false; // not mounted.
     }
     if (it->second.drive_type == DRIVE_TYPE_DISKII) {
-        //return diskii_unmount(cpu, key);
         uint8_t slot = key >> 8;
         uint8_t drive = key & 0xFF;
         unmount_diskII(cpu, slot, drive);
         return true;
     } else if (it->second.drive_type == DRIVE_TYPE_PRODOS_BLOCK) {
         //return pdblock2_osd_status(cpu, key);
+        unmount_pdblock2(cpu, key);
         return true;
     }
     return false;

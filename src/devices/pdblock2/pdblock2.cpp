@@ -199,6 +199,17 @@ bool mount_pdblock2(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descripto
     return true;
 }
 
+void unmount_pdblock2(cpu_state *cpu, uint64_t key) {
+    pdblock2_data * pdblock_d = (pdblock2_data *)get_module_state(cpu, MODULE_PD_BLOCK2);
+    uint8_t slot = key >> 8;
+    uint8_t drive = key & 0xFF;
+    if (pdblock_d->prodosblockdevices[slot][drive].file) {
+        fclose(pdblock_d->prodosblockdevices[slot][drive].file);
+        pdblock_d->prodosblockdevices[slot][drive].file = nullptr;
+        pdblock_d->prodosblockdevices[slot][drive].media = nullptr;
+    }
+}
+
 void pdblock2_write_C0x0(cpu_state *cpu, uint16_t addr, uint8_t data) {
     pdblock2_data * pdblock_d = (pdblock2_data *)get_module_state(cpu, MODULE_PD_BLOCK2);
 
