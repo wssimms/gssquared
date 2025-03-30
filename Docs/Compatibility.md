@@ -86,5 +86,6 @@ This did not work in the previous iteration of the code either.
 This boots far enough to say "LOADING GLIDER..." but then hangs. Docs say on a II+ it requires a mouse.
 hard looping at $0E86. This is a tight loop BIT $C019 BMI $0E86. I.e., it's looking for NOT VBL. Then it looks for VBL, and exits when it has seen VBL not and then VBL plus.
 
-The Apple II plus did not have the VBL register.
+The Apple II plus did not have the VBL register. So this software not compatible with Apple II plus!
+
 

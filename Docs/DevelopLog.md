@@ -2935,3 +2935,38 @@ I have two major pieces to do at the Apple II Plus stage:
 I might want to take a stab at returning reasonable value for "floating bus reads". Doesn't seem to be preventing anything from working right now though.
 
 See DiskII.md for notes on writing to floppy images.
+
+Working on hgrdecode for dhgr. I have the pixels correct. However, the colors are wrong. Green becomes blue. orange becomes green. purple becomes red/yellow. blue becomes purple.
+So the phase is just off by 90 degrees ish. Are we off by one bit position? It's 90 degrees off. that is one bit. If I insert an extra blank bit at the start of each scanline then the colors are correct. But that's not right... In the diagram in UTA2E it shows the Auxiliary byte coming in before the hgr bytes in the other examples for single hires? I don't understand.. One fix is to simply change the phase. But something is off here. It could well be the sample files? I need to do some paid work now!
+There is something fonky in the OE where it's blowing off the last bit of pixel data?
+
+this is at the end of drawHires80:
+  if (x==39) {
+      blank80Segment(p+CELL_WIDTH);
+  }
+"blank an 8 pixel segment".
+
+ok, this is because the whole display is shifted left by one byte position (one 80 column char, or one dhgr byte) when in 80-column mode. It does start a byte early, so the phase is going to be shifted here because it starts early.
+
+Something's not right here. And maybe it's the core - remember how I shifted negative colorburst to positive colorburst? Maybe that was covering up some other problem, and now I'm wrong by about 90 degrees.
+
+Double hi-res uses four bits per pixel. 16 colors. How does it "get started" - i.e., does it start with 3 blank bits and 1 data bit? Or does it clock in data bits first before displaying a color? Maybe that's the pre-shift I see in the diagram in UTA2E.
+
+Nick Westgate: "IIRC, all double resolution modes start one byte before all normal resolution modes."
+So that explains the stuff to the left of the diagram on page 10 of UTA2E.
+
+Also, UTA2E says the video ROM lookup inverts all the bits going out to video in hires modes. WHAT?!
+
+Maybe it's not +1.. but -7?  (or -6).
+
+Each byte in the diagram is a 90 degree shift? 
+
+So tweak phase to start at 0.25 (90 degrees). problem solved.
+
+## Mar 30, 2025
+
+tweak to hgrdecode to make it start with phase difference of 90 degrees for doublehires.
+
+Implemented write-protect detection on image files in Disk II. Still need to implement that in pdblock2. A nice workflow. If a file is erroneously WPd, you can unmount, change the FS bit, then re-mount. Voila!
+
+Need to change the OSD so when I click on a mounted disk, it unmounts it. Then a separate click, to mount anew.
