@@ -473,7 +473,7 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
             seldrive.Q7 = 0;
             if (seldrive.Q6 == 1) { // Q6H then Q7L is a write protect sense.
                 uint8_t xwp = seldrive.write_protect << 7;
-                printf("wp: Q7: %d, Q6: %d, wp: %d %02X\n", seldrive.Q7, seldrive.Q6, seldrive.write_protect, xwp);
+                //printf("wp: Q7: %d, Q6: %d, wp: %d %02X\n", seldrive.Q7, seldrive.Q6, seldrive.write_protect, xwp);
                 return xwp; // write protect sense. Return hi bit set (write protected)
             }
             break;
@@ -517,12 +517,12 @@ void diskII_write_C0xx(cpu_state *cpu, uint16_t address, uint8_t value) {
     // store the value being written into the write_shift_register. It will be stored in the disk image when Q6L is tweaked in read.
     switch (reg) {
         case DiskII_Q6H:
-            printf("Q6H set write_shift_register=%02X\n", value);
+            //printf("Q6H set write_shift_register=%02X\n", value);
             seldrive.write_shift_register = value;
             seldrive.Q6 = 1;
             break;
         case DiskII_Q7H:
-            printf("Q7H set write_shift_register=%02X\n", value);
+            //printf("Q7H set write_shift_register=%02X\n", value);
             seldrive.write_shift_register = value;
             seldrive.Q7 = 1;
             break;
