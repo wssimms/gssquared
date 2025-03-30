@@ -108,6 +108,11 @@ void pdblock2_write_block(cpu_state *cpu, uint8_t slot, uint8_t drive, uint16_t 
     FILE *fp = pdblock_d->prodosblockdevices[slot][drive].file;
     media_descriptor *media = pdblock_d->prodosblockdevices[slot][drive].media;
 
+    if (media->write_protected) {
+        pdblock_d->cmd_buffer.error = PD_ERROR_WRITE_PROTECTED;
+        return;
+    }
+
     for (int i = 0; i < media->block_size; i++) {
         // TODO: for dma we want to simulate the memory map but do not want to burn cycles.
         block_buffer[i] = read_memory(cpu, addr + i); 

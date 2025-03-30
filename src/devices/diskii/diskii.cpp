@@ -188,38 +188,6 @@ In DOS at $B800 lives the "prenibble routine" . I could perhaps steal that. hehe
  0x3D,  0xCD,  0x00,  0x08,   0xA6,  0x2B,  0x90,  0xDB,   0x4C,  0x01,  0x08,  0x00,   0x00,  0x00,  0x00,  0x00,  
 }; */
 
-struct diskII {
-    uint8_t rw_mode; // 0 = read, 1 = write
-    int8_t track;
-    uint8_t phase0;
-    uint8_t phase1;
-    uint8_t phase2;
-    uint8_t phase3;
-    uint8_t last_phase_on;
-    bool motor;
-    uint8_t Q7 = 0;
-    uint8_t Q6 = 0;
-    uint8_t write_protect = 0; // 1 = write protect, 0 = not write protect
-    uint16_t image_index = 0;
-    uint16_t head_position = 0; // index into the track
-    uint8_t bit_position = 0; // how many bits left in byte.
-    uint8_t read_shift_register = 0; // when bit position = 0, this is 0. As bit_position increments, we shift in the next bit of the byte at head_position.
-    uint8_t write_shift_register = 0; 
-    uint64_t last_read_cycle = 0;
-
-    uint64_t mark_cycles_turnoff = 0; // when DRIVES OFF, set this to current cpu cycles. Then don't actually set motor=0 until one second (1M cycles) has passed. Then reset this to 0.
-
-    bool is_mounted = false;
-    disk_image_t media;
-    nibblized_disk_t nibblized;
-    media_descriptor *media_d;
-};
-
-struct diskII_controller {
-    diskII drive[2];
-    uint8_t drive_select;
-};
-
 //diskII_controller diskII_slot[8]; // slots 0-7. We'll never use 0 etc.
 
 #define DEBUG_PH(slot, drive, phase, onoff) fprintf(stdout, "PH: slot %d, drive %d, phase %d, onoff %d \n", slot, drive, phase, onoff)
@@ -319,6 +287,7 @@ void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor 
         emit_disk(diskII_slot[slot].drive[drive].nibblized, diskII_slot[slot].drive[drive].media, media->dos33_volume);
         printf("Mounted disk %s volume %d\n", media->filestub, media->dos33_volume);
     }
+    diskII_slot[slot].drive[drive].write_protect = media->write_protected;
     diskII_slot[slot].drive[drive].is_mounted = true;
     diskII_slot[slot].drive[drive].media_d = media;
 }
@@ -651,4 +620,14 @@ void diskii_reset(cpu_state *cpu) {
             diskII_slot[i].drive[j].mark_cycles_turnoff = 0;
         }
     }
+}
+
+void debug_dump_disk_images(cpu_state *cpu) {
+    diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
+    uint8_t diskii_slot = 6;
+    
+    printf("debug_dump_disk_images slot 6 drive 1\n");
+    write_nibblized_disk(diskII_slot[diskii_slot].drive[0].nibblized, "/tmp/disk1.nib");
+    write_nibblized_disk(diskII_slot[diskii_slot].drive[1].nibblized, "/tmp/disk2.nib");
+
 }

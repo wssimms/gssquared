@@ -16,6 +16,7 @@
  */
 
 /* Functions to handle setting up media descriptors */
+#include <filesystem>
 #include <iostream>
 #include <sys/stat.h>
 
@@ -23,6 +24,8 @@
 #include "cpu.hpp"
 #include "media.hpp"
 #include "debug.hpp"
+#include "devices/diskii/diskii_fmt.hpp"
+#include "devices/diskii/diskii.hpp"
 
 /**
  * First goal:
@@ -226,7 +229,41 @@ char* extract_filename(const char* pathname) {
     return result;
 }
 
+namespace fs = std::filesystem;
+
+bool isFileReadOnly(const std::string& filePath) {
+    // First check if the file exists
+    if (!fs::exists(filePath)) {
+        return false; // File doesn't exist, so not read-only
+    }
+    
+    // Check if we have write permissions by attempting to open it for writing
+    // but don't truncate it (ios::ate positions at the end without truncating)
+    std::error_code ec;
+    fs::file_status status = fs::status(filePath, ec);
+    
+    if (ec) {
+        std::cerr << "Error accessing file: " << ec.message() << std::endl;
+        return true; // Assume read-only if there's an error
+    }
+    
+    // Check permissions via filesystem
+    fs::perms p = status.permissions();
+    
+    // Cross-platform approach
+    #ifdef _WIN32
+        // On Windows
+        return (p & fs::perms::owner_write) == fs::perms::none;
+    #else
+        // On Unix-like systems, check user write permission
+        return (p & fs::perms::owner_write) == fs::perms::none;
+    #endif
+}
+
 int identify_media(media_descriptor& md) {
+    if (isFileReadOnly(md.filename)) {
+        md.write_protected = true;
+    }
     if (compare_suffix(md.filename, ".2mg")) {
         format_2mg_t hdr;
         if (read_2mg_header(hdr, md.filename) != 0) {
@@ -259,7 +296,7 @@ int identify_media(media_descriptor& md) {
         md.block_size = hdr.bytes_count / hdr.block_count;
         md.data_size = hdr.bytes_count;
         md.data_offset = hdr.header_size;
-        md.write_protected = (hdr.flag & FLAG_LOCKED) != 0;
+        md.write_protected = (hdr.flag & FLAG_LOCKED) != 0; // use WP flag in .2mg file.
         md.dos33_volume = (hdr.flag & FLAG_DOS33) != 0 ? (hdr.flag & FLAG_DOS33_VOL_MASK) : 254; // if not set, then 254
 
     } else if (compare_suffix(md.filename, ".hdv")) {
@@ -284,7 +321,7 @@ int identify_media(media_descriptor& md) {
         md.data_size = md.file_size;
         md.interleave = INTERLEAVE_DO;
         md.data_offset = 0;
-        md.write_protected = false /*true*/;
+        //md.write_protected = false /*true*/;
         md.dos33_volume = 254; // might want to try to snag this from the DOS33 VTOC
     } else if (compare_suffix(md.filename, ".po")) {
         md.media_type = MEDIA_NYBBLE;
@@ -301,7 +338,7 @@ int identify_media(media_descriptor& md) {
         md.data_size = md.file_size;
         md.interleave = INTERLEAVE_PO;
         md.data_offset = 0;
-        md.write_protected = false /*true*/;
+        //md.write_protected = false /*true*/;
         md.dos33_volume = 0x01; // might want to try to snag this from the DOS33 VTOC
     } else if (compare_suffix(md.filename, ".nib")) {
         md.media_type = MEDIA_PRENYBBLE;
@@ -318,4 +355,3 @@ int identify_media(media_descriptor& md) {
     md.filestub = extract_filename(md.filename);
     return 0;
 }
-

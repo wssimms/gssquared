@@ -61,3 +61,21 @@ SUCCESS!
 
 next step: dump the disk image to a file in nibblized format, to validate with cp2 and AppleSauce.
 
+## De-nybblizing
+
+Now that we support writing to a nibble image in RAM, in order to save that data back out, 
+
+## Write protection
+
+Most operating systems allow a file to be specified as "read only" even for the current user. This seems like the best way to support passing through write-protect status to the emulator. I.e., if the OS file is read-only, then set WP flag in the media descriptor. (Implemented now in media, checked by DiskII module)
+
+## File locking
+
+VirtualII locks a disk image file when it's being used, preventing other software (e.g., other emulators) from accessing it at the same time.
+
+This seems like a really, really good idea.
+
+## Disk-drive sound emulation
+
+Well, everyone else does it. I guess I have to, ha ha. OE has all the classic Shugart sounds. 
+

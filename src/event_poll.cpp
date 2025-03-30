@@ -26,7 +26,8 @@
 #include "devices/speaker/speaker.hpp"
 #include "devices/loader.hpp"
 #include "util/reset.hpp"
-
+#include "devices/diskii/diskii.hpp"
+    
 // Base dimensions for aspect ratio calculation
 #define WIN_BASE_WIDTH 560
 #define WIN_BASE_HEIGHT 384
@@ -74,7 +75,8 @@ bool handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
         return true; 
     }
     if (key == SDLK_F8) {
-        toggle_speaker_recording(cpu);
+        //toggle_speaker_recording(cpu);
+        debug_dump_disk_images(cpu);
         return true;
     }
     if (key == SDLK_F5) {

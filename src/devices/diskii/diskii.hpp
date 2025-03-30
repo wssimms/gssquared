@@ -37,8 +37,42 @@
 #define DiskII_Q7L 0x0E
 #define DiskII_Q7H 0x0F
 
+struct diskII {
+    uint8_t rw_mode; // 0 = read, 1 = write
+    int8_t track;
+    uint8_t phase0;
+    uint8_t phase1;
+    uint8_t phase2;
+    uint8_t phase3;
+    uint8_t last_phase_on;
+    bool motor;
+    uint8_t Q7 = 0;
+    uint8_t Q6 = 0;
+    uint8_t write_protect = 0; // 1 = write protect, 0 = not write protect
+    uint16_t image_index = 0;
+    uint16_t head_position = 0; // index into the track
+    uint8_t bit_position = 0; // how many bits left in byte.
+    uint8_t read_shift_register = 0; // when bit position = 0, this is 0. As bit_position increments, we shift in the next bit of the byte at head_position.
+    uint8_t write_shift_register = 0; 
+    uint64_t last_read_cycle = 0;
+
+    uint64_t mark_cycles_turnoff = 0; // when DRIVES OFF, set this to current cpu cycles. Then don't actually set motor=0 until one second (1M cycles) has passed. Then reset this to 0.
+
+    bool is_mounted = false;
+    disk_image_t media;
+    nibblized_disk_t nibblized;
+    media_descriptor *media_d;
+};
+
+struct diskII_controller {
+    diskII drive[2];
+    uint8_t drive_select;
+};
+
+
 void init_slot_diskII(cpu_state *cpu, SlotType_t slot);
 void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor *media);
 void unmount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive);
 drive_status_t diskii_status(cpu_state *cpu, uint64_t key);
 void diskii_reset(cpu_state *cpu);
+void debug_dump_disk_images(cpu_state *cpu);
