@@ -70,6 +70,7 @@ protected:
     SDL_Window *window = nullptr;
     int window_w = 0;
     int window_h = 0;
+    bool raise_window_on_next_frame = false;
 
 public:
     cpu_state *cpu = nullptr;
@@ -106,4 +107,6 @@ public:
      * @param event The SDL event to process
      */
     bool event(const SDL_Event &event);
+
+    void set_raise_window();
 };

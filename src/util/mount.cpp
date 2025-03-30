@@ -57,8 +57,12 @@ int Mounts::mount_media(disk_mount_t disk_mount) {
         mounted_media[key].drive_type = DRIVE_TYPE_DISKII;
     } else if (disk_mount.slot == 5) {
         //mount_prodos_block(cpu, disk_mount.slot, disk_mount.drive, media);
-        mount_pdblock2(cpu, disk_mount.slot, disk_mount.drive, media);
+        bool status = mount_pdblock2(cpu, disk_mount.slot, disk_mount.drive, media);
         mounted_media[key].drive_type = DRIVE_TYPE_PRODOS_BLOCK;
+        if (!status) {
+            fprintf(stderr, "Failed to mount ProDOS block device %s\n", disk_mount.filename);
+            return false;
+        }
     } else {
         fprintf(stderr, "Invalid slot. Expected 5 or 6\n");
     }
@@ -66,8 +70,22 @@ int Mounts::mount_media(disk_mount_t disk_mount) {
     return key;
 }
 
-int Mounts::unmount_media(disk_mount_t disk_mount) {
-    // TODO
+int Mounts::unmount_media(uint64_t key) {
+    // TODO: implement proper unmounting.
+    auto it = mounted_media.find(key);
+    if (it == mounted_media.end()) {
+        return false; // not mounted.
+    }
+    if (it->second.drive_type == DRIVE_TYPE_DISKII) {
+        //return diskii_unmount(cpu, key);
+        uint8_t slot = key >> 8;
+        uint8_t drive = key & 0xFF;
+        unmount_diskII(cpu, slot, drive);
+        return true;
+    } else if (it->second.drive_type == DRIVE_TYPE_PRODOS_BLOCK) {
+        //return pdblock2_osd_status(cpu, key);
+        return true;
+    }
     return false;
 }
 

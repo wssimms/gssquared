@@ -59,18 +59,29 @@ static void /* SDLCALL */ file_dialog_callback(void* userdata, const char* const
     printf("file_dialog_callback: %s\n", filelist[0]);
     // 1. unmount current image (if present).
     // 2. mount new image.
+    osd->cpu->mounts->unmount_media(data->key);
+
     disk_mount_t dm;
     dm.filename = (char *)filelist[0];
     dm.slot = data->key >> 8;
-    dm.drive = data->key & 0xFF;
-    osd->cpu->mounts->unmount_media(dm);
+    dm.drive = data->key & 0xFF;   
     osd->cpu->mounts->mount_media(dm);
-    SDL_RaiseWindow(osd->get_window());
+    /* bool status = SDL_RaiseWindow(osd->get_window());
+    if (!status) {
+        fprintf(stderr, "Failed to raise window: %s\n", SDL_GetError());
+    } */
+   osd->set_raise_window();
 }
 
 void diskii_button_click(void *userdata) {
     diskii_callback_data_t *data = (diskii_callback_data_t *)userdata;
     OSD *osd = data->osd;
+
+    if (osd->cpu->mounts->media_status(data->key).is_mounted) {
+        disk_mount_t dm;
+        osd->cpu->mounts->unmount_media(data->key);
+        return;
+    }
 
     static const SDL_DialogFileFilter filters[] = {
         { "Disk Images",  "do;po;woz;dsk;hdv;2mg" },
@@ -159,6 +170,10 @@ void click_reset_cpu(void *data) {
 
 SDL_Window* OSD::get_window() { 
     return window; 
+}
+
+void OSD::set_raise_window() {
+    raise_window_on_next_frame = true;
 }
 
 OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManager_t *slot_manager, int window_width, int window_height) 
@@ -440,6 +455,11 @@ bool OSD::event(const SDL_Event &event) {
         // call separately since not in a container. Want it to always get mouse events no matter what.
         mouse_pos->handle_mouse_event(event);
 #endif
+    }
+
+    if (raise_window_on_next_frame) {
+        SDL_RaiseWindow(window);
+        raise_window_on_next_frame = false;
     }
 
     switch (event.type)

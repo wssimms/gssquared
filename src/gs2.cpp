@@ -264,6 +264,7 @@ void run_cpus(void) {
         current_time = SDL_GetTicksNS();
         if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_display_update > 16667000)
             || (cpu->clock_mode != CLOCK_FREE_RUN)) {
+
             /* SDL_Event event; // is this right??? Don't think this belongs here.. we already did above..
             while(SDL_PollEvent(&event)) {
                 event_poll(cpu, event); // they say call "once per frame"

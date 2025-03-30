@@ -56,7 +56,7 @@ protected:
 public:
     Mounts(cpu_state *cpux) : cpu(cpux) {}
     int mount_media(disk_mount_t disk_mount);
-    int unmount_media(disk_mount_t disk_mount);
+    int unmount_media(uint64_t key);
     drive_status_t media_status(uint64_t key);
     int register_drive(drive_type_t drive_type, uint64_t key);
     void dump();

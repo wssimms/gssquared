@@ -184,7 +184,7 @@ void pdblock2_execute(cpu_state *cpu) {
     }
 }
 
-void mount_pdblock2(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor *media) {
+bool mount_pdblock2(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor *media) {
     pdblock2_data * pdblock_d = (pdblock2_data *)get_module_state(cpu, MODULE_PD_BLOCK2);
 
     if (DEBUG(DEBUG_PD_BLOCK)) printf("Mounting ProDOS block device %s slot %d drive %d\n", media->filename, slot, drive);
@@ -192,10 +192,11 @@ void mount_pdblock2(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descripto
     FILE *fp = fopen(media->filename, "r+b");
     if (fp == nullptr) {
         fprintf(stderr, "Could not open ProDOS block device file: %s\n", media->filename);
-        return;
+        return false;
     }
     pdblock_d->prodosblockdevices[slot][drive].file = fp;
     pdblock_d->prodosblockdevices[slot][drive].media = media;
+    return true;
 }
 
 void pdblock2_write_C0x0(cpu_state *cpu, uint16_t addr, uint8_t data) {

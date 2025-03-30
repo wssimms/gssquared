@@ -63,7 +63,13 @@ next step: dump the disk image to a file in nibblized format, to validate with c
 
 ## De-nybblizing
 
-Now that we support writing to a nibble image in RAM, in order to save that data back out, 
+Now that we support writing to a nibble image in RAM, in order to save that data back out, we need to denybblize and store back in the same sector order as before. 
+
+How to handle each media type:
+* pre-nibblized: simply write it back out. Trivial. So start there?
+* .do, .po, .dsk: read data from each track. Grab each sector header. Write 256 byte chunk after seeking to (track * 16 + sector) * 256 in the file.
+
+Write this initially as a denibblizer utility.
 
 ## Write protection
 
