@@ -299,6 +299,7 @@ void unmount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive) {
     for (int i = 0; i < 35; i++) {
         diskII_slot[slot].drive[drive].nibblized.tracks[i].size = 0;
         diskII_slot[slot].drive[drive].nibblized.tracks[i].position = 0;
+        memset(diskII_slot[slot].drive[drive].nibblized.tracks[i].data, 0, 0x1A00); // clear the track data. REALLY unmounted.
     }
     diskII_slot[slot].drive[drive].is_mounted = false;
     diskII_slot[slot].drive[drive].media_d = nullptr;

@@ -48,11 +48,12 @@ struct diskii_callback_data_t {
 /** handle file dialog callback */
 static void /* SDLCALL */ file_dialog_callback(void* userdata, const char* const* filelist, int filter)
 {
-    if (filelist[0] == nullptr) return; // user cancelled dialog
-
-    diskii_callback_data_t *data = (diskii_callback_data_t *)userdata;
+     diskii_callback_data_t *data = (diskii_callback_data_t *)userdata;
 
     OSD *osd = data->osd;
+    osd->set_raise_window();
+
+    if (filelist[0] == nullptr) return; // user cancelled dialog
 
     // returns callback: /Users/bazyar/src/AppleIIDisks/33master.dsk when selecting
     // a disk image file.
@@ -66,11 +67,6 @@ static void /* SDLCALL */ file_dialog_callback(void* userdata, const char* const
     dm.slot = data->key >> 8;
     dm.drive = data->key & 0xFF;   
     osd->cpu->mounts->mount_media(dm);
-    /* bool status = SDL_RaiseWindow(osd->get_window());
-    if (!status) {
-        fprintf(stderr, "Failed to raise window: %s\n", SDL_GetError());
-    } */
-   osd->set_raise_window();
 }
 
 void diskii_button_click(void *userdata) {
