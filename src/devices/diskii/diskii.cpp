@@ -232,7 +232,7 @@ uint8_t read_nybble(diskII& disk) { // cause a shift.
 
 void write_nybble(diskII& disk) { // cause a shift.
 
-    printf("write_nybble: track %d, head_position %d, write_shift_register %02X\n", disk.track, disk.head_position, disk.write_shift_register);
+    //printf("write_nybble: track %d, head_position %d, write_shift_register %02X\n", disk.track, disk.head_position, disk.write_shift_register);
 
     disk.bit_position = 0;
 
