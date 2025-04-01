@@ -25,8 +25,8 @@
 #define SCALE_Y 4
 #define BASE_WIDTH 560
 #define BASE_HEIGHT 192
-#define BORDER_WIDTH 10
-#define BORDER_HEIGHT 10
+#define BORDER_WIDTH 30
+#define BORDER_HEIGHT 20
 
 // Graphics vs Text, C050 / C051
 typedef enum {
