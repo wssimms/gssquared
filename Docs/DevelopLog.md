@@ -2983,3 +2983,8 @@ Looking at the existing speaker code with this example code in consideration, I 
 
 I should also move the general audio subsystem init into its own file, util/sound.cpp. Then the various things that need to emit sound will reference that. When we get to the GS, we'll need lots of AudioStreams (one for each "voice" of the Ensoniq chip).
 
+## April 1, 2025
+
+We need to somehow detect multi-track head movements. One track at a time sounds right. But when the head swoops across a big area we need to play successive chunks of the sound, not simply repeat the first bit of the sound for each track moved.
+
+I think we need more border. I would like to draw disk drives in the margin when they're running, so more border will help. Draw them with maybe 50% opacity. And draw using a Container. Instantiate new Disk II / Unidisk buttons. And the container needs to be dynamically managed to contain only actively spinning media. Have the opacity fade in and fade out.
