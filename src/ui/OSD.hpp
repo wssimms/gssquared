@@ -54,6 +54,8 @@ protected:
     
     DiskII_Button_t *diskii_button1 = nullptr;
     DiskII_Button_t *diskii_button2 = nullptr;
+    DiskII_Button_t *hud_diskii_1 = nullptr;
+    DiskII_Button_t *hud_diskii_2 = nullptr;
     Unidisk_Button_t *unidisk_button1 = nullptr;
     Unidisk_Button_t *unidisk_button2 = nullptr;
     Button_t *speed_btn_10 = nullptr;
@@ -62,6 +64,7 @@ protected:
     Button_t *speed_btn_8 = nullptr;
 
     std::vector<Container_t *> containers;
+    Container_t *hud_drive_container = nullptr;
 
     MousePositionTile_t* mouse_pos = nullptr;
     AssetAtlas_t *aa = nullptr;

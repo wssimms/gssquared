@@ -43,7 +43,7 @@ public:
     void set_disk_number(int num);
     int get_disk_number() const;
     void set_disk_status(drive_status_t status);
-
+    drive_status_t get_disk_status() const;
     void set_key(uint64_t k);
     uint64_t get_key() const;
 

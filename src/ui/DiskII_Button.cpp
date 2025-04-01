@@ -36,6 +36,8 @@ void DiskII_Button_t::set_disk_status(drive_status_t statusx) {
     status = statusx;
 }
 
+drive_status_t DiskII_Button_t::get_disk_status() const { return status; }
+
 /**
  * @brief Renders the DiskII button with additional drive-specific elements.
  * @param renderer The SDL renderer to use.
@@ -71,5 +73,11 @@ void DiskII_Button_t::render(SDL_Renderer* renderer) {
         SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
         SDL_RenderDebugText(renderer, content_x + text_x, content_y + 40, status.filename);
     }
-    // TODO: if mounted and hovering, show the disk image name over the drive
+    if (status.is_mounted && status.motor_on) {
+        // if mounted and hovering, show the track number over the drive
+        char text[32];
+        snprintf(text, sizeof(text), "Tr %d", status.position / 2);
+        SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+        SDL_RenderDebugText(renderer, content_x + 68, content_y + 28, text);
+    }
 }

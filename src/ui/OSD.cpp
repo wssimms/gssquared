@@ -234,6 +234,9 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManag
     SS.text_color = 0xFFFFFFFF;
     SS.padding = 4;
     SS.border_width = 1;
+    Style_t HUD;
+    HUD.background_color = 0x00000000;
+    HUD.border_color = 0x000000FF;
 
     aa = new AssetAtlas_t(renderer, (char *)"img/atlas.png");
     aa->set_elements(MainAtlas_count, asset_rects);
@@ -279,6 +282,23 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManag
 
     // Initial layout
     drive_container->layout();
+
+    // pop-up drive container when drives are spinning
+    Container_t *dc2 = new Container_t(renderer, 10, HUD);  // Increased to 5 to accommodate the mouse position tile
+    dc2->set_position(340, 800);
+    dc2->set_size(600, 120);
+    hud_diskii_1 = new DiskII_Button_t(aa, DiskII_Open, DS); // this needs to have our disk key . or alternately use a different callback.
+    hud_diskii_1->set_key(0x600);
+    hud_diskii_1->set_click_callback(diskii_button_click, new diskii_callback_data_t{this, 0x600});
+
+    hud_diskii_2 = new DiskII_Button_t(aa, DiskII_Closed, DS);
+    hud_diskii_2->set_key(0x601);
+    hud_diskii_2->set_click_callback(diskii_button_click, new diskii_callback_data_t{this, 0x601});
+
+    dc2->add_tile(hud_diskii_1, 0);
+    dc2->add_tile(hud_diskii_2, 1);
+    dc2->layout();
+    hud_drive_container = dc2;
 
     // Create another container, this one for slots.
     Container_t *slot_container = new Container_t(renderer, 8, SC);  // Container for 8 slot buttons
@@ -389,6 +409,8 @@ void OSD::update() {
     // update disk status
     diskii_button1->set_disk_status(cpu->mounts->media_status(0x600));
     diskii_button2->set_disk_status(cpu->mounts->media_status(0x601));
+    hud_diskii_1->set_disk_status(cpu->mounts->media_status(0x600));
+    hud_diskii_2->set_disk_status(cpu->mounts->media_status(0x601));
     unidisk_button1->set_disk_status(cpu->mounts->media_status(0x500));
     unidisk_button2->set_disk_status(cpu->mounts->media_status(0x501));
 
@@ -442,6 +464,20 @@ void OSD::render() {
         // now render the cpTexture into window
         SDL_RenderTexture(renderer, cpTexture, NULL, &cpTargetRect);
         SDL_SetRenderScale(renderer, ox,oy);
+    } 
+    if (currentSlideStatus == SLIDE_OUT) {
+        drive_status_t ds1 = diskii_button1->get_disk_status();
+        drive_status_t ds2 = diskii_button2->get_disk_status();
+
+        if (ds1.motor_on || ds2.motor_on) {
+            // display running disk drives at the bottom of the screen.
+            float ox,oy;
+            SDL_GetRenderScale(renderer, &ox, &oy);
+            SDL_SetRenderScale(renderer, 1,1); // TODO: calculate these based on window size
+            hud_drive_container->render();
+            SDL_SetRenderScale(renderer, ox,oy);
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+        }
     }
 }
 
