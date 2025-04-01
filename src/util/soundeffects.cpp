@@ -100,23 +100,38 @@ void soundeffects_update(bool diskii_running, int tracknumber)
     }
     
     /* Only queue audio data if sound is enabled */
+    static int running_chunknumber = 0;
     if (diskii_running) {
-        if (SDL_GetAudioStreamQueued(soundeffects[0].stream) < ((int) soundeffects[0].wav_data_len / 10)) {
-            SDL_PutAudioStreamData(soundeffects[0].stream, soundeffects[0].wav_data, (int) soundeffects[0].wav_data_len / 10);
+        int dl = (int) soundeffects[0].wav_data_len / 10;
+        if (SDL_GetAudioStreamQueued(soundeffects[0].stream) < dl) {
+            SDL_PutAudioStreamData(soundeffects[0].stream, soundeffects[0].wav_data + dl * running_chunknumber, dl);
+            running_chunknumber++;
+            if (running_chunknumber > 8) {
+                running_chunknumber = 0;
+            }
         }
     }
     // minimum track movement is 2. We're called every 1/60th. That's 735 samples.
+    static int start_track_movement = -1;
     if (tracknumber >= 0 && (tracknumber_last != tracknumber)) {
-        int len = ((int) 735*2 * std::abs(tracknumber_last-tracknumber));
-        if (len > soundeffects[2].wav_data_len) {
-            len = soundeffects[2].wav_data_len;
+        // if we have a track movement, play the head movement sound
+        // head can move 16.7 / 2.5 tracks per second, about 7.
+        int ind = 200 * 2 * std::abs(start_track_movement-tracknumber);
+
+        int len = ((int) (200 * 2) * std::abs(tracknumber_last-tracknumber));
+        if (ind + len > soundeffects[2].wav_data_len) {
+            len = soundeffects[2].wav_data_len - ind;
         }
         SDL_PutAudioStreamData(
             soundeffects[2].stream, 
-            soundeffects[2].wav_data, 
+            soundeffects[2].wav_data + ind,
             len
         );
+        if (start_track_movement == -1) start_track_movement = tracknumber_last;
         tracknumber_last = tracknumber;
+    } else {
+        // if head did not move on this update, reset the start_track_movement
+        start_track_movement = -1;
     }
 
 }
