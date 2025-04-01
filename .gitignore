@@ -24,6 +24,8 @@ GSSquared.app/
 assets/*
 !assets/img/
 assets/img/*
+!assets/sounds/
+!assets/sounds/*
 !assets/img/atlas.png
 !assets/img/gs2.icns
 !assets/Info.plist

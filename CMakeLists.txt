@@ -30,6 +30,8 @@ if(APPLE)
         COMMAND ${CMAKE_COMMAND} -E copy ${APP_ICON_MACOSX} ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/roms
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/roms ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/roms
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/sounds
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/assets/sounds ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/sounds
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/img
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/img/atlas.png
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/Info.plist ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/
@@ -46,6 +48,8 @@ if(APPLE)
         COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/roms
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/roms ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/roms
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/sounds
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/assets/sounds ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/sounds
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gs2> ${CMAKE_BINARY_DIR}/packages/mac-cli/
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/img
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/img/atlas.png
@@ -74,6 +78,8 @@ if(APPLE)
     add_custom_target(mac-dev ALL
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/roms
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/roms ${CMAKE_BINARY_DIR}/resources/roms
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/sounds
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/assets/sounds ${CMAKE_BINARY_DIR}/resources/sounds
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/img
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/resources/img/atlas.png
         DEPENDS gs2
@@ -96,6 +102,8 @@ if(UNIX AND NOT APPLE)
 
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/roms
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/roms ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/roms
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/sounds
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/assets/sounds ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/sounds
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gs2> ${CMAKE_BINARY_DIR}/packages/linux-cli/
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/img
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/img/atlas.png
@@ -117,6 +125,8 @@ if(UNIX AND NOT APPLE)
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/roms
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/roms ${CMAKE_BINARY_DIR}/resources/roms
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/sounds
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/assets/sounds ${CMAKE_BINARY_DIR}/resources/sounds
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/img
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/resources/img/atlas.png
         DEPENDS gs2
@@ -221,7 +231,7 @@ add_library(gs2_devices_parallel     src/devices/parallel/parallel.cpp )
 
 add_library(gs2_cpu src/cpus/cpu_6502.cpp src/cpus/cpu_65c02.cpp )
 
-add_library(gs2_util src/util/media.cpp src/util/ResourceFile.cpp src/util/dialog.cpp src/util/mount.cpp src/util/reset.cpp )
+add_library(gs2_util src/util/media.cpp src/util/ResourceFile.cpp src/util/dialog.cpp src/util/mount.cpp src/util/reset.cpp src/util/soundeffects.cpp)
 
 add_library(gs2_ui src/ui/AssetAtlas.cpp src/ui/Container.cpp src/ui/DiskII_Button.cpp src/ui/Unidisk_Button.cpp 
     src/ui/MousePositionTile.cpp src/ui/OSD.cpp src/ui/Tile.cpp src/ui/Button.cpp src/ui/MainAtlas.cpp
