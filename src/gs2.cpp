@@ -45,6 +45,8 @@
 #include "ui/OSD.hpp"
 #include "systemconfig.hpp"
 #include "slots.hpp"
+#include "util/soundeffects.hpp"
+#include "devices/diskii/diskii.hpp"
 
 /**
  * References: 
@@ -246,6 +248,8 @@ void run_cpus(void) {
             }
 
             osd->update();
+            bool diskii_run = any_diskii_motor_on(cpu);
+            soundeffects_update(diskii_run, diskii_tracknumber_on(cpu));
 
             event_time = SDL_GetTicksNS() - current_time;
             last_event_update = current_time;
@@ -460,6 +464,8 @@ int main(int argc, char *argv[]) {
             slot_manager->register_slot(device, dm.slot);
         }
     }
+
+    bool result = soundeffects_init(&CPUs[0]);
 
     cpu_reset(&CPUs[0]);
 

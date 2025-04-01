@@ -76,3 +76,5 @@ void unmount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive);
 drive_status_t diskii_status(cpu_state *cpu, uint64_t key);
 void diskii_reset(cpu_state *cpu);
 void debug_dump_disk_images(cpu_state *cpu);
+bool any_diskii_motor_on(cpu_state *cpu);
+int diskii_tracknumber_on(cpu_state *cpu);

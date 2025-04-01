@@ -157,17 +157,32 @@ void init_mb_speaker(cpu_state *cpu, SlotType_t slot) {
     desired.format = SDL_AUDIO_S16LE;
     desired.channels = 1;
     
+#if 0
     speaker_state->stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &desired, NULL, NULL);
-
     std::cout << "SDL_OpenAudioDevice returned: " << speaker_state->device_id << "\n";
-
     if ( speaker_state->stream == nullptr )
     {
         std::cerr << "Error opening audio device: " << SDL_GetError() << std::endl;
         return;
     }
-
     speaker_state->device_id = SDL_GetAudioStreamDevice(speaker_state->stream);
+#endif
+
+    speaker_state->device_id = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, NULL);
+    if (speaker_state->device_id == 0) {
+        SDL_Log("Couldn't open audio device: %s", SDL_GetError());
+        return;
+    }
+
+    speaker_state->stream = SDL_CreateAudioStream(&desired, NULL);
+    if (!speaker_state->stream) {
+        SDL_Log("Couldn't create audio stream: %s", SDL_GetError());
+        return;
+    } else if (!SDL_BindAudioStream(speaker_state->device_id, speaker_state->stream)) {  /* once bound, it'll start playing when there is data available! */
+        SDL_Log("Failed to bind speaker stream to device: %s", SDL_GetError());
+        return;
+    }
+
     SDL_PauseAudioDevice(speaker_state->device_id);
 
     // prime the pump with a few frames of silence.

@@ -1,0 +1,139 @@
+/*
+ *   Copyright (c) 2025 Jawaid Bazyar
+
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
+#include <cstdlib>
+#include "gs2.hpp"
+#include "cpu.hpp"
+#include "devices/speaker/speaker.hpp"
+
+/* things that are playing sound (the audiostream itself, plus the original data, so we can refill to loop. */
+typedef struct SoundEffect {
+    Uint8 *wav_data;
+    Uint32 wav_data_len;
+    SDL_AudioStream *stream;
+} SoundEffect;
+
+static SoundEffect soundeffects[3];
+
+static bool load_soundeffect(SDL_AudioDeviceID audio_device, const char *fname, SoundEffect *soundeffect)
+{
+    bool retval = false;
+    SDL_AudioSpec spec;
+    char *wav_path = NULL;
+
+    /* Load the .wav files from wherever the app is being run from. */
+    SDL_asprintf(&wav_path, "%s%s", gs2_app_values.base_path, fname);  /* allocate a string of the full file path */
+    if (!SDL_LoadWAV(wav_path, &spec, &soundeffect->wav_data, &soundeffect->wav_data_len)) {
+        SDL_Log("Couldn't load .wav file: %s", SDL_GetError());
+        return false;
+    }
+
+    /* Create an audio stream. Set the source format to the wav's format (what
+       we'll input), leave the dest format NULL here (it'll change to what the
+       device wants once we bind it). */
+    soundeffect->stream = SDL_CreateAudioStream(&spec, NULL);
+    if (!soundeffect->stream) {
+        SDL_Log("Couldn't create audio stream: %s", SDL_GetError());
+    } else if (!SDL_BindAudioStream(audio_device, soundeffect->stream)) {  /* once bound, it'll start playing when there is data available! */
+        SDL_Log("Failed to bind '%s' stream to device: %s", fname, SDL_GetError());
+    } else {
+        retval = true;  /* success! */
+    }
+
+    SDL_free(wav_path);  /* done with this string. */
+    return retval;
+}
+
+/* This function runs once at startup. */
+bool soundeffects_init(cpu_state *cpu)
+{
+    speaker_state_t *speaker_state = (speaker_state_t *)get_module_state(cpu, MODULE_SPEAKER);
+
+    SDL_SetAppMetadata("Example Audio Multiple Streams", "1.0", "com.example.audio-multiple-streams");
+
+    if (!load_soundeffect(speaker_state->device_id, "sounds/shugart-drive.wav", &soundeffects[0])) {
+        return false;
+    } 
+    if (!load_soundeffect(speaker_state->device_id, "sounds/shugart-stop.wav", &soundeffects[1])) {
+        return false;
+    } 
+    if (!load_soundeffect(speaker_state->device_id, "sounds/shugart-head.wav", &soundeffects[2])) {
+        return false;
+    } 
+    return true;
+}
+
+/* This function runs once per frame, and is the heart of the program. */
+void soundeffects_update(bool diskii_running, int tracknumber)
+{
+    static bool diskii_running_last = false;
+    static int tracknumber_last = 0;
+
+    //printf("diskii_running: %d, tracknumber: %d / %d\n", diskii_running, tracknumber, tracknumber_last);
+
+    /* If less than a full copy of the audio is queued for playback, put another copy in there.
+        This is overkill, but easy when lots of RAM is cheap. One could be more careful and
+        queue less at a time, as long as the stream doesn't run dry.  */
+
+    /* If sound state changed, reset the stream */
+    if (diskii_running_last && !diskii_running) {
+        diskii_running_last = false;
+
+        /* Clear the audio stream when transitioning to disabled state */
+        SDL_FlushAudioStream(soundeffects[0].stream);
+    }
+    
+    /* Only queue audio data if sound is enabled */
+    if (diskii_running) {
+        if (SDL_GetAudioStreamQueued(soundeffects[0].stream) < ((int) soundeffects[0].wav_data_len / 10)) {
+            SDL_PutAudioStreamData(soundeffects[0].stream, soundeffects[0].wav_data, (int) soundeffects[0].wav_data_len / 10);
+        }
+    }
+    // minimum track movement is 2. We're called every 1/60th. That's 735 samples.
+    if (tracknumber >= 0 && (tracknumber_last != tracknumber)) {
+        int len = ((int) 735*2 * std::abs(tracknumber_last-tracknumber));
+        if (len > soundeffects[2].wav_data_len) {
+            len = soundeffects[2].wav_data_len;
+        }
+        SDL_PutAudioStreamData(
+            soundeffects[2].stream, 
+            soundeffects[2].wav_data, 
+            len
+        );
+        tracknumber_last = tracknumber;
+    }
+
+}
+
+/* This function runs once at shutdown. */
+void soundeffects_shutdown(SDL_AudioDeviceID audio_device)
+{
+    int i;
+
+    SDL_CloseAudioDevice(audio_device);
+
+    for (i = 0; i < SDL_arraysize(soundeffects); i++) {
+        if (soundeffects[i].stream) {
+            SDL_DestroyAudioStream(soundeffects[i].stream);
+        }
+        SDL_free(soundeffects[i].wav_data);
+    }
+
+    /* SDL will clean up the window/renderer for us. */
+}

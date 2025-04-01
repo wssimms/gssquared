@@ -326,6 +326,31 @@ drive_status_t diskii_status(cpu_state *cpu, uint64_t key) {
     return {seldrive.is_mounted, fname, seldrive.motor, seldrive.track};
 }
 
+bool any_diskii_motor_on(cpu_state *cpu) {
+    diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 2; j++) {
+            if (diskII_slot[i].drive[j].motor == 1) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+int diskii_tracknumber_on(cpu_state *cpu) {
+    diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 2; j++) {
+            if (diskII_slot[i].drive[j].motor == 1) {
+                return diskII_slot[i].drive[j].track;
+            }
+        }
+    }
+    return -1;
+}
+
+
 /**
  * State Table:
 

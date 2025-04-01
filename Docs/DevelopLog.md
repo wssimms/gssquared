@@ -2970,3 +2970,16 @@ tweak to hgrdecode to make it start with phase difference of 90 degrees for doub
 Implemented write-protect detection on image files in Disk II. Still need to implement that in pdblock2. A nice workflow. If a file is erroneously WPd, you can unmount, change the FS bit, then re-mount. Voila!
 
 Need to change the OSD so when I click on a mounted disk, it unmounts it. Then a separate click, to mount anew.
+
+## Mar 31, 2025
+
+Instead of setting a flag to raise the window, let's use an event queue structure. I was thinking we'd use this to manage the disk drive sound sample stuff.
+
+Let's make a little test program to play sound samples. That was easy, sheesh.
+
+To simulate disk sounds: the motor on sound is easy, just keep playing the same audio data in. Head movement: it seems like we want to play the whole track sound, but, if we determine the head has -stopped- moving, flush it at that point. Have to come up with some appropriate hueristic for "stopped moving" (for example, hasn't moved in 1/60th second?) The bump "stop" sound should be a "one and done", we play it, then forget it. 
+
+Looking at the existing speaker code with this example code in consideration, I now see that I don't HAVE TO send it constant data including empty frames. I -can- just feed it data when I have it. It will fill with silence otherwise. And, if I decay my values (going from + or - to 0) in a reasonable time, then there won't be clicks when that occurs. Something to think about..
+
+I should also move the general audio subsystem init into its own file, util/sound.cpp. Then the various things that need to emit sound will reference that. When we get to the GS, we'll need lots of AudioStreams (one for each "voice" of the Ensoniq chip).
+
