@@ -194,9 +194,10 @@ In DOS at $B800 lives the "prenibble routine" . I could perhaps steal that. hehe
 #define DEBUG_MOT(slot, drive, onoff) fprintf(stdout, "MOT: slot %d, drive %d, motor %d \n", slot, drive, onoff)
 #define DEBUG_DS(slot, drive, onoff) fprintf(stdout, "DS:slot %d, drive %d, drive_select %d \n", slot, drive, onoff)
 
-uint8_t read_nybble(diskII& disk) { // cause a shift.
+uint8_t read_nybble(diskII& disk, bool motor) { // cause a shift.
 
-    if (!disk.motor) { // return the same data every time if motor is off.
+    // TODO: this needs to be changed to check motor on on this slot. maybe I can just pass in the motor status?
+    if (!motor) { // return the same data every time if motor is off.
         return disk.read_shift_register;
     }
 
@@ -312,28 +313,29 @@ drive_status_t diskii_status(cpu_state *cpu, uint64_t key) {
     uint8_t drive = key & 0xFF;
     diskII &seldrive = diskII_slot[slot].drive[drive];
 
-    if (seldrive.motor == 1 && seldrive.mark_cycles_turnoff != 0 && ((cpu->cycles > seldrive.mark_cycles_turnoff))) {
-        if (DEBUG(DEBUG_DISKII)) printf("motor off: %llu %llu cycles\n", cpu->cycles, seldrive.mark_cycles_turnoff);
-        seldrive.motor = 0;
-        seldrive.mark_cycles_turnoff = 0;
+    if (diskII_slot[slot].motor == 1 && diskII_slot[slot].mark_cycles_turnoff != 0 && ((cpu->cycles > diskII_slot[slot].mark_cycles_turnoff))) {
+        if (DEBUG(DEBUG_DISKII)) printf("motor off: %llu %llu cycles\n", cpu->cycles, diskII_slot[slot].mark_cycles_turnoff);
+        diskII_slot[slot].motor = 0;
+        diskII_slot[slot].mark_cycles_turnoff = 0;
     }
     const char *fname = nullptr;
     if (seldrive.media_d) {
         fname = seldrive.media_d->filestub;
         /* printf("diskii_status: %s\n", fname); */
     }
+    bool motor = (diskII_slot[slot].drive_select == drive) ? diskII_slot[slot].motor : false;
 
-    return {seldrive.is_mounted, fname, seldrive.motor, seldrive.track};
+    return {seldrive.is_mounted, fname, motor, seldrive.track};
 }
 
 bool any_diskii_motor_on(cpu_state *cpu) {
     diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
     for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 2; j++) {
-            if (diskII_slot[i].drive[j].motor == 1) {
+        /* for (int j = 0; j < 2; j++) { */
+            if (diskII_slot[i].motor == 1) {
                 return true;
             }
-        }
+        /* } */
     }
     return false;
 }
@@ -341,11 +343,10 @@ bool any_diskii_motor_on(cpu_state *cpu) {
 int diskii_tracknumber_on(cpu_state *cpu) {
     diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
     for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 2; j++) {
-            if (diskII_slot[i].drive[j].motor == 1) {
-                return diskII_slot[i].drive[j].track;
-            }
-        }
+        uint8_t selected = diskII_slot[i].drive_select;
+        if (diskII_slot[i].motor == 1) {
+            return diskII_slot[i].drive[selected].track;
+        }        
     }
     return -1;
 }
@@ -380,10 +381,10 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
 
     diskII &seldrive = diskII_slot[slot].drive[drive];
 
-    if (seldrive.motor == 1 && seldrive.mark_cycles_turnoff != 0 && ((cpu->cycles > seldrive.mark_cycles_turnoff))) {
-        if (DEBUG(DEBUG_DISKII)) printf("motor off: %llu %llu cycles\n", cpu->cycles, seldrive.mark_cycles_turnoff);
-        seldrive.motor = 0;
-        seldrive.mark_cycles_turnoff = 0;
+    if (diskII_slot[slot].motor == 1 && diskII_slot[slot].mark_cycles_turnoff != 0 && ((cpu->cycles > diskII_slot[slot].mark_cycles_turnoff))) {
+        if (DEBUG(DEBUG_DISKII)) printf("motor off: %llu %llu cycles\n", cpu->cycles, diskII_slot[slot].mark_cycles_turnoff);
+        diskII_slot[slot].motor = 0;
+        diskII_slot[slot].mark_cycles_turnoff = 0;
     }
 
     int8_t last_phase_on = seldrive.last_phase_on;
@@ -449,28 +450,37 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
             seldrive.last_phase_on = 3;
             break;
         case DiskII_Motor_Off:          // turns off BOTH drives
-            if (DEBUG(DEBUG_DISKII)) DEBUG_MOT(slot, drive, seldrive.motor);
+            if (DEBUG(DEBUG_DISKII)) DEBUG_MOT(slot, drive, 0);
             // if motor already off, do nothing.
-            if (diskII_slot[slot].drive[0].motor == 1) {
-                diskII_slot[slot].drive[0].mark_cycles_turnoff = cpu->cycles + 1000000;
-                if (DEBUG(DEBUG_DISKII)) printf("schedule motor off at %llu (is now %llu)\n", diskII_slot[slot].drive[0].mark_cycles_turnoff, cpu->cycles);
+            if (diskII_slot[slot].motor == 1) {
+                diskII_slot[slot].mark_cycles_turnoff = cpu->cycles + 1000000;
+                if (DEBUG(DEBUG_DISKII)) printf("schedule motor off at %llu (is now %llu)\n", diskII_slot[slot].mark_cycles_turnoff, cpu->cycles);
             }
-            if (diskII_slot[slot].drive[1].motor == 1) {
-                diskII_slot[slot].drive[1].mark_cycles_turnoff = cpu->cycles + 1000000;
-                if (DEBUG(DEBUG_DISKII)) printf("schedule motor off at %llu (is now %llu)\n", diskII_slot[slot].drive[1].mark_cycles_turnoff, cpu->cycles);
-            }
+            /* if (diskII_slot[slot].motor == 1) {
+                diskII_slot[slot].mark_cycles_turnoff = cpu->cycles + 1000000;
+                if (DEBUG(DEBUG_DISKII)) printf("schedule motor off at %llu (is now %llu)\n", diskII_slot[slot].mark_cycles_turnoff, cpu->cycles);
+            } */
             break;
         case DiskII_Motor_On:
-            if (DEBUG(DEBUG_DISKII)) DEBUG_MOT(slot, drive, seldrive.motor);
-            seldrive.motor = 1;
-            seldrive.mark_cycles_turnoff = 0; // if we turn motor on, reset this and don't stop it!
+            diskII_slot[slot].motor = 1;
+            //seldrive.motor = 1;
+            if (DEBUG(DEBUG_DISKII)) DEBUG_MOT(slot, drive, 1);
+            diskII_slot[slot].mark_cycles_turnoff = 0; // if we turn motor on, reset this and don't stop it!
             break;
         case DiskII_Drive1_Select:
             if (DEBUG(DEBUG_DISKII)) DEBUG_DS(slot, drive, 0);
+            /* if (diskII_slot[slot].drive[drive].motor == 1) { // TODO: this is awkward. Probably, should have drive motor on/off on the controller level, not disk level.
+                diskII_slot[slot].drive[drive].motor = 0;
+                diskII_slot[slot].drive[0].motor = 1;
+            } */
             diskII_slot[slot].drive_select = 0;
             break;
         case DiskII_Drive2_Select:
             if (DEBUG(DEBUG_DISKII)) DEBUG_DS(slot, drive, 1);
+            /* if (diskII_slot[slot].drive[drive].motor == 1) {
+                diskII_slot[slot].drive[drive].motor = 0;
+                diskII_slot[slot].drive[1].motor = 1;
+            } */
             diskII_slot[slot].drive_select = 1;
             break;
         case DiskII_Q6L:
@@ -515,7 +525,7 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
             seldrive.head_position = (seldrive.head_position +  ((cpu->cycles - seldrive.last_read_cycle) / 32) ) % 0x1A00;
         }
         seldrive.last_read_cycle = cpu->cycles; */
-        return read_nybble(seldrive);
+        return read_nybble(seldrive, diskII_slot[slot].motor);
     }
 
     if (seldrive.track != cur_track) {
@@ -567,16 +577,16 @@ void diskII_init(cpu_state *cpu) {
             diskII_slot[i].drive[j].phase1 = 0;
             diskII_slot[i].drive[j].phase2 = 0;
             diskII_slot[i].drive[j].phase3 = 0;
-            diskII_slot[i].drive[j].motor = 0;
             diskII_slot[i].drive[j].last_phase_on = 0;
             diskII_slot[i].drive[j].image_index = 0;
             diskII_slot[i].drive[j].write_protect = 0 /* 1 */ ;
             diskII_slot[i].drive[j].bit_position = 0; // how many bits left in byte.
             diskII_slot[i].drive[j].read_shift_register = 0; // when bit position = 0, this is 0. As bit_position increments, we shift in the next bit of the byte at head_position.
             diskII_slot[i].drive[j].head_position = 0; // index into the track
-            diskII_slot[i].drive[j].mark_cycles_turnoff = 0; // when DRIVES OFF, set this to current cpu cycles. Then don't actually set motor=0 until one second (1M cycles) has passed. Then reset this to 0.
         }
         diskII_slot[i].drive_select = 0;
+        diskII_slot[i].motor = 0;
+        diskII_slot[i].mark_cycles_turnoff = 0; // when DRIVES OFF, set this to current cpu cycles. Then don't actually set motor=0 until one second (1M cycles) has passed. Then reset this to 0.
     }
 }
 
@@ -641,10 +651,10 @@ void diskii_reset(cpu_state *cpu) {
     printf("diskii_reset\n");
     // TODO: this should be a callback from the CPU reset handler.
     for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 2; j++) {
-            diskII_slot[i].drive[j].motor = 0;
-            diskII_slot[i].drive[j].mark_cycles_turnoff = 0;
-        }
+/*         for (int j = 0; j < 2; j++) { */
+            diskII_slot[i].motor = 0;
+            diskII_slot[i].mark_cycles_turnoff = 0;
+        /* } */
     }
 }
 

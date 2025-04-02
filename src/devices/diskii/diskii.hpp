@@ -45,7 +45,6 @@ struct diskII {
     uint8_t phase2;
     uint8_t phase3;
     uint8_t last_phase_on;
-    bool motor;
     uint8_t Q7 = 0;
     uint8_t Q6 = 0;
     uint8_t write_protect = 0; // 1 = write protect, 0 = not write protect
@@ -55,9 +54,6 @@ struct diskII {
     uint8_t read_shift_register = 0; // when bit position = 0, this is 0. As bit_position increments, we shift in the next bit of the byte at head_position.
     uint8_t write_shift_register = 0; 
     uint64_t last_read_cycle = 0;
-
-    uint64_t mark_cycles_turnoff = 0; // when DRIVES OFF, set this to current cpu cycles. Then don't actually set motor=0 until one second (1M cycles) has passed. Then reset this to 0.
-
     bool is_mounted = false;
     disk_image_t media;
     nibblized_disk_t nibblized;
@@ -67,6 +63,8 @@ struct diskII {
 struct diskII_controller {
     diskII drive[2];
     uint8_t drive_select;
+    bool motor;
+    uint64_t mark_cycles_turnoff = 0; // when DRIVES OFF, set this to current cpu cycles. Then don't actually set motor=0 until one second (1M cycles) has passed. Then reset this to 0.
 };
 
 
