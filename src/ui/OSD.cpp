@@ -237,6 +237,7 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManag
     Style_t HUD;
     HUD.background_color = 0x00000000;
     HUD.border_color = 0x000000FF;
+    HUD.border_width = 0;
 
     aa = new AssetAtlas_t(renderer, (char *)"img/atlas.png");
     aa->set_elements(MainAtlas_count, asset_rects);
@@ -286,12 +287,12 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManag
     // pop-up drive container when drives are spinning
     Container_t *dc2 = new Container_t(renderer, 10, HUD);  // Increased to 5 to accommodate the mouse position tile
     dc2->set_position(340, 800);
-    dc2->set_size(600, 120);
-    hud_diskii_1 = new DiskII_Button_t(aa, DiskII_Open, DS); // this needs to have our disk key . or alternately use a different callback.
+    dc2->set_size(420, 120);
+    hud_diskii_1 = new DiskII_Button_t(aa, DiskII_Open, HUD); // this needs to have our disk key . or alternately use a different callback.
     hud_diskii_1->set_key(0x600);
     hud_diskii_1->set_click_callback(diskii_button_click, new diskii_callback_data_t{this, 0x600});
 
-    hud_diskii_2 = new DiskII_Button_t(aa, DiskII_Closed, DS);
+    hud_diskii_2 = new DiskII_Button_t(aa, DiskII_Closed, HUD);
     hud_diskii_2->set_key(0x601);
     hud_diskii_2->set_click_callback(diskii_button_click, new diskii_callback_data_t{this, 0x601});
 
@@ -469,8 +470,17 @@ void OSD::render() {
         drive_status_t ds1 = diskii_button1->get_disk_status();
         drive_status_t ds2 = diskii_button2->get_disk_status();
 
+        // Get the current window size to properly position HUD elements
+        int window_width, window_height;
+        SDL_GetWindowSize(window, &window_width, &window_height);
+        
+        // Update HUD drive container position based on window size
+        // Position it at the bottom of the screen with some padding
+        hud_drive_container->set_position((window_width - 420) / 2, window_height - 125 );
         if (ds1.motor_on || ds2.motor_on) {
             // display running disk drives at the bottom of the screen.
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
             float ox,oy;
             SDL_GetRenderScale(renderer, &ox, &oy);
             SDL_SetRenderScale(renderer, 1,1); // TODO: calculate these based on window size
