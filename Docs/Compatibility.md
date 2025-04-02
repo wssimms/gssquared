@@ -74,12 +74,16 @@ Hangs during boot on GS2 after showing the prodos splash screen. Drive light is 
 Will need to trace this and see what's going on. Is supposed to work on Apple II plus and standard 6502. So who knows what is going on..
 Though, OE II plus seems to have an 80 column card that activates on PR#3.
 
-## Locksmith 6.0
+## Locksmith
 
+### 6.0 
 "Scan Disk" is not working.
 locksmith ability to quarter track isn't going to work the way the code is written now.
 16 sector fast disk claims "address" field is missing on every sector and track. I wonder if this is all due to lack of quarter-track support.
 This did not work in the previous iteration of the code either.
+
+### 5.0
+nothing working here either. It's never turning the disk drive motors on. it must be doing it some different way.
 
 ## Glider
 

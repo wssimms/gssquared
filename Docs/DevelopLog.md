@@ -2988,3 +2988,18 @@ I should also move the general audio subsystem init into its own file, util/soun
 We need to somehow detect multi-track head movements. One track at a time sounds right. But when the head swoops across a big area we need to play successive chunks of the sound, not simply repeat the first bit of the sound for each track moved.
 
 I think we need more border. I would like to draw disk drives in the margin when they're running, so more border will help. Draw them with maybe 50% opacity. And draw using a Container. Instantiate new Disk II / Unidisk buttons. And the container needs to be dynamically managed to contain only actively spinning media. Have the opacity fade in and fade out.
+
+Trying to format a 5.25 with ProDOS 1.1.1 filer, I get the error "Disk II drive too slow". That is special.
+DOS33 is doing an INIT. I guess we'll see what it looks like in AppleSauce!
+Well it looks ok to me. 
+
+The DiskII "wrong drive thing"... this is what we do.
+
+MOT: slot 6, drive 0, motor 1
+DS:slot 6, drive 0, drive_select 1
+PH: slot 6, drive 1, phase 1, onoff 1
+
+turns on the motor, then does drive select 1. apparently, this is supposed to switch the motor to drive 1.
+
+FIXED!
+
