@@ -3003,3 +3003,43 @@ turns on the motor, then does drive select 1. apparently, this is supposed to sw
 
 FIXED!
 
+Well, well. You can write to the drive select and drive on/off registers, and, locksmith does that. Locksmith is now validating disks.
+
+A format isn't working right. And maybe my DOS3.3 format didn't actually work right, but are they verified when you do an INIT? Unsure. This is likely going to be caused by not fake rotating the fake disk under the fake head even when we're not doing anything. I could try reenabling that code...
+
+OK, still have problems initializing disks. I'm only modifying track position on reads. That's an issue. So need to bring that code out to the top of the disk II registers routine. So any time we hit a register we're updating.
+
+Call me crazy, the dos33 system master boot seems faster.. well it's not working right.
+
+I bet on inits, this thing is trying to write 10-bit FFs. and here in a sector header we have..
+
+FF FF FF FF D5 AA 96 FF FE AA AA AF AF FA FB DE AA EB E7 FF FF FF FF FF D5 AA AD 96 96....
+
+DE AA EB E7 FF ?
+
+That E7 is supposed to be an FF.
+
+here's another broken one:
+FF96FF
+that's after a sector, it ought to be FF.
+
+ok, will have to study the cycle timing on writes. 
+
+## Apr 2, 2025
+
+Writing a self-sync 
+
+Proposal: read or write a bit at a time.
+on read: set "bitsleft" to 10 if FF. otherwise to 8. So we actually feed emulated DOS 2 zero bits on a read.
+on write: we're not going to store the 0 bits, so just set it to 8.
+
+I have made the following tweaks: increment the disk 'head' position by one BEFORE a write. An init is working and can save the file, however, I am getting extraneous 96 after the newly written data fields. Before, I was getting the last byte of the address field chopped off - that was creating I/O errors.
+
+(I may have to go ahead and implement this sequencer state machine.)
+
+ProDOS still not working, filer reports "disk ii drive too slow".
+
+So, what if that is ProDOS complaining that there are too many bytes in Gap A? This whole 0x1A00 thing is a suggestion, not a command.. let's measure how many bytes we are actually generating from our conversion.
+yes. So comparing to an AppleSauce conversion to nibblized, we have 2100 more bits, 360 more nibbles, and duration of 208200us version 199997us. 300rpm is 5 rotations per second is 200,000us. So, we need to actually mark how much data we write, and then use THAT as, um, track_data_size.
+I am generating a track.size. So let's use it..
+ProDOS still no likey, however, disk stuff ought to be up to 5% faster since we cut 300 bytes out of 6000. DOS read, write, init is working ok still.

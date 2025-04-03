@@ -51,7 +51,7 @@ struct diskII {
     uint16_t image_index = 0;
     uint16_t head_position = 0; // index into the track
     uint8_t bit_position = 0; // how many bits left in byte.
-    uint8_t read_shift_register = 0; // when bit position = 0, this is 0. As bit_position increments, we shift in the next bit of the byte at head_position.
+    uint16_t read_shift_register = 0; // when bit position = 0, this is 0. As bit_position increments, we shift in the next bit of the byte at head_position.
     uint8_t write_shift_register = 0; 
     uint64_t last_read_cycle = 0;
     bool is_mounted = false;

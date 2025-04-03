@@ -112,7 +112,7 @@ void dump_track(track_t& track) {
 
 void dump_disk(nibblized_disk_t& disk) {
     for (int t = 0; t < TRACKS_PER_DISK; t++) {
-        printf("Encoded Track %d, position: %d\n", t, disk.tracks[t].position);
+        printf("Encoded Track %d, position: %d size: %d\n", t, disk.tracks[t].position, disk.tracks[t].size);
         dump_track(disk.tracks[t]);
     }
 }
@@ -349,6 +349,8 @@ int load_nib_image(nibblized_disk_t& disk, const char *filename) {
 
     for (int t = 0; t < TRACKS_PER_DISK; t++) {
         fread(disk.tracks[t].data, 1, TRACK_MAX_SIZE, fp);
+        disk.tracks[t].position = 0;
+        disk.tracks[t].size = TRACK_MAX_SIZE;
     }
 
     fclose(fp);
@@ -478,7 +480,8 @@ void emit_track(nibblized_disk_t& disk, disk_image_t& disk_image, int volume, in
         // loop in physical order.
         emit_sector(disk.tracks[track], (sector_t&)disk_image.sectors[track][disk.interleave_phys_to_logical[s]], volume, track, s);
     }
-    emit_gap_d(disk.tracks[track]);
+    //emit_gap_d(disk.tracks[track]);
+    emit_track_byte(disk.tracks[track], 0xFF);
 }
 
 /**

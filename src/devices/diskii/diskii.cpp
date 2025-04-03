@@ -192,43 +192,49 @@ In DOS at $B800 lives the "prenibble routine" . I could perhaps steal that. hehe
 
 #define DEBUG_PH(slot, drive, phase, onoff) fprintf(stdout, "PH: slot %d, drive %d, phase %d, onoff %d \n", slot, drive, phase, onoff)
 #define DEBUG_MOT(slot, drive, onoff) fprintf(stdout, "MOT: slot %d, drive %d, motor %d \n", slot, drive, onoff)
-#define DEBUG_DS(slot, drive, onoff) fprintf(stdout, "DS:slot %d, drive %d, drive_select %d \n", slot, drive, onoff)
+#define DEBUG_DS(slot, drive, drives) fprintf(stdout, "DS:slot %d, drive %d, drive_select %d \n", slot, drive, drives)
 
-uint8_t read_nybble(diskII& disk, bool motor) { // cause a shift.
+uint8_t read_nybble(diskII& disk, bool motor)
+{
+/**
+ * causes a shift of the read register.
+ * We load the data into low byte of read_shift_register.
+ * then we shift it left 1 bit at a time.
+ * The returned data value is the high byte of the read_shift_register.
+ */
 
-    // TODO: this needs to be changed to check motor on on this slot. maybe I can just pass in the motor status?
     if (!motor) { // return the same data every time if motor is off.
-        return disk.read_shift_register;
+        return (disk.read_shift_register >> 8) & 0xFF;
     }
 
-#if 0
-    // thought this would be acclerated, but, is slower. Just return the next byte.
-    disk.read_shift_register = disk.nibblized.tracks[disk.track/2].data[disk.head_position];
-    if (disk.head_position++ >= 0x1A00) { // rotated around back to start.
-        disk.head_position = 0;
-    }
-    return disk.read_shift_register;
-#else
     // Accurate version. Require the caller to shift each bit out one by one.
     if (disk.bit_position == 0) {
         // get next value from head_position to read_shift_register, increment head position.
         disk.read_shift_register = disk.nibblized.tracks[disk.track/2].data[disk.head_position];
         // "spin" the virtual diskette a little more
         disk.head_position++;
-        if (disk.head_position >= 0x1A00) { // rotated around back to start.
+        if (disk.head_position >= disk.nibblized.tracks[disk.track/2].size) {
             disk.head_position = 0;
+        }
+        /* if (disk.head_position >= 0x1A00) { // rotated around back to start.
+            disk.head_position = 0;
+        } */
+        if (disk.read_shift_register == 0xFF) { // for sync bytes simulate that they are 10 bits. (with two trailing zero bits)
+            disk.bit_position = 8; // at 10 this isn't working? 
+        } else {
+            disk.bit_position = 8;
         }
     }
 
-    disk.bit_position++;
-    uint8_t shiftedbyte = (disk.read_shift_register >> (8 - disk.bit_position) );
-    if (disk.bit_position == 8) { // end of byte? Trigger move to next byte.
+    //uint8_t shiftedbyte = (disk.read_shift_register >> (disk.bit_position-1) );
+    disk.read_shift_register <<= 1;
+    disk.bit_position--;
+/*     if (disk.bit_position == 0) { // end of byte? Trigger move to next byte.
         disk.bit_position = 0;
-    };
+    }; */
     //printf("read_nybble from track%d head position %d read_shift_register %02X ", disk->track, disk->head_position, disk->read_shift_register);
     //printf("shifted byte %02X\n", shiftedbyte);
-    return shiftedbyte;
-#endif
+    return (disk.read_shift_register >> 8) & 0xFF;
 }
 
 void write_nybble(diskII& disk) { // cause a shift.
@@ -238,13 +244,18 @@ void write_nybble(diskII& disk) { // cause a shift.
     disk.bit_position = 0;
 
     // get next value from head_position to read_shift_register, increment head position.
-    disk.nibblized.tracks[disk.track/2].data[disk.head_position] = disk.write_shift_register;
-    // "spin" the virtual diskette a little more
     disk.head_position++;
-    if (disk.head_position >= 0x1A00) { // rotated around back to start.
+    //disk.head_position %= 0x1A00;
+    if (disk.head_position >= disk.nibblized.tracks[disk.track/2].size) {
         disk.head_position = 0;
     }
-
+    disk.nibblized.tracks[disk.track/2].data[disk.head_position] = disk.write_shift_register;
+    // "spin" the virtual diskette a little more
+   
+/*     if (disk.head_position >= 0x1A00) { // rotated around back to start.
+        disk.head_position = 0;
+    }
+ */
     return;
 }
 
@@ -392,6 +403,14 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
 
     uint8_t read_value = 0xEE;
     int8_t cur_phase = cur_track % 4;
+
+    // if more than X cycles have elapsed since last read, set bit_position to 0 and move head X bytes forward.
+    /* if ((cpu->cycles - seldrive.last_read_cycle) > 64) {
+        seldrive.bit_position = 0;
+        seldrive.head_position = (seldrive.head_position +  ((cpu->cycles - seldrive.last_read_cycle) / 32) ) % 0x1A00;
+    } */
+    seldrive.last_read_cycle = cpu->cycles; // always update this.
+
     switch (reg) {
         case DiskII_Ph0_Off:    
             if (DEBUG(DEBUG_DISKII))  DEBUG_PH(slot, drive, 0, 0);
@@ -449,38 +468,25 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
             seldrive.phase3 = 1;
             seldrive.last_phase_on = 3;
             break;
-        case DiskII_Motor_Off:          // turns off BOTH drives
+        case DiskII_Motor_Off: // only one drive at a time is motorized.
             if (DEBUG(DEBUG_DISKII)) DEBUG_MOT(slot, drive, 0);
-            // if motor already off, do nothing.
+            // if motor already off, do nothing. otherwise schedule a motor off.
             if (diskII_slot[slot].motor == 1) {
                 diskII_slot[slot].mark_cycles_turnoff = cpu->cycles + 1000000;
                 if (DEBUG(DEBUG_DISKII)) printf("schedule motor off at %llu (is now %llu)\n", diskII_slot[slot].mark_cycles_turnoff, cpu->cycles);
             }
-            /* if (diskII_slot[slot].motor == 1) {
-                diskII_slot[slot].mark_cycles_turnoff = cpu->cycles + 1000000;
-                if (DEBUG(DEBUG_DISKII)) printf("schedule motor off at %llu (is now %llu)\n", diskII_slot[slot].mark_cycles_turnoff, cpu->cycles);
-            } */
             break;
-        case DiskII_Motor_On:
-            diskII_slot[slot].motor = 1;
-            //seldrive.motor = 1;
+        case DiskII_Motor_On: // only one drive at a time is motorized.
             if (DEBUG(DEBUG_DISKII)) DEBUG_MOT(slot, drive, 1);
+            diskII_slot[slot].motor = 1;
             diskII_slot[slot].mark_cycles_turnoff = 0; // if we turn motor on, reset this and don't stop it!
             break;
         case DiskII_Drive1_Select:
             if (DEBUG(DEBUG_DISKII)) DEBUG_DS(slot, drive, 0);
-            /* if (diskII_slot[slot].drive[drive].motor == 1) { // TODO: this is awkward. Probably, should have drive motor on/off on the controller level, not disk level.
-                diskII_slot[slot].drive[drive].motor = 0;
-                diskII_slot[slot].drive[0].motor = 1;
-            } */
             diskII_slot[slot].drive_select = 0;
             break;
         case DiskII_Drive2_Select:
             if (DEBUG(DEBUG_DISKII)) DEBUG_DS(slot, drive, 1);
-            /* if (diskII_slot[slot].drive[drive].motor == 1) {
-                diskII_slot[slot].drive[drive].motor = 0;
-                diskII_slot[slot].drive[1].motor = 1;
-            } */
             diskII_slot[slot].drive_select = 1;
             break;
         case DiskII_Q6L:
@@ -519,13 +525,10 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
 
     /* ANY even address read will get the contents of the current nibble. */
     if (((reg & 0x01) == 0) && (seldrive.Q7 == 0 && seldrive.Q6 == 0)) {
-        // if more than X cycles have elapsed since last read, set bit_position to 0 and move head X bytes forward.
-        /* if (cpu->cycles - seldrive.last_read_cycle > 60) {
-            seldrive.bit_position = 0;
-            seldrive.head_position = (seldrive.head_position +  ((cpu->cycles - seldrive.last_read_cycle) / 32) ) % 0x1A00;
-        }
-        seldrive.last_read_cycle = cpu->cycles; */
-        return read_nybble(seldrive, diskII_slot[slot].motor);
+        //seldrive.last_read_cycle = cpu->cycles;
+        uint8_t x = read_nybble(seldrive, diskII_slot[slot].motor);
+        printf("read_nybble: %02X\n", x);
+        return x;
     }
 
     if (seldrive.track != cur_track) {
@@ -551,6 +554,27 @@ void diskII_write_C0xx(cpu_state *cpu, uint16_t address, uint8_t value) {
     // TODO: need to handle the case where the motor is off.
     // store the value being written into the write_shift_register. It will be stored in the disk image when Q6L is tweaked in read.
     switch (reg) {
+        case DiskII_Motor_Off: // only one drive at a time is motorized.
+            if (DEBUG(DEBUG_DISKII)) DEBUG_MOT(slot, drive, 0);
+            // if motor already off, do nothing. otherwise schedule a motor off.
+            if (diskII_slot[slot].motor == 1) {
+                diskII_slot[slot].mark_cycles_turnoff = cpu->cycles + 1000000;
+                if (DEBUG(DEBUG_DISKII)) printf("schedule motor off at %llu (is now %llu)\n", diskII_slot[slot].mark_cycles_turnoff, cpu->cycles);
+            }
+            break;
+        case DiskII_Motor_On: // only one drive at a time is motorized.
+            if (DEBUG(DEBUG_DISKII)) DEBUG_MOT(slot, drive, 1);
+            diskII_slot[slot].motor = 1;
+            diskII_slot[slot].mark_cycles_turnoff = 0; // if we turn motor on, reset this and don't stop it!
+            break;
+        case DiskII_Drive1_Select:
+            if (DEBUG(DEBUG_DISKII)) DEBUG_DS(slot, drive, 0);
+            diskII_slot[slot].drive_select = 0;
+            break;
+        case DiskII_Drive2_Select:
+            if (DEBUG(DEBUG_DISKII)) DEBUG_DS(slot, drive, 1);
+            diskII_slot[slot].drive_select = 1;
+            break;
         case DiskII_Q6H:
             //printf("Q6H set write_shift_register=%02X\n", value);
             seldrive.write_shift_register = value;
@@ -629,6 +653,10 @@ void init_slot_diskII(cpu_state *cpu, SlotType_t slot) {
     register_C0xx_memory_read_handler(slot_base + DiskII_Q7L, diskII_read_C0xx);
     register_C0xx_memory_read_handler(slot_base + DiskII_Q7H, diskII_read_C0xx);
 
+    register_C0xx_memory_write_handler(slot_base + DiskII_Motor_Off, diskII_write_C0xx);
+    register_C0xx_memory_write_handler(slot_base + DiskII_Motor_On, diskII_write_C0xx);
+    register_C0xx_memory_write_handler(slot_base + DiskII_Drive1_Select, diskII_write_C0xx);
+    register_C0xx_memory_write_handler(slot_base + DiskII_Drive2_Select, diskII_write_C0xx);
     register_C0xx_memory_write_handler(slot_base + DiskII_Q6L, diskII_write_C0xx);
     register_C0xx_memory_write_handler(slot_base + DiskII_Q6H, diskII_write_C0xx);
     register_C0xx_memory_write_handler(slot_base + DiskII_Q7L, diskII_write_C0xx);
