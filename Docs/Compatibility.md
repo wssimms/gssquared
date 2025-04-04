@@ -92,4 +92,14 @@ hard looping at $0E86. This is a tight loop BIT $C019 BMI $0E86. I.e., it's look
 
 The Apple II plus did not have the VBL register. So this software not compatible with Apple II plus!
 
+## Wall Street
 
+reads a couple tracks then fails with:
+
+Unknown opcode: FFFFFFFF: 0xFA
+
+Say what? how did we get to address -1 and get stuck there?
+
+## Clue
+
+boots and is working, but, disk drive continues running inappropriately.

@@ -42,6 +42,11 @@ void handle_window_resize(cpu_state *cpu, int new_w, int new_h) {
     // Calculate new scale factors based on window size ratio
     float new_scale_x = (float)new_w / base_window_w;
     float new_scale_y = (float)new_h / base_window_h;
+    // TODO: technically this works, but, we should adjust the border_width to center the image.
+    // Means borders should be in variable in the display_state_t.
+    if (new_scale_x > (new_scale_y / 2.0f)) {
+        new_scale_x = new_scale_y / 2.0f;
+    }
     
     SDL_SetRenderScale(ds->renderer, new_scale_x, new_scale_y);
 }
