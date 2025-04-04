@@ -192,7 +192,7 @@ PRENIB2     LDA NBUF2,X
  * If the position or size exceed the track's max size, we print an error and bail.
  */
 void emit_track_byte(track_t& track, uint8_t byte) {
-    if (track.position >= TRACK_MAX_SIZE) {
+    if (track.position >= TRACK_MAX_DATA) {
         printf("track is full\n");
         return;
     }
@@ -247,7 +247,7 @@ void emit_gap_c(track_t& track) {
  * fill out the rest of the track with 0xFF
  */
 void emit_gap_d(track_t& track) {
-    while (track.position < TRACK_MAX_SIZE) {
+    while (track.position < TRACK_MAX_DATA) {
         emit_track_byte(track, 0xFF);
     }
 }
@@ -348,9 +348,9 @@ int load_nib_image(nibblized_disk_t& disk, const char *filename) {
     }
 
     for (int t = 0; t < TRACKS_PER_DISK; t++) {
-        fread(disk.tracks[t].data, 1, TRACK_MAX_SIZE, fp);
+        fread(disk.tracks[t].data, 1, TRACK_SIZE, fp);
         disk.tracks[t].position = 0;
-        disk.tracks[t].size = TRACK_MAX_SIZE;
+        disk.tracks[t].size = TRACK_SIZE; // TODO: maybe determine how many bytes actually used in .nib.
     }
 
     fclose(fp);
@@ -472,6 +472,7 @@ void emit_sector(track_t& tr, sector_t& in, uint8_t volume, uint8_t track, uint8
  * output: streams the nibblized track with gap_a, sectors to the track's data stream.
  */
 void emit_track(nibblized_disk_t& disk, disk_image_t& disk_image, int volume, int track) {
+    memset(disk.tracks[track].data, 0xFF, TRACK_SIZE); // fill with sync bytes
     emit_gap_a(disk.tracks[track]); // gap A is only at beginning of track.
     for (int s = 0; s < SECTORS_PER_TRACK; s++) {
         // we must map the logical sector number (.do format) to the physical sector number (.nib format)
@@ -482,6 +483,10 @@ void emit_track(nibblized_disk_t& disk, disk_image_t& disk_image, int volume, in
     }
     //emit_gap_d(disk.tracks[track]);
     emit_track_byte(disk.tracks[track], 0xFF);
+    if (disk.tracks[track].size > TRACK_MAX_DATA) {
+        printf("track %d size is too large %d\n", track, disk.tracks[track].size);
+    }
+    disk.tracks[track].size = TRACK_MAX_DATA;
 }
 
 /**
@@ -504,7 +509,7 @@ void write_nibblized_disk(nibblized_disk_t& disk, const char *filename) {
     }
 
     for (int t = 0; t < TRACKS_PER_DISK; t++) {
-        fwrite(disk.tracks[t].data, sizeof(uint8_t), TRACK_MAX_SIZE, out_fp);
+        fwrite(disk.tracks[t].data, sizeof(uint8_t), TRACK_SIZE, out_fp);
     }
 
     fclose(out_fp);

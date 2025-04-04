@@ -40,7 +40,7 @@ extern uint64_t debug_level;
 #define DEBUG_PD_BLOCK 0x40000
 #define DEBUG_PARALLEL 0x80000
 #define DEBUG_ANY 0xFFFFFFFF
-#define DEBUG_BOOT_FLAG 0
+#define DEBUG_BOOT_FLAG 0 /* DEBUG_OPCODE | DEBUG_OPERAND | DEBUG_REGISTERS | DEBUG_CLOCK | DEBUG_DISKII */
 
 #define DEBUG(flag) (debug_level & flag)
 

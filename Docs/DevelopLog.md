@@ -3043,3 +3043,26 @@ So, what if that is ProDOS complaining that there are too many bytes in Gap A? T
 yes. So comparing to an AppleSauce conversion to nibblized, we have 2100 more bits, 360 more nibbles, and duration of 208200us version 199997us. 300rpm is 5 rotations per second is 200,000us. So, we need to actually mark how much data we write, and then use THAT as, um, track_data_size.
 I am generating a track.size. So let's use it..
 ProDOS still no likey, however, disk stuff ought to be up to 5% faster since we cut 300 bytes out of 6000. DOS read, write, init is working ok still.
+
+Comment from Nick Westgate:
+ProDOS will have something similar to what I mentioned in a previous comment: [For DOS] you need to provide at least one different nibble in every 16 nibbles to defeat the SAMESLOT drive speed check in DOS/RWTS at BD34-BD53 (according to Beneath Apple DOS). ProDOS is different though IIRC.
+
+that's not it.
+
+However, I am starting to think ProDOS is doing something not mentioned in manuals. 
+
+## Apr 4, 2025
+
+Thanks to a tip from Nelson, forcing a disk image track to be fewer bytes (reducing GAP A when generating nibblized version for instance) makes ProDOS Format work.
+But now DOS 3.3 format does not. I reduced from 149 to 64 bytes. Let's increase a bit..
+
+Final update: Many thanks to Nelson Waissman who put me on the right ... track ... ha ha pun intended. The number of nibbles in the virtual disk track determine the "speed" the disk is spinning. 
+If too short, DOS3.3 won't format. (not enough room for how DOS33 init's a track!)
+If too long, ProDOS thinks the disk is too slow.
+His number of 0x18D0 is exactly right.
+
+Locksmith now: Verify 16 sector ok; Format 16 sector ok; it cannot bit-copy. It keeps complaining about "FRAME BITS 02, LONGSS #FB02". run locksmith disk speed thing. Still reports the disk is really really slow.
+ProDOS now: format volume ok and can copy files to it;
+DOS3.3 now: init volume ok and can write files to it.
+DOS33 and ProDOS 2.4.3 format, disk copy, etc with CopyIIPlus- works.
+Copy II Plus drive speed test - doesn't work.

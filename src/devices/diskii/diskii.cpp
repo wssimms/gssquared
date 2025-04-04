@@ -527,7 +527,7 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
     if (((reg & 0x01) == 0) && (seldrive.Q7 == 0 && seldrive.Q6 == 0)) {
         //seldrive.last_read_cycle = cpu->cycles;
         uint8_t x = read_nybble(seldrive, diskII_slot[slot].motor);
-        printf("read_nybble: %02X\n", x);
+        //printf("read_nybble: %02X\n", x);
         return x;
     }
 

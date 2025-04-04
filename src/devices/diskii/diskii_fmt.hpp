@@ -66,13 +66,14 @@ typedef uint16_t interleave_t[0x10];
 const int TRACKS_PER_DISK = 35;
 const int SECTORS_PER_TRACK = 16;
 const int SECTOR_SIZE = 0x0100;
-const int TRACK_MAX_SIZE = 0x1A00; // https://retrocomputing.stackexchange.com/questions/27691/apple-nibble-disk-format-specification
+const int TRACK_SIZE = 0x1A00; // https://retrocomputing.stackexchange.com/questions/27691/apple-nibble-disk-format-specification
+const int TRACK_MAX_DATA = 0x18D0; // Nelson
 
-const int GAP_A_SIZE = 149;
+const int GAP_A_SIZE = 64; // was 149
 const int GAP_B_SIZE = 5; // TODO: This is what DOS33 uses. What about ProDOS?
 const int GAP_C_SIZE = 21;
-const int ADDRESS_FIELD_SIZE = 15;
-const int DATA_FIELD_SIZE = 350;
+/* const int ADDRESS_FIELD_SIZE = 15;
+const int DATA_FIELD_SIZE = 350; */
 
 const int DEFAULT_VOLUME = 0xFE;
 
@@ -91,7 +92,7 @@ typedef uint8_t sector_62_ondisk_t[343];
 typedef struct {
     uint16_t size;
     uint16_t position;
-    uint8_t data[TRACK_MAX_SIZE];
+    uint8_t data[TRACK_SIZE];
 } track_t;
 
 // Nibblized Disk data structure

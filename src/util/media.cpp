@@ -261,9 +261,8 @@ bool isFileReadOnly(const std::string& filePath) {
 }
 
 int identify_media(media_descriptor& md) {
-    if (isFileReadOnly(md.filename)) {
-        md.write_protected = true;
-    }
+    if (isFileReadOnly(md.filename)) md.write_protected = true;
+    else md.write_protected = false;
     if (compare_suffix(md.filename, ".2mg")) {
         format_2mg_t hdr;
         if (read_2mg_header(hdr, md.filename) != 0) {
