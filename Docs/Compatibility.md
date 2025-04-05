@@ -73,6 +73,7 @@ Works in II+ on OE.
 Hangs during boot on GS2 after showing the prodos splash screen. Drive light is still on.
 Will need to trace this and see what's going on. Is supposed to work on Apple II plus and standard 6502. So who knows what is going on..
 Though, OE II plus seems to have an 80 column card that activates on PR#3.
+Now working just fine.
 
 ## Locksmith
 
@@ -81,9 +82,11 @@ Though, OE II plus seems to have an 80 column card that activates on PR#3.
 locksmith ability to quarter track isn't going to work the way the code is written now.
 16 sector fast disk claims "address" field is missing on every sector and track. I wonder if this is all due to lack of quarter-track support.
 This did not work in the previous iteration of the code either.
+All the 16-sector utils now work (format, verify, etc.) Nibble copying does not.
 
 ### 5.0
 nothing working here either. It's never turning the disk drive motors on. it must be doing it some different way.
+probably same status as 6.0.
 
 ## Glider
 
@@ -102,4 +105,12 @@ Say what? how did we get to address -1 and get stuck there?
 
 ## Clue
 
-boots and is working, but, disk drive continues running inappropriately.
+boots and is working, but, disk drive continues running inappropriately. 
+
+## Classic Concentration
+
+Dies during game load with gazillions of unknown opcodes.
+
+## Karateka (Brutal Deluxe crack)
+
+seems to be working quite well!

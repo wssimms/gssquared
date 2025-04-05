@@ -23,8 +23,8 @@
   * High-resolution graphics - monochrome ('green screen version') done; Color "rgb mode" done; Color "composite mode" done.
   * Green and Amber monochrome modes - done for text, hi-res. Lo-res not started. 
 * Storage Devices
-  * Cassette - not started.  
-  * Disk II Controller Card - Read-only working with DOS and ProDOS interleave disks.
+  * Cassette - not started.
+  * Disk II Controller Card - Read/Write/Format working with DOS and ProDOS interleave disks. Can't save modified disks yet.
   * ProDOS Block-Device Interface - complete.
   * SmartPort / ProDOS Block-Device Interface - Not started.
   * RAMfast SCSI Interface - Not started.
@@ -36,7 +36,7 @@
   * .2mg - read/write, for block devices, complete.
   * .nib - read only, 143K.
   * .woz - not started.
-* Sound - Complete for 1MHz operation. Does work at higher speeds, but, results are comical.
+* Sound - Complete. Needs some tweaking to make sounds less buzzy. Works 1MHz and fast speeds though results can be comical.
 * I/O Devices
   * Printer / parallel port - not started.
   * Printer / serial port - not started.

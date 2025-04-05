@@ -3040,7 +3040,7 @@ I have made the following tweaks: increment the disk 'head' position by one BEFO
 ProDOS still not working, filer reports "disk ii drive too slow".
 
 So, what if that is ProDOS complaining that there are too many bytes in Gap A? This whole 0x1A00 thing is a suggestion, not a command.. let's measure how many bytes we are actually generating from our conversion.
-yes. So comparing to an AppleSauce conversion to nibblized, we have 2100 more bits, 360 more nibbles, and duration of 208200us version 199997us. 300rpm is 5 rotations per second is 200,000us. So, we need to actually mark how much data we write, and then use THAT as, um, track_data_size.
+yes. So comparing to an AppleSauce conversion to nibblized, we have 2100 more bits, 360 more nibbles, and duration of 208200us versus 199997us. 300rpm is 5 rotations per second is 200,000us. So, we need to actually mark how much data we write, and then use THAT as, um, track_data_size.
 I am generating a track.size. So let's use it..
 ProDOS still no likey, however, disk stuff ought to be up to 5% faster since we cut 300 bytes out of 6000. DOS read, write, init is working ok still.
 
@@ -3066,3 +3066,10 @@ ProDOS now: format volume ok and can copy files to it;
 DOS3.3 now: init volume ok and can write files to it.
 DOS33 and ProDOS 2.4.3 format, disk copy, etc with CopyIIPlus- works.
 Copy II Plus drive speed test - doesn't work.
+
+Proposed task list for next release (0.20)
+* finish up Disk II write by denibblizing (if needed) and writing disk II data back to disk file.
+* clean up video code so we call old monochrome hires code in that mode.
+* Center display in window when in fullscreen mode.
+
+That ought to be easy!

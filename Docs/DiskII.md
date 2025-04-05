@@ -71,7 +71,7 @@ How to handle each media type:
 
 Write this initially as a denibblizer utility.
 
-## Write protection
+## Write protection (Complete)
 
 Most operating systems allow a file to be specified as "read only" even for the current user. This seems like the best way to support passing through write-protect status to the emulator. I.e., if the OS file is read-only, then set WP flag in the media descriptor. (Implemented now in media, checked by DiskII module)
 
@@ -83,5 +83,8 @@ This seems like a really, really good idea.
 
 ## Disk-drive sound emulation
 
-Well, everyone else does it. I guess I have to, ha ha. OE has all the classic Shugart sounds. 
+Well, everyone else does it. I guess I have to, ha ha. OE has all the classic Shugart sounds.
+Works, but could use some tidying up.
+
+
 

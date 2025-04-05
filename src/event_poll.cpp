@@ -27,27 +27,48 @@
 #include "devices/loader.hpp"
 #include "util/reset.hpp"
 #include "devices/diskii/diskii.hpp"
-    
-// Base dimensions for aspect ratio calculation
-#define WIN_BASE_WIDTH 560
-#define WIN_BASE_HEIGHT 384
 
 void handle_window_resize(cpu_state *cpu, int new_w, int new_h) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    
-    // Calculate the base window size (including borders)
-    int base_window_w = (BASE_WIDTH + BORDER_WIDTH*2);
-    int base_window_h = (BASE_HEIGHT + BORDER_HEIGHT*2);
-    
+        
     // Calculate new scale factors based on window size ratio
-    float new_scale_x = (float)new_w / base_window_w;
-    float new_scale_y = (float)new_h / base_window_h;
+    float new_scale_x = (float)new_w / BASE_WIDTH;
+    float new_scale_y = (float)new_h / (BASE_HEIGHT + ds->border_height*2);
+ 
     // TODO: technically this works, but, we should adjust the border_width to center the image.
     // Means borders should be in variable in the display_state_t.
     if (new_scale_x > (new_scale_y / 2.0f)) {
         new_scale_x = new_scale_y / 2.0f;
     }
+
+    ds->border_width = ((new_w / new_scale_x)- BASE_WIDTH) / 2;
+
+    printf("handle_window_resize: new_w: %d, new_h: %d new scale: %f, %f\n", new_w, new_h, new_scale_x, new_scale_y);
+
+    SDL_SetRenderScale(ds->renderer, new_scale_x, new_scale_y);
+}
+
+void handle_window_resize_old(cpu_state *cpu, int new_w, int new_h) {
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     
+    // Calculate the base window size (including borders)
+    int base_window_w = (BASE_WIDTH + ds->border_width*2);
+    int base_window_h = (BASE_HEIGHT + ds->border_height*2);
+    
+    // Calculate new scale factors based on window size ratio
+    float new_scale_x = (float)new_w / base_window_w;
+    float new_scale_y = (float)new_h / base_window_h;
+ 
+    // TODO: technically this works, but, we should adjust the border_width to center the image.
+    // Means borders should be in variable in the display_state_t.
+    if (new_scale_x > (new_scale_y / 2.0f)) {
+        new_scale_x = new_scale_y / 2.0f;
+    }
+
+    ds->border_width = ((new_w / new_scale_x)- BASE_WIDTH) / 2;
+
+    printf("handle_window_resize: new_w: %d, new_h: %d new scale: %f, %f\n", new_w, new_h, new_scale_x, new_scale_y);
+
     SDL_SetRenderScale(ds->renderer, new_scale_x, new_scale_y);
 }
 

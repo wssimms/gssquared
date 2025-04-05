@@ -184,14 +184,14 @@ uint64_t init_display_sdl(display_state_t *ds) {
         return 1;
     }
 
-    int window_width = (BASE_WIDTH + BORDER_WIDTH*2) * SCALE_X;
-    int window_height = (BASE_HEIGHT + BORDER_HEIGHT*2) * SCALE_Y;
+    int window_width = (BASE_WIDTH + ds->border_width*2) * SCALE_X;
+    int window_height = (BASE_HEIGHT + ds->border_height*2) * SCALE_Y;
     float aspect_ratio = (float)window_width / (float)window_height
     ;
     ds->window = SDL_CreateWindow(
         "GSSquared - Apple ][ Emulator", 
-        (BASE_WIDTH + BORDER_WIDTH*2) * SCALE_X, 
-        (BASE_HEIGHT + BORDER_HEIGHT*2) * SCALE_Y, 
+        (BASE_WIDTH + ds->border_width*2) * SCALE_X, 
+        (BASE_HEIGHT + ds->border_height*2) * SCALE_Y, 
         SDL_WINDOW_RESIZABLE
     );
 
@@ -281,8 +281,8 @@ void update_display(cpu_state *cpu) {
 
  /*    if (updated) { */
         SDL_FRect dstrect = {
-            (float)BORDER_WIDTH,
-            (float)BORDER_HEIGHT,
+            (float)ds->border_width,
+            (float)ds->border_height,
             (float)BASE_WIDTH, 
             (float)BASE_HEIGHT
         };

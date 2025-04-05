@@ -98,6 +98,9 @@ public:
     SDL_Renderer* renderer ;
     SDL_Texture* screenTexture;
 
+    int border_width = BORDER_WIDTH;
+    int border_height = BORDER_HEIGHT;
+
     display_fullscreen_mode_t display_fullscreen_mode;
     display_color_mode_t color_mode;
     display_mode_t display_mode;
