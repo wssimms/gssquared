@@ -3070,6 +3070,7 @@ Copy II Plus drive speed test - doesn't work.
 Proposed task list for next release (0.20)
 * finish up Disk II write by denibblizing (if needed) and writing disk II data back to disk file.
 * clean up video code so we call old monochrome hires code in that mode.
-* Center display in window when in fullscreen mode.
+* Center display in window when in fullscreen mode. [ complete ]
+* Redo joystick code so it handles 
 
 That ought to be easy!

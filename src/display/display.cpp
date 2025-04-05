@@ -416,10 +416,14 @@ void render_line(cpu_state *cpu, int y) {
         render_lores_scanline(cpu, y, pixels, pitch);
     } else if (mode == LM_HIRES_MODE) {
         //render_hgr_scanline_mono(cpu, y, pixels, pitch);
-        if (ds->display_hgr_model == DISPLAY_HGR_MODEL_ORIG) {
-            render_hgr_scanline(cpu, y, pixels, pitch);
+        if (ds->color_mode != DM_COLOR_MODE) {
+            render_hgr_scanline_mono(cpu, y, pixels, pitch);
         } else {
-            render_hgrng_scanline(cpu, y, (uint8_t *)pixels);
+            if (ds->display_hgr_model == DISPLAY_HGR_MODEL_ORIG) {
+                render_hgr_scanline(cpu, y, pixels, pitch);
+            } else {
+                render_hgrng_scanline(cpu, y, (uint8_t *)pixels);
+            }
         }
     }
 
