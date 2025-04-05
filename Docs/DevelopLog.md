@@ -3069,8 +3069,18 @@ Copy II Plus drive speed test - doesn't work.
 
 Proposed task list for next release (0.20)
 * finish up Disk II write by denibblizing (if needed) and writing disk II data back to disk file.
-* clean up video code so we call old monochrome hires code in that mode.
+* clean up video code so we call old monochrome hires code in that mode. [ complete ]
 * Center display in window when in fullscreen mode. [ complete ]
-* Redo joystick code so it handles 
+* Redo joystick code so it maps correctly when it comes online after emu start. (sometimes starts with Y reversed!, or not right joystick at all)
+* Decay the audio so we don't get so many annoying clicks due to OS interrupting my event loops
 
 That ought to be easy!
+
+## Apr 5, 2025
+
+building on windows - Win doesn't like strndup because it's a POSIX function. Find a standard c++ library alternative.
+and really do some cleanup, use C++ variants of std library stuff instead of a mishmash of c and c++.
+
+First pass, not awful, though having some issues when linking against SDL. Some weird Windowsism.
+
+on the speaker decay. When we hit an event, set the amplitude to 0x6000. Each sample after that, decay the amplitude 0x0100. (that's about 90 samples, can adjust this). If we fill empty frame, continue using decaying amplitude. Sample value at any point is amplitude * polarity. I currently have it to decay at 0x0300. That doesn't seem to hurt frequency response at all. I also reduced the max amplitude to 0x5000 from 0x6000. 

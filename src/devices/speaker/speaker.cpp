@@ -60,7 +60,9 @@ void audio_generate_frame(cpu_state *cpu, uint64_t cycle_window_start, uint64_t 
     if (queued_samples < 735) { printf("queue underrun %llu\n", queued_samples); 
         // attempt to calculate how much time slipped and generate that many samples
         for (int x = 0; x < 735; x++) {
-            working_buffer[x] = speaker_state->last_sample;
+            working_buffer[x] = speaker_state->amplitude * speaker_state->polarity;
+             speaker_state->amplitude = speaker_state->amplitude - AMPLITUDE_DECAY_RATE;
+              if (speaker_state->amplitude < 0) speaker_state->amplitude = 0; // TEST
         }
         SDL_PutAudioStreamData(speaker_state->stream, working_buffer, 735*sizeof(int16_t));
     }
@@ -79,7 +81,7 @@ void audio_generate_frame(cpu_state *cpu, uint64_t cycle_window_start, uint64_t 
     if (DEBUG(DEBUG_SPEAKER)) std::cout << " cpu_delta: " << cpu_delta   
         << " samp_c: " << samples_count << " cyc/samp: " << cycles_per_sample
         <<  " cyc range: [" << cycle_window_start << " - " << cycle_window_end << "] evtq: " 
-        << event_buffer->count << " qd_samp: " << queued_samples << "\n";
+        << event_buffer->count << " qd_samp: " << queued_samples << " amp: " << speaker_state->amplitude << "\n";
 
     /**
      * this is the more savvy Chris Torrance algorithm.
@@ -93,18 +95,21 @@ void audio_generate_frame(cpu_state *cpu, uint64_t cycle_window_start, uint64_t 
             if (event_tick <= cyc) {
                 event_buffer->pop_oldest(event_tick);
                 speaker_state->polarity = -speaker_state->polarity;
+                speaker_state->amplitude = AMPLITUDE_PEAK;                  // TEST
             }
             contribution += speaker_state->polarity;
             cyc++;
         }
  //       working_buffer[samp] = ((float)contribution / (float)cycles_per_sample) * 0x6000;
         if (cycles_per_sample > 0) {  // Prevent division by zero
-            float sample_value = ((float)contribution / (float)cycles_per_sample) * 0x6000;
+            float sample_value = ((float)contribution / (float)cycles_per_sample) * /* 0x6000 */ speaker_state->amplitude;  // TEST
             // Clamp the value to valid int16_t range
             if (sample_value > 32767.0f) sample_value = 32767.0f;
             if (sample_value < -32768.0f) sample_value = -32768.0f;
             working_buffer[samp] = (int16_t)sample_value;
             speaker_state->last_sample = (int16_t)sample_value;
+            speaker_state->amplitude = speaker_state->amplitude - AMPLITUDE_DECAY_RATE;
+              if (speaker_state->amplitude < 0) speaker_state->amplitude = 0; // TEST
         } else {
             working_buffer[samp] = speaker_state->last_sample;  // Safe default when we can't calculate
         }
@@ -156,17 +161,6 @@ void init_mb_speaker(cpu_state *cpu, SlotType_t slot) {
     desired.freq = 44100;
     desired.format = SDL_AUDIO_S16LE;
     desired.channels = 1;
-    
-#if 0
-    speaker_state->stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &desired, NULL, NULL);
-    std::cout << "SDL_OpenAudioDevice returned: " << speaker_state->device_id << "\n";
-    if ( speaker_state->stream == nullptr )
-    {
-        std::cerr << "Error opening audio device: " << SDL_GetError() << std::endl;
-        return;
-    }
-    speaker_state->device_id = SDL_GetAudioStreamDevice(speaker_state->stream);
-#endif
 
     speaker_state->device_id = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, NULL);
     if (speaker_state->device_id == 0) {

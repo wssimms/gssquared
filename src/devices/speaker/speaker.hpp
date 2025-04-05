@@ -18,6 +18,10 @@
 #pragma once
 
 #include "cpu.hpp"
+#include "slots.hpp"
+
+#define AMPLITUDE_DECAY_RATE (0x300)
+#define AMPLITUDE_PEAK (0x5000)
 
 #define SAMPLE_BUFFER_SIZE (4096)
 
@@ -70,6 +74,7 @@ typedef struct speaker_state_t {
     SDL_AudioStream *stream = NULL;
     int device_started = 0;
     int polarity = 1;
+    int16_t amplitude = 0x6000;
     int16_t last_sample = 0;
     int16_t working_buffer[SAMPLE_BUFFER_SIZE];
     EventBuffer event_buffer;
