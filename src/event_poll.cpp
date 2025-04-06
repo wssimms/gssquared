@@ -43,7 +43,7 @@ void handle_window_resize(cpu_state *cpu, int new_w, int new_h) {
 
     ds->border_width = ((new_w / new_scale_x)- BASE_WIDTH) / 2;
 
-    printf("handle_window_resize: new_w: %d, new_h: %d new scale: %f, %f\n", new_w, new_h, new_scale_x, new_scale_y);
+    printf("handle_window_resize: new_w: %d, new_h: %d new scale: %f, %f, border w: %d, h: %d\n", new_w, new_h, new_scale_x, new_scale_y, ds->border_width, ds->border_height);
 
     SDL_SetRenderScale(ds->renderer, new_scale_x, new_scale_y);
 }
