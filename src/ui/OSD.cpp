@@ -63,7 +63,7 @@ static void /* SDLCALL */ file_dialog_callback(void* userdata, const char* const
     osd->cpu->mounts->unmount_media(data->key);
 
     disk_mount_t dm;
-    dm.filename = (char *)filelist[0];
+    dm.filename = strndup(filelist[0], 1024);
     dm.slot = data->key >> 8;
     dm.drive = data->key & 0xFF;   
     osd->cpu->mounts->mount_media(dm);
