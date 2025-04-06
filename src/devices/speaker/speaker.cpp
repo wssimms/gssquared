@@ -61,8 +61,8 @@ void audio_generate_frame(cpu_state *cpu, uint64_t cycle_window_start, uint64_t 
         // attempt to calculate how much time slipped and generate that many samples
         for (int x = 0; x < 735; x++) {
             working_buffer[x] = speaker_state->amplitude * speaker_state->polarity;
-             speaker_state->amplitude = speaker_state->amplitude - AMPLITUDE_DECAY_RATE;
-              if (speaker_state->amplitude < 0) speaker_state->amplitude = 0; // TEST
+            speaker_state->amplitude = speaker_state->amplitude - AMPLITUDE_DECAY_RATE;
+            if (speaker_state->amplitude < 0) speaker_state->amplitude = 0; // TEST
         }
         SDL_PutAudioStreamData(speaker_state->stream, working_buffer, 735*sizeof(int16_t));
     }
@@ -109,9 +109,12 @@ void audio_generate_frame(cpu_state *cpu, uint64_t cycle_window_start, uint64_t 
             working_buffer[samp] = (int16_t)sample_value;
             speaker_state->last_sample = (int16_t)sample_value;
             speaker_state->amplitude = speaker_state->amplitude - AMPLITUDE_DECAY_RATE;
-              if (speaker_state->amplitude < 0) speaker_state->amplitude = 0; // TEST
+            if (speaker_state->amplitude < 0) speaker_state->amplitude = 0; // TEST
         } else {
-            working_buffer[samp] = speaker_state->last_sample;  // Safe default when we can't calculate
+            working_buffer[samp] = speaker_state->amplitude * speaker_state->polarity;    // speaker_state->last_sample;  // Safe default when we can't calculate
+            speaker_state->amplitude = speaker_state->amplitude - AMPLITUDE_DECAY_RATE;
+            if (speaker_state->amplitude < 0) speaker_state->amplitude = 0; // TEST
+
         }
         contribution = 0;
     }

@@ -20,7 +20,7 @@
 #include "cpu.hpp"
 #include "slots.hpp"
 
-#define AMPLITUDE_DECAY_RATE (0x300)
+#define AMPLITUDE_DECAY_RATE (0x200)
 #define AMPLITUDE_PEAK (0x5000)
 
 #define SAMPLE_BUFFER_SIZE (4096)
