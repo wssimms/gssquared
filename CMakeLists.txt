@@ -292,6 +292,8 @@ target_link_libraries(gs2
 
 add_subdirectory(apps/nibblizer)
 
+add_subdirectory(apps/denibblizer)
+
 add_subdirectory(apps/diskid)
 
 # Update the executable's include directories to remove redundant paths
