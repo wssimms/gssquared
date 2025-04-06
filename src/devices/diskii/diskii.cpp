@@ -250,12 +250,13 @@ void write_nybble(diskII& disk) { // cause a shift.
         disk.head_position = 0;
     }
     disk.nibblized.tracks[disk.track/2].data[disk.head_position] = disk.write_shift_register;
+    
     // "spin" the virtual diskette a little more
-   
 /*     if (disk.head_position >= 0x1A00) { // rotated around back to start.
         disk.head_position = 0;
     }
  */
+    disk.modified = true;
     return;
 }
 
@@ -302,10 +303,20 @@ void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor 
     diskII_slot[slot].drive[drive].write_protect = media->write_protected;
     diskII_slot[slot].drive[drive].is_mounted = true;
     diskII_slot[slot].drive[drive].media_d = media;
+    diskII_slot[slot].drive[drive].modified = false;
 }
 
 void unmount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive) {
     diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
+
+    // TODO: this will write the disk image back to disk.
+    if (diskII_slot[slot].drive[drive].media_d && diskII_slot[slot].drive[drive].modified) {
+        fprintf(stderr, "Unmounting disk %s with unsaved changes.\n", diskII_slot[slot].drive[drive].media_d->filestub);
+        media_interleave_t id = diskII_slot[slot].drive[drive].media_d->interleave;
+        disk_image_t new_disk_image;
+        denibblize_disk_image(new_disk_image, diskII_slot[slot].drive[drive].nibblized, id);
+        write_disk_image_po_do(new_disk_image, diskII_slot[slot].drive[drive].media_d->filename);
+    }
 
     // reset all the track parameters to default to prepare for loading a new image.
     for (int i = 0; i < 35; i++) {
@@ -315,7 +326,7 @@ void unmount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive) {
     }
     diskII_slot[slot].drive[drive].is_mounted = false;
     diskII_slot[slot].drive[drive].media_d = nullptr;
-    // TODO: this will write the disk image back to disk.
+    diskII_slot[slot].drive[drive].modified = false;
 }
 
 drive_status_t diskii_status(cpu_state *cpu, uint64_t key) {

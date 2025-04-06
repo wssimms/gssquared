@@ -114,6 +114,12 @@ extern interleave_t do_phys_to_logical;
 extern interleave_t do_logical_to_phys;
 extern interleave_t cpm_order;
 
+typedef enum media_interleave_t {
+    INTERLEAVE_NONE, /* Straight block image */
+    INTERLEAVE_DO,
+    INTERLEAVE_PO,
+    INTERLEAVE_CPM
+} media_interleave_t;
 
 void dump_disk_image(disk_image_t& disk_image);
 int load_disk_image(disk_image_t& disk_image, const char *filename);
@@ -121,3 +127,5 @@ void emit_disk(nibblized_disk_t& disk, disk_image_t& disk_image, int volume);
 void write_nibblized_disk(nibblized_disk_t& disk, const char *filename);
 void dump_disk(nibblized_disk_t& disk);
 int load_nib_image(nibblized_disk_t& disk, const char *filename);
+bool write_disk_image_po_do(disk_image_t& disk_image, const char *filename);
+int denibblize_disk_image(disk_image_t& disk_image, nibblized_disk_t& nib_disk, media_interleave_t interleave);

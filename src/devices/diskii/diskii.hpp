@@ -55,6 +55,7 @@ struct diskII {
     uint8_t write_shift_register = 0; 
     uint64_t last_read_cycle = 0;
     bool is_mounted = false;
+    bool modified = false;
     disk_image_t media;
     nibblized_disk_t nibblized;
     media_descriptor *media_d;

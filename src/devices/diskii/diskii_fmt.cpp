@@ -21,7 +21,6 @@
 #include "diskii_fmt.hpp"
 #include "debug.hpp"
 
-
 interleave_t po_phys_to_logical = {   // also Pascal Order.
     0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15
 };
@@ -372,8 +371,6 @@ void write_sector_62(sector_62_t& s62, const char *filename) {
     fclose(out_fp);
 }
 
-
-
 void prenibble(sector_t& buf, sector_62_t& nbuf) {
     uint8_t *nbuf1 = nbuf;
     uint8_t *nbuf2 = nbuf + 0x100;
@@ -427,7 +424,7 @@ void emit_nibblized_sector(track_t& track, sector_t& in) {
 
     // don't need to reorder now, just emit to track.
     uint8_t last = 0;
-    for (int i = 0x0155; i >= 0x0100; i--) {
+    for (int i = 0x0155; i >= 0x0100; i--) {        // the "short" part is output first, in reverse order.
         emit_track_byte(track, translate_62[nbuf[i] ^ last]);
         last = nbuf[i];
     }
@@ -520,3 +517,209 @@ void write_nibblized_disk(nibblized_disk_t& disk, const char *filename) {
  * particularly, the address field, so then we know which disk_image track and sector
  * to write the data back to.
  */
+
+bool write_disk_image_po_do(disk_image_t& disk_image, const char *filename) {
+    FILE *out_fp = fopen(filename, "wb");
+    if (!out_fp) {
+        printf("Could not open %s for writing\n", filename);
+        return false;
+    }
+
+    for (int t = 0; t < TRACKS_PER_DISK; t++) {
+        fwrite(disk_image.sectors[t], sizeof(sector_t), SECTORS_PER_TRACK, out_fp);
+    }
+
+    fclose(out_fp);
+    return true;
+}
+
+uint8_t denibble_table[256] = {
+//   0     1     2     3     4     5     6     7     8     9     A     B     C     D     E     F
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 0x00
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 0x10
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 0x20
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 0x30
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 0x40
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 0x50
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 0x60
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 0x70
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 0x80
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x02, 0x03, 0x00, 0x04, 0x05, 0x06, // 0x90
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x08, 0x00, 0x00, 0x00, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, // 0xA0
+    0x00, 0x00, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x00, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, // 0xB0
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1B, 0x00, 0x1C, 0x1D, 0x1E, // 0xC0
+    0x00, 0x00, 0x00, 0x1F, 0x00, 0x00, 0x20, 0x21, 0x00, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, // 0xD0
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x29, 0x2A, 0x2B, 0x00, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32, // 0xE0
+    0x00, 0x00, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x00, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F, // 0xF0
+};
+
+/*
+
+NBUF1 - 0x100 bytes
+NBUF2 - 0x 56 BYTES
+
+POSTNB16    LDY #0          USER DATA BUF IDX.
+POST1       LDX #$56        INIT NBUF2 INDEX.
+POST2       DEX             NBUF IDX $55 TO $0.
+            BMI POST1       WRAPAROUND IF NEG.
+            LDA NBUF1,Y
+            LSR NBUF2,X     SHIFT 2 BITS FROM
+            ROL A           CURRENT NBUF2 NIBL
+            LSR NBUF2,X     INTO CURRENT NBUF1
+            ROL A           NIBL.
+            STA (BUF),Y     BYTE OF USER DATA.
+            INY             NEXT USER BYTE.
+            CPY T0          DONE IF EQUAL T0. (this is 0)
+            BNE POST2
+            RTS             RETURN.
+*/
+uint8_t decode_sector_62(sector_62_t& nibble_buffer, sector_t& decoded_sector)
+{
+	uint8_t y = 0;
+    int8_t x;
+    uint8_t c = 0;
+    uint16_t NBUF1 = 0x0;
+    uint16_t NBUF2 = 0x100;
+
+post1:
+    x = 0x56;
+
+post2:
+    x--;
+    if (x < 0) goto post1;
+
+    uint8_t a = nibble_buffer[NBUF1 + y];
+    
+    c = nibble_buffer[NBUF2 + x] & 1; nibble_buffer[NBUF2 + x] >>= 1; a = (a << 1) | c;
+    c = nibble_buffer[NBUF2 + x] & 1; nibble_buffer[NBUF2 + x] >>= 1; a = (a << 1) | c;
+    decoded_sector[y] = a;
+    y++;
+    if (y != 0x00) goto post2;
+
+    return true;
+}
+
+int denibblize_disk_image(disk_image_t& disk_image, nibblized_disk_t& nib_disk, media_interleave_t interleave)
+{
+
+    interleave_t i_phys_to_logical;
+
+    if (interleave == INTERLEAVE_PO) {
+        memcpy(i_phys_to_logical, po_phys_to_logical, sizeof(interleave_t));
+    } else if (interleave == INTERLEAVE_DO) {
+        memcpy(i_phys_to_logical, do_phys_to_logical, sizeof(interleave_t));
+    }
+
+    printf("Denibblizing disk image...\n");
+    
+    for (int t = 0; t < TRACKS_PER_DISK; t++) {
+        // Mark all sectors as not found
+        bool sector_found[SECTORS_PER_TRACK] = {false};
+        int sectors_found = 0;
+        
+        track_t& track = nib_disk.tracks[t];
+        uint16_t pos = 0;
+        
+        int tracksize = nib_disk.tracks[t].size;
+        int max_iterations = tracksize * 2;
+
+        // Scan the entire track
+        while (sectors_found < SECTORS_PER_TRACK) {
+            // Look for address field prologue (D5 AA 96)
+            if (DEBUG(DEBUG_DISKII)) printf("Looking for address field prologue at pos %d: %02X %02X %02X\n", pos, track.data[pos], track.data[(pos + 1) % tracksize], track.data[(pos + 2) % tracksize]);
+            if (track.data[pos] == 0xD5 && 
+                track.data[(pos + 1) % tracksize] == 0xAA && 
+                track.data[(pos + 2) % tracksize] == 0x96) {
+                
+                // Extract address field
+                pos = (pos + 3) % tracksize; // skip past prologue
+                
+                // Read the 4 encoded 4-and-4 values (volume, track, sector, checksum)
+                uint8_t vol_enc_1 = track.data[pos];
+                uint8_t vol_enc_2 = track.data[(pos + 1) % tracksize];
+                uint8_t trk_enc_1 = track.data[(pos + 2) % tracksize];
+                uint8_t trk_enc_2 = track.data[(pos + 3) % tracksize];
+                uint8_t sec_enc_1 = track.data[(pos + 4) % tracksize];
+                uint8_t sec_enc_2 = track.data[(pos + 5) % tracksize];
+                uint8_t chk_enc_1 = track.data[(pos + 6) % tracksize];
+                uint8_t chk_enc_2 = track.data[(pos + 7) % tracksize];
+                
+                // Decode 4-and-4 encoding
+                uint8_t volume = ((vol_enc_1 & 0x55) << 1) | (vol_enc_2 & 0x55);
+                uint8_t track_num = ((trk_enc_1 & 0x55) << 1) | (trk_enc_2 & 0x55);
+                uint8_t sector = ((sec_enc_1 & 0x55) << 1) | (sec_enc_2 & 0x55);
+                uint8_t checksum = ((chk_enc_1 & 0x55) << 1) | (chk_enc_2 & 0x55);
+                if (DEBUG(DEBUG_DISKII)) printf("Address field decoded: volume %d, track %d, sector %d, checksum %d\n", volume, track_num, sector, checksum);
+                // Skip address epilogue
+                pos = (pos + 8) % tracksize;
+
+                // Verify checksum
+                if (checksum == (volume ^ track_num ^ sector)) {                    
+                    // Look for data field prologue (D5 AA AD)
+                    while (!(track.data[pos] == 0xD5 && 
+                           track.data[(pos + 1) % tracksize] == 0xAA && 
+                           track.data[(pos + 2) % tracksize] == 0xAD)) {
+                        pos = (pos + 1) % tracksize;
+                    }
+                    
+                    // Skip data prologue
+                    pos = (pos + 3) % tracksize;
+                    
+                    // Read 342 nibbles into buffer
+                    sector_62_t nibble_buffer;
+                    uint8_t csum = 0;
+                    uint16_t pos2 = pos;
+                    for (int i = 0x155; i >= 0x100; i--) {        // the "short" part is output first, in reverse order.
+                        nibble_buffer[i] = csum ^ denibble_table[track.data[(pos2++) % tracksize]];
+                        csum = nibble_buffer[i];
+                    }
+                    for (int i = 0; i < 0x0100; i++) {
+                        nibble_buffer[i] = csum ^ denibble_table[track.data[(pos2++) % tracksize]];
+                        csum = nibble_buffer[i];
+                    }
+                    
+                    if (DEBUG(DEBUG_DISKII)) dump_sector_62(nibble_buffer); // probably way too much debugging output.
+                    
+                    // Decode the sector data
+                    sector_t decoded_sector;
+                    uint8_t checkbyte = decode_sector_62(nibble_buffer, decoded_sector);
+
+                    if (DEBUG(DEBUG_DISKII)) dump_sector(decoded_sector);
+                    
+                    // Convert physical sector to logical sector based on interleave
+                    int logical_sector = i_phys_to_logical[sector];
+                    
+                    // Copy decoded data to disk image
+                    memcpy(disk_image.sectors[t][logical_sector], decoded_sector, SECTOR_SIZE);
+                    
+                    // Mark sector as found
+                    if (!sector_found[sector]) {
+                        sector_found[sector] = true;
+                        sectors_found++;
+                    }
+                    if (DEBUG(DEBUG_DISKII)) printf("Decoded sector phys %d (logical %d) at pos %d\n", sector, logical_sector, pos);
+                    // TODO: put in checksum verification here.
+
+                    pos = (pos + 342) % tracksize;
+                    
+                } else {
+                    if (DEBUG(DEBUG_DISKII)) printf("Checksum mismatch at pos %d: %02X %02X %02X\n", pos, track.data[pos], track.data[(pos + 1) % tracksize], track.data[(pos + 2) % tracksize]);
+                }
+            }
+            
+            // Move to next byte in track
+            pos = (pos + 1) % TRACK_SIZE;
+            
+            // Prevent infinite loop if we can't find all sectors
+            if (--max_iterations <= 0) {
+                printf("Warning: Could not find all sectors in track %d. Found %d of %d sectors.\n", 
+                       t, sectors_found, SECTORS_PER_TRACK);
+                break;
+            }
+        }
+        
+        if (DEBUG(DEBUG_DISKII)) printf("Track %d: Found %d of %d sectors\n", t, sectors_found, SECTORS_PER_TRACK);
+    }
+    
+    return 0;
+}
