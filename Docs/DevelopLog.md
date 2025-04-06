@@ -1566,8 +1566,7 @@ More generally:
 
 https://gswv.apple2.org.za/a2zine/faqs/Csa2KBPADJS.html
 
-[ ] Hm, I need to add in handling mapping of the $C800-$CFFF ROM space based on which peripheral card
-was accessed.
+[x] Hm, I need to add in handling mapping of the $C800-$CFFF ROM space based on which peripheral card was accessed.
 
 Let's look at the game controller stuff.
 
@@ -1633,7 +1632,7 @@ of key values and handler function pointers and just iterate them on a key event
 Todo for this:
 
 [ ] get window dimensions by calling SDL_GetWindowSize
-[ ] buy a usb joystick and see what is needed for that to work right.
+[x] buy a usb joystick and see what is needed for that to work right.
 
 
 Hm, how hard to go to a fullscreen mode?
@@ -1652,23 +1651,17 @@ init_slot_DEVICENAME(cpu_state *cpu, int slot)
 Ultimately a platform definition will include a list of these functions, in order,
 to initialize the VM. Pick and choose the ones you want.
 
-ok, did that, then worked on getting this thing to run as a Mac app bundle. That opened a rabbit hole
-of "where are my resource files? How are resources packaged?"
+ok, did that, then worked on getting this thing to run as a Mac app bundle. That opened a rabbit hole of "where are my resource files? How are resources packaged?"
 
 Learned a lot. A modern Mac app is just a folder with a .app extension. There is some 
-metadata, but, this is way better than what they used to call Resource Forks. It's basically
-just a convention for the Finder. SDL provides some utility functions for finding your
-Resource folder. This is good for cross-platform. Linux and Windows will then likely work
-similarly, though Windows you'll register your icon somewhere. Cross that bridge when we get to it.
+metadata, but, this is way better than what they used to call Resource Forks. It's basically just a convention for the Finder. SDL provides some utility functions for finding your Resource folder. This is good for cross-platform. Linux and Windows will then likely work similarly, though Windows you'll register your icon somewhere. Cross that bridge when we get to it.
 
 Also Chat Gippity helped improve structure of the CMakeLists where all the Mac-specific stuff.
 Also, changed to require C++17 in order to access std::filesystem and maybe some other stuff.
 This will be the start of a bunch of refactoring to make the code more C++17 compliant.
-Since I got past my include file location issues of earlier, I can now be consistent and
-disciplined about using only modern C++ idioms for I/O and other stuff.
+Since I got past my include file location issues of earlier, I can now be consistent and disciplined about using only modern C++ idioms for I/O and other stuff.
 
-So have more thinking to do - for debug output, can write to a file.
-And create a debug log abstraction. 
+So have more thinking to do - for debug output, can write to a file. And create a debug log abstraction. 
 
 [ ] When a VM is off, its window can display the apple logo and the machine name underneath. (e.g. Apple IIe, //c etc.)
 [ ] edit the icon so it's square, and, has a transparent background where the white is.
@@ -2528,6 +2521,7 @@ c0f0
 c0f0-60
 c0f8 (clear interrupt)
 c0f0-40
+```
 
 So on a pure read, 0x20 is the interrupt set bit.
 
@@ -2874,12 +2868,14 @@ track 5 to track 1?
 How did D35A change to that in one call to JSR SEEK?
 ok look at this...
 
+```
  | PC: $0975, A: $65, X: $65, Y: $20, P: $20, S: $A1 || 0975: LDA $C080,XPH: slot 6, drive 0, phase 2, onoff 1
 new (internal track): 10, realtrack 5, halftrack 0
  | PC: $D190, A: $63, X: $63, Y: $00, P: $24, S: $95 || D190: LDA $C080,XPH: slot 6, drive 0, phase 1, onoff 1
 new (internal track): 11, realtrack 5, halftrack 1
  | PC: $D190, A: $61, X: $61, Y: $01, P: $24, S: $95 || D190: LDA $C080,XPH: slot 6, drive 0, phase 0, onoff 1
 new (internal track): 10, realtrack 5, halftrack 0
+```
 
 The first step we are going in the wrong direction a half track. Then when we end all these seeks we end up at track 1 (02) instead of 0.
 I wonder if it's got code somewhere I'm not seeing that reads the track number from the disk to update CURTRK. Yes, at D171 it takes the read TRACK number and calls CLRPHASE.
@@ -2901,9 +2897,10 @@ new (internal track): 11, realtrack 5, halftrack 1
  | PC: $D190, A: $64, X: $64, Y: $00, P: $24, S: $95 || D190: LDA $C080,XPH: slot 6, drive 0, phase 2, onoff 0
  | PC: $D190, A: $61, X: $61, Y: $01, P: $24, S: $95 || D190: LDA $C080,XPH: slot 6, drive 0, phase 0, onoff 1
 new (internal track): 10, realtrack 5, halftrack 0
-
 ```
+
 when we turn phase 1 on on that 3rd from last line, the code says:
+
 ```
 case DiskII_Ph1_On:
             if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 1, 1);
@@ -3072,7 +3069,7 @@ Proposed task list for next release (0.20)
 * clean up video code so we call old monochrome hires code in that mode. [ complete ]
 * Center display in window when in fullscreen mode. [ complete ]
 * Redo joystick code so it maps correctly when it comes online after emu start. (sometimes starts with Y reversed!, or not right joystick at all)
-* Decay the audio so we don't get so many annoying clicks due to OS interrupting my event loops
+* Decay the audio so we don't get so many annoying clicks due to OS interrupting my event loops [ complete ]
 
 That ought to be easy!
 
@@ -3084,3 +3081,55 @@ and really do some cleanup, use C++ variants of std library stuff instead of a m
 First pass, not awful, though having some issues when linking against SDL. Some weird Windowsism.
 
 on the speaker decay. When we hit an event, set the amplitude to 0x6000. Each sample after that, decay the amplitude 0x0100. (that's about 90 samples, can adjust this). If we fill empty frame, continue using decaying amplitude. Sample value at any point is amplitude * polarity. I currently have it to decay at 0x0300. That doesn't seem to hurt frequency response at all. I also reduced the max amplitude to 0x5000 from 0x6000. 
+
+There is a bug occurring where the display stops updating right when I move the window between screens, sometimes. oh weird. It's when the left edge of the window is near the left edge of the screen?? only my right screen. And, if the left edge is within the first inch or so. What the. Special.
+
+hm, see what events we might be getting when we're close to the window edge.
+
+Time to make the denibblizer!
+
+To be fair, I have denibblizer examples in both the DOS3.3 source code, and, the Disk II boot firmware. How hard could it be?
+
+The basic process for what was block data file:
+
+1. For each track:
+   1. Mark 16 "sector found" flags all false.
+   2. Start at position 0 in the track. As we scan, we might have to wrap back to the start of track.
+   3. Scan until we get to a D5 AA 96 whatever the sector address field marker is.
+   4. Extract the sector info.
+   5. Scan until we get to a D5 AA AD?
+   6. Read 342 nibbles into denibblizer buffer
+   7. Decode buffer and validate checksum
+   8. Copy decoded buffer into track block buffer with offset based on track X + sector Y * 256. Will have to take the interleave into account.
+   9. Set "sector found" flag for that sector.
+   10. If all sectors were found, Write track out to image file 
+2. Repeat for all tracks.
+
+### For the user-interface:
+
+Position an overlay container over OSD:
+   * Media FILENAME in SLOT X DRIVE Y was modified! Write changes back to file?
+   * YES | DISCARD | CANCEL
+
+Perhaps this will be a Dialog, not a Container?
+
+For this we will draw everything, then draw this on top (it will always be after all other containers), and direct input events only to this container. (it is a modal dialog after all). 
+
+[ ] strndup is a posix function. Replace with a C++ convention.
+
+## Apr 6, 2025
+
+OK the denibblizer is done! A lot of my trouble was being tired and mixing up what files were going where so all my testing was bogus. Don't TARRED AND CODE!
+
+Denibblizing in the standalone tool, we need to know what interleave to use on output. We don't have it from raw nibble form. So the user needs to specify it on the command line. either --prodos or --dos33. (-p or -d).
+
+Inside the emulator, we will track the interleave 
+
+Either way it should get passed into the denibblizer routine as a parameter. pass the table, or a flag? 
+
+Audio issue - I still get clicks in the first few minutes after boot when opening/closing the file dialog and causing underruns. So we must still be generating non-zero fills somewhere.
+
+in the OSD code that mounts a disk, it is passing in the char * filename. I bet this is getting deallocated. We better strndup it.
+
+Some additional thoughts:
+don't allow unmounting if modified is true and the motor is on? or just punt that and give them UI choice anyway?
