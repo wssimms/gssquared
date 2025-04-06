@@ -306,16 +306,26 @@ void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor 
     diskII_slot[slot].drive[drive].modified = false;
 }
 
+void writeback_disk_image(diskII& disk) {
+    if (disk.media_d->media_type == MEDIA_PRENYBBLE) {
+        printf("writing back pre-nibblized disk image %s\n", disk.media_d->filename);
+        write_nibblized_disk(disk.nibblized, disk.media_d->filename);
+    } else {
+        printf("writing back block disk image %s\n", disk.media_d->filename);
+        media_interleave_t id = disk.media_d->interleave;
+        disk_image_t new_disk_image;
+        denibblize_disk_image(new_disk_image, disk.nibblized, id);
+        write_disk_image_po_do(new_disk_image, disk.media_d->filename);
+    }
+}
+
 void unmount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive) {
     diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
 
     // TODO: this will write the disk image back to disk.
     if (diskII_slot[slot].drive[drive].media_d && diskII_slot[slot].drive[drive].modified) {
         fprintf(stderr, "Unmounting disk %s with unsaved changes.\n", diskII_slot[slot].drive[drive].media_d->filestub);
-        media_interleave_t id = diskII_slot[slot].drive[drive].media_d->interleave;
-        disk_image_t new_disk_image;
-        denibblize_disk_image(new_disk_image, diskII_slot[slot].drive[drive].nibblized, id);
-        write_disk_image_po_do(new_disk_image, diskII_slot[slot].drive[drive].media_d->filename);
+        writeback_disk_image(diskII_slot[slot].drive[drive]);
     }
 
     // reset all the track parameters to default to prepare for loading a new image.
