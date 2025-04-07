@@ -3133,3 +3133,8 @@ in the OSD code that mounts a disk, it is passing in the char * filename. I bet 
 
 Some additional thoughts:
 don't allow unmounting if modified is true and the motor is on? or just punt that and give them UI choice anyway?
+
+OK, the diskII write code is DONE! Works for DOS33, and ProDOS. Writes back to original block format, or, writes back to nibblized file, depending on origin. (i.e., back to original format). There is no UI yet - if you unmount a modified disk, the image WILL BE saved back out if you unmount.
+
+If you don't want to save changes that were written to an image, for now, don't unmount it, just F12 / close the emu which will exit without saving.
+
