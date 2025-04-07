@@ -57,7 +57,7 @@ void audio_generate_frame(cpu_state *cpu, uint64_t cycle_window_start, uint64_t 
     }
 
     uint64_t queued_samples = SDL_GetAudioStreamQueued(speaker_state->stream);
-    if (queued_samples < 735) { printf("queue underrun %llu\n", queued_samples); 
+    if (queued_samples < 735) { printf("queue underrun %llu %d %d\n", queued_samples, speaker_state->amplitude, speaker_state->polarity); 
         // attempt to calculate how much time slipped and generate that many samples
         for (int x = 0; x < 735; x++) {
             working_buffer[x] = speaker_state->amplitude * speaker_state->polarity;
@@ -83,19 +83,23 @@ void audio_generate_frame(cpu_state *cpu, uint64_t cycle_window_start, uint64_t 
         <<  " cyc range: [" << cycle_window_start << " - " << cycle_window_end << "] evtq: " 
         << event_buffer->count << " qd_samp: " << queued_samples << " amp: " << speaker_state->amplitude << "\n";
 
+    
+
     /**
      * this is the more savvy Chris Torrance algorithm.
      */
     uint64_t event_tick;
     int16_t contribution = 0;
     uint64_t cyc = cycle_window_start;
+
     for (uint64_t samp = 0; samp < samples_count; samp++) {
         for (uint64_t cyc_i = 0; cyc_i < cycles_per_sample; cyc_i ++) {
-            event_buffer->peek_oldest(event_tick);
-            if (event_tick <= cyc) {
-                event_buffer->pop_oldest(event_tick);
-                speaker_state->polarity = -speaker_state->polarity;
-                speaker_state->amplitude = AMPLITUDE_PEAK;                  // TEST
+            if (event_buffer->peek_oldest(event_tick)) { // only do this if there is an event in the buffer.
+                if (event_tick <= cyc) {
+                    event_buffer->pop_oldest(event_tick);
+                    speaker_state->polarity = -speaker_state->polarity;
+                    speaker_state->amplitude = AMPLITUDE_PEAK;                  // we had a speaker blip, reset amplitude.
+                }
             }
             contribution += speaker_state->polarity;
             cyc++;
@@ -108,14 +112,15 @@ void audio_generate_frame(cpu_state *cpu, uint64_t cycle_window_start, uint64_t 
             if (sample_value < -32768.0f) sample_value = -32768.0f;
             working_buffer[samp] = (int16_t)sample_value;
             speaker_state->last_sample = (int16_t)sample_value;
-            speaker_state->amplitude = speaker_state->amplitude - AMPLITUDE_DECAY_RATE;
-            if (speaker_state->amplitude < 0) speaker_state->amplitude = 0; // TEST
         } else {
-            working_buffer[samp] = speaker_state->amplitude * speaker_state->polarity;    // speaker_state->last_sample;  // Safe default when we can't calculate
-            speaker_state->amplitude = speaker_state->amplitude - AMPLITUDE_DECAY_RATE;
-            if (speaker_state->amplitude < 0) speaker_state->amplitude = 0; // TEST
-
+            float sample_value = speaker_state->amplitude * speaker_state->polarity;    // speaker_state->last_sample;  // Safe default when we can't calculate
+            working_buffer[samp] = sample_value;
+            speaker_state->last_sample = sample_value;
         }
+        // decay amp each sample.
+        speaker_state->amplitude -= AMPLITUDE_DECAY_RATE;
+        if (speaker_state->amplitude < 0) speaker_state->amplitude = 0; // TEST
+
         contribution = 0;
     }
     // copy samples out to audio stream
