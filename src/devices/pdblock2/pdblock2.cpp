@@ -15,7 +15,8 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
+//#include <stdio.h>
+#include <iostream>
 #include "gs2.hpp"
 #include "cpu.hpp"
 #include "bus.hpp"
@@ -27,11 +28,11 @@
 #include "util/mount.hpp"
 
 void pdblock2_print_cmdbuffer(pdblock_cmd_buffer *pdb) {
-    printf("PD_CMD_BUFFER: ");
+    std::cout << "PD_CMD_BUFFER: ";
     for (int i = 0; i < pdb->index; i++) {
-        printf("%02X ", pdb->cmd[i]);
+        std::cout << std::hex << (int)pdb->cmd[i] << " ";
     }
-    printf("\n");
+    std::cout << std::endl;
 }
 
 drive_status_t pdblock2_osd_status(cpu_state *cpu, uint64_t key) {
@@ -136,7 +137,7 @@ void pdblock2_execute(cpu_state *cpu) {
         cksum ^= pdblock_d->cmd_buffer.cmd[i];
     }
     if (cksum != 0x00) {
-        if (DEBUG(DEBUG_PD_BLOCK)) printf("pdblock2_execute: Checksum error\n");
+        if (DEBUG(DEBUG_PD_BLOCK)) std::cout << "pdblock2_execute: Checksum error" << std::endl;
         pdblock_d->cmd_buffer.error = 0x01;
         return;
     }
@@ -153,12 +154,15 @@ void pdblock2_execute(cpu_state *cpu) {
         drive = (dev >> 7) & 0b1;
     } else {
         // TODO: return some kind of error
-        if (DEBUG(DEBUG_PD_BLOCK)) printf("pdblock2_execute: Version not supported\n");
+        if (DEBUG(DEBUG_PD_BLOCK)) std::cout << "pdblock2_execute: Version not supported" << std::endl;
         pdblock_d->cmd_buffer.error = 0x01;
         return;
     }
 
-    if (DEBUG(DEBUG_PD_BLOCK)) printf("pdblock2_execute: Unit: %02X, Block: %04X, Addr: %04X, CMD: %02X\n", unit, block, addr, cmd);
+    if (DEBUG(DEBUG_PD_BLOCK)) std::cout << "pdblock2_execute: Unit: " << std::hex << (int)unit 
+        << ", Block: " << std::hex << (int)block << ", Addr: " << std::hex << (int)addr << ", CMD: " 
+        << std::hex << (int)cmd << std::endl;
+
     uint8_t st = pdblock2_status(cpu, slot, drive);
     if (st) {
         pdblock_d->cmd_buffer.error = PD_ERROR_NO_DEVICE;
@@ -216,16 +220,16 @@ void pdblock2_write_C0x0(cpu_state *cpu, uint16_t addr, uint8_t data) {
     pdblock2_data * pdblock_d = (pdblock2_data *)get_module_state(cpu, MODULE_PD_BLOCK2);
 
     if ((addr & 0xF) == 0x00) {
-        if (DEBUG(DEBUG_PD_BLOCK)) printf("PD_CMD_RESET: %02X\n", data);
+        if (DEBUG(DEBUG_PD_BLOCK)) std::cout << "PD_CMD_RESET: " << std::hex << (int)data << std::endl;
         pdblock_d->cmd_buffer.index = 0;
     } else if ((addr & 0xF) == 0x01) {
-        if (DEBUG(DEBUG_PD_BLOCK)) printf("PD_CMD_PUT: %02X\n", data);
+        if (DEBUG(DEBUG_PD_BLOCK)) std::cout << "PD_CMD_PUT: " << std::hex << (int)data << std::endl;
         if (pdblock_d->cmd_buffer.index < MAX_PD_BUFFER_SIZE) {
             pdblock_d->cmd_buffer.cmd[pdblock_d->cmd_buffer.index] = data;
             pdblock_d->cmd_buffer.index++;
         }
     } else if ((addr & 0xF) == 0x02) {
-        if (DEBUG(DEBUG_PD_BLOCK)) printf("PD_CMD_EXECUTE: %02X\n", data);
+        if (DEBUG(DEBUG_PD_BLOCK)) std::cout << "PD_CMD_EXECUTE: " << std::hex << (int)data << std::endl;
         pdblock2_execute(cpu);
         pdblock_d->cmd_buffer.index = 0;
     } 
@@ -237,29 +241,29 @@ uint8_t pdblock2_read_C0x0(cpu_state *cpu, uint16_t addr) {
 
     if ((addr & 0xF) == 0x03) {
         val = pdblock_d->cmd_buffer.error;
-        if (DEBUG(DEBUG_PD_BLOCK)) printf("PD_ERROR_GET: %02X\n", val);
+        if (DEBUG(DEBUG_PD_BLOCK)) std::cout << "PD_ERROR_GET: " << std::hex << (int)val << std::endl;
         return val;
     } else if ((addr & 0xF) == 0x04) {
         val = pdblock_d->cmd_buffer.status1;
-        if (DEBUG(DEBUG_PD_BLOCK)) printf("PD_STATUS1_GET: %02X\n", val);
+        if (DEBUG(DEBUG_PD_BLOCK)) std::cout << "PD_STATUS1_GET: " << std::hex << (int)val << std::endl;
         return val;
     } else if ((addr & 0xF) == 0x05) {
         val = pdblock_d->cmd_buffer.status2;
-        if (DEBUG(DEBUG_PD_BLOCK)) printf("PD_STATUS2_GET: %02X\n", val);
+        if (DEBUG(DEBUG_PD_BLOCK)) std::cout << "PD_STATUS2_GET: " << std::hex << (int)val << std::endl;
         return val;
     } else return 0xE0;
 }
 
 void init_pdblock2(cpu_state *cpu, SlotType_t slot)
 {
-    if (DEBUG(DEBUG_PD_BLOCK)) printf("Initializing ProDOS Block2 slot %d\n", slot);
+    if (DEBUG(DEBUG_PD_BLOCK)) std::cout << "Initializing ProDOS Block2 slot " << slot << std::endl;
     pdblock2_data * pdblock_d = new pdblock2_data;
     // set in CPU so we can reference later
     set_module_state(cpu, MODULE_PD_BLOCK2, pdblock_d);
 
     ResourceFile *rom = new ResourceFile("roms/cards/pdblock2/pdblock2.rom", READ_ONLY);
     if (rom == nullptr) {
-        fprintf(stderr, "Failed to load pdblock2.rom\n");
+        std::cerr << "Failed to load pdblock2.rom" << std::endl;
         return;
     }
     rom->load();
