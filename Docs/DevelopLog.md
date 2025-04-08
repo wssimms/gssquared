@@ -3138,3 +3138,12 @@ OK, the diskII write code is DONE! Works for DOS33, and ProDOS. Writes back to o
 
 If you don't want to save changes that were written to an image, for now, don't unmount it, just F12 / close the emu which will exit without saving.
 
+## Apr 7, 2025
+
+Added a couple more disk II sound effects (for open door close door). The Unidisk makes all sorts of sounds too. I will have to record those myself! Shouldn't be too hard. But not my priority right now.
+
+I want to clean up and reorganize the display code.
+
+strndup must go. I can make my own implementation and avoid having to refactor all the string code to use std::string.
+
+Or, just bite the bullet and do the right thing. I mean, I really ought to. FINE.
