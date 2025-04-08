@@ -286,7 +286,8 @@ void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor 
     if (media->media_type == MEDIA_PRENYBBLE) {
         // Load nib format image directly into diskII structure.
         load_nib_image(diskII_slot[slot].drive[drive].nibblized, media->filename);
-        printf("Mounted pre-nibblized disk %s\n", media->filestub);
+        std::cout << "Mounted pre-nibblized disk " << media->filestub << std::endl;
+        /* printf("Mounted pre-nibblized disk %s\n", media->filestub); */
     } else {
         if (media->interleave == INTERLEAVE_PO) {
             memcpy(diskII_slot[slot].drive[drive].nibblized.interleave_phys_to_logical, po_phys_to_logical, sizeof(interleave_t));
@@ -298,7 +299,8 @@ void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor 
 
         load_disk_image(diskII_slot[slot].drive[drive].media, media->filename); // pull this into diskii stuff somewhere.
         emit_disk(diskII_slot[slot].drive[drive].nibblized, diskII_slot[slot].drive[drive].media, media->dos33_volume);
-        printf("Mounted disk %s volume %d\n", media->filestub, media->dos33_volume);
+        std::cout << "Mounted disk " << media->filestub << " volume " << media->dos33_volume << std::endl;
+        /* printf("Mounted disk %s volume %d\n", media->filestub, media->dos33_volume); */
     }
     diskII_slot[slot].drive[drive].write_protect = media->write_protected;
     diskII_slot[slot].drive[drive].is_mounted = true;
@@ -308,10 +310,10 @@ void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor 
 
 void writeback_disk_image(diskII& disk) {
     if (disk.media_d->media_type == MEDIA_PRENYBBLE) {
-        printf("writing back pre-nibblized disk image %s\n", disk.media_d->filename);
+        std::cout << "writing back pre-nibblized disk image " << disk.media_d->filename << std::endl;
         write_nibblized_disk(disk.nibblized, disk.media_d->filename);
     } else {
-        printf("writing back block disk image %s\n", disk.media_d->filename);
+        std::cout << "writing back block disk image " << disk.media_d->filename << std::endl;
         media_interleave_t id = disk.media_d->interleave;
         disk_image_t new_disk_image;
         denibblize_disk_image(new_disk_image, disk.nibblized, id);
@@ -324,7 +326,7 @@ void unmount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive) {
 
     // TODO: this will write the disk image back to disk.
     if (diskII_slot[slot].drive[drive].media_d && diskII_slot[slot].drive[drive].modified) {
-        fprintf(stderr, "Unmounting disk %s with unsaved changes.\n", diskII_slot[slot].drive[drive].media_d->filestub);
+        std::cout << "Unmounting disk " << diskII_slot[slot].drive[drive].media_d->filestub << " with unsaved changes." << std::endl;
         writeback_disk_image(diskII_slot[slot].drive[drive]);
     }
 
@@ -352,7 +354,7 @@ drive_status_t diskii_status(cpu_state *cpu, uint64_t key) {
     }
     const char *fname = nullptr;
     if (seldrive.media_d) {
-        fname = seldrive.media_d->filestub;
+        fname = seldrive.media_d->filestub.c_str(); // TODO: this could be a string_view instead of this hack.
         /* printf("diskii_status: %s\n", fname); */
     }
     bool motor = (diskII_slot[slot].drive_select == drive) ? diskII_slot[slot].motor : false;

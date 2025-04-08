@@ -98,8 +98,10 @@ typedef enum media_type_t {
 //typedef uint8_t nibblized_image_t[0x1A00 * 35];
 
 typedef struct media_descriptor {
-    const char *filename = nullptr;
-    const char *filestub = nullptr;
+    //const char *filename = nullptr;
+    std::string filename;
+    //const char *filestub = nullptr;
+    std::string filestub;
     FILE *fp = nullptr;
     media_type_t media_type = MEDIA_BLK;
     media_interleave_t interleave = INTERLEAVE_NONE;

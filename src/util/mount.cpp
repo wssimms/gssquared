@@ -16,6 +16,7 @@
  */
 
 #include <unordered_map>
+#include <iostream>
 
 #include "cpu.hpp"
 #include "media.hpp"
@@ -38,11 +39,11 @@ int Mounts::register_drive(drive_type_t drive_type, uint64_t key) {
 
 int Mounts::mount_media(disk_mount_t disk_mount) {
 
-    fprintf(stdout,"Mounting disk %s in slot %d drive %d\n", disk_mount.filename, disk_mount.slot, disk_mount.drive);
+    std::cout << "Mounting disk " << disk_mount.filename << " in slot " << disk_mount.slot << " drive " << disk_mount.drive << std::endl;
     media_descriptor * media = new media_descriptor();
     media->filename = disk_mount.filename;
     if (identify_media(*media) != 0) {
-        fprintf(stderr, "Failed to identify media %s\n", disk_mount.filename);
+        std::cerr << "Failed to identify media " << disk_mount.filename << std::endl;
         return false;
     }
     display_media_descriptor(*media);
@@ -60,11 +61,11 @@ int Mounts::mount_media(disk_mount_t disk_mount) {
         bool status = mount_pdblock2(cpu, disk_mount.slot, disk_mount.drive, media);
         mounted_media[key].drive_type = DRIVE_TYPE_PRODOS_BLOCK;
         if (!status) {
-            fprintf(stderr, "Failed to mount ProDOS block device %s\n", disk_mount.filename);
+            std::cerr << "Failed to mount ProDOS block device " << disk_mount.filename << std::endl;
             return false;
         }
     } else {
-        fprintf(stderr, "Invalid slot. Expected 5 or 6\n");
+        std::cerr << "Invalid slot. Expected 5 or 6" << std::endl;
     }
 
     return key;

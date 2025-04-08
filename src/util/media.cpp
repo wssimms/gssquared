@@ -39,17 +39,37 @@
  * The filename is the only thing that is passed in in the md.
  */
 
-int compare_suffix(const char *filename, const char *suffix) {
+/* int compare_suffix(const char *filename, const char *suffix) {
     int i = strlen(filename);
     int j = strlen(suffix);
     if (i < (j+1)) return 0;
     //printf("Comparing %s with %s\n", filename + i - j, suffix);
     return strncasecmp(filename + i - j, suffix, j) == 0;
 }
+ */
+bool compare_suffix(const std::string& filename, const char* suffix) {
+    size_t filename_length = filename.length();
+    size_t suffix_length = strlen(suffix);
+    
+    if (filename_length < suffix_length) {
+        return false;
+    }
+    
+    // Get the substring of filename that should match the suffix
+    std::string file_suffix = filename.substr(filename_length - suffix_length);
+    
+    // Compare case-insensitively
+    // Note: Using platform-independent approach for case-insensitive comparison
+    return std::equal(
+        file_suffix.begin(), file_suffix.end(),
+        suffix, suffix + suffix_length,
+        [](char a, char b) { return std::tolower(a) == std::tolower(b); }
+    );
+}
 
-int get_file_size(const char *filename) {
+int get_file_size(const std::string& filename) {
     struct stat st;
-    if (stat(filename, &st) != 0) return -1;
+    if (stat(filename.c_str(), &st) != 0) return -1;
     return st.st_size;
 }
 
@@ -61,10 +81,10 @@ static inline uint16_t le16_to_cpu(const uint8_t *bytes) {
     return bytes[0] | (bytes[1] << 8);
 }
 
-int read_2mg_header(format_2mg_t &hdr_out, const char *filename) {
+int read_2mg_header(format_2mg_t &hdr_out, const std::string& filename) {
     format_2mg_raw_t raw;
     
-    FILE* fp = fopen(filename, "rb");
+    FILE* fp = fopen(filename.c_str(), "rb");
     if (!fp) return -1;
     
     if (fread(&raw, sizeof(format_2mg_raw_t), 1, fp) != 1) {
@@ -202,7 +222,7 @@ int display_2mg_header(format_2mg_t& hdr) {
  * @return A newly allocated string containing just the filename portion
  *         (caller is responsible for freeing this memory)
  */
-char* extract_filename(const char* pathname) {
+/* char* extract_filename(const char* pathname) {
     if (!pathname) {
         return nullptr;
     }
@@ -227,6 +247,11 @@ char* extract_filename(const char* pathname) {
     // Allocate memory for the new string and copy the filename
     char* result = strndup(filename, 18); // limit to 16 characters.
     return result;
+} */
+
+std::string extract_filename(const std::string& pathname) {
+    std::filesystem::path p(pathname);
+    return p.filename().string();
 }
 
 namespace fs = std::filesystem;

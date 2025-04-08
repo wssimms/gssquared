@@ -21,11 +21,12 @@
 
 #include "cpu.hpp"
 #include "media.hpp"
+#include <string>
 
 typedef struct {
     int slot;
     int drive;
-    char *filename;
+    std::string /* char * */ filename;
     media_descriptor *media;
 } disk_mount_t;
 

@@ -54,7 +54,7 @@ drive_status_t pdblock2_osd_status(cpu_state *cpu, uint64_t key) {
     const char *fname = nullptr;
     bool mounted = false;
     if (seldrive.media) {
-        fname = seldrive.media->filestub;
+        fname = seldrive.media->filestub.c_str(); // TODO: this could be a string_view instead of this hack.
         mounted = true;
     }
 
@@ -187,11 +187,13 @@ void pdblock2_execute(cpu_state *cpu) {
 bool mount_pdblock2(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor *media) {
     pdblock2_data * pdblock_d = (pdblock2_data *)get_module_state(cpu, MODULE_PD_BLOCK2);
 
-    if (DEBUG(DEBUG_PD_BLOCK)) printf("Mounting ProDOS block device %s slot %d drive %d\n", media->filename, slot, drive);
+    //if (DEBUG(DEBUG_PD_BLOCK)) printf("Mounting ProDOS block device %s slot %d drive %d\n", media->filename, slot, drive);
+    if (DEBUG(DEBUG_PD_BLOCK)) std::cout << std::format("Mounting ProDOS block device {} slot {} drive {}\n", media->filename, slot, drive) << std::endl;
 
-    FILE *fp = fopen(media->filename, "r+b");
+    FILE *fp = fopen(media->filename.c_str(), "r+b");
     if (fp == nullptr) {
-        fprintf(stderr, "Could not open ProDOS block device file: %s\n", media->filename);
+        //fprintf(stderr, "Could not open ProDOS block device file: %s\n", media->filename);
+        std::cerr << "Could not open ProDOS block device file: " << media->filename << std::endl;
         return false;
     }
     pdblock_d->prodosblockdevices[slot][drive].file = fp;

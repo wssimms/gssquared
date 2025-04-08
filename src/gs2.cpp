@@ -23,6 +23,7 @@
 #include <time.h>
 /* #include <mach/mach_time.h> */
 #include <getopt.h>
+#include <regex>
 
 #include "gs2.hpp"
 #include "cpu.hpp"
@@ -337,7 +338,7 @@ int main(int argc, char *argv[]) {
     int platform_id = PLATFORM_APPLE_II_PLUS;  // default to Apple II Plus
     int opt;
     
-    char slot_str[2], drive_str[2], filename[256];
+    char slot_str[2], drive_str[2] /* , filename[256] */;
     int slot, drive;
     
     std::vector<disk_mount_t> disks_to_mount;
@@ -357,7 +358,7 @@ int main(int argc, char *argv[]) {
         while ((opt = getopt(argc, argv, "p:a:b:d:")) != -1) {
             switch (opt) {
                 case 'p':
-                    platform_id = atoi(optarg);
+                    platform_id = std::stoi(optarg);
                     break;
                 case 'a':
                     loader_set_file_info(optarg, 0x0801);
@@ -366,18 +367,31 @@ int main(int argc, char *argv[]) {
                     loader_set_file_info(optarg, 0x7000);
                     break;
                 case 'd':
-                    if (sscanf(optarg, "s%[0-9]d%[0-9]=%[^\n]", slot_str, drive_str, filename) != 3) {
-                        fprintf(stderr, "Invalid disk format. Expected sXdY=filename\n");
-                        exit(1);
-                    }
-                    slot = atoi(slot_str);
-                    drive = atoi(drive_str)-1;
+                    {
+                        std::string filename;
+                        /* if (sscanf(optarg, "s%[0-9]d%[0-9]=%[^\n]", slot_str, drive_str, filename) != 3) {
+                            fprintf(stderr, "Invalid disk format. Expected sXdY=filename\n");
+                            exit(1);
+                        }
+                        slot = atoi(slot_str);
+                        drive = atoi(drive_str)-1; */
+                        std::string arg_str(optarg);
+                        // Using regex for better parsing
+                        std::regex disk_pattern("s([0-9]+)d([0-9]+)=(.+)");
+                        std::smatch matches;
                     
-                    printf("Mounting disk %s in slot %d drive %d\n", filename, slot, drive);
-                    disks_to_mount.push_back({slot, drive, strndup(filename, 256)});
+                        if (std::regex_match(arg_str, matches, disk_pattern) && matches.size() == 4) {
+                            slot = std::stoi(matches[1]);
+                            drive = std::stoi(matches[2]) - 1;
+                            filename = matches[3];
+                            std::cout << std::format("Mounting disk {} in slot {} drive {}\n", filename, slot, drive) << std::endl;
+                            disks_to_mount.push_back({slot, drive, filename});
+                        }
+                    }
                     break;
                 default:
-                    fprintf(stderr, "Usage: %s [-p platform] [-a program.bin] [-b loader.bin] [-dsXdX=filename]\n", argv[0]);
+                    std::cerr << "Usage: " << argv[0] << " [-p platform] [-a program.bin] [-b loader.bin] [-dsXdX=filename]\n";
+                    //fprintf(stderr, "Usage: %s [-p platform] [-a program.bin] [-b loader.bin] [-dsXdX=filename]\n", argv[0]);
                     exit(1);
             }
         }

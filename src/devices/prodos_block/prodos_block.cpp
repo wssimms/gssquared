@@ -140,11 +140,12 @@ void prodos_block_pv_trap(cpu_state *cpu) {
 }
 
 void mount_prodos_block(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor *media) {
-    printf("Mounting ProDOS block device %s slot %d drive %d\n", media->filename, slot, drive);
-
-    FILE *fp = fopen(media->filename, "r+b");
+    //printf("Mounting ProDOS block device %s slot %d drive %d\n", media->filename, slot, drive);
+    std::cout << std::format("Mounting ProDOS block device {} slot {} drive {}\n", media->filename, slot, drive) << std::endl;
+    FILE *fp = fopen(media->filename.c_str(), "r+b");
     if (fp == nullptr) {
-        fprintf(stderr, "Could not open ProDOS block device file: %s\n", media->filename);
+        //fprintf(stderr, "Could not open ProDOS block device file: %s\n", media->filename);
+        std::cerr << "Could not open ProDOS block device file: " << media->filename << std::endl;
         return;
     }
     prodosblockdevices[slot][drive].file = fp;
@@ -154,14 +155,14 @@ void mount_prodos_block(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descr
 void init_prodos_block(cpu_state *cpu, SlotType_t slot)
 {
 
-    printf("Prodos Block Firmware:\n");
+    //printf("Prodos Block Firmware:\n");
     for (int i = 0; i < 256; i++)
     {
-        printf("%02X ", pd_block_firmware[i]);
+        /* printf("%02X ", pd_block_firmware[i]);
         if (i % 16 == 0x0f)
         {
             printf("\n");
-        }
+        } */
 
         // load the firmware into the slot memory
         for (int i = 0; i < 256; i++) {

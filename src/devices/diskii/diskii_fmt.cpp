@@ -316,11 +316,11 @@ void load_sector(sector_t& sect, const char *filename) {
     fclose(fp);
 }
 
-int load_disk_image(disk_image_t& disk_image, const char *filename) {
+int load_disk_image(disk_image_t& disk_image, const std::string& filename) {
 
-    FILE *fp = fopen(filename, "rb");
+    FILE *fp = fopen(filename.c_str(), "rb");
     if (!fp) {
-        printf("Could not open %s\n", filename);
+        std::cerr << "Could not open " << filename << std::endl;
         return -1;
     }
 
@@ -328,7 +328,7 @@ int load_disk_image(disk_image_t& disk_image, const char *filename) {
     for (int t = 0; t < TRACKS_PER_DISK; t++) {
         for (int s = 0; s < SECTORS_PER_TRACK; s++) {
             if (fread(disk_image.sectors[t][s], 1, SECTOR_SIZE, fp) != SECTOR_SIZE) {
-                printf("Could not read %d bytes from %s\n", SECTOR_SIZE, filename);
+                std::cerr << "Could not read " << SECTOR_SIZE << " bytes from " << filename << std::endl;
                 fclose(fp);
                 return -1;
             }
@@ -339,10 +339,10 @@ int load_disk_image(disk_image_t& disk_image, const char *filename) {
     return 0;
 }
 
-int load_nib_image(nibblized_disk_t& disk, const char *filename) {
-    FILE *fp = fopen(filename, "rb");
+int load_nib_image(nibblized_disk_t& disk, const std::string& filename) {
+    FILE *fp = fopen(filename.c_str(), "rb");
     if (!fp) {
-        printf("Could not open %s\n", filename);
+        std::cerr << "Could not open " << filename << std::endl;
         return -1;
     }
 
@@ -359,7 +359,7 @@ int load_nib_image(nibblized_disk_t& disk, const char *filename) {
 void write_sector_62(sector_62_t& s62, const char *filename) {
     FILE *out_fp = fopen(filename, "wb");
     if (!out_fp) {
-        printf("Could not open %s for writing\n", filename);
+        std::cerr << "Could not open " << filename << " for writing" << std::endl;
         return;
     }
 
@@ -498,10 +498,10 @@ void emit_disk(nibblized_disk_t& disk, disk_image_t& disk_image, int volume) {
     }
 }
 
-void write_nibblized_disk(nibblized_disk_t& disk, const char *filename) {
-    FILE *out_fp = fopen(filename, "wb");
+void write_nibblized_disk(nibblized_disk_t& disk, const std::string& filename) {
+    FILE *out_fp = fopen(filename.c_str(), "wb");
     if (!out_fp) {
-        printf("Could not open %s for writing\n", filename);
+        std::cerr << "Could not open " << filename << " for writing" << std::endl;
         return;
     }
 
@@ -518,10 +518,10 @@ void write_nibblized_disk(nibblized_disk_t& disk, const char *filename) {
  * to write the data back to.
  */
 
-bool write_disk_image_po_do(disk_image_t& disk_image, const char *filename) {
-    FILE *out_fp = fopen(filename, "wb");
+bool write_disk_image_po_do(disk_image_t& disk_image, const std::string& filename) {
+    FILE *out_fp = fopen(filename.c_str(), "wb");
     if (!out_fp) {
-        printf("Could not open %s for writing\n", filename);
+        std::cerr << "Could not open " << filename << " for writing" << std::endl;
         return false;
     }
 

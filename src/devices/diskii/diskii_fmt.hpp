@@ -18,6 +18,7 @@
 #pragma once
 
 #include <stdint.h> 
+#include <string>
 
 /**
  * Implements a Disk II disk image nibblizer.
@@ -122,10 +123,10 @@ typedef enum media_interleave_t {
 } media_interleave_t;
 
 void dump_disk_image(disk_image_t& disk_image);
-int load_disk_image(disk_image_t& disk_image, const char *filename);
+int load_disk_image(disk_image_t& disk_image, const std::string& filename);
 void emit_disk(nibblized_disk_t& disk, disk_image_t& disk_image, int volume);
-void write_nibblized_disk(nibblized_disk_t& disk, const char *filename);
+void write_nibblized_disk(nibblized_disk_t& disk, const std::string& filename);
 void dump_disk(nibblized_disk_t& disk);
-int load_nib_image(nibblized_disk_t& disk, const char *filename);
-bool write_disk_image_po_do(disk_image_t& disk_image, const char *filename);
+int load_nib_image(nibblized_disk_t& disk, const std::string& filename);
+bool write_disk_image_po_do(disk_image_t& disk_image, const std::string& filename);
 int denibblize_disk_image(disk_image_t& disk_image, nibblized_disk_t& nib_disk, media_interleave_t interleave);
