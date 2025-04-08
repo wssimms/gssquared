@@ -384,7 +384,8 @@ int main(int argc, char *argv[]) {
                             slot = std::stoi(matches[1]);
                             drive = std::stoi(matches[2]) - 1;
                             filename = matches[3];
-                            std::cout << std::format("Mounting disk {} in slot {} drive {}\n", filename, slot, drive) << std::endl;
+                            //std::cout << std::format("Mounting disk {} in slot {} drive {}\n", filename, slot, drive) << std::endl;
+                            std::cout << "Mounting disk " << filename << " in slot " << slot << " drive " << drive << std::endl;
                             disks_to_mount.push_back({slot, drive, filename});
                         }
                     }
