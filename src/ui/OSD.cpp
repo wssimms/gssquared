@@ -33,6 +33,7 @@
 #include "display/display.hpp"
 #include "util/mount.hpp"
 #include "util/reset.hpp"
+#include "util/soundeffects.hpp"
 
 #define MOUSE_POSITION_TILE 0
 
@@ -60,13 +61,18 @@ static void /* SDLCALL */ file_dialog_callback(void* userdata, const char* const
     printf("file_dialog_callback: %s\n", filelist[0]);
     // 1. unmount current image (if present).
     // 2. mount new image.
-    osd->cpu->mounts->unmount_media(data->key);
+    drive_status_t ds = osd->cpu->mounts->media_status(data->key);
+    if (ds.is_mounted) {
+        osd->cpu->mounts->unmount_media(data->key);
+        // shouldn't need soundeffect here, we play it elsewhere.
+    }
 
     disk_mount_t dm;
     dm.filename = strndup(filelist[0], 1024);
     dm.slot = data->key >> 8;
     dm.drive = data->key & 0xFF;   
     osd->cpu->mounts->mount_media(dm);
+    soundeffects_play(4);
 }
 
 void diskii_button_click(void *userdata) {
@@ -76,6 +82,7 @@ void diskii_button_click(void *userdata) {
     if (osd->cpu->mounts->media_status(data->key).is_mounted) {
         disk_mount_t dm;
         osd->cpu->mounts->unmount_media(data->key);
+        soundeffects_play(3);
         return;
     }
 

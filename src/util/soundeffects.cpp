@@ -29,7 +29,7 @@ typedef struct SoundEffect {
     SDL_AudioStream *stream;
 } SoundEffect;
 
-static SoundEffect soundeffects[3];
+static SoundEffect soundeffects[5];
 
 static bool load_soundeffect(SDL_AudioDeviceID audio_device, const char *fname, SoundEffect *soundeffect)
 {
@@ -65,18 +65,28 @@ bool soundeffects_init(cpu_state *cpu)
 {
     speaker_state_t *speaker_state = (speaker_state_t *)get_module_state(cpu, MODULE_SPEAKER);
 
+    const char *sounds_to_load[] = {
+        "sounds/shugart-drive.wav",
+        "sounds/shugart-stop.wav",
+        "sounds/shugart-head.wav",
+        "sounds/shugart-open.wav",
+        "sounds/shugart-close.wav"
+    };
+
     SDL_SetAppMetadata("Example Audio Multiple Streams", "1.0", "com.example.audio-multiple-streams");
 
-    if (!load_soundeffect(speaker_state->device_id, "sounds/shugart-drive.wav", &soundeffects[0])) {
-        return false;
-    } 
-    if (!load_soundeffect(speaker_state->device_id, "sounds/shugart-stop.wav", &soundeffects[1])) {
-        return false;
-    } 
-    if (!load_soundeffect(speaker_state->device_id, "sounds/shugart-head.wav", &soundeffects[2])) {
-        return false;
-    } 
+    for (int i = 0; i < sizeof(sounds_to_load) / sizeof(sounds_to_load[0]); i++) {
+        if (!load_soundeffect(speaker_state->device_id, sounds_to_load[i], &soundeffects[i])) {
+            printf("Failed to load sound effect: %s\n", sounds_to_load[i]);
+            return false;
+        }
+    }
     return true;
+}
+
+void soundeffects_play(int index)
+{
+    SDL_PutAudioStreamData(soundeffects[index].stream, soundeffects[index].wav_data, soundeffects[index].wav_data_len);
 }
 
 /* This function runs once per frame, and is the heart of the program. */

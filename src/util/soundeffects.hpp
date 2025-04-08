@@ -20,4 +20,5 @@
 
 bool soundeffects_init(cpu_state *cpu);
 void soundeffects_update(bool diskii_running, int tracknumber);
+void soundeffects_play(int index);
 void soundeffects_shutdown(SDL_AudioDeviceID audio_device);
