@@ -20,7 +20,7 @@
 #include <unistd.h>
 #include <stdint.h>
 
-#include "cpu.hpp"
+//#include "cpu.hpp"
 
 /* Address types */
 typedef uint8_t zpaddr_t;
@@ -51,5 +51,3 @@ typedef enum {
     NUM_SLOTS = 8
 } SlotType_t;
 
-
-void init_default_memory_map(cpu_state *cpu);
