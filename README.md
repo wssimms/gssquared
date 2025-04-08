@@ -145,3 +145,20 @@ Analyzes a disk image and prints information about it.
 ## nibblizer
 
 Convert a disk image file (140K 5.25 .do, .po, .dsk) to nibblized format (e.g. .nib). For testing. 
+
+# Acknowledgements
+
+## OpenEmulator
+
+I took the concept of the DisplayNG code from OpenEmulator, under GPL 3. 
+https://github.com/openemulator/openemulator/blob/master/AUTHORS
+
+I also shamelessly copied the Disk II sound files from OpenEmulator.
+
+## Mike Neil
+
+for the lookup table approach to the new DisplayNG code.
+
+## Wyatt Wong
+
+for helping test in different build environments
