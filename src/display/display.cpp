@@ -639,3 +639,8 @@ void display_dump_text_page(cpu_state *cpu, int page) {
     display_dump_file(cpu, "dump.txt", base_addr, 0x0400);
     fprintf(stdout, "Dumped TXT page %d to dump.txt\n", page);
 }
+
+void raise_window(cpu_state *cpu) {
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    SDL_RaiseWindow(ds->window);
+}

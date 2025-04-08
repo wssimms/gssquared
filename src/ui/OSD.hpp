@@ -26,6 +26,7 @@
 #include "DiskII_Button.hpp"
 #include "Unidisk_Button.hpp"
 #include "Container.hpp"
+#include "ModalContainer.hpp"
 #include "MousePositionTile.hpp"
 #include "AssetAtlas.hpp"
 
@@ -65,6 +66,8 @@ protected:
 
     std::vector<Container_t *> containers;
     Container_t *hud_drive_container = nullptr;
+    ModalContainer_t *activeModal = nullptr;
+    ModalContainer_t *diskii_save_con = nullptr;
 
     MousePositionTile_t* mouse_pos = nullptr;
     AssetAtlas_t *aa = nullptr;
@@ -73,7 +76,6 @@ protected:
     SDL_Window *window = nullptr;
     int window_w = 0;
     int window_h = 0;
-    bool raise_window_on_next_frame = false;
 
 public:
     cpu_state *cpu = nullptr;

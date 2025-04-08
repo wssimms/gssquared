@@ -163,7 +163,11 @@ void init_cpus() { // this is the same as a power-on event.
         CPUs[i].p = 0;
         CPUs[i].cycles = 0;
         CPUs[i].last_tick = 0;
-
+        CPUs[i].event_queue = new EventQueue();
+        if (!CPUs[i].event_queue) {
+            std::cerr << "Failed to allocate event queue for CPU " << i << std::endl;
+            exit(1);
+        }
         //CPUs[i].execute_next = &execute_next_6502;
 
         set_clock_mode(&CPUs[i], CLOCK_1_024MHZ);
@@ -218,11 +222,6 @@ void run_cpus(void) {
 
         if (! cpu->halt) {
             while (cpu->cycles - last_cycle_count < cycles_for_this_burst) { // 1/60th second.
-                /* if (cpu->pc == 0xC5C0) {
-                    printf("ParaVirtual Trap PC: %04X\n", cpu->pc);
-                    prodos_block_pv_trap(cpu);
-                } */
-
                 if ((cpu->execute_next)(cpu) > 0) { // never returns 0 right now
                     break;
                 }
@@ -237,6 +236,7 @@ void run_cpus(void) {
         uint64_t audio_time;
         uint64_t display_time;
         uint64_t event_time;
+        uint64_t app_event_time;
 
         if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_event_update > 16667000)
             || (cpu->clock_mode != CLOCK_FREE_RUN)) {
@@ -265,16 +265,28 @@ void run_cpus(void) {
             last_audio_update = current_time;
         }
 
+        current_time = SDL_GetTicksNS();
+        if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_audio_update > 16667000)
+            || (cpu->clock_mode != CLOCK_FREE_RUN)) {
+            Event *event = cpu->event_queue->getNextEvent();
+            if (event) {
+                switch (event->getEventType()) {
+                    case EVENT_PLAY_SOUNDEFFECT:
+                        soundeffects_play(event->getEventData());
+                        break;
+                    case EVENT_REFOCUS:
+                        raise_window(cpu);
+                        break;
+                }
+                delete event; // processed, we can now delete it.
+            }
+            app_event_time = SDL_GetTicksNS() - current_time;
+        }
+
         /* Emit Video Frame */
         current_time = SDL_GetTicksNS();
         if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_display_update > 16667000)
             || (cpu->clock_mode != CLOCK_FREE_RUN)) {
-
-            /* SDL_Event event; // is this right??? Don't think this belongs here.. we already did above..
-            while(SDL_PollEvent(&event)) {
-                event_poll(cpu, event); // they say call "once per frame"
-            } */
-            //event_poll(cpu); // they say call "once per frame"
             update_flash_state(cpu);
             update_display(cpu);    
             osd->render();
@@ -290,7 +302,7 @@ void run_cpus(void) {
         if (current_time - last_5sec_update > 5000000000) {
             uint64_t delta = cpu->cycles - last_5sec_cycles;
             fprintf(stdout, "%llu delta %llu cycles clock-mode: %d CPS: %f MHz [ slips: %llu, busy: %llu, sleep: %llu]\n", delta, cpu->cycles, cpu->clock_mode, (float)delta / float(5000000) , cpu->clock_slip, cpu->clock_busy, cpu->clock_sleep);
-            fprintf(stdout, "event_time: %10llu, audio_time: %10llu, display_time: %10llu, total: %10llu\n", event_time, audio_time, display_time, event_time + audio_time + display_time);
+            fprintf(stdout, "event_time: %10llu, audio_time: %10llu, display_time: %10llu, app_event_time: %10llu, total: %10llu\n", event_time, audio_time, display_time, app_event_time, event_time + audio_time + display_time + app_event_time);
             fprintf(stdout, "PC: %04X, A: %02X, X: %02X, Y: %02X, P: %02X\n", cpu->pc, cpu->a, cpu->x, cpu->y, cpu->p);
             last_5sec_cycles = cpu->cycles;
             last_5sec_update = current_time;
@@ -310,7 +322,7 @@ void run_cpus(void) {
             uint64_t current_time = SDL_GetTicksNS();
             if (current_time > wakeup_time) {
                 cpu->clock_slip++;
-                printf("Clock slip: event_time: %10llu, audio_time: %10llu, display_time: %10llu, total: %10llu\n", event_time, audio_time, display_time, event_time + audio_time + display_time);
+                printf("Clock slip: event_time: %10llu, audio_time: %10llu, display_time: %10llu, app_event_time: %10llu, total: %10llu\n", event_time, audio_time, display_time, app_event_time, event_time + audio_time + display_time + app_event_time);
             } else {
                 // busy wait sync cycle time
                 do {

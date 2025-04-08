@@ -1,0 +1,69 @@
+/*
+ *   Copyright (c) 2025 Jawaid Bazyar
+
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#include <SDL3/SDL.h>
+#include "ModalContainer.hpp"
+
+ModalContainer_t::ModalContainer_t(SDL_Renderer *rendererp, size_t max_tiles, const char* msg_text, const Style_t& initial_style)
+    : Container_t(rendererp, max_tiles, initial_style), msg_text(msg_text) {
+}
+
+ModalContainer_t::ModalContainer_t(SDL_Renderer *rendererp, size_t max_tiles, const char* msg_text)
+    : Container_t(rendererp, max_tiles), msg_text(msg_text) {
+}
+
+void ModalContainer_t::layout() {
+    if (!visible || tile_count == 0) return;
+
+    // Position each visible tile in a line starting at (100, 100)
+    // Calculate total width of all tiles and gaps
+    float total_width = (tile_count * 90.0f) + ((tile_count - 1) * 10.0f);
+    // Center the starting position
+    float current_x = x + (w - total_width) / 2;
+    float current_y = 100.0f;
+
+    for (size_t i = 0; i < tile_count; i++) {
+        if (tiles[i] && tiles[i]->is_visible()) {
+            tiles[i]->set_position(x + current_x, y + current_y);
+            tiles[i]->set_size(90.0f, 20.0f);  // Set each tile to 100 width, 20 height
+            current_x += 100.0f;  // Add some spacing between tiles
+        }
+    }
+}
+
+void ModalContainer_t::render() {
+    //if (!visible) return;
+    // Call the parent class's render method to handle background, border, etc.
+    Container_t::render();
+
+    // Draw the message text
+    if (!msg_text.empty()) {
+        // For now, we'll just print the message to console
+        // TODO: Implement proper text rendering
+        //printf("Modal Message: %s\n", msg_text.c_str());
+        float content_x = (w - strlen(msg_text.c_str()) * 10) / 2;
+        //printf("content_x: %f X: %f Y: %f %s %08X\n", content_x, x, y, msg_text.c_str(), style.text_color);
+        SDL_SetRenderDrawColor(renderer,
+            (style.text_color >> 24) & 0xFF,
+            (style.text_color >> 16) & 0xFF,
+            (style.text_color >> 8) & 0xFF,
+            style.text_color & 0xFF
+        );
+        SDL_RenderDebugText(renderer, x + content_x, y + 30, msg_text.c_str());
+    }
+}
+

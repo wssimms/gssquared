@@ -23,6 +23,7 @@
 
 #include "memoryspecs.hpp"
 #include "clock.hpp"
+#include "util/EventQueue.hpp"
 
 //#include "clock.hpp"
 
@@ -199,6 +200,7 @@ struct cpu_state {
     execute_next_fn execute_next;
 
     Mounts *mounts;
+    EventQueue *event_queue = nullptr;
 
     void *module_store[MODULE_NUM_MODULES];
 };
@@ -232,3 +234,5 @@ const char* processor_get_name(int processor_type);
 void *get_module_state(cpu_state *cpu, module_id_t module_id);
 
 void set_module_state(cpu_state *cpu, module_id_t module_id, void *state);
+
+void init_default_memory_map(cpu_state *cpu);

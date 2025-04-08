@@ -145,3 +145,4 @@ void display_dump_hires_page(cpu_state *cpu, int page);
 void display_dump_text_page(cpu_state *cpu, int page);
 void flip_display_hgr_model(cpu_state *cpu);
 void flip_display_scale_mode(cpu_state *cpu);
+void raise_window(cpu_state *cpu);

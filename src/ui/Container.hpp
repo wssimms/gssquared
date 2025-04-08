@@ -33,7 +33,7 @@
  * - Render all contained tiles
  */
 class Container_t {
-private:
+protected:
     Style_t style;
     float x, y;
     float w, h;
@@ -46,6 +46,7 @@ private:
     Tile_t **tiles = nullptr;  // Array of pointers to tiles
     SDL_Renderer *renderer;
 
+private:
     /**
      * @brief Initializes the tiles array.
      * @param max_tiles Maximum number of tiles this container can hold
@@ -101,8 +102,8 @@ public:
     void set_size(float new_w, float new_h);
 
     /**
-     * @brief Sets the padding between tiles.
-     * @param new_padding New padding value
+     * @brief Sets the container's padding.
+     * @param new_padding Padding value
      */
     void set_padding(uint32_t new_padding);
 
@@ -113,16 +114,16 @@ public:
     void set_hover_color(uint32_t color);
 
     /**
-     * @brief Sets the layout direction for tiles.
-     * @param right_to_left True for right-to-left layout
-     * @param bottom_to_top True for bottom-to-top layout
+     * @brief Sets the layout direction.
+     * @param right_to_left If true, layout from right to left
+     * @param bottom_to_top If true, layout from bottom to top
      */
     void set_layout_direction(bool right_to_left, bool bottom_to_top);
 
     /**
-     * @brief Recalculates and applies the layout for all tiles.
+     * @brief Lays out all tiles in the container.
      */
-    void layout();
+    virtual void layout();
 
     /**
      * @brief Handles mouse events for the container and its tiles.
@@ -131,7 +132,7 @@ public:
     void handle_mouse_event(const SDL_Event& event);
 
     /**
-     * @brief Renders the container and all its visible tiles.
+     * @brief Renders the container and all its tiles.
      */
-    void render();
+    virtual void render();
 }; 

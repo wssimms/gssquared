@@ -34,6 +34,7 @@
 #include "util/mount.hpp"
 #include "util/reset.hpp"
 #include "util/soundeffects.hpp"
+#include "ModalContainer.hpp"
 
 #define MOUSE_POSITION_TILE 0
 
@@ -72,7 +73,7 @@ static void /* SDLCALL */ file_dialog_callback(void* userdata, const char* const
     dm.slot = data->key >> 8;
     dm.drive = data->key & 0xFF;   
     osd->cpu->mounts->mount_media(dm);
-    soundeffects_play(SE_SHUGART_CLOSE);
+    osd->cpu->event_queue->addEvent(new Event(EVENT_PLAY_SOUNDEFFECT, SE_SHUGART_CLOSE));
 }
 
 void diskii_button_click(void *userdata) {
@@ -82,7 +83,7 @@ void diskii_button_click(void *userdata) {
     if (osd->cpu->mounts->media_status(data->key).is_mounted) {
         disk_mount_t dm;
         osd->cpu->mounts->unmount_media(data->key);
-        soundeffects_play(SE_SHUGART_OPEN);
+        osd->cpu->event_queue->addEvent(new Event(EVENT_PLAY_SOUNDEFFECT, SE_SHUGART_OPEN));
         return;
     }
 
@@ -182,7 +183,7 @@ SDL_Window* OSD::get_window() {
 }
 
 void OSD::set_raise_window() {
-    raise_window_on_next_frame = true;
+    cpu->event_queue->addEvent(new Event(EVENT_REFOCUS, 0));
 }
 
 OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManager_t *slot_manager, int window_width, int window_height) 
@@ -375,6 +376,45 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManag
     gen_con->add_tile(b1, 0);
     gen_con->layout();
     containers.push_back(gen_con);
+
+    Style_t ModalStyle;
+    ModalStyle.background_color = 0xFFFFFFFF;
+    ModalStyle.text_color = 0x000000FF;
+    ModalStyle.border_width = 2;
+    ModalStyle.border_color = 0xFF0000FF;
+    ModalStyle.padding = 2;
+    
+    diskii_save_con = new ModalContainer_t(renderer, 10, "Disk Data has been modified. Save?", ModalStyle);
+    diskii_save_con->set_position(300, 200);
+    diskii_save_con->set_size(500, 200);
+    // Create text buttons for the disk save dialog
+    
+    Style_t TextButtonCfg;
+    TextButtonCfg.background_color = 0xE0E0FFFF;
+    TextButtonCfg.text_color = 0x000000FF;
+    TextButtonCfg.border_width = 1;
+    TextButtonCfg.border_color = 0x000000FF;
+    TextButtonCfg.padding = 2;
+    
+    Button_t *save_btn = new Button_t("Save", TextButtonCfg);
+    Button_t *save_as_btn = new Button_t("Save As", TextButtonCfg);
+    Button_t *discard_btn = new Button_t("Discard", TextButtonCfg);
+    Button_t *cancel_btn = new Button_t("Cancel", TextButtonCfg);
+    save_btn->set_size(100, 20);
+    save_btn->set_position(50, 100);
+    save_as_btn->set_size(100, 20);
+    save_as_btn->set_position(150, 100);
+    discard_btn->set_size(100, 20);
+    discard_btn->set_position(250, 100);
+    cancel_btn->set_size(100, 20);
+    cancel_btn->set_position(350, 100);
+
+    diskii_save_con->add_tile(save_btn, 0);
+    diskii_save_con->add_tile(save_as_btn, 1);
+    diskii_save_con->add_tile(discard_btn, 2);
+    diskii_save_con->add_tile(cancel_btn, 3);
+    diskii_save_con->layout();
+    containers.push_back(diskii_save_con); // just for testing
 }
 
 void OSD::update() {
@@ -510,11 +550,6 @@ bool OSD::event(const SDL_Event &event) {
         // call separately since not in a container. Want it to always get mouse events no matter what.
         mouse_pos->handle_mouse_event(event);
 #endif
-    }
-
-    if (raise_window_on_next_frame) {
-        SDL_RaiseWindow(window);
-        raise_window_on_next_frame = false;
     }
 
     switch (event.type)
