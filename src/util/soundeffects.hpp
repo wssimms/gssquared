@@ -18,6 +18,12 @@
 #include <SDL3/SDL.h>
 #include "cpu.hpp"
 
+#define SE_SHUGART_DRIVE 0
+#define SE_SHUGART_STOP 1
+#define SE_SHUGART_HEAD 2
+#define SE_SHUGART_OPEN 3
+#define SE_SHUGART_CLOSE 4
+
 bool soundeffects_init(cpu_state *cpu);
 void soundeffects_update(bool diskii_running, int tracknumber);
 void soundeffects_play(int index);

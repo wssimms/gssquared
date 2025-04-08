@@ -23,6 +23,7 @@
 #include "gs2.hpp"
 #include "cpu.hpp"
 #include "devices/speaker/speaker.hpp"
+#include "soundeffects.hpp"
 
 /* things that are playing sound (the audiostream itself, plus the original data, so we can refill to loop. */
 typedef struct SoundEffect {
@@ -32,6 +33,15 @@ typedef struct SoundEffect {
 } SoundEffect;
 
 static SoundEffect soundeffects[5];
+
+const char *sounds_to_load[] = {
+    "sounds/shugart-drive.wav",
+    "sounds/shugart-stop.wav",
+    "sounds/shugart-head.wav",
+    "sounds/shugart-open.wav",
+    "sounds/shugart-close.wav"
+};
+
 
 static bool load_soundeffect(SDL_AudioDeviceID audio_device, const char *fname, SoundEffect *soundeffect)
 {
@@ -67,17 +77,9 @@ bool soundeffects_init(cpu_state *cpu)
 {
     speaker_state_t *speaker_state = (speaker_state_t *)get_module_state(cpu, MODULE_SPEAKER);
 
-    const char *sounds_to_load[] = {
-        "sounds/shugart-drive.wav",
-        "sounds/shugart-stop.wav",
-        "sounds/shugart-head.wav",
-        "sounds/shugart-open.wav",
-        "sounds/shugart-close.wav"
-    };
-
     SDL_SetAppMetadata("Example Audio Multiple Streams", "1.0", "com.example.audio-multiple-streams");
 
-    for (int i = 0; i < sizeof(sounds_to_load) / sizeof(sounds_to_load[0]); i++) {
+    for (int i = 0; i < SDL_arraysize(sounds_to_load); i++) {
         if (!load_soundeffect(speaker_state->device_id, sounds_to_load[i], &soundeffects[i])) {
             printf("Failed to load sound effect: %s\n", sounds_to_load[i]);
             return false;
@@ -108,15 +110,15 @@ void soundeffects_update(bool diskii_running, int tracknumber)
         diskii_running_last = false;
 
         /* Clear the audio stream when transitioning to disabled state */
-        SDL_FlushAudioStream(soundeffects[0].stream);
+        SDL_FlushAudioStream(soundeffects[SE_SHUGART_DRIVE].stream);
     }
     
     /* Only queue audio data if sound is enabled */
     static int running_chunknumber = 0;
     if (diskii_running) {
-        int dl = (int) soundeffects[0].wav_data_len / 10;
-        if (SDL_GetAudioStreamQueued(soundeffects[0].stream) < dl) {
-            SDL_PutAudioStreamData(soundeffects[0].stream, soundeffects[0].wav_data + dl * running_chunknumber, dl);
+        int dl = (int) soundeffects[SE_SHUGART_DRIVE].wav_data_len / 10;
+        if (SDL_GetAudioStreamQueued(soundeffects[SE_SHUGART_DRIVE].stream) < dl) {
+            SDL_PutAudioStreamData(soundeffects[SE_SHUGART_DRIVE].stream, soundeffects[SE_SHUGART_DRIVE].wav_data + dl * running_chunknumber, dl);
             running_chunknumber++;
             if (running_chunknumber > 8) {
                 running_chunknumber = 0;
@@ -131,12 +133,12 @@ void soundeffects_update(bool diskii_running, int tracknumber)
         int ind = 200 * 2 * std::abs(start_track_movement-tracknumber);
 
         int len = ((int) (200 * 2) * std::abs(tracknumber_last-tracknumber));
-        if (ind + len > soundeffects[2].wav_data_len) {
-            len = soundeffects[2].wav_data_len - ind;
+        if (ind + len > soundeffects[SE_SHUGART_HEAD].wav_data_len) {
+            len = soundeffects[SE_SHUGART_HEAD].wav_data_len - ind;
         }
         SDL_PutAudioStreamData(
-            soundeffects[2].stream, 
-            soundeffects[2].wav_data + ind,
+            soundeffects[SE_SHUGART_HEAD].stream, 
+            soundeffects[SE_SHUGART_HEAD].wav_data + ind,
             len
         );
         if (start_track_movement == -1) start_track_movement = tracknumber_last;

@@ -72,7 +72,7 @@ static void /* SDLCALL */ file_dialog_callback(void* userdata, const char* const
     dm.slot = data->key >> 8;
     dm.drive = data->key & 0xFF;   
     osd->cpu->mounts->mount_media(dm);
-    soundeffects_play(4);
+    soundeffects_play(SE_SHUGART_CLOSE);
 }
 
 void diskii_button_click(void *userdata) {
@@ -82,7 +82,7 @@ void diskii_button_click(void *userdata) {
     if (osd->cpu->mounts->media_status(data->key).is_mounted) {
         disk_mount_t dm;
         osd->cpu->mounts->unmount_media(data->key);
-        soundeffects_play(3);
+        soundeffects_play(SE_SHUGART_OPEN);
         return;
     }
 
