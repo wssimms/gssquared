@@ -17,7 +17,9 @@
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
+
 #include <cstdlib>
+#include <cstdio>
 #include "gs2.hpp"
 #include "cpu.hpp"
 #include "devices/speaker/speaker.hpp"
