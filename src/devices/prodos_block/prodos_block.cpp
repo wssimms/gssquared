@@ -16,6 +16,8 @@
  */
 
 #include <stdio.h>
+#include <format>
+
 #include "gs2.hpp"
 #include "cpu.hpp"
 #include "memory.hpp"
