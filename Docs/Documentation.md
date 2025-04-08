@@ -1,51 +1,117 @@
 # GSSquared - Ultimate Apple II Series Emulator
 
-## Project Status (as of 2025-01-18)
+The ambition for this project is large - and it will take a while to get it done. So at any given point in time, consider it a work-in-progress complete with bugs, missing features, and experiments. Of course there will be plenty that "just works".
 
-* Supported Platforms
-  * MacOS - the primary development platform. This will always be up to date.
-  * Linux - Can now build Linux binary. All features working.
-  * Windows - Not started.
-* CPUs
-  * NMOS 6502 - Complete.
-  * CMOS 6502 - not started.
-  * 65c816 - not started.
-* Keyboard - Complete.
-* Memory Expansion
-  * Language Card - Complete.
-  * Apple II Memory Expansion Card ("Slinky")- Complete.
-* Display Modes
-  * Text
-    * 40-column text mode - Complete. Supports normal, inverse, and flash; Screen 1 and 2.
-    * Apple II+ 80-column text mode - not started.
-    * Apple IIe 80-column text mode - not started.
-  * Low-resolution graphics - (Complete - works with Screen 1, 2, split-screen and full-screen).
-  * High-resolution graphics - monochrome ('green screen version') done; Color "rgb mode" done; Color "composite mode" done.
-  * Green and Amber monochrome modes - done for text, hi-res. Lo-res not started. 
-* Storage Devices
-  * Cassette - not started.
-  * Disk II Controller Card - Read/Write/Format working with DOS and ProDOS interleave disks. Can't save modified disks yet.
-  * ProDOS Block-Device Interface - complete.
-  * SmartPort / ProDOS Block-Device Interface - Not started.
-  * RAMfast SCSI Interface - Not started.
-  * Pascal Storage Device - Not started. (Same as generic ProDOS-compatible?)
-* Disk Image Formats
-  * .do, .dsk - read only, 143K.
-  * .po - read only, 143K.
-  * .hdv - any size block device, read/write, complete.
-  * .2mg - read/write, for block devices, complete.
-  * .nib - read only, 143K.
-  * .woz - not started.
-* Sound - Complete. Needs some tweaking to make sounds less buzzy. Works 1MHz and fast speeds though results can be comical.
-* I/O Devices
-  * Printer / parallel port - not started.
-  * Printer / serial port - not started.
-  * ImageWriter printer emulation - not started.
-  * Joystick / paddles - initial implementation, with mouse. Work in progress. GamePad support started, needs refactored.
-  * Shift-key mod and Lowercase Character Generator. Not started.
-* Clocks
-  * Thunderclock - read of time implemented. Interrupts, writing clock - not implemented. Needs testing.
-  * Generic ProDOS-compatible Clock - complete, read-only.
+# Project Status (as of 2025-04-07)
+
+## Supported Host Platforms
+
+| Platform | Status |
+|----------|--------|
+| MacOS    | The primary development platform. This will always be up to date. |
+| Linux    | Can now build Linux binary. All features working. |
+| Windows  | Not started. |
+
+## Supported Video Modes
+
+We currently have the following implemented:
+
+| Apple II Mode | Composite | RGB | Monochrome |
+|---------------|-----------|-----|------------|
+| Text (40-col) | ❌        | ✅  | ✅         |
+| Text (80-col) | ❌        | ❌  | ❌         |
+| LGR           | ❌        | ✅  | ❌         |
+| HGR           | ✅        | ✅  | ✅         |
+| DHGR          | ❌        | ❌  | ❌         |
+
+By "Composite" we mean DisplayNG, to accurately render composite artifacts.
+
+## CPUs
+
+| CPU Type | Status |
+|----------|--------|
+| NMOS 6502 | ✅ |
+| CMOS 6502 | ❌ |
+| 65c816 | ❌ |
+
+## Keyboard
+
+| Model | Status |
+|-------|--------|
+| Apple II+ | ✅ |
+| Apple IIe | ❌ |
+| Apple IIc | ❌ |
+| Apple IIgs | ❌ |
+
+
+## Memory Expansion
+
+| Type | Status |
+|------|--------|
+| Language Card | ✅ |
+| Apple II Memory Expansion Card ("Slinky") | ✅ | 
+
+## Storage Devices
+
+| Type | Status |
+|------|--------|
+| Cassette | Not started |
+| Disk II Controller Card | ✅ |
+| ProDOS Block-Device Interface | ✅ |
+| SmartPort / ProDOS Block-Device Interface | Not started |
+| RAMfast SCSI Interface | Not started |
+| Pascal Storage Device | Not started (Same as generic ProDOS-compatible?) |
+
+Additional notes: Disk II does not support quarter or half tracks.
+
+## Disk Image Formats
+
+| Format | Status | Size | Notes |
+|--------|--------|------|-------|
+| .do, .dsk | Read only | 143K | |
+| .po | Read only | 143K | |
+| .hdv | Read/write | Any size | Block device, complete |
+| .2mg | Read/write | Various | For block devices, complete |
+| .nib | Read only | 143K | |
+| .woz | Not started | | |
+
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Basic Speaker | ✅ Complete | Needs a little more work to make less square wavy |
+| Ensoniq | Not started |
+
+## I/O Devices
+
+| Device | Status | Notes |
+|--------|--------|-------|
+| Printer / parallel port | Not started | |
+| Printer / serial port | Not started | |
+| ImageWriter printer emulation | Not started | |
+| Joystick / paddles | Work in progress | Initial implementation with mouse. GamePad support started, needs refactored. |
+| Shift-key mod and Lowercase Character Generator | Not started | |
+
+## Clocks
+
+| Type | Status | Notes |
+|------|--------|-------|
+| Thunderclock | Partial | Read of time implemented. Interrupts, writing clock - not implemented. Needs testing. |
+| Generic ProDOS-compatible Clock | Complete | Read-only. |
+
+# More Detailed Notes on Status
+
+## Keyboard
+
+### Apple II+
+
+1. control keys: YES
+1. shift keys: YES
+1. arrow keys: YES. II+ only has left and right arrow keys.
+1. Escape key: YES
+1. RESET key: YES. Map Control+F10 to this.
+1. EXIT key: YES. Map F12 to this.
+1. REPT key: no. But we don't need this, autorepeat is working. Ignore this.
+1. Backspace - YES. This apparently maps to same as back arrow. Got lucky.
 
 ## ROMs
 
