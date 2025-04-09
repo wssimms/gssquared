@@ -495,6 +495,8 @@ void OSD::update() {
 
 /** Draw the control panel (if visible) */
 void OSD::render() {
+
+    /** if current Status is out, don't draw. If status is in transition or IN, draw. */
     if (currentSlideStatus == SLIDE_IN || (currentSlideStatus != slideStatus)) {
         float ox,oy;
         SDL_GetRenderScale(renderer, &ox, &oy);
@@ -520,7 +522,6 @@ void OSD::render() {
 
         /* ----- */
 
-        /** if current Status is out, don't draw. If status is in transition or IN, draw. */
         SDL_FRect cpTargetRect = {
             (float)slidePosition,
             (float)0, // no vertical offset
@@ -551,14 +552,15 @@ void OSD::render() {
         drive_status_t ds1 = diskii_button1->get_disk_status();
         drive_status_t ds2 = diskii_button2->get_disk_status();
 
-        // Get the current window size to properly position HUD elements
-        int window_width, window_height;
-        SDL_GetWindowSize(window, &window_width, &window_height);
-        
-        // Update HUD drive container position based on window size
-        // Position it at the bottom of the screen with some padding
-        hud_drive_container->set_position((window_width - 420) / 2, window_height - 125 );
         if (ds1.motor_on || ds2.motor_on) {
+            // Get the current window size to properly position HUD elements
+            int window_width, window_height;
+            SDL_GetWindowSize(window, &window_width, &window_height);
+            
+            // Update HUD drive container position based on window size
+            // Position it at the bottom of the screen with some padding
+            hud_drive_container->set_position((window_width - 420) / 2, window_height - 125 );
+
             // display running disk drives at the bottom of the screen.
             SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 

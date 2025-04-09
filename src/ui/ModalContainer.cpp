@@ -29,7 +29,10 @@ ModalContainer_t::ModalContainer_t(SDL_Renderer *rendererp, size_t max_tiles, co
 void ModalContainer_t::layout() {
     if (!visible || tile_count == 0) return;
 
-    // Position each visible tile in a line starting at (100, 100)
+    // TODO: actually add up the widths of the tiles (don't assume/set them);
+    // and iterate based on each actual tile width
+
+    // Center buttons in the container
     // Calculate total width of all tiles and gaps
     float buttons_width = (tile_count * 90.0f) + ((tile_count - 1) * 10.0f);
     // Center the starting position
