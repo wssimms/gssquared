@@ -129,8 +129,9 @@ void handle_keydown_iiplus(cpu_state *cpu, SDL_Event event) {
         if (key == SDLK_LEFT) { kb_key_pressed(0x08); return; }
         if (key == SDLK_RIGHT) { kb_key_pressed(0x15); return; }
         if (key >= 'a' && key <= 'z') key = key - 'a' + 'A';
-
-        kb_key_pressed(key);
+        if (key < 128) { // TODO: create a keyboard map, and allow user to select keyboard map for different languages.
+            kb_key_pressed(key);
+        }
     }
     /* if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "key pressed: %08X\n", key); */
 }
