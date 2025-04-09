@@ -64,6 +64,11 @@ protected:
     Button_t *speed_btn_40 = nullptr;
     Button_t *speed_btn_8 = nullptr;
 
+    Button_t *save_btn = nullptr;
+    Button_t *save_as_btn = nullptr;
+    Button_t *discard_btn = nullptr;
+    Button_t *cancel_btn = nullptr;
+
     std::vector<Container_t *> containers;
     Container_t *hud_drive_container = nullptr;
     ModalContainer_t *activeModal = nullptr;
@@ -114,4 +119,7 @@ public:
     bool event(const SDL_Event &event);
 
     void set_raise_window();
+
+    void show_diskii_modal(uint64_t key, uint64_t data);
+    void close_diskii_modal(uint64_t key, uint64_t data);
 };

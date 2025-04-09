@@ -72,6 +72,7 @@ struct diskII_controller {
 void init_slot_diskII(cpu_state *cpu, SlotType_t slot);
 void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor *media);
 void unmount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive);
+void writeback_diskII_image(cpu_state *cpu, uint8_t slot, uint8_t drive);
 drive_status_t diskii_status(cpu_state *cpu, uint64_t key);
 void diskii_reset(cpu_state *cpu);
 void debug_dump_disk_images(cpu_state *cpu);

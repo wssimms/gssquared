@@ -308,7 +308,10 @@ void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor 
     diskII_slot[slot].drive[drive].modified = false;
 }
 
-void writeback_disk_image(diskII& disk) {
+void writeback_diskII_image(cpu_state *cpu, uint8_t slot, uint8_t drive) {
+    diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
+    diskII &disk = diskII_slot[slot].drive[drive];
+
     if (disk.media_d->media_type == MEDIA_PRENYBBLE) {
         std::cout << "writing back pre-nibblized disk image " << disk.media_d->filename << std::endl;
         write_nibblized_disk(disk.nibblized, disk.media_d->filename);
@@ -319,16 +322,17 @@ void writeback_disk_image(diskII& disk) {
         denibblize_disk_image(new_disk_image, disk.nibblized, id);
         write_disk_image_po_do(new_disk_image, disk.media_d->filename);
     }
+    disk.modified = false;
 }
 
 void unmount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive) {
     diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
 
     // TODO: this will write the disk image back to disk.
-    if (diskII_slot[slot].drive[drive].media_d && diskII_slot[slot].drive[drive].modified) {
+    /* if (diskII_slot[slot].drive[drive].media_d && diskII_slot[slot].drive[drive].modified) {
         std::cout << "Unmounting disk " << diskII_slot[slot].drive[drive].media_d->filestub << " with unsaved changes." << std::endl;
-        writeback_disk_image(diskII_slot[slot].drive[drive]);
-    }
+        writeback_disk_image(cpu, slot, drive);
+    } */
 
     // reset all the track parameters to default to prepare for loading a new image.
     for (int i = 0; i < 35; i++) {
@@ -359,7 +363,7 @@ drive_status_t diskii_status(cpu_state *cpu, uint64_t key) {
     }
     bool motor = (diskII_slot[slot].drive_select == drive) ? diskII_slot[slot].motor : false;
 
-    return {seldrive.is_mounted, fname, motor, seldrive.track};
+    return {seldrive.is_mounted, fname, motor, seldrive.track, seldrive.modified};
 }
 
 bool any_diskii_motor_on(cpu_state *cpu) {

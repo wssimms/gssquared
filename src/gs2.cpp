@@ -194,6 +194,7 @@ void run_cpus(void) {
     uint64_t last_event_update = ct;
     uint64_t last_display_update = ct;
     uint64_t last_audio_update = ct;
+    uint64_t last_app_event_update = ct;
     uint64_t last_5sec_update = ct;
     uint64_t last_5sec_cycles = cpu->cycles;
 
@@ -237,7 +238,6 @@ void run_cpus(void) {
         uint64_t display_time;
         uint64_t event_time;
         uint64_t app_event_time;
-
         if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_event_update > 16667000)
             || (cpu->clock_mode != CLOCK_FREE_RUN)) {
             current_time = SDL_GetTicksNS();
@@ -266,7 +266,7 @@ void run_cpus(void) {
         }
 
         current_time = SDL_GetTicksNS();
-        if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_audio_update > 16667000)
+        if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_app_event_update > 16667000)
             || (cpu->clock_mode != CLOCK_FREE_RUN)) {
             Event *event = cpu->event_queue->getNextEvent();
             if (event) {
@@ -277,10 +277,36 @@ void run_cpus(void) {
                     case EVENT_REFOCUS:
                         raise_window(cpu);
                         break;
+                    case EVENT_MODAL_SHOW:
+                        osd->show_diskii_modal(event->getEventKey(), event->getEventData());
+                        break;
+                    case EVENT_MODAL_CLICK:
+                    {
+                        uint64_t key = event->getEventKey();
+                        uint64_t data = event->getEventData();
+                        printf("EVENT_MODAL_CLICK: %llu %llu\n", key, data);
+                        if (data == 1) {
+                            // save and unmount.
+                            osd->cpu->mounts->unmount_media(key, SAVE_AND_UNMOUNT);
+                            osd->cpu->event_queue->addEvent(new Event(EVENT_PLAY_SOUNDEFFECT, 0, SE_SHUGART_OPEN));
+                        } else if (data == 2) {
+                            // save as - need to open file dialog, get new filename, change media filename, then unmount.
+                        } else if (data == 3) {
+                            // discard
+                            osd->cpu->mounts->unmount_media(key, DISCARD);
+                            osd->cpu->event_queue->addEvent(new Event(EVENT_PLAY_SOUNDEFFECT, 0, SE_SHUGART_OPEN));
+                        } else if (data == 4) {
+                            // cancel
+                            // Do nothing!
+                        }
+                        osd->close_diskii_modal(key, data);
+                        break;
+                    }
                 }
                 delete event; // processed, we can now delete it.
             }
             app_event_time = SDL_GetTicksNS() - current_time;
+            last_app_event_update = current_time;
         }
 
         /* Emit Video Frame */

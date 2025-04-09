@@ -37,7 +37,7 @@ class Event {
         uint64_t event_data;
 
     public:
-        Event(uint64_t event_type, uint64_t event_data);
+        Event(uint64_t event_type, uint64_t event_key, uint64_t event_data);
         virtual ~Event() = default;
         uint64_t getEventType() const { return event_type; }
         uint64_t getEventData() const { return event_data; }

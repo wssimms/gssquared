@@ -18,6 +18,6 @@
 #include <SDL3/SDL.h>
 #include "Event.hpp"
 
-Event::Event(uint64_t event_type, uint64_t event_data) : event_type(event_type), event_data(event_data) {
+Event::Event(uint64_t event_type, uint64_t event_key, uint64_t event_data) : event_type(event_type), event_key(event_key), event_data(event_data) {
     event_ts = SDL_GetTicks();
 }

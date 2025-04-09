@@ -23,6 +23,8 @@
 class ModalContainer_t : public Container_t {
 private:
     std::string msg_text;
+    uint64_t key;
+    uint64_t data;
 
 public:
     ModalContainer_t(SDL_Renderer *rendererp, size_t max_tiles, const char* msg_text, const Style_t& initial_style);
@@ -30,5 +32,8 @@ public:
     
     void layout() override;
     void render() override;
+    void set_key(uint64_t key);
+    uint64_t get_key() const;
+    void set_data(uint64_t data);
+    uint64_t get_data() const;
 };
-

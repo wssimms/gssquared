@@ -71,7 +71,7 @@ int Mounts::mount_media(disk_mount_t disk_mount) {
     return key;
 }
 
-int Mounts::unmount_media(uint64_t key) {
+int Mounts::unmount_media(uint64_t key, unmount_action_t action) {
     // TODO: implement proper unmounting.
     auto it = mounted_media.find(key);
     if (it == mounted_media.end()) {
@@ -80,6 +80,10 @@ int Mounts::unmount_media(uint64_t key) {
     if (it->second.drive_type == DRIVE_TYPE_DISKII) {
         uint8_t slot = key >> 8;
         uint8_t drive = key & 0xFF;
+        if (action == SAVE_AND_UNMOUNT) {
+            // save and unmount.
+            writeback_diskII_image(cpu, slot, drive);
+        }
         unmount_diskII(cpu, slot, drive);
         return true;
     } else if (it->second.drive_type == DRIVE_TYPE_PRODOS_BLOCK) {

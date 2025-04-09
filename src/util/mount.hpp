@@ -35,6 +35,7 @@ struct drive_status_t {
     const char *filename;
     bool motor_on;
     int position;
+    bool is_modified;
 };
 
 enum drive_type_t {
@@ -48,6 +49,12 @@ struct drive_media_t {
     media_descriptor *media;
 };
 
+enum unmount_action_t {
+    UNMOUNT_ACTION_NONE,
+    SAVE_AND_UNMOUNT,
+    DISCARD
+};
+
 class Mounts {
 protected:
     cpu_state *cpu;
@@ -57,7 +64,7 @@ protected:
 public:
     Mounts(cpu_state *cpux) : cpu(cpux) {}
     int mount_media(disk_mount_t disk_mount);
-    int unmount_media(uint64_t key);
+    int unmount_media(uint64_t key, unmount_action_t action);
     drive_status_t media_status(uint64_t key);
     int register_drive(drive_type_t drive_type, uint64_t key);
     void dump();

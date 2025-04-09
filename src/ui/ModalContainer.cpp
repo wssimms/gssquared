@@ -67,3 +67,18 @@ void ModalContainer_t::render() {
     }
 }
 
+void ModalContainer_t::set_key(uint64_t key) {
+    this->key = key;
+}
+
+void ModalContainer_t::set_data(uint64_t data) {
+    this->data = data;
+}
+
+uint64_t ModalContainer_t::get_key() const {
+    return key;
+}
+
+uint64_t ModalContainer_t::get_data() const {
+    return data;    
+}

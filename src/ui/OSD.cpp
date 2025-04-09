@@ -36,14 +36,18 @@
 #include "util/soundeffects.hpp"
 #include "ModalContainer.hpp"
 
-#define MOUSE_POSITION_TILE 0
-
 // we need to use data passed to us, and pass it to the ShowOpenFileDialog, so when the file select event
 // comes back later, we know which drive this was for.
 // TODO: only allow one of these to be open at a time. If one is already open, disregard.
 
 struct diskii_callback_data_t {
     OSD *osd;
+    uint64_t key;
+};
+
+struct diskii_modal_callback_data_t {
+    OSD *osd;
+    ModalContainer_t *container;
     uint64_t key;
 };
 
@@ -62,18 +66,19 @@ static void /* SDLCALL */ file_dialog_callback(void* userdata, const char* const
     printf("file_dialog_callback: %s\n", filelist[0]);
     // 1. unmount current image (if present).
     // 2. mount new image.
-    drive_status_t ds = osd->cpu->mounts->media_status(data->key);
+    // TODO: this is never called here since we catch "mounted and want to unmount below in diskii_button_click"
+    /* drive_status_t ds = osd->cpu->mounts->media_status(data->key);
     if (ds.is_mounted) {
         osd->cpu->mounts->unmount_media(data->key);
         // shouldn't need soundeffect here, we play it elsewhere.
-    }
+    } */
 
     disk_mount_t dm;
     dm.filename = strndup(filelist[0], 1024);
     dm.slot = data->key >> 8;
     dm.drive = data->key & 0xFF;   
     osd->cpu->mounts->mount_media(dm);
-    osd->cpu->event_queue->addEvent(new Event(EVENT_PLAY_SOUNDEFFECT, SE_SHUGART_CLOSE));
+    osd->cpu->event_queue->addEvent(new Event(EVENT_PLAY_SOUNDEFFECT, 0, SE_SHUGART_CLOSE));
 }
 
 void diskii_button_click(void *userdata) {
@@ -81,9 +86,14 @@ void diskii_button_click(void *userdata) {
     OSD *osd = data->osd;
 
     if (osd->cpu->mounts->media_status(data->key).is_mounted) {
-        disk_mount_t dm;
-        osd->cpu->mounts->unmount_media(data->key);
-        osd->cpu->event_queue->addEvent(new Event(EVENT_PLAY_SOUNDEFFECT, SE_SHUGART_OPEN));
+        // if media was modified, create Event to handle modal dialog. Otherwise, just unmount.
+        if (osd->cpu->mounts->media_status(data->key).is_modified) {
+            osd->show_diskii_modal(data->key, 0);
+        } else {
+            //disk_mount_t dm;    
+            osd->cpu->mounts->unmount_media(data->key, DISCARD);
+            osd->cpu->event_queue->addEvent(new Event(EVENT_PLAY_SOUNDEFFECT, 0, SE_SHUGART_OPEN));
+        }
         return;
     }
 
@@ -108,7 +118,7 @@ void unidisk_button_click(void *userdata) {
 
     if (osd->cpu->mounts->media_status(data->key).is_mounted) {
         disk_mount_t dm;
-        osd->cpu->mounts->unmount_media(data->key);
+        osd->cpu->mounts->unmount_media(data->key, DISCARD); // TODO: we write blocks as we go, there is nothing to 'save' here.
         return;
     }
     
@@ -175,6 +185,16 @@ void click_reset_cpu(void *data) {
     system_reset(cpu, false);
 }
 
+void modal_diskii_click(void *data) {
+    diskii_modal_callback_data_t *d = (diskii_modal_callback_data_t *)data;
+    printf("modal_diskii_click %p %lld\n", data, d->key);
+    OSD *osd = d->osd;
+    cpu_state *cpu = osd->cpu;
+    ModalContainer_t *container = d->container;
+    cpu->event_queue->addEvent(new Event(EVENT_MODAL_CLICK, container->get_key(), d->key));
+    // I need to reference back to the button that was clicked and get its ID.
+}
+
 
 /** -------------------------------------------------------------------------------------------------- */
 
@@ -183,7 +203,7 @@ SDL_Window* OSD::get_window() {
 }
 
 void OSD::set_raise_window() {
-    cpu->event_queue->addEvent(new Event(EVENT_REFOCUS, 0));
+    cpu->event_queue->addEvent(new Event(EVENT_REFOCUS, 0, 0));
 }
 
 OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManager_t *slot_manager, int window_width, int window_height) 
@@ -201,7 +221,7 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManag
     }
     /* cpu->osd.controlPanelTexture = cpTexture; */
 
-    SDL_SetRenderTarget(renderer, cpTexture);
+    /* SDL_SetRenderTarget(renderer, cpTexture);
     
     SDL_RenderClear(renderer);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
@@ -215,7 +235,7 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManag
     SDL_RenderFillRect(renderer, &rect);
     
     SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xFF, 0xFF);
-    SDL_RenderDebugText(renderer, 50, 80, "This is your menu. It isn't very done, hai!");
+    SDL_RenderDebugText(renderer, 50, 80, "This is your menu. It isn't very done, hai!"); */
 
     Style_t CS;
     CS.padding = 4;
@@ -279,15 +299,6 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManag
     drive_container->add_tile(diskii_button2, 1);
     drive_container->add_tile(unidisk_button1, 2);
     drive_container->add_tile(unidisk_button2, 3);
-
-#if MOUSE_POSITION_TILE
-    mouse_pos = new MousePositionTile_t();
-    mouse_pos->set_position(100,600) ;
-    mouse_pos->set_size(150,20);
-    mouse_pos->set_background_color(0xFFFFFFFF);  // White background
-    mouse_pos->set_border_color(0x000000FF);      // Black border
-    mouse_pos->set_border_width(1);
-#endif
 
     // Initial layout
     drive_container->layout();
@@ -396,10 +407,10 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManag
     TextButtonCfg.border_color = 0x000000FF;
     TextButtonCfg.padding = 2;
     
-    Button_t *save_btn = new Button_t("Save", TextButtonCfg);
-    Button_t *save_as_btn = new Button_t("Save As", TextButtonCfg);
-    Button_t *discard_btn = new Button_t("Discard", TextButtonCfg);
-    Button_t *cancel_btn = new Button_t("Cancel", TextButtonCfg);
+    save_btn = new Button_t("Save", TextButtonCfg);
+    save_as_btn = new Button_t("Save As", TextButtonCfg);
+    discard_btn = new Button_t("Discard", TextButtonCfg);
+    cancel_btn = new Button_t("Cancel", TextButtonCfg);
     save_btn->set_size(100, 20);
     save_btn->set_position(50, 100);
     save_as_btn->set_size(100, 20);
@@ -408,13 +419,16 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManag
     discard_btn->set_position(250, 100);
     cancel_btn->set_size(100, 20);
     cancel_btn->set_position(350, 100);
-
+    save_btn->set_click_callback(modal_diskii_click, new diskii_modal_callback_data_t{this, diskii_save_con, 1});
+    save_as_btn->set_click_callback(modal_diskii_click, new diskii_modal_callback_data_t{this, diskii_save_con, 2});
+    discard_btn->set_click_callback(modal_diskii_click, new diskii_modal_callback_data_t{this, diskii_save_con, 3});
+    cancel_btn->set_click_callback(modal_diskii_click, new diskii_modal_callback_data_t{this, diskii_save_con, 4});
     diskii_save_con->add_tile(save_btn, 0);
     diskii_save_con->add_tile(save_as_btn, 1);
     diskii_save_con->add_tile(discard_btn, 2);
     diskii_save_con->add_tile(cancel_btn, 3);
     diskii_save_con->layout();
-    containers.push_back(diskii_save_con); // just for testing
+    //containers.push_back(diskii_save_con); // just for testing
 }
 
 void OSD::update() {
@@ -476,6 +490,11 @@ void OSD::update() {
     } else if (cpu->clock_mode == CLOCK_FREE_RUN) {
         speed_btn_8->set_background_color(0x00FF00FF);
     }
+
+    if (activeModal) {
+        activeModal->render();
+    }
+
 }
 
 /** Draw the control panel (if visible) */
@@ -484,6 +503,26 @@ void OSD::render() {
         float ox,oy;
         SDL_GetRenderScale(renderer, &ox, &oy);
         SDL_SetRenderScale(renderer, 1,1); // TODO: calculate these based on window size
+
+        /* ----- */
+        /* Redraw the whole control panel from bottom up, because the modal could have been anywhere! */
+        SDL_SetRenderTarget(renderer, cpTexture);
+        
+        SDL_RenderClear(renderer);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+
+        // make the background opaque and black.
+        SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
+        SDL_RenderFillRect(renderer, NULL);
+
+        SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xC0);
+        SDL_FRect rect = {0, 50, (float)(window_w-100), (float)(window_h-100)};
+        SDL_RenderFillRect(renderer, &rect);
+        
+        SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xFF, 0xFF);
+        SDL_RenderDebugText(renderer, 50, 80, "This is your menu. It isn't very done, hai!");
+
+        /* ----- */
 
         /** if current Status is out, don't draw. If status is in transition or IN, draw. */
         SDL_FRect cpTargetRect = {
@@ -501,11 +540,10 @@ void OSD::render() {
         for (Container_t* container : containers) {
             container->render();
         }
+        if (activeModal) {
+            activeModal->render();
+        }
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-
-#if MOUSE_POSITION_TILE
-        mouse_pos->render(renderer);
-#endif
 
         SDL_SetRenderTarget(renderer, nullptr);
 
@@ -541,15 +579,14 @@ void OSD::render() {
 bool OSD::event(const SDL_Event &event) {
     bool active = (currentSlideStatus == SLIDE_IN);
     if (active) {
-        // Let containers have a stab at the event
-        for (Container_t* container : containers) {
-            container->handle_mouse_event(event);
+        if (activeModal) {
+            activeModal->handle_mouse_event(event);
+        } else {
+            // Let containers have a stab at the event
+            for (Container_t* container : containers) {
+                container->handle_mouse_event(event);
+            }
         }
-        
-#if MOUSE_POSITION_TILE 
-        // call separately since not in a container. Want it to always get mouse events no matter what.
-        mouse_pos->handle_mouse_event(event);
-#endif
     }
 
     switch (event.type)
@@ -575,4 +612,14 @@ bool OSD::event(const SDL_Event &event) {
             break;
     }    
     return(active);
+}
+
+void OSD::show_diskii_modal(uint64_t key, uint64_t data) {
+    activeModal = diskii_save_con;
+    diskii_save_con->set_key(key);
+    diskii_save_con->set_data(data);
+}
+
+void OSD::close_diskii_modal(uint64_t key, uint64_t data) {
+    activeModal = nullptr;
 }
