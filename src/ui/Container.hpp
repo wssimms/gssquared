@@ -43,6 +43,7 @@ protected:
     int layout_lr = 0; /* 0 = left to right, 1 = right to left */
     int layout_tb = 0; /* 0 = top to bottom, 1 = bottom to top */
     size_t tile_count = 0;
+    size_t tile_max = 0;
     Tile_t **tiles = nullptr;  // Array of pointers to tiles
     SDL_Renderer *renderer;
 

@@ -108,7 +108,10 @@ void Button_t::render(SDL_Renderer* renderer) {
             (style.text_color >> 8) & 0xFF,
             style.text_color & 0xFF
         );
-        SDL_RenderDebugText(renderer, content_x, content_y, text.c_str());
+        
+        int wid = (strlen(text.c_str()) * SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE);
+        int hei = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE;
+        SDL_RenderDebugText(renderer, content_x + (content_w - wid) / 2, content_y + (content_h - hei) / 2, text.c_str());
     } else if (buttonType == BT_Atlas) {
         aa->draw(assetID, content_x, content_y);
     }

@@ -412,21 +412,17 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManag
     discard_btn = new Button_t("Discard", TextButtonCfg);
     cancel_btn = new Button_t("Cancel", TextButtonCfg);
     save_btn->set_size(100, 20);
-    save_btn->set_position(50, 100);
     save_as_btn->set_size(100, 20);
-    save_as_btn->set_position(150, 100);
     discard_btn->set_size(100, 20);
-    discard_btn->set_position(250, 100);
     cancel_btn->set_size(100, 20);
-    cancel_btn->set_position(350, 100);
     save_btn->set_click_callback(modal_diskii_click, new diskii_modal_callback_data_t{this, diskii_save_con, 1});
-    save_as_btn->set_click_callback(modal_diskii_click, new diskii_modal_callback_data_t{this, diskii_save_con, 2});
+    //save_as_btn->set_click_callback(modal_diskii_click, new diskii_modal_callback_data_t{this, diskii_save_con, 2});
     discard_btn->set_click_callback(modal_diskii_click, new diskii_modal_callback_data_t{this, diskii_save_con, 3});
     cancel_btn->set_click_callback(modal_diskii_click, new diskii_modal_callback_data_t{this, diskii_save_con, 4});
     diskii_save_con->add_tile(save_btn, 0);
-    diskii_save_con->add_tile(save_as_btn, 1);
-    diskii_save_con->add_tile(discard_btn, 2);
-    diskii_save_con->add_tile(cancel_btn, 3);
+    //diskii_save_con->add_tile(save_as_btn, 1);
+    diskii_save_con->add_tile(discard_btn, 1);
+    diskii_save_con->add_tile(cancel_btn, 2);
     diskii_save_con->layout();
     //containers.push_back(diskii_save_con); // just for testing
 }

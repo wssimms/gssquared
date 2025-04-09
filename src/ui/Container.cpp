@@ -24,7 +24,8 @@
 #include "Style.hpp"
 
 void Container_t::init_tiles(size_t max_tiles) {
-    tile_count = max_tiles;
+    tile_max = max_tiles;
+    tile_count = 0;
     tiles = new Tile_t*[max_tiles]();  // Initialize to nullptr
     for (size_t i = 0; i < max_tiles; i++) {
         tiles[i] = nullptr;
@@ -59,8 +60,9 @@ void Container_t::apply_style(const Style_t& new_style) {
 }
 
 void Container_t::add_tile(Tile_t* tile, size_t index) {
-    if (index < tile_count) {
+    if (index < tile_max) {
         tiles[index] = tile;
+        tile_count++;
     }
 }
 

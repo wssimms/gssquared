@@ -31,16 +31,18 @@ void ModalContainer_t::layout() {
 
     // Position each visible tile in a line starting at (100, 100)
     // Calculate total width of all tiles and gaps
-    float total_width = (tile_count * 90.0f) + ((tile_count - 1) * 10.0f);
+    float buttons_width = (tile_count * 90.0f) + ((tile_count - 1) * 10.0f);
     // Center the starting position
-    float current_x = x + (w - total_width) / 2;
-    float current_y = 100.0f;
-
+    float buttons_x = (w - buttons_width) / 2;
+    float buttons_y = 100.0f;
+    printf("x: %f y: %f w: %f h: %f\n", x, y, w, h);
+    printf("buttons_x: %f buttons_y: %f buttons_width: %f\n", buttons_x, buttons_y, buttons_width);
     for (size_t i = 0; i < tile_count; i++) {
         if (tiles[i] && tiles[i]->is_visible()) {
-            tiles[i]->set_position(x + current_x, y + current_y);
+            tiles[i]->set_position(x + buttons_x, y + buttons_y);
             tiles[i]->set_size(90.0f, 20.0f);  // Set each tile to 100 width, 20 height
-            current_x += 100.0f;  // Add some spacing between tiles
+            buttons_x += 100.0f;  // Add some spacing between tiles
+            printf("tile %zu: %f %f\n", i, x+buttons_x, y+buttons_y);
         }
     }
 }
@@ -55,7 +57,7 @@ void ModalContainer_t::render() {
         // For now, we'll just print the message to console
         // TODO: Implement proper text rendering
         //printf("Modal Message: %s\n", msg_text.c_str());
-        float content_x = (w - strlen(msg_text.c_str()) * 10) / 2;
+        float content_x = (w - strlen(msg_text.c_str()) * SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE) / 2;
         //printf("content_x: %f X: %f Y: %f %s %08X\n", content_x, x, y, msg_text.c_str(), style.text_color);
         SDL_SetRenderDrawColor(renderer,
             (style.text_color >> 24) & 0xFF,
