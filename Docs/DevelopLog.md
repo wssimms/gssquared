@@ -3147,3 +3147,60 @@ I want to clean up and reorganize the display code.
 strndup must go. I can make my own implementation and avoid having to refactor all the string code to use std::string.
 
 Or, just bite the bullet and do the right thing. I mean, I really ought to. FINE.
+
+## Apr 8, 2025
+
+So for the modal dialog, stick it smack in the middle of the OSD. Make it 200 x 100 pixels for now. We'll need a modal flag - if set, it is a pointer to the modal container. Updates are requested of that container AFTER everything else is drawn, and, events are exclusively sent to that container instead of the regular container list. Then we can define any number of modals to use for different things. (For example, selecting what card goes into a slot, choosing CPU type, etc.)
+
+DiskIISaveContainer - 
+   Save
+   Save As
+   Discard
+   Cancel
+
+The Modal Container needs to somehow return the selection when done.
+
+Also create a FadeOutStatus concept. This is a similar thing. It is a container button that displays for N frames, then decays to nothing over the next D frames. I need the ability to draw a button (text or image) with a forced opacity. I can do it with text. not sure about images. So, if we hit F9 to change speed for instance, the new speed will display at the bottom of the screen for a while. Maybe towards the left edge, to leave room for drives. And to leave room for another status display on the right side, to show effective CPU speed, cycles, etc. whatever we want over there.
+
+OK, I do want to create a sub-type of Container, that is ModalContainer. It will accept another Constructor argument, the Msg Text. This is displayed without being a button. It will also lay out its Buttons a certain way (Centered, in one line.). 
+
+ok, that's sort of done.
+
+So when we click to unmount a disk, we are in the middle of an OSD button callback. Since this Modal Dialog needs to display and receive events as part of our main event loop, the button callback can no longer be the code that calls unmount, plays the sound, etc. We need to trigger an event that will cause an appropriate piece of code to be executed from the main event loop. We need an EventQueue.
+
+The EventQueue is a simple ordered (FIFO) queue. we push an event onto it. We push:
+
+EventQueue
+    Event
+        uint64_t timestamp
+        event_id enum (one of defined set of events)
+        event_callback ( function to call with event )
+        event_data ( additional data to pass with event )
+
+We can have a variety of Event subclasses, one for each type of event. (This is how we should have done the cpu module data stuff, and, still can, if we REFACTOR!)
+
+So here's the overall flow.
+OSD is up.
+Disk button is clicked.
+Disk button issues DiskIIClickEvent, with data of 'key'. (i.e., ID of disk drive).
+
+1. ModalShowEvent first shows the modal (some of its data specifies which modal).
+1. All the buttons in the ModalContainer have (same) callback that will issue a ModalClickEvent with the button ID.
+1. ModalClickEvent sends the click info to the Event handler of the current modal (in this case, ModalClickEvent).
+1. It then takes appropriate action to make the modal go away.
+
+So the Modal has two event handler routines? an SDL_event handler and a gs2 Event handler. (Container only has the one type of event handler).
+
+Other Event types:
+* Play standalone Sound Effect
+
+SDL allows user-defined events. However, that would require use of void * and other horsepuckey. Implementing one ourselves is no biggie. So let's do it.
+
+Or is this overwrought? I could just store the key in the DiskIIModal and let it handle state itself.
+OTOH, the EventQueue idea lets us queue up several events. Say, on a Quit - we have multiple modified disks, we need to ask about each one. We can queue the events all at once. We could also pass the Events to a separate thread to handle stuff that might take a while to execute.
+
+Lot of flexibility for what is a small amount of work. Go for it!
+
+Does it go into UI? Or into util? Base class goes into Util. UI-related child classes go into UI.
+
+on a modal button click, get the button ID from the button itself.
