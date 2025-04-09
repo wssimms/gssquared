@@ -25,11 +25,18 @@
 #include <algorithm>
 #include <chrono>
 #include <stdio.h>
+#include "display.hpp"
 #include "Matrix3x3.hpp"
 #include "display/types.hpp"
 #include "display/ntsc.hpp"
 
 ntsc_config config ;
+
+RGBA mono_color_table[DM_NUM_MODES] = {
+    {0xFF, 0xFF, 0xFF, 0xFF }, // white
+    {0xFF, 0x55, 0xFF, 0x00 }, // green
+    {0xFF, 0x00, 0xBF, 0xFF }  // amber
+};
 
 // Function to generate phase information for a scanline and stuff in config.
 void generatePhaseInfo(int scanlineY, float colorBurst) {
@@ -411,7 +418,7 @@ void init_hgr_LUT()
     }
 }
 
-void processAppleIIFrame_LUT(
+void processAppleIIFrame_LUT (
     uint8_t* frameData,         // 560x192 bytes - gray bitstream data
     RGBA* outputImage,          // Will be filled with 560x192 RGBA pixels
     int y_start,
@@ -453,4 +460,30 @@ void processAppleIIFrame_LUT(
     }
 }
 
+/**
+ * Mono mode - just convert the bitstream to RGBA white (for now, I will grab the mono color later)
+ */
+void processAppleIIFrame_Mono (
+    uint8_t* frameData,         // 560x192 bytes - gray bitstream data
+    RGBA* outputImage,          // Will be filled with 560x192 RGBA pixels
+    int y_start,
+    int y_end,
+    RGBA color_value
+)
+{
+    static RGBA p_black = { 0xFF, 0x00, 0x00, 0x00 };
 
+    // Process each scanline
+    for (int y = y_start; y < y_end; y++)
+    {
+        for (int x = 0; x < config.width; x++) {
+            if (frameData[0]) {
+                outputImage[0] = color_value;
+            } else {
+                outputImage[0] = p_black;
+            }
+            outputImage++;
+            frameData++;
+        }
+    }
+}

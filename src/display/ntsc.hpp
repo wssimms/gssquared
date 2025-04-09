@@ -19,8 +19,11 @@
 
 #include <vector>
 #include "Matrix3x3.hpp"
+#include "display.hpp"
 #include "display/types.hpp"
+
 // Define types
+
 
 struct ntsc_config {
     int width;
@@ -43,6 +46,9 @@ const float NTSC_4FSC = 4 * NTSC_FSC;
 
 extern ntsc_config config ;
 
+extern RGBA mono_color_table[DM_NUM_MODES];
+
 void setupConfig();
 void init_hgr_LUT();
 void processAppleIIFrame_LUT(uint8_t* frameData, RGBA* outputImage, int y_start, int y_end);
+void processAppleIIFrame_Mono(uint8_t* frameData, RGBA* outputImage, int y_start, int y_end, RGBA color_value);

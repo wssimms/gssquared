@@ -84,8 +84,8 @@ typedef enum {
 } display_fullscreen_mode_t;
 
 typedef enum {
-    DISPLAY_HGR_MODEL_ORIG = 0,
-    DISPLAY_HGR_MODEL_OE,
+    DISPLAY_MODEL_RGB = 0,
+    DISPLAY_MODEL_COMP,
     NUM_DISPLAY_HGR_MODELS
 } display_hgr_model_t;
 

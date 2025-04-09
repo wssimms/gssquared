@@ -3204,3 +3204,42 @@ Lot of flexibility for what is a small amount of work. Go for it!
 Does it go into UI? Or into util? Base class goes into Util. UI-related child classes go into UI.
 
 on a modal button click, get the button ID from the button itself.
+
+OK this is working well!
+
+Looking at the goof going on with the game controller stuff. After ludicrous speed, it just stops working. This may be a SDL thing (polling the joysticks too frequently?)
+There is another issue, the IIe reference manual says "Addressing $C07X" resets all four timers. This implies reads and writes. Also, it's clear that it is C07X. So all of those should do the same strobe reset.
+
+## Apr 9, 2025
+
+tweaking layout of the modal - (auto) centering stuff. centering text in buttons. That also affected the slot buttons, but, those can be their own type later, or, can specify a style element for text alignment.
+
+Current Apple II+ todo list:
+
+* Video Videoterm
+* finish refactoring video code so we have three modes: composite, RGB, monochrome.
+
+Mono: the raw bits placed into the 560x192 video buffer, without any color processing.
+'RGB': the first-generation color stuff.
+Composite: the next-generation color stuff.
+
+First step is to implement Composite for lo-res, and then also text.
+
+So let's do it!
+
+ok, I now have lores wired into Composite (NG), and, mono Lo-res as well! I see that the lo-res colors are WAY different between the Comp and RGB code. That's what you get for trusting the internet!
+
+So from a user interface perspective, I think there are a number of dimensions.
+
+Color or Mono
+Composite or RGB
+Pixel-Perfect or Fuzz
+Mono: Green, Amber, White
+
+I was previously thinking like:
+
+Color, Green, Amber, White  |  Comp , RGB  | Fuzz, Square
+
+What if we want White mono as well?
+
+So the difference here is really just, four controls or three. With mono, there are no artifacts. So it really is a distinct mode from Comp and RGB?
