@@ -52,14 +52,6 @@ typedef enum {
     LM_HIRES_MODE   = 2
 } line_mode_t;
 
-/* Legacy Display Mode Switch - deprecated */
-typedef enum {
-    DM_COLOR_MODE = 0,
-    DM_GREEN_MODE,
-    DM_AMBER_MODE,
-    DM_NUM_MODES,
-} Xdisplay_color_mode_t;
-
 
 /** Display Modes */
 
