@@ -3231,10 +3231,10 @@ ok, I now have lores wired into Composite (NG), and, mono Lo-res as well! I see 
 
 So from a user interface perspective, I think there are a number of dimensions.
 
-Color or Mono
-Composite or RGB
-Pixel-Perfect or Fuzz
-Mono: Green, Amber, White
+Color Engine: Composite or RGB
+Color Mode: Color or Mono
+Pixel Mode: Pixel-Perfect or Fuzz
+Mono Color: Green, Amber, White
 
 I was previously thinking like:
 
@@ -3243,3 +3243,18 @@ Color, Green, Amber, White  |  Comp , RGB  | Fuzz, Square
 What if we want White mono as well?
 
 So the difference here is really just, four controls or three. With mono, there are no artifacts. So it really is a distinct mode from Comp and RGB?
+
+It doesn't make sense to have a Comp Amber or an RGB amber. They're the same.
+
+So:
+
+Comp, RGB, Mono | Green, Amber, White | Fuzz, Square
+
+These various combos of the four rendering variables. Refactoring the mode definitions and variables now.
+
+Experimenting with a different aspect ratio - this multiplies the vertical by another 1.22 (making the initial ratio 2 / 4.9). This makes the Sather book square example actually square.
+
+#define SCALE_X 2
+#define SCALE_Y 4.9
+
+I got so used to the current way that I'm not sure how I feel about this. Everything works just fine with it, though, it is quite large. I might have to shrink it a bit, i.e. go with 1.5 x something? Seems to look ok with the fuzzy scaling. top and bottom borders would need to be adjusted.

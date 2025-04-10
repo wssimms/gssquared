@@ -28,7 +28,7 @@ uint32_t hgr_mono_color_table[2] = {
 };
 
 uint32_t hgr_mono_table[DM_NUM_MODES] = {
-    0xFFFFFFFF, // color
+    0xFFFFFFFF, // white
     0x00FF55FF, // 0x009933FF  // green
     0xFFBF00FF, // amber.
 };
@@ -44,7 +44,7 @@ uint32_t hgr_color_table[4] = { //    Cur   Col   D7
 void render_hgr_scanline_mono(cpu_state *cpu, int y, void *pixels, int pitch) {
     
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    display_color_mode_t color_mode = ds->color_mode;
+    display_mono_color_t color_mode = ds->display_mono_color;
     uint32_t color_value = hgr_mono_table[color_mode];
     display_page_t *display_page = ds->display_page_table;
     uint16_t *HGR_PAGE_TABLE = display_page->hgr_page_table;
@@ -92,7 +92,7 @@ void render_hgr_scanline_mono(cpu_state *cpu, int y, void *pixels, int pitch) {
 void render_hgr_scanline(cpu_state *cpu, int y, void *pixels, int pitch) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
 
-    if (ds->color_mode != DM_COLOR_MODE) {
+    if (ds->display_color_mode == DM_RENDER_MONO) {
         render_hgr_scanline_mono(cpu, y, pixels, pitch);
     } else {
         render_hgr_scanline_color(cpu, y, pixels, pitch);
@@ -102,7 +102,7 @@ void render_hgr_scanline(cpu_state *cpu, int y, void *pixels, int pitch) {
 void render_hgr_scanline_color(cpu_state *cpu, int y, void *pixels, int pitch) {
     
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    display_color_mode_t color_mode = ds->color_mode;
+    //display_color_mode_t color_mode = ds->color_mode;
     //uint32_t color_value = hgr_color_table[color_mode];
     display_page_t *display_page = ds->display_page_table;
     uint16_t *HGR_PAGE_TABLE = display_page->hgr_page_table;

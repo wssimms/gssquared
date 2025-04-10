@@ -52,12 +52,45 @@ typedef enum {
     LM_HIRES_MODE   = 2
 } line_mode_t;
 
+/* Legacy Display Mode Switch - deprecated */
 typedef enum {
     DM_COLOR_MODE = 0,
     DM_GREEN_MODE,
     DM_AMBER_MODE,
     DM_NUM_MODES,
+} Xdisplay_color_mode_t;
+
+
+/** Display Modes */
+
+typedef enum {
+    DM_ENGINE_NTSC = 0,
+    DM_ENGINE_RGB,
+    DM_NUM_COLOR_ENGINES
+} display_color_engine_t;
+
+typedef enum {
+    DM_MONO_WHITE = 0,
+    DM_MONO_GREEN,
+    DM_MONO_AMBER,
+    DM_NUM_MONO_MODES
+} display_mono_color_t;
+
+typedef enum {
+    DM_PIXEL_FUZZ = 0,
+    DM_PIXEL_SQUARE,
+    DM_NUM_PIXEL_MODES
+} display_pixel_mode_t;
+
+typedef enum {
+    DM_RENDER_COLOR = 0,
+    DM_RENDER_MONO,
+    DM_NUM_COLOR_MODES
 } display_color_mode_t;
+
+/** End Display Modes */
+
+
 
 
 typedef uint16_t display_page_table_t[24] ;
@@ -83,11 +116,12 @@ typedef enum {
     NUM_FULLSCREEN_MODES
 } display_fullscreen_mode_t;
 
-typedef enum {
+/* typedef enum {
     DISPLAY_MODEL_RGB = 0,
     DISPLAY_MODEL_COMP,
     NUM_DISPLAY_HGR_MODELS
 } display_hgr_model_t;
+ */
 
 typedef class display_state_t {
 
@@ -102,14 +136,21 @@ public:
     int border_height = BORDER_HEIGHT;
 
     display_fullscreen_mode_t display_fullscreen_mode;
-    display_color_mode_t color_mode;
+    //display_color_mode_t color_mode;
+
+    display_color_engine_t display_color_engine;
+    display_mono_color_t display_mono_color;
+    display_pixel_mode_t display_pixel_mode;
+    display_color_mode_t display_color_mode;
+
+
     display_mode_t display_mode;
     display_split_mode_t display_split_mode;
     display_graphics_mode_t display_graphics_mode;
     display_page_number_t display_page_num;
     display_page_t *display_page_table;
-    display_hgr_model_t display_hgr_model;
-    SDL_ScaleMode display_scale_mode;
+    //display_hgr_model_t display_hgr_model;
+    //SDL_ScaleMode display_scale_mode;
     bool flash_state;
     int flash_counter;
 
@@ -146,3 +187,4 @@ void display_dump_text_page(cpu_state *cpu, int page);
 void flip_display_hgr_model(cpu_state *cpu);
 void flip_display_scale_mode(cpu_state *cpu);
 void raise_window(cpu_state *cpu);
+void set_display_mono_color(cpu_state *cpu, display_mono_color_t mode);

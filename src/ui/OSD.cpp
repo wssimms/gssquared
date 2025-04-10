@@ -140,19 +140,27 @@ void unidisk_button_click(void *userdata) {
 void set_color_display(void *data) {
     printf("set_color_display %p\n", data);
     cpu_state *cpu = (cpu_state *)data;
-    set_display_color_mode(cpu, DM_COLOR_MODE);
+    set_display_color_mode(cpu, DM_RENDER_COLOR);
 }
 
 void set_green_display(void *data) {
     printf("set_green_display %p\n", data);
     cpu_state *cpu = (cpu_state *)data;
-    set_display_color_mode(cpu, DM_GREEN_MODE);
+    set_display_mono_color(cpu, DM_MONO_GREEN);
+    set_display_color_mode(cpu, DM_RENDER_MONO);
 }
 
 void set_amber_display(void *data) {
     printf("set_amber_display %p\n", data);
     cpu_state *cpu = (cpu_state *)data;
-    set_display_color_mode(cpu, DM_AMBER_MODE);
+    set_display_mono_color(cpu, DM_MONO_AMBER);
+    set_display_color_mode(cpu, DM_RENDER_MONO);
+}
+
+void set_white_display(void *data) {
+    printf("set_white_display %p\n", data);
+    cpu_state *cpu = (cpu_state *)data;
+    set_display_mono_color(cpu, DM_MONO_WHITE);
 }
 
 void set_mhz_1_0(void *data) {
@@ -590,7 +598,7 @@ bool OSD::event(const SDL_Event &event) {
     switch (event.type)
     {
         case SDL_EVENT_KEY_DOWN:
-            printf("osd key down: %d %d %d\n", event.key.key, slideStatus, currentSlideStatus);
+            //printf("osd key down: %d %d %d\n", event.key.key, slideStatus, currentSlideStatus);
             if (event.key.key == SDLK_F4) {
                 SDL_SetWindowRelativeMouseMode(window, false);
                 // if we're already in motion, disregard this for now.

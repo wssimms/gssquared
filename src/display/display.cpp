@@ -364,23 +364,26 @@ void set_graphics_mode(cpu_state *cpu, display_graphics_mode_t mode) {
 
 void flip_display_hgr_model(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    if (ds->display_hgr_model == DISPLAY_MODEL_RGB) {
-        ds->display_hgr_model = DISPLAY_MODEL_COMP;
+    if (ds->display_color_engine == DM_ENGINE_RGB) {
+        ds->display_color_engine = DM_ENGINE_NTSC;
     } else {
-        ds->display_hgr_model = DISPLAY_MODEL_RGB;
+        ds->display_color_engine = DM_ENGINE_RGB;
     }
     force_display_update(cpu);
 }
 
 void flip_display_scale_mode(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    SDL_ScaleMode scale_mode;
 
-    if (ds->display_scale_mode == SDL_SCALEMODE_LINEAR) {
-        ds->display_scale_mode = SDL_SCALEMODE_NEAREST;
+    if (ds->display_pixel_mode == DM_PIXEL_FUZZ) {
+        ds->display_pixel_mode = DM_PIXEL_SQUARE;
+        scale_mode = SDL_SCALEMODE_NEAREST;
     } else {
-        ds->display_scale_mode = SDL_SCALEMODE_LINEAR;
+        ds->display_pixel_mode = DM_PIXEL_FUZZ;
+        scale_mode = SDL_SCALEMODE_LINEAR;
     }
-    SDL_SetTextureScaleMode(ds->screenTexture, ds->display_scale_mode);
+    SDL_SetTextureScaleMode(ds->screenTexture, scale_mode);
     force_display_update(cpu);
 }
 
@@ -389,8 +392,7 @@ void flip_display_scale_mode(cpu_state *cpu) {
 
 void render_line(cpu_state *cpu, int y) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    display_color_mode_t color_mode = ds->color_mode;
-    RGBA color_value = mono_color_table[color_mode];
+    RGBA mono_color_value = mono_color_table[ds->display_mono_color];
 
     if (y < 0 || y >= 24) {
         return;
@@ -418,11 +420,11 @@ void render_line(cpu_state *cpu, int y) {
     if (mode == LM_TEXT_MODE) {
         render_text_scanline(cpu, y, pixels, pitch);
     } else if (mode == LM_LORES_MODE) {
-        if (ds->color_mode != DM_COLOR_MODE) {
+        if (ds->display_color_mode == DM_RENDER_MONO) {
             render_lgrng_scanline(cpu, y, (uint8_t *)pixels);
-            processAppleIIFrame_Mono(frameBuffer + (y * 8 * 560), (RGBA *)pixels, y * 8, (y + 1) * 8, color_value);
+            processAppleIIFrame_Mono(frameBuffer + (y * 8 * 560), (RGBA *)pixels, y * 8, (y + 1) * 8, mono_color_value);
         } else {
-            if (ds->display_hgr_model == DISPLAY_MODEL_RGB) {
+            if (ds->display_color_engine == DM_ENGINE_RGB) {
                 render_lores_scanline(cpu, y, pixels, pitch);
             } else {
                 render_lgrng_scanline(cpu, y, (uint8_t *)pixels);
@@ -430,10 +432,10 @@ void render_line(cpu_state *cpu, int y) {
             }
         }
     } else if (mode == LM_HIRES_MODE) {
-        if (ds->color_mode != DM_COLOR_MODE) {
+        if (ds->display_color_mode == DM_RENDER_MONO) {
             render_hgr_scanline_mono(cpu, y, pixels, pitch);
         } else {
-            if (ds->display_hgr_model == DISPLAY_MODEL_RGB) {
+            if (ds->display_color_engine == DM_ENGINE_RGB) {
                 render_hgr_scanline(cpu, y, pixels, pitch);
             } else {
                 render_hgrng_scanline(cpu, y, (uint8_t *)pixels);
@@ -562,7 +564,13 @@ void display_capture_mouse(cpu_state *cpu, bool capture) {
  * display_state_t Class Implementation
  */
 display_state_t::display_state_t() {
-    color_mode = DM_COLOR_MODE;
+    //color_mode = DM_COLOR_MODE;
+    /* Display Rendering Engine Modes */
+    display_color_engine = DM_ENGINE_NTSC;
+    display_mono_color = DM_MONO_GREEN;
+    display_pixel_mode = DM_PIXEL_FUZZ;
+    display_color_mode = DM_RENDER_COLOR;
+
     for (int i = 0; i < 24; i++) {
         dirty_line[i] = 0;
     }
@@ -577,8 +585,8 @@ display_state_t::display_state_t() {
     display_page_table = &display_pages[display_page_num];
     flash_state = false;
     flash_counter = 0;
-    display_hgr_model = DISPLAY_MODEL_COMP;
-    display_scale_mode = SDL_SCALEMODE_LINEAR;
+    //display_hgr_model = DISPLAY_MODEL_COMP;
+    //display_scale_mode = SDL_SCALEMODE_LINEAR;
 }
 
 void init_mb_device_display(cpu_state *cpu, SlotType_t slot) {
@@ -613,13 +621,19 @@ void init_mb_device_display(cpu_state *cpu, SlotType_t slot) {
 
 void set_display_color_mode(cpu_state *cpu, display_color_mode_t mode) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    ds->color_mode = mode;
+    ds->display_color_mode = mode;
     force_display_update(cpu);
 }
 
 void toggle_display_color_mode(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    ds->color_mode = (display_color_mode_t)((ds->color_mode + 1) % DM_NUM_MODES);
+    ds->display_color_mode = (display_color_mode_t)((ds->display_color_mode + 1) % DM_NUM_COLOR_MODES);
+    force_display_update(cpu);
+}
+
+void set_display_mono_color(cpu_state *cpu, display_mono_color_t mode) {
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    ds->display_mono_color = mode;
     force_display_update(cpu);
 }
 
