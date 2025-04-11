@@ -3258,3 +3258,14 @@ Experimenting with a different aspect ratio - this multiplies the vertical by an
 #define SCALE_Y 4.9
 
 I got so used to the current way that I'm not sure how I feel about this. Everything works just fine with it, though, it is quite large. I might have to shrink it a bit, i.e. go with 1.5 x something? Seems to look ok with the fuzzy scaling. top and bottom borders would need to be adjusted.
+
+## Apr 10, 2025
+
+Been thinking about creating new blank disk images. It would be easy enough to have a button in the control panel to create a new blank disk image. Save As.. to save to a file. Then you can mount straight away! Basically we'll just have some blank disk images in resources/ and copy them as needed.
+
+Next step is to do text via the same routines! This will involve refactoring the text font drawing stuff - but not much. let's see how I prepare the font.. it creates a map of 32-bit pixels. We don't need that. We would actually just need 8-bit pixels, same as ever, either 0x00 or 0xFF to feed into the new graphics routines.
+
+text rendering then will have two modes: color and mono:
+when in RGB display mode, text is drawn in mono white.
+When in composite mode, it's drawn as if it was graphics and run through the LUT.
+When in mono mode, it's drawn in mono white, green, or amber accordingly.

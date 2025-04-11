@@ -25,6 +25,7 @@
 #include "bus.hpp"
 #include "display.hpp"
 #include "platforms.hpp"
+#include "displayng.hpp"
 
 
 // Apple II+ Character Set (7x8 pixels)
@@ -36,6 +37,8 @@
 // Each character is 8 bytes, each byte is 1 row of pixels.
 
 uint32_t APPLE2_FONT_32[CHAR_GLYPHS_COUNT * CHAR_GLYPHS_SIZE * 8 ]; // 8 pixels per row.
+
+uint8_t APPLE2_FONT_8[CHAR_GLYPHS_COUNT * CHAR_GLYPHS_SIZE * 8]; // 8 pixels per row.
 
 /** pre-render the text mode font into a 32-bit bitmap - directly ready to shove into texture*/
 /**
@@ -58,6 +61,7 @@ void pre_calculate_font (rom_data *rd) {
             bool pixel = rowBits & (1 << (6 - col));
             uint32_t color = pixel ? fg_color : bg_color;
             APPLE2_FONT_32[pos_index] = color;
+            APPLE2_FONT_8[pos_index] = pixel ? 0xFF : 0x00; // calculate both fonts
             pos_index++;
             if (pos_index > CHAR_GLYPHS_COUNT * CHAR_GLYPHS_SIZE * 8 ) {
                 fprintf(stderr, "pos_index out of bounds: %d\n", pos_index);
@@ -67,7 +71,7 @@ void pre_calculate_font (rom_data *rd) {
     }
 }
 
-uint32_t text_color_table[DM_NUM_MODES] = {
+uint32_t text_color_table[DM_NUM_MONO_MODES] = {
     0xFFFFFFFF, // color, keep it as-is
     0x00e64dFF, //0x009933FF, // green.
     0xFFBF00FF, // amber.
@@ -144,6 +148,110 @@ void render_text_scanline(cpu_state *cpu, int y, void *pixels, int pitch) {
             texturePixels[base + charoff + 13] = (charPixels[6] ^ xor_mask) & color_value;
             
             charPixels += 7;
+        }
+    }
+}
+
+int textMapIndex[24] =
+  {   // text page 1 line addresses
+            0x0000,
+            0x0080,
+            0x0100,
+            0x0180,
+            0x0200,
+            0x0280,
+            0x0300,
+            0x0380,
+
+            0x0028,
+            0x00A8,
+            0x0128,
+            0x01A8,
+            0x0228,
+            0x02A8,
+            0x0328,
+            0x03A8,
+
+            0x0050,
+            0x00D0,
+            0x0150,
+            0x01D0,
+            0x0250,
+            0x02D0,
+            0x0350,
+            0x03D0,
+        };
+
+void render_text_scanline_ng(cpu_state *cpu, int y) {
+
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    uint8_t *textdata = NULL;
+
+    // Bounds checking
+    if (y < 0 || y >= 24) {
+        return;
+    }
+
+    uint8_t *output = frameBuffer + (y * 8 * 560);
+
+    if (ds->display_page_num == DISPLAY_PAGE_1) {
+        textdata = cpu->memory->pages_read[0x04];
+    } else if (ds->display_page_num == DISPLAY_PAGE_2) {
+        textdata = cpu->memory->pages_read[0x08];
+    } else {
+        return;
+    }
+
+    int offset = textMapIndex[y];
+
+    for (int x = 0; x < 40; x++) {
+
+        uint8_t character = textdata[offset + x];
+
+        // Calculate font offset (8 bytes per character, starting at 0x20)
+        const uint8_t* charPixels = &APPLE2_FONT_8[character * 56];
+
+        bool inverse = false;
+        // Check if top two bits are 0 (0x00-0x3F range)
+        if ((character & 0xC0) == 0) {
+            inverse = true;
+        } else if (((character & 0xC0) == 0x40)) {
+            inverse = ds->flash_state;
+        }
+        
+        // for inverse, xor the pixels with 0xFFFFFFFF to invert them.
+        uint8_t xor_mask = (inverse) ? 0xFF : 0x00;
+
+        //int pitchoff = pitch / 4;
+        int charoff = x * 7 * 2; // draw characters "double wide" for new screen geometry
+        // Draw the character bitmap into the texture
+        //uint32_t* texturePixels = (uint32_t*)pixels;
+        uint32_t base = 0;
+        for (int row = 0; row < 8; row++) {
+            
+            output[base + charoff ] = (charPixels[0] ^ xor_mask);
+            output[base + charoff +1 ] = (charPixels[0] ^ xor_mask);
+            
+            output[base + charoff + 2] = (charPixels[1] ^ xor_mask);
+            output[base + charoff + 3] = (charPixels[1] ^ xor_mask);
+
+            output[base + charoff + 4] = (charPixels[2] ^ xor_mask);
+            output[base + charoff + 5] = (charPixels[2] ^ xor_mask);
+            
+            output[base + charoff + 6] = (charPixels[3] ^ xor_mask);
+            output[base + charoff + 7] = (charPixels[3] ^ xor_mask);
+
+            output[base + charoff + 8] = (charPixels[4] ^ xor_mask);
+            output[base + charoff + 9] = (charPixels[4] ^ xor_mask);
+            
+            output[base + charoff + 10] = (charPixels[5] ^ xor_mask);
+            output[base + charoff + 11] = (charPixels[5] ^ xor_mask);
+            
+            output[base + charoff + 12] = (charPixels[6] ^ xor_mask);
+            output[base + charoff + 13] = (charPixels[6] ^ xor_mask);
+            
+            charPixels += 7;
+            base += 560;
         }
     }
 }

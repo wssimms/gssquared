@@ -27,7 +27,7 @@ uint32_t hgr_mono_color_table[2] = {
     0x009933FF,
 };
 
-uint32_t hgr_mono_table[DM_NUM_MODES] = {
+uint32_t hgr_mono_table[DM_NUM_MONO_MODES] = {
     0xFFFFFFFF, // white
     0x00FF55FF, // 0x009933FF  // green
     0xFFBF00FF, // amber.

@@ -46,7 +46,7 @@ const float NTSC_4FSC = 4 * NTSC_FSC;
 
 extern ntsc_config config ;
 
-extern RGBA mono_color_table[DM_NUM_MODES];
+extern RGBA mono_color_table[DM_NUM_MONO_MODES];
 
 void setupConfig();
 void init_hgr_LUT();

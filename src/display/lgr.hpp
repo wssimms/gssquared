@@ -20,4 +20,4 @@
 #include "cpu.hpp"
 
 #define CELL_WIDTH 14
-void render_lgrng_scanline(cpu_state *cpu, int y, uint8_t *pixels);
+void render_lgrng_scanline(cpu_state *cpu, int y);

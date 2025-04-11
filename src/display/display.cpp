@@ -416,18 +416,42 @@ void render_line(cpu_state *cpu, int y) {
         return;
     }
 
+    // TODO: this logic is a mess. Should check engine, then color / mono, then mode
+
     line_mode_t mode = ds->line_mode[y];
     if (mode == LM_TEXT_MODE) {
-        render_text_scanline(cpu, y, pixels, pitch);
+        //render_text_scanline(cpu, y, pixels, pitch);
+        render_text_scanline_ng(cpu, y);
+
+        bool is_mono = true;
+        if (ds->display_color_mode == DM_RENDER_COLOR) {
+            if (ds->display_color_engine == DM_ENGINE_NTSC) {
+                if (ds->display_mode == GRAPHICS_MODE) {
+                    is_mono = false;
+                } else {
+                    mono_color_value = { 0xFF, 0xFF, 0xFF, 0xFF };
+                }
+            } else { // RGB engine
+                if (ds->display_mode == TEXT_MODE) {
+                    is_mono = false;
+                }
+            }
+        }
+
+        if (is_mono) { // process text as single color, not ntsc artifacty
+            processAppleIIFrame_Mono(frameBuffer + (y * 8 * 560), (RGBA *)pixels, y * 8, (y + 1) * 8, mono_color_value);
+        } else {
+            processAppleIIFrame_LUT(frameBuffer + (y * 8 * 560), (RGBA *)pixels, y * 8, (y + 1) * 8); // convert to color
+        }
     } else if (mode == LM_LORES_MODE) {
         if (ds->display_color_mode == DM_RENDER_MONO) {
-            render_lgrng_scanline(cpu, y, (uint8_t *)pixels);
+            render_lgrng_scanline(cpu, y);
             processAppleIIFrame_Mono(frameBuffer + (y * 8 * 560), (RGBA *)pixels, y * 8, (y + 1) * 8, mono_color_value);
         } else {
             if (ds->display_color_engine == DM_ENGINE_RGB) {
                 render_lores_scanline(cpu, y, pixels, pitch);
             } else {
-                render_lgrng_scanline(cpu, y, (uint8_t *)pixels);
+                render_lgrng_scanline(cpu, y);
                 processAppleIIFrame_LUT(frameBuffer + (y * 8 * 560), (RGBA *)pixels, y * 8, (y + 1) * 8); // convert to color
             }
         }

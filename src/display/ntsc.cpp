@@ -32,7 +32,7 @@
 
 ntsc_config config ;
 
-RGBA mono_color_table[DM_NUM_MODES] = {
+RGBA mono_color_table[DM_NUM_MONO_MODES] = {
     {0xFF, 0xFF, 0xFF, 0xFF }, // white
     {0xFF, 0x55, 0xFF, 0x00 }, // green
     {0xFF, 0x00, 0xBF, 0xFF }  // amber

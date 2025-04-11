@@ -89,7 +89,7 @@ size_t generateLoresScanline(uint8_t *loresData, int startOffset,
     return index - outputOffset; // Return number of bytes written
 }
 
-void render_lgrng_scanline(cpu_state *cpu, int y, uint8_t *pixels)
+void render_lgrng_scanline(cpu_state *cpu, int y)
 {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     const int pixelsPerScanline = 40 * CELL_WIDTH;
