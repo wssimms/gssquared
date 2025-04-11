@@ -176,7 +176,7 @@ void set_graphics_mode(cpu_state *cpu, display_graphics_mode_t mode);
 void display_capture_mouse(cpu_state *cpu, bool capture);
 void display_dump_hires_page(cpu_state *cpu, int page);
 void display_dump_text_page(cpu_state *cpu, int page);
-void flip_display_hgr_model(cpu_state *cpu);
+void flip_display_color_engine(cpu_state *cpu);
 void flip_display_scale_mode(cpu_state *cpu);
 void raise_window(cpu_state *cpu);
 void set_display_mono_color(cpu_state *cpu, display_mono_color_t mode);

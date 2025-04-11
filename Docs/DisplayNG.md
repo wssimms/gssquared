@@ -83,10 +83,12 @@ Already know how to do that.
 ### DHGR mode
 
 only for updated lines:
-Basically same as HGR mode, except pulling values from two memory locations and 'mixing'.
+Similar to HGR mode, except pulling values first from alt bank, then main, back and forth across the 40 bytes. And, disregards the hi bit of each byte.
+Each byte starts at a 180 degree phase offset from each other, and, the whole scanline starts at 90 degree phase difference from normal hgr.
 
 
 ## Fancy timing-based updates
 
 The video frame can now be generated, if we like, down to the cycle level. We can track where the "beam" is based on cycle counts. This is just some simple math. So if display mode is changed in the middle of a scanline, we could in theory start rendering the bitstream based on the new mode from that point on. This is how some of the other emulators do it (OE, AppleWin).
 I still am not sure how important this is to me. But, we're much closer to being able to do it.
+

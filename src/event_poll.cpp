@@ -85,7 +85,7 @@ bool handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
         if (mod & SDL_KMOD_CTRL) {
             flip_display_scale_mode(cpu);
         } else {
-            flip_display_hgr_model(cpu);
+            flip_display_color_engine(cpu);
         }
         return true;
     }

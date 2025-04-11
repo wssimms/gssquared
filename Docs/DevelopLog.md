@@ -3269,3 +3269,30 @@ text rendering then will have two modes: color and mono:
 when in RGB display mode, text is drawn in mono white.
 When in composite mode, it's drawn as if it was graphics and run through the LUT.
 When in mono mode, it's drawn in mono white, green, or amber accordingly.
+
+## Apr 11, 2025
+
+current render_line conditionals are a mess with lots of repeated bits. Let's take a stab at fixing..
+
+I think at a high level, we should do this.
+
+The pixel mode (linear or etc) is independent.
+
+if color_engine = NTSC
+   LORES: lores_ng
+   HIRES: hires_ng
+   TEXT: text_ng
+   (all) renderflag = NTSC
+else if color_engine = RGB
+   LORES: lores-rgb. renderflag = RGB
+   HIRES: hires-rgb. renderflag = RGB
+   TEXT: text_ng. renderflag = NTSC
+
+if (renderflag = RGB) we're done, return.
+
+if (mono || text-mode-only)
+   ng_mono with selected mono color.
+if (color)
+   ng_color_LUT.
+
+return.
