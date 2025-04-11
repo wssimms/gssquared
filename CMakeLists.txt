@@ -247,7 +247,7 @@ target_include_directories(gs2_ui PUBLIC
 # Add the executable
 add_executable(gs2 src/gs2.cpp src/bus.cpp src/clock.cpp src/debug.cpp src/cpu.cpp src/memory.cpp src/opcodes.cpp src/test.cpp 
     src/display/text_40x24.cpp src/display/lores_40x48.cpp src/display/hgr_280x192.cpp src/display/display.cpp
-    src/display/displayng.cpp src/display/ntsc.cpp src/display/font.cpp src/display/hgr.cpp src/display/Matrix3x3.cpp
+    src/display/displayng.cpp src/display/ntsc.cpp src/display/font.cpp src/display/hgr.cpp src/display/Matrix3x3.cpp src/display/lgr.cpp
     src/devices/loader.cpp 
     src/devices/diskii/diskii.cpp
     src/platforms.cpp
