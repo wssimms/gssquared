@@ -412,23 +412,24 @@ int diskii_tracknumber_on(cpu_state *cpu) {
 uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
     diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
 
-    uint16_t addr = address - 0xC080;
-    int reg = addr & 0x0F;
-    uint8_t slot = addr >> 4;
-    int drive = diskII_slot[slot].drive_select;
+    //uint16_t addr = address - 0xC080;
+    int reg = address & 0x0F;
+    uint8_t slot = (address >> 4) & 0x7;
+    diskII_controller *thisSlot = &diskII_slot[slot];
+    int drive = thisSlot->drive_select;
 
-    diskII &seldrive = diskII_slot[slot].drive[drive];
+    diskII &seldrive = thisSlot->drive[drive];
 
-    if (diskII_slot[slot].motor == 1 && diskII_slot[slot].mark_cycles_turnoff != 0 && ((cpu->cycles > diskII_slot[slot].mark_cycles_turnoff))) {
-        if (DEBUG(DEBUG_DISKII)) printf("motor off: %llu %llu cycles\n", cpu->cycles, diskII_slot[slot].mark_cycles_turnoff);
-        diskII_slot[slot].motor = 0;
+    if (thisSlot->motor == 1 && thisSlot->mark_cycles_turnoff != 0 && ((cpu->cycles > thisSlot->mark_cycles_turnoff))) {
+        if (DEBUG(DEBUG_DISKII)) printf("motor off: %llu %llu cycles\n", cpu->cycles, thisSlot->mark_cycles_turnoff);
+        thisSlot->motor = 0;
         diskII_slot[slot].mark_cycles_turnoff = 0;
     }
 
     int8_t last_phase_on = seldrive.last_phase_on;
     int8_t cur_track = seldrive.track;
 
-    uint8_t read_value = 0xEE;
+    //uint8_t read_value = 0xEE;
     int8_t cur_phase = cur_track % 4;
 
     // if more than X cycles have elapsed since last read, set bit_position to 0 and move head X bytes forward.
@@ -440,13 +441,13 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
 
     switch (reg) {
         case DiskII_Ph0_Off:    
-            if (DEBUG(DEBUG_DISKII))  DEBUG_PH(slot, drive, 0, 0);
+            //if (DEBUG(DEBUG_DISKII))  DEBUG_PH(slot, drive, 0, 0);
             seldrive.phase0 = 0;
             break;
         case DiskII_Ph0_On:
-            if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 0, 1);
+            //if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 0, 1);
             if (cur_phase == 1) {
-                diskII_slot[slot].drive[drive].track--;
+                seldrive.track--;
             } else if (cur_phase == 3) {
                 seldrive.track++;
             }
@@ -454,11 +455,11 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
             seldrive.last_phase_on = 0;
             break;
         case DiskII_Ph1_Off:
-            if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 1, 0);
+            //if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 1, 0);
             seldrive.phase1 = 0;
             break;
         case DiskII_Ph1_On:
-            if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 1, 1);
+            //if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 1, 1);
             if (cur_phase == 2) {
                 seldrive.track--;
             } else if (cur_phase == 0) {
@@ -468,11 +469,11 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
             seldrive.last_phase_on = 1;
             break;
         case DiskII_Ph2_Off:
-            if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 2, 0);
+            //if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 2, 0);
             seldrive.phase2 = 0;
             break;
         case DiskII_Ph2_On:
-            if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 2, 1);
+            //if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 2, 1);
             if (cur_phase == 3) {
                 seldrive.track--;
             } else if (cur_phase == 1) {
@@ -482,11 +483,11 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
             seldrive.last_phase_on = 2;
             break;
         case DiskII_Ph3_Off:
-            if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 3, 0);
+            //if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 3, 0);
             seldrive.phase3 = 0;
             break;
         case DiskII_Ph3_On:
-            if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 3, 1);
+            //if (DEBUG(DEBUG_DISKII)) DEBUG_PH(slot, drive, 3, 1);
             if (cur_phase == 0) {
                 seldrive.track--;
             } else if (cur_phase == 2) {
@@ -496,25 +497,25 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
             seldrive.last_phase_on = 3;
             break;
         case DiskII_Motor_Off: // only one drive at a time is motorized.
-            if (DEBUG(DEBUG_DISKII)) DEBUG_MOT(slot, drive, 0);
+            //if (DEBUG(DEBUG_DISKII)) DEBUG_MOT(slot, drive, 0);
             // if motor already off, do nothing. otherwise schedule a motor off.
-            if (diskII_slot[slot].motor == 1) {
-                diskII_slot[slot].mark_cycles_turnoff = cpu->cycles + 1000000;
-                if (DEBUG(DEBUG_DISKII)) printf("schedule motor off at %llu (is now %llu)\n", diskII_slot[slot].mark_cycles_turnoff, cpu->cycles);
+            if (thisSlot->motor == 1) {
+                thisSlot->mark_cycles_turnoff = cpu->cycles + 1000000;
+                if (DEBUG(DEBUG_DISKII)) printf("schedule motor off at %llu (is now %llu)\n", thisSlot->mark_cycles_turnoff, cpu->cycles);
             }
             break;
         case DiskII_Motor_On: // only one drive at a time is motorized.
-            if (DEBUG(DEBUG_DISKII)) DEBUG_MOT(slot, drive, 1);
-            diskII_slot[slot].motor = 1;
-            diskII_slot[slot].mark_cycles_turnoff = 0; // if we turn motor on, reset this and don't stop it!
+            //if (DEBUG(DEBUG_DISKII)) DEBUG_MOT(slot, drive, 1);
+            thisSlot->motor = 1;
+            thisSlot->mark_cycles_turnoff = 0; // if we turn motor on, reset this and don't stop it!
             break;
         case DiskII_Drive1_Select:
-            if (DEBUG(DEBUG_DISKII)) DEBUG_DS(slot, drive, 0);
-            diskII_slot[slot].drive_select = 0;
+            //if (DEBUG(DEBUG_DISKII)) DEBUG_DS(slot, drive, 0);
+            thisSlot->drive_select = 0;
             break;
         case DiskII_Drive2_Select:
-            if (DEBUG(DEBUG_DISKII)) DEBUG_DS(slot, drive, 1);
-            diskII_slot[slot].drive_select = 1;
+            //if (DEBUG(DEBUG_DISKII)) DEBUG_DS(slot, drive, 1);
+            thisSlot->drive_select = 1;
             break;
         case DiskII_Q6L:
             seldrive.Q6 = 0; 
@@ -560,10 +561,10 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
 
     if (seldrive.track != cur_track) {
         uint8_t halftrack = seldrive.track % 2;
-        if (DEBUG(DEBUG_DISKII)) fprintf(stdout, "new (internal track): %d, realtrack %d, halftrack %d\n", seldrive.track, seldrive.track/2, halftrack);
+        //if (DEBUG(DEBUG_DISKII)) fprintf(stdout, "new (internal track): %d, realtrack %d, halftrack %d\n", seldrive.track, seldrive.track/2, halftrack);
     }
     if (seldrive.track < 0) {
-        if (DEBUG(DEBUG_DISKII)) fprintf(stdout, "track < 0, CHUGGA CHUGGA CHUGGA\n");
+        //if (DEBUG(DEBUG_DISKII)) fprintf(stdout, "track < 0, CHUGGA CHUGGA CHUGGA\n");
         seldrive.track = 0;
     }
     return 0xEE;
