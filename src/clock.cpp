@@ -65,10 +65,11 @@ void emulate_clock_cycle(cpu_state *cpu) {
 }
 #endif
 
-
+#if 0
 void incr_cycles(cpu_state *cpu) {
     cpu->cycles++;
     /* if (cpu->clock_mode != CLOCK_FREE_RUN) { // temp disable this to try different timing approach
         emulate_clock_cycle(cpu);
     } */
 }
+#endif
