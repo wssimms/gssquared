@@ -24,6 +24,7 @@
 /* #include <mach/mach_time.h> */
 #include <getopt.h>
 #include <regex>
+#include <SDL3/SDL_main.h>
 
 #include "gs2.hpp"
 #include "cpu.hpp"

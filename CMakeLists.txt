@@ -184,6 +184,7 @@ endif()
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
+if(BOGUSDONTDOIT)
 # Build prodos block firmware
 add_custom_command(
     OUTPUT ${CMAKE_SOURCE_DIR}/src/devices/prodos_block/pd_block_firmware.hpp
@@ -201,13 +202,15 @@ add_custom_target(prodos_block_firmware
 
 add_library(gs2_devices_prodos_block src/devices/prodos_block/prodos_block.cpp )
 
-add_library(gs2_devices_game src/devices/game/gamecontroller.cpp src/devices/game/mousewheel.cpp )
-
 add_dependencies(gs2_devices_prodos_block prodos_block_firmware)
 
 target_include_directories(gs2_devices_prodos_block PRIVATE
     ${CMAKE_SOURCE_DIR}/src/devices/prodos_block
 )
+
+endif()
+
+add_library(gs2_devices_game src/devices/game/gamecontroller.cpp src/devices/game/mousewheel.cpp )
 
 add_library(gs2_devices_diskii_fmt
     src/devices/diskii/diskii_fmt.cpp
@@ -281,7 +284,7 @@ target_link_libraries(gs2
     gs2_devices_keyboard 
     gs2_devices_diskii_fmt 
     gs2_devices_languagecard 
-    gs2_devices_prodos_block
+    #gs2_devices_prodos_block
     gs2_devices_prodos_clock
     gs2_devices_speaker
     gs2_devices_game
