@@ -35,6 +35,7 @@
 #include "util/reset.hpp"
 #include "util/soundeffects.hpp"
 #include "ModalContainer.hpp"
+#include "util/strndup.h"
 
 // we need to use data passed to us, and pass it to the ShowOpenFileDialog, so when the file select event
 // comes back later, we know which drive this was for.

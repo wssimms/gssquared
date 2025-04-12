@@ -26,6 +26,7 @@
 #include "debug.hpp"
 #include "devices/diskii/diskii_fmt.hpp"
 #include "devices/diskii/diskii.hpp"
+#include "strndup.h"
 
 /**
  * First goal:
