@@ -86,6 +86,19 @@ if(APPLE)
     )
 endif()
 
+if(WIN32)
+    # Custom target for development environment resources
+    add_custom_target(win-dev ALL
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/roms
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/roms ${CMAKE_BINARY_DIR}/resources/roms
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/sounds
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/assets/sounds ${CMAKE_BINARY_DIR}/resources/sounds
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/img
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/resources/img/atlas.png
+        DEPENDS gs2
+    )
+endif()
+
 # Linux-specific settings
 if(UNIX AND NOT APPLE)
     # Linux-specific configuration here
@@ -319,6 +332,10 @@ if(APPLE)
 elseif(UNIX AND NOT APPLE)
     add_custom_target(packages
         DEPENDS linux-package linux-dev
+    )
+elseif(WIN32)
+    add_custom_target(packages
+        DEPENDS win-package win-dev
     )
 else()
     add_custom_target(packages
