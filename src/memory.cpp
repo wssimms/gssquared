@@ -25,6 +25,7 @@
 #include "debug.hpp"
 #include "clock.hpp"
 #include "bus.hpp"
+#include "memory.hpp"
 
 /* Read and write to memory-mapped memory */
 
