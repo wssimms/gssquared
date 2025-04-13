@@ -104,7 +104,32 @@ Creates packages/linux-cli/ directory that has a runnable binary.
 
 ## Windows
 
-If you want to help create build tooling for Windows, let me know! All of this should work on all 3 platforms courtesy of SDL3.
+We've successfully built for windows using the following environment:
+
+* mingw
+* VS Code
+* clang
+
+```
+git clone https://github.com/jawaidbazyar2/gssquared.git
+cd gssquared
+mkdir -p vendored
+cd vendored
+git clone https://github.com/libsdl-org/SDL.git
+git clone https://github.com/libsdl-org/SDL_image.git
+cd ..
+cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+mingw32-make.exe
+```
+
+### Windows App Distribution
+
+After building, you can create a folder that contains libraries and assets for Windows.
+
+```
+mingw32-make.exe packages
+```
+
 
 ## Creating Distribution Packages
 
@@ -159,4 +184,4 @@ for the lookup table approach to the new DisplayNG code.
 
 ## Wyatt Wong
 
-for helping test in different build environments
+for helping test in different build environments, and providing MacOS-Intel builds.
