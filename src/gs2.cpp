@@ -210,9 +210,9 @@ void run_cpus(void) {
 
         INSTRUMENT(std::cout << "last_cycle_count: " << last_cycle_count << " last_cycle_time: " << last_cycle_time << std::endl;)
 
-        uint64_t time_window_start = SDL_GetTicksNS();
+        //uint64_t time_window_start = SDL_GetTicksNS();
         uint64_t cycle_window_start = cpu->cycles;
-        uint64_t time_window_delta = time_window_start - last_time_window_start;
+        //uint64_t time_window_delta = time_window_start - last_time_window_start;
         uint64_t cycle_window_delta = cycle_window_start - last_cycle_window_start;
 
         //printf("slips | time_window_start : cycle_window_start: %4llu : %12llu : %12llu | %12llu : %12llu\n", cpu->clock_slip, time_window_start, time_window_delta,cycle_window_start, cycle_window_delta);
@@ -310,6 +310,7 @@ void run_cpus(void) {
             last_app_event_update = current_time;
         }
 
+
         /* Emit Video Frame */
         current_time = SDL_GetTicksNS();
         if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_display_update > 16667000)
@@ -328,7 +329,9 @@ void run_cpus(void) {
         current_time = SDL_GetTicksNS();
         if (current_time - last_5sec_update > 5000000000) {
             uint64_t delta = cpu->cycles - last_5sec_cycles;
-            fprintf(stdout, "%llu delta %llu cycles clock-mode: %d CPS: %f MHz [ slips: %llu, busy: %llu, sleep: %llu]\n", delta, cpu->cycles, cpu->clock_mode, (float)delta / float(5000000) , cpu->clock_slip, cpu->clock_busy, cpu->clock_sleep);
+            cpu->e_mhz = (float)delta / float(5000000);
+
+            fprintf(stdout, "%llu delta %llu cycles clock-mode: %d CPS: %f MHz [ slips: %llu, busy: %llu, sleep: %llu]\n", delta, cpu->cycles, cpu->clock_mode, cpu->e_mhz, cpu->clock_slip, cpu->clock_busy, cpu->clock_sleep);
             fprintf(stdout, "event_time: %10llu, audio_time: %10llu, display_time: %10llu, app_event_time: %10llu, total: %10llu\n", event_time, audio_time, display_time, app_event_time, event_time + audio_time + display_time + app_event_time);
             fprintf(stdout, "PC: %04X, A: %02X, X: %02X, Y: %02X, P: %02X\n", cpu->pc, cpu->a, cpu->x, cpu->y, cpu->p);
             last_5sec_cycles = cpu->cycles;
@@ -363,7 +366,7 @@ void run_cpus(void) {
         last_cycle_count = cpu->cycles;
         last_cycle_time = SDL_GetTicksNS();
 
-        last_time_window_start = time_window_start;
+        //last_time_window_start = time_window_start;
         last_cycle_window_start = cycle_window_start;
     }
 }
