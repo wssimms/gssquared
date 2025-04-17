@@ -23,6 +23,8 @@
 #include "memory.hpp"
 #include "display/text_40x24.hpp"
 #include "display/hgr_280x192.hpp"
+#include "devices/videx/videx_80x24.hpp"
+
 /**
  * Process read and write to simulated IO bus for peripherals 
  * All external bus accesses are 8-bit data, 16-bit address.
@@ -67,6 +69,9 @@ uint8_t memory_bus_read(cpu_state *cpu, uint16_t address) {
         }
         return raw_memory_read(cpu, address);
     }
+    if (cpu->C8xx_slot == 3 && address >= 0xCC00 && address <= 0xCDFF) {
+        return videx_memory_read(cpu, address);
+    }
     /* Identifcal with what's in memory_bus_write */
     if (address == 0xCFFF) {
         cpu->C8xx_slot = 0xFF;
@@ -80,11 +85,16 @@ uint8_t memory_bus_read(cpu_state *cpu, uint16_t address) {
 }
 
 void memory_bus_write(cpu_state *cpu, uint16_t address, uint8_t value) {
+    // TODO: this needs some better way to handle it. Maybe the jump table should point directly to I/O region handlers
     if (address >= 0x0400 && address <= 0x0BFF) {
         txt_memory_write(cpu, address, value);
     }
     if (address >= 0x2000 && address <= 0x5FFF) {
         hgr_memory_write(cpu, address, value);
+    }
+    if (cpu->C8xx_slot == 3 && address >= 0xCC00 && address <= 0xCDFF) {
+        videx_memory_write(cpu, address, value);
+        return;
     }
     if (address == 0xCFFF) {
         cpu->C8xx_slot = 0xFF;

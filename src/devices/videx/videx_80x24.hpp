@@ -15,22 +15,7 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
-
-#include "gs2.hpp"
-#include "platforms.hpp"
-#include "devices.hpp"
-/**
- * a System Configuraiton is a platform, and, a list of devices and their slots.
- */
-
-struct SystemConfig_t {
-    const char *name;
-    PlatformId_t platform_id;
-    DeviceMap_t *device_map;
-    bool builtin;
-};
-
-extern SystemConfig_t BuiltinSystemConfigs[];
-
-SystemConfig_t *get_system_config(int index);
+void render_videx_scanline_80x24(cpu_state *cpu, int y, void *pixels, int pitch);
+void update_display_videx(cpu_state *cpu);
+void videx_memory_write(cpu_state *cpu, uint16_t address, uint8_t value);
+uint8_t videx_memory_read(cpu_state *cpu, uint16_t address);

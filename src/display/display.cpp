@@ -34,6 +34,8 @@
 #include "display/hgr.hpp"
 #include "display/lgr.hpp"
 #include "display/ntsc.hpp"
+#include "devices/videx/videx.hpp"
+#include "devices/videx/videx_80x24.hpp"
 
 display_page_t display_pages[NUM_DISPLAY_PAGES] = {
     {
@@ -265,8 +267,9 @@ void init_display_font(rom_data *rd) {
  * This is effectively a "redraw the entire screen each frame" method now.
  * With an optimization only update dirty lines.
  */
-void update_display(cpu_state *cpu) {
+void update_display_apple2(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
 
     // the backbuffer must be cleared each frame. The docs state this clearly
     // but I didn't know what the backbuffer was. Also, I assumed doing it once
@@ -289,10 +292,19 @@ void update_display(cpu_state *cpu) {
             (float)BASE_WIDTH, 
             (float)BASE_HEIGHT
         };
-
         SDL_RenderTexture(ds->renderer, ds->screenTexture, NULL, &dstrect);
-        /* SDL_RenderPresent(ds->renderer); */
 /*     } */
+}
+
+void update_display(cpu_state *cpu) {
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
+
+    if (videx_d->video_enabled && ds->display_mode == TEXT_MODE) {
+        update_display_videx(cpu);
+    } else {
+        update_display_apple2(cpu);
+    }
 }
 
 void force_display_update(cpu_state *cpu) {
@@ -392,6 +404,8 @@ void flip_display_scale_mode(cpu_state *cpu) {
 
 void render_line(cpu_state *cpu, int y) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
+
     RGBA mono_color_value ;
 
     if (y < 0 || y >= 24) {
@@ -411,13 +425,14 @@ void render_line(cpu_state *cpu, int y) {
 
     void* pixels;
     int pitch;
+
     if (!SDL_LockTexture(ds->screenTexture, &updateRect, &pixels, &pitch)) {
         fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
         return;
     }
 
     line_mode_t mode = ds->line_mode[y];
-    
+
     if (ds->display_color_engine == DM_ENGINE_RGB) { // handle RGB engine logic.
         if (mode == LM_LORES_MODE) render_lores_scanline(cpu, y, pixels, pitch);
         else if (mode == LM_HIRES_MODE) render_hgr_scanline(cpu, y, pixels, pitch);

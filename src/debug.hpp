@@ -39,6 +39,7 @@ extern uint64_t debug_level;
 #define DEBUG_THUNDERCLOCK 0x20000
 #define DEBUG_PD_BLOCK 0x40000
 #define DEBUG_PARALLEL 0x80000
+#define DEBUG_VIDEX 0x100000
 #define DEBUG_ANY 0xFFFFFFFF
 #define DEBUG_BOOT_FLAG 0
 

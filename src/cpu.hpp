@@ -96,6 +96,7 @@ typedef enum {
     MODULE_PRODOS_CLOCK,
     MODULE_PD_BLOCK2,
     MODULE_PARALLEL,
+    MODULE_VIDEX,
     MODULE_NUM_MODULES
 } module_id_t;
 
@@ -196,7 +197,8 @@ struct cpu_state {
     //uint64_t cycle_duration_ticks;
     uint64_t HZ_RATE;
     clock_mode clock_mode = CLOCK_FREE_RUN;
-
+    float e_mhz = 0;
+    
     execute_next_fn execute_next;
 
     Mounts *mounts;

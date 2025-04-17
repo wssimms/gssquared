@@ -3278,6 +3278,7 @@ I think at a high level, we should do this.
 
 The pixel mode (linear or etc) is independent.
 
+```
 if color_engine = NTSC
    LORES: lores_ng
    HIRES: hires_ng
@@ -3296,3 +3297,155 @@ if (color)
    ng_color_LUT.
 
 return.
+```
+
+Well, I can't put it off any longer. I am at the point where I include a Video VideoTerm, or punt on it for now. Let's release current code as Version 0.2.0, and then include Videx into a 0.3.
+
+I'm monkeying with a Windows build again. 
+
+1. go ahead and accept the replacement strndup in a header (strndup.h)
+2. add #include sdl3/sdl_main to gs2.cpp.
+3. soundeffects.cpp - there is an unneeded include sdl_main here. eliminate it.
+
+Then, rip out the old prodos_block code, and move its firmware construction to the src/gs2_firmware build tree, and clean that bit out. I think that's confusing cmake on windows later. Also, it won't work because I don't have the assembler on there.
+gs
+
+## Apr 12, 2025
+
+When disk drive is running (e.g., when in boot mode with no floppy in drive), and in free-run mode, effective CPU rate drops by 40% to 50%. (Issue #25).
+
+It's not the OSD, I commented that out. So it must just be the disk code itself. It's probably this: the disk read routines are in an extremely tight loop just hammering on the read register. That is executing the C0XX read routine quite a lot.
+commenting-out the debugs added about 10MHz effective.
+This isn't a general problem with the disk code. If I cut out the disk handling altogether by putting "return 0xEE" at the top of the handler, it makes no difference!
+Sitting in the keyboard loop we get 425MHz. So, maybe it's the thing that dispatches the slot I/O locations generally?
+Should do some general-purpose profiling..
+if I read C0e8 in a super-tight loop, I have nothing. So what else is the disk ii boot code doing? well, it -is- running in c600.
+
+Running the Disk II boot code at $1600 (1600 < C600.C6FFM ) speed slows down to only 350MHz.
+
+Tests:
+* sitting idle in keyboard loop: 410 - 420
+* Booting via C600: 270
+* Boot code copied into RAM at 1600: 350
+
+So first off, the the thing that handles I/O memory areas is on the slow side.
+Second, something in the 6502 emu in the disk loop is slow - maybe it's indirect X. It's likely sitting in this bit waiting for a D5 that will never come:
+
+```
+LDA $C08C,X
+BPL $165E
+EOR #$D5
+```
+
+I turned incr_cycles into a macro. Speed went from 270 to 315MHz during boot. 597MHz when keyboard idle. (Whoa. That was a huge improvement.) That was simply getting rid of a subroutine call.
+
+I should add time instrumentation to the cpu loop too. btw each cpu loop iteration is a subroutine call. There are some other questionable bits of code in the cpu here:
+
+```
+uint8_t read_byte_from_pc
+  uint8_t read_byte(cpu_state *cpu, uint16_t address)
+    uint8_t value = read_memory(cpu, address);
+```
+
+none of these are inlines. I should try that.. made no difference. The compiler must have already been optimizing them out.
+
+[ ] bug: when you run the apple ii graphics demo (bob bishop image waterfall thing) in ludicrous speed, way too many disk sounds get queued up. WAY. they keep playing forever. Maybe clean the soundeffect queues on a ctrl-reset?
+
+## Apr 13, 2025
+
+Thinking about keyboard shortcuts. I really like Control-F10 (or whatever similar) for control-reset. However, by default on a MacBook, the touchbar shows media keys, brightness, etc. You can configure it to default to F1-F12 and hold Fn to get media functions. So, workable. But it might be cool to set special touchbar keys for GS2. For instance, we could have RESET, keys for the different display modes, etc. I have a bit of sample code in the repo now that purports to program/modify the touch bar. Haven't tested it yet, but will do shortly.
+
+* clang++ -x objective-c++ -std=c++17 -framework Cocoa -framework AppKit src/platform-specific/macos/TouchBarHandler.mm -o TouchBarHandler.o -c
+
+now that doesn't help my windows laptop. It doesn't have that. but it does have prt sc, home, end, insert, delete where the function keys ought to be. So, could use ctrl-del for instance for ctrl-reset. what about ctrl-alt-delete? hehe. yeah that doesn't work. but could do control-insert. or home. Ahh. Fn-ESC will "lock" the Fn keys. 
+
+Alternatively, have controls at the top of the window. Hover over the top 15-20 scanlines to access those controls (only when mouse isn't captured). You'd have reset, hard reset, crt modes, etc. I'd still have all my keyboard shortcuts, but, then you'd have this control strip.
+
+There are adb to usb converter widgets. People could just use their actual Apple IIgs keyboard! ha!
+
+I could replace a good part of the current OSD stuff with the HUD type stuff.
+
+So let's do the MHz stuff at the bottom like I was talking about. ok. Coo.
+
+how about a debug window?
+* on a keypress, open/close the debug window.
+* debug window:
+   * shows last N disassembled instructions and register status, and memory in/out. (basically the opcode debug).
+   * don't use printf. construct these in a character buffer as we go, fixed positions. buffer in cpu struct so various things in cpu all have easy access to it.
+   * define macros to set various bits of information as we go.
+   * update display each frame like always.
+   * have pause, step functions, and a one-instruction-per-second mode. (that's setting clock speed to 1 Hz)
+   * allow setting debug flag register via cli (-d XXXX).
+   * two areas: disasm output, other debug output.
+* at end of instruction, optionally emit the status line to stdout. (if we do, trim whitespace from end of line before output)
+
+So, this is hundreds of thousands of instructions per second, even at 1mhz mode. One million line buffer is maybe 5 seconds worth, and will take 100MB of ram. whoo. Have a key to stop trace and dump to disk. Circular buffer until key hit. I did like the thing in Steve that showed the DISASM there, and if there was a tight loop it would stay in that tight loop.
+
+## Apr 14, 2025
+
+I can no longer avoid the Videx. So: Videx in our same main window, or, Videx in a separate window? Let's do it in the main window for the moment, and auto-switch between it and hgr as necessary. Things I'll need:
+
+* Videx character set (openemulator has these)
+* Videx rom (I have this already, also OE has it)
+
+Let's see how OE handles it.. pr#3 turns it on. pr#0 does not turn it off (reset does). I'm not sure there's much software that is going to work with this.. some word processors. AppleWorks if you hack it.
+
+Is there anything left I need to do for the II+? I'm not sure there is. Maybe move along to the unenhanced IIe?
+
+or, do a fun little thing, implement a 320x200 VGA card. (16 color fits in 32K, and 256 color fits in 64k). Could do a bank switching thing, or have it work like the slinky card. Or something more like the Second Sight, with a coprocessor on it. Could implement all sorts of drawing primitives. Support mixed text/vga mode. Would need some software to go along with it. What would be a cool demo? Do something that could actually be implemented on a real card. So there are existing cards. What about the A2DVI ? It's in a position to do what we need.. 
+
+## Apr 15, 2025
+
+All Videx characater rom files are 2KB. each matrix in the rom is 8 pixels by 16 pixels. 
+
+so the Videx rom "ultra.bin" contains the regular char set in the 1st half, and 7x12 character set in the 2nd half of the ROM. (2K per half). The characters are actually 8 x 12. The first column of each character is usually blank, to provide spacing between chars, unless it's a graphics character.
+
+So, 80x18 screen this way is: 640 x 216 pixels. 24 x 9 (normal) is also 640 x 216 pixels. The ultraterm has a 132 column mode, but the VideoTerm does not. honestly, that might be really cool later on..
+
+Have the basic model in there. however when I pr#3 C800 gets overwritten with 0x20. It's trying to clear the screen, but writing to the wrong memory. I was pointing CC and CD to the rom memory. ok, now I pr#3 and shit happens!
+
+Control-G gives the modifed Videx beep. Hey, this is progress! So the firmware is running. And I'm not overwriting it, ha ha.
+
+This is coming together pretty fast. there were a few minor issues, having the hi/lo of the start of frame reversed was a big one. not looking up the characters in the right place another. All minor stuff. I am successfully viewing 80-col text through the Videx firmware/hardware!
+
+things to do:
+* we are doing an awkward scale. it's not super-awful. But, it would be much better if we weren't scaling 216->192 and 640->560. oh yeah, that's WAY better. well I only get 7 1/2 of the last 10 characters. oopsie. I will have to resize the window when we're in this mode. (I went ahead and scaled this to fit inside the normal display area of the window. Probably how it would have looked on an Apple II? I don't have a real one to try.)
+* needs a cursor. Shouldn't be hard, just need to apply the inversion as specified by the cursor control registers. (done)
+* 18-line mode. with the much nicer tall 9x12 characters. (videx 2.4 stopped supporting this. I wonder why? Anyway, drop it) (done)
+
+I might be doing something wrong on the drawing yet. Compare to openemulator.
+
+Well let's think about this. I will need 640 pixels wide when apple iigs is in super hires modes. So I will need to resize window for that too. And SHR cannot mix-mode text.
+ok so I want to resize it to borders (maybe bit smaller borders?) plus 640 plus 216.
+I want to keep the same scaling factors I have now, 2:4 basically. 
+
+amping up the brightness of the result by using ADD blend mode and doing the texture render twice, brings the brightness up to a good level. very readable. ADD - increase brightness. Multiply - increase contrast.
+
+Things to do:
+
+* optimize by only updating lines that need it (done)
+* have update_display call a different render_line just for this purpose (done)
+* the cursor on/off stuff needs to be pulled up into update_display. update_display is called only once each 60th second. (done)
+* consider whether we should have a update_display hook. We will need the same thing for Apple IIgs super hi-res modes. Maybe Apple III. i.e., this would replace the usual update_display with alternative update_display. Having the update routine for Videx in the Videx file would be a big style improvement. (done)
+
+This would be for things that completely replace the normal update_display logic (VideoTerm, )
+
+VideoTerm needs a line-at-a-time optimization. And support to redraw the line the cursor is on. But that is based on:
+
+* video memory update (done)
+* cursor blink status update (done)
+* screen memory start position update (done)
+* alternate character set. not a register. must be a bit flag in video mem. (yes, high bit.) (done)
+* blink rate is not working correctly. supposed to be bit 5. (done)
+
+* shift-key mod
+
+tested: blink / non-blink. cursor start and cursor end.
+
+alt: control-Z 2 standard; control-Z 3 alternate. Switches to garbage. Ah ha. High-bit set is another 2048 bytes of video data. So, allocate 4K for font, load the ROMs, but copy the ROM data into the char set map.
+
+Working on optimizing the display updates. I need to know when we write to pages CC and CD, whenever slot 3 I/O memory is switched in. 
+We also have a dirty hack in other code that checks for accesses to mobo video memory to flag those lines as dirty. So, go ahead and hack this, we need to fix it up later.
+
+ok, good enough to ship the code to repo.
+

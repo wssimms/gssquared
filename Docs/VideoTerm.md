@@ -71,7 +71,6 @@ These control the horizontal sync timing.
 * R4 - vertical refresh rate, in conjunction with R5. Vary only to provide 50hz/60hz operation.
 * R6 - number of displayed character rows. 9x9 chars = 24 rows. 9x12 = 18 rows.
 * R7 - vertical sync with respect to top reference line.
-
 * R8 - raster scan mode.
 
 | bit 0 | bit 1 | mode |
@@ -105,7 +104,7 @@ users.
 C800 - CFFF
 
 C800 - CBFF - 1K ROM
-CC00 - CDFF - 512 byte window into on board RAM
+CC00 - CDFF - 512 byte window into on board 2K RAM
 CE00 - CFFF - not used
 
 CC00 to CDFF is paged. "once the videoterm is activated by the correct memory reference,
@@ -129,13 +128,35 @@ Virtual 6502 disassembler: https://www.masswerk.at/6502/disassembler.html
 the ROM is 1K, maps into $C800 - CBFF. CB00 feels like what gets mapped into 
 $CS00 - $CSFF (e.g, $C300 - $C3FF, the stuff that would handle pr#3.
 
+So this thing scrolls rapidly by changing the start position of the memory scanner. change the pointer in two registers, clear only one line (or two lines or whatever) instead of copying every line on the screen.
+
+Assume our virtual card has the "Soft Video Switch" installed. 
+* C058 - annunciator 0 off, normal apple ii video
+* C059 - annunciator 0 on, enable the 80-column mode IF "color killer is enabled" (i.e., we're in all text mode). If graphics mode, we switch to graphics mode.
+
+In short, this screen display logic will replace the normal display if and only if C051 is active. We can still do the normal Render Line stuff. and call the different line render if C051 & C059.
+
+We need a pixel buffer that is bigger than normal. It needs to be 640x216. We'll allocate that texture in the Videx module initialization, and allocate a.
+
+Model using the memory expansion card.
+
+If user changes registers, especially the start screen, dirty all the display lines.
+
 ## Character ROMs
 
 There are quite a few video character ROM chips that were available. Foreign languages; Katakana; normal and inverse; super and subscript; symbols, APL, and Epson.
 
 The card had an extra ROM socket for the "alternate character set" (selected per above).
 
+All Videx characater rom files are 2KB. each matrix in the rom is 8 pixels by 16 pixels. 
 
+so the Videx rom "ultra.bin" contains the regular char set in the 1st half, and 7x12 character set in the 2nd half of the ROM. (2K per half). The characters are actually 8 x 12. The first column of each character is usually blank, to provide spacing between chars, unless it's a graphics character.
+
+So, 80x18 screen this way is: 640 x 216 pixels. 24 x 9 (normal) is also 640 x 216 pixels. The ultraterm has a 132 column mode, but the VideoTerm does not. honestly, that might be really cool later on..
+
+The VIDEOTERM has  2K of onboard RAM, paged into the 512 byte window from $CC00 to $CDFF. See the softswitches for controlling paging above.
+
+Character set is selected by the high bit of a character in video memory. Cleared is Main character set; Set is Alternate character set.
 
 ## Soft Video Switch
 
