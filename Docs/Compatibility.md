@@ -114,3 +114,11 @@ Dies during game load with gazillions of unknown opcodes.
 ## Karateka (Brutal Deluxe crack)
 
 seems to be working quite well!
+
+## Alien Typhoon
+
+in paddle mode, even when joystick is still, the paddle reading is very jittery. There are a few other games where this occurs too.
+
+## Ascii Express
+
+Ascii Express 3.46 loads. Of course, we don't have any serial ports on here right now. But, it also boots up into 80 column mode when it sees the Videx Videoterm! ha!
