@@ -561,11 +561,15 @@ void OSD::render() {
         drive_status_t ds1 = diskii_button1->get_disk_status();
         drive_status_t ds2 = diskii_button2->get_disk_status();
 
+        // Get the current window size to properly position HUD elements
+        int window_width, window_height;
+        SDL_GetWindowSize(window, &window_width, &window_height);
+        float ox,oy;
+        SDL_GetRenderScale(renderer, &ox, &oy);
+        SDL_SetRenderScale(renderer, 1,1); // TODO: calculate these based on window size
+
         if (ds1.motor_on || ds2.motor_on) {
-            // Get the current window size to properly position HUD elements
-            int window_width, window_height;
-            SDL_GetWindowSize(window, &window_width, &window_height);
-            
+
             // Update HUD drive container position based on window size
             // Position it at the bottom of the screen with some padding
             hud_drive_container->set_position((window_width - 420) / 2, window_height - 125 );
@@ -573,13 +577,23 @@ void OSD::render() {
             // display running disk drives at the bottom of the screen.
             SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-            float ox,oy;
-            SDL_GetRenderScale(renderer, &ox, &oy);
-            SDL_SetRenderScale(renderer, 1,1); // TODO: calculate these based on window size
             hud_drive_container->render();
-            SDL_SetRenderScale(renderer, ox,oy);
-            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
         }
+
+        // display the MHz at the bottom of the screen.
+        { // we are currently at A2 display scale.
+            char hud_str[150];
+            snprintf(hud_str, sizeof(hud_str), "MHz: %8.4f", cpu->e_mhz);
+            SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+            SDL_RenderDebugText(renderer, 20, window_height - 30, hud_str);
+
+            snprintf(hud_str, sizeof(hud_str), "Cycles          PC   A  X  Y  P  (N V B D I Z C)");
+            SDL_RenderDebugText(renderer, 20, window_height - 50, hud_str);
+            snprintf(hud_str, sizeof(hud_str), "%-15lld %04X %02X %02X %02X %02X (%1d %1d %1d %1d %1d %1d %1d)", cpu->cycles, cpu->pc, cpu->a, cpu->x, cpu->y, cpu->p, cpu->N, cpu->V, cpu->B, cpu->D, cpu->I, cpu->Z, cpu->C);
+            SDL_RenderDebugText(renderer, 20, window_height - 40, hud_str);
+        }
+        SDL_SetRenderScale(renderer, ox,oy);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
     }
 }
 
