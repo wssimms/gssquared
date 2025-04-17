@@ -20,6 +20,7 @@ We currently have the following implemented:
 |---------------|-----------|-----|------------|
 | Text (40-col) | ❌        | ✅  | ✅         |
 | Text (80-col) | ❌        | ❌  | ❌         |
+| Videx VideoTerm (80-col) | | | ✅ |
 | LGR           | ❌        | ✅  | ❌         |
 | HGR           | ✅        | ✅  | ✅         |
 | DHGR          | ❌        | ❌  | ❌         |
