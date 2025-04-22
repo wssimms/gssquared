@@ -54,10 +54,8 @@ You will need:
 
 ```
 git clone https://github.com/jawaidbazyar2/gssquared.git
-cd gssquared/vendored
-git clone https://github.com/libsdl-org/SDL.git
-git clone https://github.com/libsdl-org/SDL_image.git
-cd ..
+cd gssquared
+git submodule update --init
 cmake -DCMAKE_BUILD_TYPE=Release .
 make
 ```
@@ -83,11 +81,7 @@ gs2 will currently build on Ubuntu Linux 22.04.
 ```
 git clone https://github.com/jawaidbazyar2/gssquared.git
 cd gssquared
-mkdir -p vendored
-cd vendored
-git clone https://github.com/libsdl-org/SDL.git
-git clone https://github.com/libsdl-org/SDL_image.git
-cd ..
+git submodule update --init
 cmake -DCMAKE_BUILD_TYPE=Release .
 make
 ```
@@ -113,11 +107,7 @@ We've successfully built for windows using the following environment:
 ```
 git clone https://github.com/jawaidbazyar2/gssquared.git
 cd gssquared
-mkdir -p vendored
-cd vendored
-git clone https://github.com/libsdl-org/SDL.git
-git clone https://github.com/libsdl-org/SDL_image.git
-cd ..
+git submodule update --init
 cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
 mingw32-make.exe
 ```
