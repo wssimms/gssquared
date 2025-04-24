@@ -97,6 +97,7 @@ typedef enum {
     MODULE_PD_BLOCK2,
     MODULE_PARALLEL,
     MODULE_VIDEX,
+    MODULE_MB,
     MODULE_NUM_MODULES
 } module_id_t;
 

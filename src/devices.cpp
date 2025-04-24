@@ -30,6 +30,7 @@
 #include "devices/pdblock2/pdblock2.hpp"
 #include "devices/parallel/parallel.hpp"
 #include "devices/videx/videx.hpp"
+#include "devices/mockingboard/mb.hpp"
 
 Device_t NoDevice = {
         DEVICE_ID_END,
@@ -121,6 +122,12 @@ Device_t Devices[NUM_DEVICE_IDS] = {
         DEVICE_ID_VIDEX,
         "Videx VideoTerm",
         init_slot_videx,
+        NULL
+    },
+    {
+        DEVICE_ID_MOCKINGBOARD,
+        "Mockingboard",
+        init_slot_mockingboard,
         NULL
     }
 };

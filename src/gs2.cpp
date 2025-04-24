@@ -49,6 +49,7 @@
 #include "slots.hpp"
 #include "util/soundeffects.hpp"
 #include "devices/diskii/diskii.hpp"
+#include "devices/mockingboard/mb.hpp"
 
 /**
  * References: 
@@ -197,6 +198,7 @@ void run_cpus(void) {
     uint64_t last_audio_update = ct;
     uint64_t last_app_event_update = ct;
     uint64_t last_5sec_update = ct;
+    uint64_t last_mockingboard_update = ct;
     uint64_t last_5sec_cycles = cpu->cycles;
 
     uint64_t last_cycle_count =cpu->cycles;
@@ -310,6 +312,13 @@ void run_cpus(void) {
             last_app_event_update = current_time;
         }
 
+        /* Emit Mockingboard Frame */
+        current_time = SDL_GetTicksNS();
+        if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_mockingboard_update > 16667000)
+            || (cpu->clock_mode != CLOCK_FREE_RUN)) {
+            generate_mockingboard_frame(cpu);
+            last_mockingboard_update = current_time;
+        }
 
         /* Emit Video Frame */
         current_time = SDL_GetTicksNS();
