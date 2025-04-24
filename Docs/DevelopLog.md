@@ -3449,3 +3449,10 @@ We also have a dirty hack in other code that checks for accesses to mobo video m
 
 ok, good enough to ship the code to repo.
 
+## Apr 23, 2025
+
+Mockingboard is coming together!
+
+I think the envelope is phasing in a little slowly though. You can hear it on certain notes in the music box dancer song. 
+Alternate doesn't seem to work. wait, it is working with continue and attack=n and hold=y.
+

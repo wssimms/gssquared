@@ -68,6 +68,14 @@ struct RegisterEvent {
     }
 };
 
+// Add a static array for the normalized volume levels
+static const float normalized_levels[16] = {
+    0x0000 / 65535.0f, 0x0385 / 65535.0f, 0x053D / 65535.0f, 0x0770 / 65535.0f,
+    0x0AD7 / 65535.0f, 0x0FD5 / 65535.0f, 0x15B0 / 65535.0f, 0x230C / 65535.0f,
+    0x2B4C / 65535.0f, 0x43C1 / 65535.0f, 0x5A4B / 65535.0f, 0x732F / 65535.0f,
+    0x9204 / 65535.0f, 0xAFF1 / 65535.0f, 0xD921 / 65535.0f, 0xFFFF / 65535.0f
+};
+
 class MockingboardEmulator {
 private:
     // Constants
@@ -217,13 +225,14 @@ public:
                 
             case Envelope_Shape: // Envelope shape
                 chip.envelope_shape = event.value & 0x0F;
-                // Reset envelope state when shape changes
+                // Reset envelope state
                 chip.envelope_counter = 0;
                 chip.envelope_hold = false;
-                // Determine initial attack/decay state based on shape
+                // Start in the correct phase based on Attack bit
                 chip.envelope_attack = (chip.envelope_shape & 0x04) != 0;
-                // Set initial output value
+                // Set initial output value based on attack/decay
                 chip.envelope_output = chip.envelope_attack ? 0 : 15;
+                chip.target_envelope_level = chip.envelope_output;
                 break;
                 
             case Ampl_A: // Channel A volume
@@ -290,45 +299,85 @@ public:
         }
     }
     
-    // Process envelope generator at correct rate (master_clock / 256 / period)
+    // Process envelope generator at correct rate
     void processEnvelope(double time_step) {
-        const double envelope_base_frequency = MASTER_CLOCK / ENVELOPE_CLOCK_DIVIDER;
-        const double envelope_base_time_step = 1.0 / envelope_base_frequency;
-        
         for (int c = 0; c < 2; c++) {
             AY3_8910& chip = chips[c];
             
-            // Process envelope generator
             if (chip.envelope_period > 0) {
                 // Update envelope counter at the correct rate
                 chip.envelope_counter++;
                 if (chip.envelope_counter >= (chip.envelope_period / 16)) {
                     chip.envelope_counter = 0;
                     
-                    if (!chip.envelope_hold) {
-                        if (chip.envelope_attack) {
-                            if (chip.envelope_output < 15) {
-                                chip.envelope_output++;
-                                chip.target_envelope_level = chip.envelope_output;  // Just set the target
-                            } else {
-                                // Handle hold/continue based on shape
-                                if ((chip.envelope_shape & 0x01) == 0) {
-                                    chip.envelope_hold = true;
-                                } else if ((chip.envelope_shape & 0x08) == 0) {
-                                    chip.envelope_attack = false;
-                                }
-                            }
+                    // Extract control bits
+                    bool hold = (chip.envelope_shape & 0x01) != 0;      // Bit 0 (inverted in hardware)
+                    bool alternate = (chip.envelope_shape & 0x02) != 0; // Bit 1
+                    bool attack = (chip.envelope_shape & 0x04) != 0;    // Bit 2
+                    bool cont = (chip.envelope_shape & 0x08) != 0;      // Bit 3
+                    
+                    // State machine logic
+                    if (chip.envelope_hold) {
+                        // Do nothing when in hold state
+                        return;
+                    }
+                    
+                    if (chip.envelope_attack) {
+                        // In attack (rising) phase
+                        if (chip.envelope_output < 15) {
+                            // Still rising
+                            chip.envelope_output++;
+                            chip.target_envelope_level = chip.envelope_output;
                         } else {
-                            if (chip.envelope_output > 0) {
-                                chip.envelope_output--;
-                                chip.target_envelope_level = chip.envelope_output;  // Just set the target
+                            // Reached peak, determine next state
+                            // If continue and hold are both set, determine held value by (attack XOR alternate)
+                            if (cont && hold) {
+                                bool held_at_15 = attack != alternate; // XOR operation
+                                chip.envelope_output = held_at_15 ? 15 : 0;
+                                chip.target_envelope_level = chip.envelope_output;
+                                chip.envelope_hold = true;
+                            }
+                            // Regular processing for other cases
+                            else if (hold) {
+                                chip.envelope_hold = true;
+                            } else if (!cont) {
+                                chip.envelope_output = 0;
+                                chip.target_envelope_level = 0;
+                                chip.envelope_hold = true;
+                            } else if (alternate) {
+                                chip.envelope_attack = false; // Switch to decay
                             } else {
-                                // Handle hold/continue based on shape
-                                if ((chip.envelope_shape & 0x01) == 0) {
-                                    chip.envelope_hold = true;
-                                } else if ((chip.envelope_shape & 0x08) == 0) {
-                                    chip.envelope_attack = true;
-                                }
+                                // Reset to start of phase
+                                chip.envelope_output = attack ? 0 : 15;
+                                chip.target_envelope_level = chip.envelope_output;
+                            }
+                        }
+                    } else {
+                        // In decay (falling) phase
+                        if (chip.envelope_output > 0) {
+                            // Still falling
+                            chip.envelope_output--;
+                            chip.target_envelope_level = chip.envelope_output;
+                        } else {
+                            // Reached zero, determine next state
+                            // If continue and hold are both set, determine held value by (attack XOR alternate)
+                            if (cont && hold) {
+                                bool held_at_15 = attack != alternate; // XOR operation
+                                chip.envelope_output = held_at_15 ? 15 : 0;
+                                chip.target_envelope_level = chip.envelope_output;
+                                chip.envelope_hold = true;
+                            }
+                            // Regular processing for other cases
+                            else if (hold) {
+                                chip.envelope_hold = true;
+                            } else if (!cont) {
+                                chip.envelope_hold = true;
+                            } else if (alternate) {
+                                chip.envelope_attack = true; // Switch to attack
+                            } else {
+                                // Reset to start of phase
+                                chip.envelope_output = attack ? 0 : 15;
+                                chip.target_envelope_level = chip.envelope_output;
                             }
                         }
                     }
