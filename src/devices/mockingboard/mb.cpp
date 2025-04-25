@@ -504,34 +504,39 @@ public:
                 
                 for (int channel = 0; channel < 3; channel++) {
                     const ToneChannel& tone = chip.tone_channels[channel];
-                    
-                    // Only process if the channel has volume
-                    if (tone.period > 0 && (chip.registers[Ampl_A + channel] > 0)) { // envelope is off, and vol is non-zero
-                        bool tone_enabled = !(chip.mixer_control & (1 << channel));
-                        bool noise_enabled = !(chip.mixer_control & (1 << (channel + 3)));
-                        
-                        // If either tone or noise is enabled for this channel
-                        if (tone_enabled || noise_enabled) {
-                            // For tone: true = +volume, false = -volume
-                            float tone_contribution = tone.output ? tone.volume : -tone.volume;
-                            
-                            // For noise: true = +volume, false = -volume
-                            float noise_contribution = chip.noise_output ? tone.volume : -tone.volume;
-                            float channel_output;
+                    bool tone_enabled = !(chip.mixer_control & (1 << channel));
+                    bool noise_enabled = !(chip.mixer_control & (1 << (channel + 3)));
 
-                            // If both are enabled, average them
-                            if (tone_enabled && noise_enabled) {
-                                channel_output = (tone_contribution + noise_contribution) * 0.5f;
-                            } else if (tone_enabled) {
-                                channel_output = tone_contribution;
-                            } else if (noise_enabled) {
-                                channel_output = noise_contribution;
-                            }
-                            channel_output = applyLowPassFilter(channel_output, c, channel);
-                            mixed_output += channel_output;
-                            active_channels++;
+                    // Only process if the channel has volume
+                    // If either tone or noise is enabled for this channel
+                    bool is_tone = tone_enabled && tone.period > 0 && (chip.registers[Ampl_A + channel] > 0);
+                    bool is_noise = noise_enabled;
+
+                    if (is_tone || is_noise) {
+                        // For tone: true = +volume, false = -volume
+                        float tone_contribution = tone.output ? tone.volume : -tone.volume;
+                        
+                        // For noise: true = +volume, false = -volume
+                        float noise_contribution = chip.noise_output ? tone.volume : -tone.volume;
+                        float channel_output;
+
+                        // If both are enabled, average them
+                        if (is_tone && is_noise) {
+                            channel_output = (tone_contribution + noise_contribution) * 0.5f;
+                        } else if (is_tone) {
+                            channel_output = tone_contribution;
+                        } else if (is_noise) {
+                            channel_output = noise_contribution;
                         }
+                        channel_output = applyLowPassFilter(channel_output, c, channel);
+                        mixed_output += channel_output;
+                        active_channels++;
                     }
+                   /*  if ((tone_enabled && tone.period > 0)  && (chip.registers[Ampl_A + channel] > 0)
+                    || noise_enabled) { // envelope is off, and vol is non-zero
+                        
+                  
+                    } */
                 }
                 
                 // Apply filter per chip (this is still valid as it's about signal processing)
