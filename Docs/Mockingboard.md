@@ -259,6 +259,12 @@ data -> ORA
 
 That's pretty straightforward, if poorly documented.
 
+6522 data sheet:
+https://www.princeton.edu/~mae412/HANDOUTS/Datasheets/6522.pdf
+
+lots more information on the timer counters and interrupt scheme.
+
+
 ## Interrupts
 
 There is some use of interrupts. However, in the example code, it appears to be only for Speech. It uses the 6522 interrupt handling stuff. Interrupt flag is $C40D, Interrupt Enable is $C40C.

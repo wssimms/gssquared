@@ -31,7 +31,7 @@
 #include "bus.hpp"
 #include "devices/speaker/speaker.hpp"
 
-#define DEBUG 0
+#define DEBUG 1
 
 
 enum AY_Registers {
@@ -102,12 +102,20 @@ struct RegisterEvent {
 
 // Add a static array for the normalized volume levels
 static const float normalized_levels[16] = {
+    0x0000 / 65535.0f * 0.6f, 0x0385 / 65535.0f * 0.6f, 0x053D / 65535.0f * 0.6f, 0x0770 / 65535.0f * 0.6f,
+    0x0AD7 / 65535.0f * 0.6f, 0x0FD5 / 65535.0f * 0.6f, 0x15B0 / 65535.0f * 0.6f, 0x230C / 65535.0f * 0.6f,
+    0x2B4C / 65535.0f * 0.6f, 0x43C1 / 65535.0f * 0.6f, 0x5A4B / 65535.0f * 0.6f, 0x732F / 65535.0f * 0.6f,
+    0x9204 / 65535.0f * 0.6f, 0xAFF1 / 65535.0f * 0.6f, 0xD921 / 65535.0f * 0.6f, 0xFFFF / 65535.0f * 0.6f
+};
+
+// Add a static array for the normalized volume levels
+/* static const float normalized_levels[16] = {
     0x0000 / 65535.0f, 0x0385 / 65535.0f, 0x053D / 65535.0f, 0x0770 / 65535.0f,
     0x0AD7 / 65535.0f, 0x0FD5 / 65535.0f, 0x15B0 / 65535.0f, 0x230C / 65535.0f,
     0x2B4C / 65535.0f, 0x43C1 / 65535.0f, 0x5A4B / 65535.0f, 0x732F / 65535.0f,
     0x9204 / 65535.0f, 0xAFF1 / 65535.0f, 0xD921 / 65535.0f, 0xFFFF / 65535.0f
 };
-
+ */
 class MockingboardEmulator {
 private:
     // Constants
@@ -276,7 +284,7 @@ public:
                 chip.envelope_attack = (chip.envelope_shape & 0x04) != 0;
                 // Set initial output value based on attack/decay
                 chip.envelope_output = chip.envelope_attack ? 0 : 15;
-                chip.target_envelope_level = chip.envelope_output;
+                chip.target_envelope_level = normalized_levels[chip.envelope_output];
                 break;
                 
             case Ampl_A: // Channel A volume
@@ -288,11 +296,11 @@ public:
                     if (event.value & 0x10) {
                         chip.tone_channels[channel].use_envelope = true;
                         // Set initial volume from current envelope output, normalized to 0-1
-                        chip.tone_channels[channel].volume = chip.envelope_output / 15.0f;
+                        chip.tone_channels[channel].volume = normalized_levels[chip.envelope_output];
                     } else {
                         chip.tone_channels[channel].use_envelope = false;
                         // Convert direct volume to 0-1 range
-                        chip.tone_channels[channel].volume = (event.value & 0x0F) / 15.0f;
+                        chip.tone_channels[channel].volume = normalized_levels[event.value & 0x0F];
                     }
                 }
                 break;
@@ -371,14 +379,14 @@ public:
                         if (chip.envelope_output < 15) {
                             // Still rising
                             chip.envelope_output++;
-                            chip.target_envelope_level = chip.envelope_output;
+                            chip.target_envelope_level = normalized_levels[chip.envelope_output];
                         } else {
                             // Reached peak, determine next state
                             // If continue and hold are both set, determine held value by (attack XOR alternate)
                             if (cont && hold) {
                                 bool held_at_15 = attack != alternate; // XOR operation
                                 chip.envelope_output = held_at_15 ? 15 : 0;
-                                chip.target_envelope_level = chip.envelope_output;
+                                chip.target_envelope_level = normalized_levels[chip.envelope_output];
                                 chip.envelope_hold = true;
                             }
                             // Regular processing for other cases
@@ -393,7 +401,7 @@ public:
                             } else {
                                 // Reset to start of phase
                                 chip.envelope_output = attack ? 0 : 15;
-                                chip.target_envelope_level = chip.envelope_output;
+                                chip.target_envelope_level = normalized_levels[chip.envelope_output];
                             }
                         }
                     } else {
@@ -401,14 +409,14 @@ public:
                         if (chip.envelope_output > 0) {
                             // Still falling
                             chip.envelope_output--;
-                            chip.target_envelope_level = chip.envelope_output;
+                            chip.target_envelope_level = normalized_levels[chip.envelope_output];
                         } else {
                             // Reached zero, determine next state
                             // If continue and hold are both set, determine held value by (attack XOR alternate)
                             if (cont && hold) {
                                 bool held_at_15 = attack != alternate; // XOR operation
                                 chip.envelope_output = held_at_15 ? 15 : 0;
-                                chip.target_envelope_level = chip.envelope_output;
+                                chip.target_envelope_level = normalized_levels[chip.envelope_output];
                                 chip.envelope_hold = true;
                             }
                             // Regular processing for other cases
@@ -421,7 +429,7 @@ public:
                             } else {
                                 // Reset to start of phase
                                 chip.envelope_output = attack ? 0 : 15;
-                                chip.target_envelope_level = chip.envelope_output;
+                                chip.target_envelope_level = normalized_levels[chip.envelope_output];
                             }
                         }
                     }
@@ -437,7 +445,7 @@ public:
         }
         
         // Debug output for envelope level at start of each call
-        if (DEBUG) std::cout << "[" << current_time << "] Envelope status - Level: " << static_cast<int>(chips[0].envelope_output) 
+        if (0 && DEBUG) std::cout << "[" << current_time << "] Envelope status - Level: " << static_cast<int>(chips[0].envelope_output) 
                   << " (counter: " << static_cast<int>(chips[0].envelope_counter) 
                   << "/" << static_cast<int>(chips[0].envelope_period) 
                   << ", shape: " << static_cast<int>(chips[0].envelope_shape)
@@ -490,7 +498,7 @@ public:
                 for (int i = 0; i < 3; i++) {
                     if (chip.tone_channels[i].use_envelope) {
                         // Keep as float, divide by 15 here to normalize to 0-1 range
-                        chip.tone_channels[i].volume = chip.current_envelope_level / 15.0f;
+                        chip.tone_channels[i].volume = chip.current_envelope_level/*  / 15.0f */; // TODO: what to do here? target_envelope_level is already normalized to 0-1
                     }
                 }
             }
@@ -673,7 +681,7 @@ private:
         uint16_t envelope_period;  // Changed to 16-bit
         uint8_t envelope_shape;
         uint16_t envelope_counter;  // Changed to 16-bit to handle larger counts at master clock rate
-        uint8_t envelope_output;   // Current envelope value (0-15)
+        uint8_t envelope_output;   // Current envelope value (0-15) integer.
         bool envelope_hold;        // Whether envelope is holding
         bool envelope_attack;      // Whether envelope is in attack phase
         float current_envelope_level;  // Interpolated envelope level

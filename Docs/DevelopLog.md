@@ -3456,3 +3456,42 @@ Mockingboard is coming together!
 I think the envelope is phasing in a little slowly though. You can hear it on certain notes in the music box dancer song. 
 Alternate doesn't seem to work. wait, it is working with continue and attack=n and hold=y.
 
+OK, that has been fixed. The envelopes all work correctly according to the data sheet; that's better than Virtual II, whose emulation here does not seem very good.
+
+I should be testing on AppleWin, too..
+
+## Apr 24, 2025
+
+some improvements to the audio generation, primarily due to filtering on each channel before mixing, based on the selected frequency. but apparently I broke noise generation in the last couple commits. oops. There's the IF statement that checks, I did change it from volume to checking a bunch of flags, that's almost certainly where the noise has gone. ok, fixed!!
+
+Still need to fix the volume / compression. As voices come and go there are pretty disjointed discontinuities in overall volume. I like the idea of doing dynamic gain control based on recent max samples. But we don't want to lose dynamic range. So maybe the closer we get to 1.0, the more we should compress, and do it more the closer we get. That's where that tanh thing comes in, I think, but that really harshed the sound.
+
+Also, need to implement the logarithmic volume. Linear just isn't right.
+
+Maybe the thing to do here is deal with stereo. That will reduce the number of channels we're mixing. Chip 0 is left, Chip 1 is right. We can create a SDL stereo audio stream, and pass in two. We mix each chip separately, then chuck each chip's mixed audio into its own SDL audio channel.
+
+So in this order:
+* do logarithmic volume
+* verify what volume my float samples should be (i.e. scale gain appropriately - we are WAY louder than e.g. virtual 2)
+* split the mix into two stereo channels
+* tweak the mixing algorithm from there.
+
+Also, create something to log and record the chip events so we can play them back from saved files later with a CLI util. The CLI util should allow playing a saved clip, and, just generating a WAV file.
+
+It may be the case that they just had to be careful not to overload the output channel by playing 3 tones at the same time at loud volume? Who the heck knows how the OS mixes all this stuff, or the SDL layer.
+
+There is maybe another option here, and that is to use some separate signal generator. Would SDL or the OS have a waveform generator? Or use a SIN wave generator? (would have less harmonic stuff to deal with but would probably lose its 80s 8-bit character.) 
+
+btw the Mockingboard manual RTF I have confirms the registers are 0 through 13, with 14 and 15 being unused or "not significant". Contradicts the data sheet. But, it's right.
+
+Each 6522 has two timers, T1 and T2. when they count down to zero, they trigger an interrupt. the GS is going to have stuff like this too, and, in order to be accurate, it will need to count down while we execute CPU cycles and trigger the IRQ while we're in the CPU loop.
+
+Since these are simple counters, each time we tick a cpu cycle we just need to tick these counters as well. So we need to 'register' a clock whenever ..
+alternatively, we could register an event to occur. e.g., we know when the next zero crossing will occur. there is an ordered queue of items to call whenever the cpu ticks over to that cycle. If the user reads the current counter, we can just calculate from the last zero crossing. This way we're not calling functions every clock cycle. We're essentially doing it by math any given cycle we only need to check one uint64 to see if we 'got there'. this will work sorta like we track events in speaker.cpp; except we need to maintain an ordered queue. (speaker.cpp events are always ordered, it's a FIFO).
+
+if envelope is 0 and tone amplitude is zero, we're still playing a note. that's wrong.. oh except tone amplitude in this program means "use the envelope". So, the envelope is still playing even if env_period=0.
+
+Logarithmic volume lookup table: done.
+I am using a gain of 0.6, built into the lookup table.
+
+
