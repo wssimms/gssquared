@@ -43,6 +43,7 @@ struct mb_cpu_data {
     mb_6522_data d_6522[2];
     std::vector<float> audio_buffer;
     SDL_AudioStream *stream;
+    uint64_t last_cycle;
 };
 
 void init_slot_mockingboard(cpu_state *cpu, SlotType_t slot);

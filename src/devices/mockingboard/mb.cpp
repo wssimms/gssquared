@@ -49,8 +49,40 @@ enum AY_Registers {
     Envelope_Period_Low = 11, // 13,
     Envelope_Period_High = 12, // 14,
     Envelope_Shape = 13, // 15,
+    Unknown_14 = 14,
+    Unknown_15 = 15,
 };
 
+const char *register_names[] = {
+    "A_Tone_Low",
+    "A_Tone_High",
+    "B_Tone_Low",
+    "B_Tone_High",
+    "C_Tone_Low",
+    "C_Tone_High",
+    "Noise_Period",
+    "Mixer_Control",
+    "Ampl_A",
+    "Ampl_B",
+    "Ampl_C",
+    "Envelope_Period_Low",
+    "Envelope_Period_High",
+    "Envelope_Shape",
+    "Unknown 14",
+    "Unknown 15",
+};
+
+void debug_register_change(double current_time, uint8_t chip_index, uint8_t reg, uint8_t value) {
+    //if (DEBUG) {
+        std::cout << "[" << current_time << "] Register " << register_names[reg] << " set to: " << static_cast<int>(value) << std::endl;
+    //}
+}
+
+
+struct filter_state {
+    float last_sample;
+    float alpha;
+};
 
 // Global constants
 constexpr double OUTPUT_SAMPLE_RATE = 44100.0;
@@ -83,7 +115,7 @@ private:
     static constexpr int CLOCK_DIVIDER = 16;
     static constexpr double CHIP_FREQUENCY = MASTER_CLOCK / CLOCK_DIVIDER; // 62.5kHz
     static constexpr int ENVELOPE_CLOCK_DIVIDER = 256;  // First stage divider for envelope
-    static constexpr float FILTER_CUTOFF = 0.26f; // Filter coefficient (0-1)
+    static constexpr float FILTER_CUTOFF = 0.3f; // Filter coefficient (0-1) (lower is more aggressive)
     
 public:
     MockingboardEmulator(std::vector<float>* buffer = nullptr) 
@@ -97,7 +129,7 @@ public:
             
             // Initialize tone channels
             for (int i = 0; i < 3; i++) {
-                chips[c].tone_channels[i].period = 1;
+                chips[c].tone_channels[i].period = 0;
                 chips[c].tone_channels[i].counter = 1;
                 chips[c].tone_channels[i].output = false;
                 chips[c].tone_channels[i].volume = 0;
@@ -118,6 +150,13 @@ public:
             chips[c].envelope_attack = false;
             chips[c].current_envelope_level = 0.0f;
             chips[c].target_envelope_level = 0.0f;
+        }
+        for (int i = 0; i < 7; i++) {
+            filters[i].last_sample = 0.0f;
+        }
+        for (int i = 0; i < 3; i++) {
+            setChannelAlpha(0, i);
+            setChannelAlpha(1, i);
         }
     }
     
@@ -148,7 +187,10 @@ public:
         AY3_8910& chip = chips[event.chip_index];
         chip.registers[event.register_num] = event.value;
         
-        // Debug output for important register changes
+        //debug_register_change(current_time, event.chip_index, event.register_num, event.value);
+        if (DEBUG) display_registers();
+
+/*         // Debug output for important register changes
         if (event.chip_index == 0) {
             switch (event.register_num) {
                 case Envelope_Period_Low: case Envelope_Period_High:
@@ -169,7 +211,7 @@ public:
                               << std::endl;
                     break;
             }
-        }
+        } */
         
         // Update internal state based on register change
         switch (event.register_num) {
@@ -184,9 +226,10 @@ public:
                     // For example, for 250Hz: period = 62500 / (2 * 250) = 125
                     chip.tone_channels[channel].period = 
                         (high_bits << 8) | event.value;
-                    if (chip.tone_channels[channel].period == 0) {
+                    /* if (chip.tone_channels[channel].period == 0) {
                         chip.tone_channels[channel].period = 1; // Avoid division by zero
-                    }
+                    } */
+                    setChannelAlpha(event.chip_index, channel);
                 }
                 break;
                 
@@ -198,9 +241,10 @@ public:
                     int high_bits = event.value & 0x0F;
                     chip.tone_channels[channel].period = 
                         (high_bits << 8) | chip.registers[event.register_num - 1];
-                    if (chip.tone_channels[channel].period == 0) {
+                    /* if (chip.tone_channels[channel].period == 0) {
                         chip.tone_channels[channel].period = 1; // Avoid division by zero
-                    }
+                    } */
+                    setChannelAlpha(event.chip_index, channel);
                 }
                 break;
                 
@@ -462,7 +506,7 @@ public:
                     const ToneChannel& tone = chip.tone_channels[channel];
                     
                     // Only process if the channel has volume
-                    if (tone.volume > 0) {
+                    if (tone.period > 0 && (chip.registers[Ampl_A + channel] > 0)) { // envelope is off, and vol is non-zero
                         bool tone_enabled = !(chip.mixer_control & (1 << channel));
                         bool noise_enabled = !(chip.mixer_control & (1 << (channel + 3)));
                         
@@ -473,29 +517,36 @@ public:
                             
                             // For noise: true = +volume, false = -volume
                             float noise_contribution = chip.noise_output ? tone.volume : -tone.volume;
-                            
+                            float channel_output;
+
                             // If both are enabled, average them
                             if (tone_enabled && noise_enabled) {
-                                mixed_output += (tone_contribution + noise_contribution) * 0.5f;
+                                channel_output = (tone_contribution + noise_contribution) * 0.5f;
                             } else if (tone_enabled) {
-                                mixed_output += tone_contribution;
+                                channel_output = tone_contribution;
                             } else if (noise_enabled) {
-                                mixed_output += noise_contribution;
+                                channel_output = noise_contribution;
                             }
-                            
+                            channel_output = applyLowPassFilter(channel_output, c, channel);
+                            mixed_output += channel_output;
                             active_channels++;
                         }
                     }
                 }
                 
                 // Apply filter per chip (this is still valid as it's about signal processing)
-                mixed_output = applyLowPassFilter(mixed_output, c);
+                //mixed_output = applyLowPassFilter(mixed_output, c);
             }
             
             // Single scaling stage
             if (active_channels > 0) {
                 //printf("active_channels: %d mixed_output: %f\n", active_channels, mixed_output);
+                
                 mixed_output /= active_channels;  // Now correctly scaling by number of active channels
+                //mixed_output = applyLowPassFilter(mixed_output * 0.6f, 0);
+
+                //mixed_output = std::tanh(mixed_output * 0.5f);
+                //mixed_output = mixed_output / (1.0f + 0.5f * std::abs(mixed_output));
             }
             
             // Append the mixed sample to the buffer
@@ -547,10 +598,55 @@ public:
         
         return true;
     }
-    
+
+    // Display register values for both chips in a compact side-by-side format
+    void display_registers() {
+        printf("                Chip 0                |                Chip 1\n");
+        printf("------------------------------------- | --------------------------------------\n");
+        
+        // Line 1: Tone registers
+        printf("Tone A: %03X  Tone B: %03X  Tone C: %03X | Tone A: %03X  Tone B: %03X  Tone C: %03X\n",
+            (chips[0].registers[A_Tone_High] << 8) | chips[0].registers[A_Tone_Low],
+            (chips[0].registers[B_Tone_High] << 8) | chips[0].registers[B_Tone_Low],
+            (chips[0].registers[C_Tone_High] << 8) | chips[0].registers[C_Tone_Low],
+            (chips[1].registers[A_Tone_High] << 8) | chips[1].registers[A_Tone_Low],
+            (chips[1].registers[B_Tone_High] << 8) | chips[1].registers[B_Tone_Low],
+            (chips[1].registers[C_Tone_High] << 8) | chips[1].registers[C_Tone_Low]);
+        
+        // Line 3: Amplitude registers
+        printf("Ampl A: %02X   Ampl B: %02X   Ampl C: %02X  | Ampl A: %02X   Ampl B: %02X    Ampl C: %02X\n",
+            chips[0].registers[Ampl_A],
+            chips[0].registers[Ampl_B],
+            chips[0].registers[Ampl_C],
+            chips[1].registers[Ampl_A],
+            chips[1].registers[Ampl_B],
+            chips[1].registers[Ampl_C]);
+        
+        // Line 2: Noise and Mixer
+        printf("Noise: %02X  Mixer: %02X                  | Noise: %02X  Mixer: %02X\n",
+            chips[0].registers[Noise_Period],
+            chips[0].registers[Mixer_Control],
+            chips[1].registers[Noise_Period],
+            chips[1].registers[Mixer_Control]);
+        
+        // Line 4: Envelope registers
+        printf("Env Period: %04X  Env Shape: %02X       | Env Period: %04X  Env Shape: %02X\n",
+            (chips[0].registers[Envelope_Period_High] << 8) | chips[0].registers[Envelope_Period_Low],
+            chips[0].registers[Envelope_Shape],
+            (chips[1].registers[Envelope_Period_High] << 8) | chips[1].registers[Envelope_Period_Low],
+            chips[1].registers[Envelope_Shape]);
+        
+        // Line 5: Unknown registers
+        /* printf("Unknown: %02X %02X                        | Unknown: %02X %02X\n",
+            chips[0].registers[Unknown_14],
+            chips[0].registers[Unknown_15],
+            chips[1].registers[Unknown_14],
+            chips[1].registers[Unknown_15]); */
+    }
+
 private:
     // Filter state
-    float last_sample[2] = {0.0f, 0.0f}; // One state per chip
+    filter_state filters[7] = {0.0f}; // One state per channel, and one for the mixed output
     
     // State for each tone channel (3 per chip, 2 chips)
     struct ToneChannel {
@@ -587,7 +683,8 @@ private:
     double envelope_time_accumulator;  // New accumulator for envelope timing
     std::deque<RegisterEvent> pending_events;
     std::vector<float>* audio_buffer;  // Pointer to external audio buffer
-    
+    float alpha;
+
     // Helper function to write a 16-bit value to a file
     void write16(std::ofstream& file, uint16_t value) {
         file.write(reinterpret_cast<const char*>(&value), sizeof(value));
@@ -598,11 +695,42 @@ private:
         file.write(reinterpret_cast<const char*>(&value), sizeof(value));
     }
     
+#if 0
     // Apply simple one-pole low-pass filter
-    float applyLowPassFilter(float input, int chip_index) {
-        float filtered_sample = last_sample[chip_index] + FILTER_CUTOFF * (input - last_sample[chip_index]);
-        last_sample[chip_index] = filtered_sample;
+    float applyLowPassFilter(float input, int filter_index) {
+        filter_state& filter = filters[filter_index];
+        float filtered_sample = filter.last_sample + FILTER_CUTOFF * (input - filter.last_sample);
+        filter.last_sample = filtered_sample;
         return filtered_sample;
+    }
+#endif
+    float computeAlpha(float cutoffHz, float sampleRate) {
+        float rc = 1.0f / (2.0f * M_PI * cutoffHz);
+        float dt = 1.0f / sampleRate;
+        float alpha = dt / (rc + dt);
+        return alpha;
+    }
+
+    void setChannelAlpha(int chip_index, int channel) {
+        int tone_period = chips[chip_index].tone_channels[channel].period;
+        int tp = tone_period > 0 ? tone_period : 1;
+
+        float cutofffreq = (63781.0f / tp) * 3;
+        cutofffreq = cutofffreq < 19500.0f ? cutofffreq : 19500.0f;
+
+        int filter_index = 1 + channel + chip_index * 2;  
+        filter_state& filter = filters[filter_index];
+  
+        filter.alpha = computeAlpha(cutofffreq, OUTPUT_SAMPLE_RATE);
+        if (DEBUG) printf("setChannelAlpha(%d:%d): tonePeriod: %d (%d), cutoffHz: %f, sampleRate: %f, alpha: %f\n", 
+            chip_index, channel, tone_period, tp, cutofffreq, OUTPUT_SAMPLE_RATE, filter.alpha);
+    }
+
+    float applyLowPassFilter(float input, int chip_index, int channel /* , float alpha */) {
+        int filter_index = 1 + channel + chip_index * 2;    
+        filter_state& filter = filters[filter_index];
+        filter.last_sample += filter.alpha * (input - filter.last_sample);
+        return filter.last_sample;
     }
 };
 
@@ -776,7 +904,7 @@ void mb_write_C0x0(cpu_state *cpu, uint16_t addr, uint8_t data) {
     uint8_t alow = addr & 0x7F;
     uint8_t chip = (addr & 0x80) ? 0 : 1;
 
-    printf("mb_write_C0x0: %02x %02x\n", alow, data);
+    if (DEBUG) printf("mb_write_C0x0: %02x %02x\n", alow, data);
 
     if (alow == MB_6522_DDRA) {
         mb_d->d_6522[0].ddra = data;
@@ -796,21 +924,23 @@ void mb_write_C0x0(cpu_state *cpu, uint16_t addr, uint8_t data) {
 
         if (data == 7) { // this is the register number.
            mb_d->d_6522[0].reg_num = mb_d->d_6522[0].ora;
-           printf("reg_num: %02x\n", mb_d->d_6522[0].reg_num);
+           if (DEBUG) printf("reg_num: %02x\n", mb_d->d_6522[0].reg_num);
         } else if (data == 6) { // write to the specified register
            double time = cpu->cycles / 1020500.0;
            mb_d->mockingboard->queueRegisterChange(time, chip, mb_d->d_6522[0].reg_num, mb_d->d_6522[0].ora);
-           printf("queueRegisterChange: [%lf] chip: %d reg: %02x val: %02x\n", time, chip, mb_d->d_6522[0].reg_num, mb_d->d_6522[0].ora);
+           if (DEBUG) printf("queueRegisterChange: [%lf] chip: %d reg: %02x val: %02x\n", time, chip, mb_d->d_6522[0].reg_num, mb_d->d_6522[0].ora);
         }
     }
 }
 
 void generate_mockingboard_frame(cpu_state *cpu) {
     mb_cpu_data *mb_d = (mb_cpu_data *)get_module_state(cpu, MODULE_MB);
-    const int samples_per_frame = static_cast<int>(736);  // 16.67ms worth of samples -
+    const int samples_per_frame = static_cast<int>(735);  // 16.67ms worth of samples -
     // TODO: 736 is an ugly hack. We need to calculate number of samples based on cycles.
-    
-    mb_d->mockingboard->generateSamples(samples_per_frame);
+    uint64_t cycle_diff = cpu->cycles - mb_d->last_cycle;
+    mb_d->last_cycle = cpu->cycles;
+    mb_d->mockingboard->generateSamples(((cycle_diff / 1020500.0) * 44100)+1);
+
     // Clear the audio buffer after each frame to prevent memory buildup
     // Send the generated audio data to the SDL audio stream
     if (mb_d->audio_buffer.size() > 0) {
@@ -820,6 +950,11 @@ void generate_mockingboard_frame(cpu_state *cpu) {
     mb_d->audio_buffer.clear();
 }
 
+void insert_empty_mockingboard_frame(cpu_state *cpu) {
+    mb_cpu_data *mb_d = (mb_cpu_data *)get_module_state(cpu, MODULE_MB);
+    const float empty_frame[736] = {0.0f};
+    SDL_PutAudioStreamData(mb_d->stream, empty_frame, 736 * sizeof(float));
+}
 
 void init_slot_mockingboard(cpu_state *cpu, SlotType_t slot) {
     uint16_t slot_base = 0xC080 + (slot * 0x10);
@@ -832,6 +967,7 @@ void init_slot_mockingboard(cpu_state *cpu, SlotType_t slot) {
     mb_d->d_6522[0].orb = 0x00;
     mb_d->d_6522[0].reg_num = 0x00;
     mb_d->mockingboard = new MockingboardEmulator(&mb_d->audio_buffer);
+    mb_d->last_cycle = 0;
 
     speaker_state_t *speaker_d = (speaker_state_t *)get_module_state(cpu, MODULE_SPEAKER);
     int dev_id = speaker_d->device_id;
@@ -852,6 +988,8 @@ void init_slot_mockingboard(cpu_state *cpu, SlotType_t slot) {
     mb_d->stream = stream;
 
     set_module_state(cpu, MODULE_MB, mb_d);
+
+    insert_empty_mockingboard_frame(cpu);
 
     // These won't work because we need to set up registers in CS00 and CS80. So weird.
     // for now, just tie this in inside bus.cpp which is ugly. But we need a more generalized
