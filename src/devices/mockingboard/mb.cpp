@@ -503,11 +503,12 @@ public:
                 }
             }
             
-            // Mix output from all channels of both chips
-            float mixed_output = 0.0f;
-            int active_channels = 0;
-            
+            // Mix output from 3 channels of each chip separately.
+            float mixed_output[2] = {0.0f, 0.0f};
+            int active_channels[2] = {0, 0};
+
             for (int c = 0; c < 2; c++) {
+
                 const AY3_8910& chip = chips[c];
                 
                 for (int channel = 0; channel < 3; channel++) {
@@ -537,33 +538,20 @@ public:
                             channel_output = noise_contribution;
                         }
                         channel_output = applyLowPassFilter(channel_output, c, channel);
-                        mixed_output += channel_output;
-                        active_channels++;
+                        mixed_output[c] += channel_output;
+                        active_channels[c]++;
                     }
-                   /*  if ((tone_enabled && tone.period > 0)  && (chip.registers[Ampl_A + channel] > 0)
-                    || noise_enabled) { // envelope is off, and vol is non-zero
-                        
-                  
-                    } */
+                }
+
+                // Scale by number of active channels
+                if (active_channels[c] > 0) {
+                    mixed_output[c] /= active_channels[c]; 
                 }
                 
-                // Apply filter per chip (this is still valid as it's about signal processing)
-                //mixed_output = applyLowPassFilter(mixed_output, c);
             }
-            
-            // Single scaling stage
-            if (active_channels > 0) {
-                //printf("active_channels: %d mixed_output: %f\n", active_channels, mixed_output);
-                
-                mixed_output /= active_channels;  // Now correctly scaling by number of active channels
-                //mixed_output = applyLowPassFilter(mixed_output * 0.6f, 0);
-
-                //mixed_output = std::tanh(mixed_output * 0.5f);
-                //mixed_output = mixed_output / (1.0f + 0.5f * std::abs(mixed_output));
-            }
-            
-            // Append the mixed sample to the buffer
-            audio_buffer->push_back(mixed_output);
+            // Append the mixed samples to the buffer
+            audio_buffer->push_back(mixed_output[0]);
+            audio_buffer->push_back(mixed_output[1]);
         }
         
         // Update current_time for the next call
@@ -912,12 +900,12 @@ while (1) {
 }
 #endif
 
-void mb_write_C0x0(cpu_state *cpu, uint16_t addr, uint8_t data) {
+void mb_write_Cx00(cpu_state *cpu, uint16_t addr, uint8_t data) {
     mb_cpu_data *mb_d = (mb_cpu_data *)get_module_state(cpu, MODULE_MB);
     uint8_t alow = addr & 0x7F;
     uint8_t chip = (addr & 0x80) ? 0 : 1;
 
-    if (DEBUG) printf("mb_write_C0x0: %02x %02x\n", alow, data);
+    if (DEBUG) printf("mb_write_Cx00: %02x %02x\n", alow, data);
 
     if (alow == MB_6522_DDRA) {
         mb_d->d_6522[0].ddra = data;
@@ -946,6 +934,21 @@ void mb_write_C0x0(cpu_state *cpu, uint16_t addr, uint8_t data) {
     }
 }
 
+uint8_t mb_read_Cx00(cpu_state *cpu, uint16_t addr) {
+    mb_cpu_data *mb_d = (mb_cpu_data *)get_module_state(cpu, MODULE_MB);
+    uint8_t alow = addr & 0x7F;
+    uint8_t chip = (addr & 0x80) ? 0 : 1;
+
+    if (DEBUG) printf("mb_read_Cx00: %02x\n", alow);
+
+/*     if (alow == MB_6522_DDRA) {
+        data = mb_d->d_6522[0].ddra;
+    } else if (alow == MB_6522_DDRB) {
+        data = mb_d->d_6522[0].ddrb;
+    }
+ */
+}
+
 void generate_mockingboard_frame(cpu_state *cpu) {
     mb_cpu_data *mb_d = (mb_cpu_data *)get_module_state(cpu, MODULE_MB);
     const int samples_per_frame = static_cast<int>(735);  // 16.67ms worth of samples -
@@ -965,8 +968,8 @@ void generate_mockingboard_frame(cpu_state *cpu) {
 
 void insert_empty_mockingboard_frame(cpu_state *cpu) {
     mb_cpu_data *mb_d = (mb_cpu_data *)get_module_state(cpu, MODULE_MB);
-    const float empty_frame[736] = {0.0f};
-    SDL_PutAudioStreamData(mb_d->stream, empty_frame, 736 * sizeof(float));
+    const float empty_frame[736*2] = {0.0f};
+    SDL_PutAudioStreamData(mb_d->stream, empty_frame, 736 * 2 * sizeof(float));
 }
 
 void init_slot_mockingboard(cpu_state *cpu, SlotType_t slot) {
@@ -989,7 +992,7 @@ void init_slot_mockingboard(cpu_state *cpu, SlotType_t slot) {
     SDL_AudioSpec spec = {
         .freq = 44100,
         .format = SDL_AUDIO_F32LE,
-        .channels = 1
+        .channels = 2
     };
 
     SDL_AudioStream *stream = SDL_CreateAudioStream(&spec, NULL);
