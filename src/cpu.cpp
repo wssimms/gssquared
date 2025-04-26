@@ -113,3 +113,11 @@ void *get_module_state(cpu_state *cpu, module_id_t module_id) {
 void set_module_state(cpu_state *cpu, module_id_t module_id, void *state) {
     cpu->module_store[module_id] = state;
 }
+
+void set_slot_irq(cpu_state *cpu, uint8_t slot, bool irq) {
+    if (irq) {
+        cpu->irq_asserted |= (1 << slot);
+    } else {
+        cpu->irq_asserted &= ~(1 << slot);
+    }
+}

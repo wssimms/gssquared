@@ -184,6 +184,8 @@ struct cpu_state {
     uint8_t *main_io_4 = nullptr;
     uint8_t *main_rom_D0 = nullptr;
 
+    uint64_t irq_asserted = 0; /** bits 0-7 correspond to slot IRQ lines slots 0-7. */
+
     memory_map *memory;
 
     int8_t C8xx_slot;
@@ -239,3 +241,5 @@ void *get_module_state(cpu_state *cpu, module_id_t module_id);
 void set_module_state(cpu_state *cpu, module_id_t module_id, void *state);
 
 void init_default_memory_map(cpu_state *cpu);
+
+void set_slot_irq(cpu_state *cpu, uint8_t slot, bool irq);
