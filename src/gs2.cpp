@@ -226,6 +226,7 @@ void run_cpus(void) {
 
         if (! cpu->halt) {
             while (cpu->cycles - last_cycle_count < cycles_for_this_burst) { // 1/60th second.
+                cpu->event_timer.processEvents(cpu->cycles);
                 if ((cpu->execute_next)(cpu) > 0) { // never returns 0 right now
                     break;
                 }
@@ -316,7 +317,8 @@ void run_cpus(void) {
         current_time = SDL_GetTicksNS();
         if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_mockingboard_update > 16667000)
             || (cpu->clock_mode != CLOCK_FREE_RUN)) {
-            generate_mockingboard_frame(cpu);
+            // TODO: need to iterate slots and call their "generate_frame" functions as appropriate.
+            generate_mockingboard_frame(cpu, SLOT_4);
             last_mockingboard_update = current_time;
         }
 
@@ -379,6 +381,11 @@ void run_cpus(void) {
         last_cycle_window_start = cycle_window_start;
     }
 }
+/* void test_timer_callback(void *user_data) {
+    cpu_state *cpu = (cpu_state *)user_data;
+    std::cout << "Timer callback" << std::endl;
+    cpu->irq_asserted |= (1 << 4); // slot 4
+} */
 
 
 gs2_app_t gs2_app_values;
@@ -565,6 +572,8 @@ int main(int argc, char *argv[]) {
         }
     }
 
+/*     CPUs[0].event_timer.scheduleEvent(3000000, test_timer_callback, 0x10101010, &CPUs[0]);
+ */
     run_cpus();
 
     printf("CPU halted: %d\n", CPUs[0].halt);

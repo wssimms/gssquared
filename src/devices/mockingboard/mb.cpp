@@ -31,7 +31,7 @@
 #include "bus.hpp"
 #include "devices/speaker/speaker.hpp"
 
-#define DEBUG 1
+#define DEBUG 0
 
 
 enum AY_Registers {
@@ -173,6 +173,14 @@ public:
         audio_buffer = buffer;
     }
     
+    void reset() {
+        for (int c = 0; c < 2; c++) {
+            for (int r = 0; r < 16; r++) {
+                chips[c].registers[r] = 0;
+            }
+        }
+    }
+
     // Add a register change event
     void queueRegisterChange(double timestamp, uint8_t chip_index, uint8_t reg, uint8_t value) {
         RegisterEvent event;
@@ -900,44 +908,89 @@ while (1) {
 }
 #endif
 
+void mb_6522_propagate_interrupt(cpu_state *cpu, mb_cpu_data *mb_d) {
+    // for each chip, calculate the IFR bit 7.
+    for (int i = 0; i < 2; i++) {
+        mb_6522_data *tc = &mb_d->d_6522[i];
+        uint8_t irq = ((tc->ifr & tc->ier) & 0x7F) > 0;
+        // set bit 7 of IFR to the result.
+        tc->ifr = (tc->ifr & 0x7F) | (irq << 7);
+    }
+    bool irq_to_slot = (mb_d->d_6522[0].ifr & mb_d->d_6522[0].ier) | (mb_d->d_6522[1].ifr & mb_d->d_6522[1].ier);
+    set_slot_irq(cpu, mb_d->slot, irq_to_slot);
+}
+
+void mb_timer_callback(uint64_t instanceID, void *user_data) {
+    cpu_state *cpu = (cpu_state *)user_data;
+    uint8_t slot = (instanceID & 0x0F00) >> 8;
+    uint8_t chip = (instanceID & 0x000F);
+    mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, (SlotType_t)slot);
+
+
+    std::cout << "MB 6522 Timer callback " << slot << " " << chip << std::endl;
+    cpu->irq_asserted |= (1 << slot); // set slot IRQ line high.
+    // TODO: there are two chips; track each IRQ individually and update card IRQ line from that.
+    mb_6522_data *tc = &mb_d->d_6522[chip];
+    tc->t1_counter = tc->t1_latch;
+    cpu->event_timer.scheduleEvent(cpu->cycles + tc->t1_counter, mb_timer_callback, instanceID , cpu);
+}
+
 void mb_write_Cx00(cpu_state *cpu, uint16_t addr, uint8_t data) {
-    mb_cpu_data *mb_d = (mb_cpu_data *)get_module_state(cpu, MODULE_MB);
+    uint8_t slot = (addr & 0x0F00) >> 8;
     uint8_t alow = addr & 0x7F;
     uint8_t chip = (addr & 0x80) ? 0 : 1;
+    mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, (SlotType_t)slot);
 
-    if (DEBUG) printf("mb_write_Cx00: %02x %02x\n", alow, data);
+    if (DEBUG) printf("mb_write_Cx00: %02d %d %02x %02x\n", slot, chip, alow, data);
+    mb_6522_data *tc = &mb_d->d_6522[chip]; // which 6522 chip this is.
 
-    if (alow == MB_6522_DDRA) {
-        mb_d->d_6522[0].ddra = data;
-    } else if (alow == MB_6522_DDRB) {
-        mb_d->d_6522[0].ddrb = data;
-    } else if (alow == MB_6522_ORA) {
-        mb_d->d_6522[0].ora = data;
-    } else if (alow == MB_6522_ORB) {
-        mb_d->d_6522[0].orb = data;
-        if ((data & 0b100) == 0) { // /RESET is low, hence assert reset, reset the chip.
-            // reset the chip. Set all 16 registers to 0.
-            for (int i = 0; i < 16; i++) {
-                double time = cpu->cycles / 1020500.0;
-                mb_d->mockingboard->queueRegisterChange(time, chip, i, 0);
+    switch (alow) {
+
+        case MB_6522_DDRA:
+            tc->ddra = data;
+            break;
+        case MB_6522_DDRB:
+            tc->ddrb = data;
+            break;
+        case MB_6522_ORA:
+            tc->ora = data;
+            break;
+        case MB_6522_ORB:
+            tc->orb = data;
+            if ((data & 0b100) == 0) { // /RESET is low, hence assert reset, reset the chip.
+                // reset the chip. Set all 16 registers to 0.
+                for (int i = 0; i < 16; i++) {
+                    double time = cpu->cycles / 1020500.0;
+                    mb_d->mockingboard->queueRegisterChange(time, chip, i, 0);
+                }
             }
-        }
 
-        if (data == 7) { // this is the register number.
-           mb_d->d_6522[0].reg_num = mb_d->d_6522[0].ora;
-           if (DEBUG) printf("reg_num: %02x\n", mb_d->d_6522[0].reg_num);
-        } else if (data == 6) { // write to the specified register
-           double time = cpu->cycles / 1020500.0;
-           mb_d->mockingboard->queueRegisterChange(time, chip, mb_d->d_6522[0].reg_num, mb_d->d_6522[0].ora);
-           if (DEBUG) printf("queueRegisterChange: [%lf] chip: %d reg: %02x val: %02x\n", time, chip, mb_d->d_6522[0].reg_num, mb_d->d_6522[0].ora);
-        }
+            if (data == 7) { // this is the register number.
+                tc->reg_num = tc->ora;
+                if (DEBUG) printf("reg_num: %02x\n", tc->reg_num);
+            } else if (data == 6) { // write to the specified register
+                double time = cpu->cycles / 1020500.0;
+                mb_d->mockingboard->queueRegisterChange(time, chip, tc->reg_num, tc->ora);
+                if (DEBUG) printf("queueRegisterChange: [%lf] chip: %d reg: %02x val: %02x\n", time, chip, tc->reg_num, tc->ora);
+            }
+            break;
+        case MB_6522_T1C_L:
+            tc->t1_latch = (tc->t1_latch & 0xFF00) | data;
+            break;
+        case MB_6522_T1C_H:
+            tc->t1_latch = (tc->t1_latch & 0x00FF) | (data << 8);
+            tc->t1_counter = tc->t1_latch;
+            cpu->event_timer.scheduleEvent(3000000, mb_timer_callback, 0x10000000 | (slot << 8) | chip , cpu);
+
+            break;
     }
 }
 
 uint8_t mb_read_Cx00(cpu_state *cpu, uint16_t addr) {
-    mb_cpu_data *mb_d = (mb_cpu_data *)get_module_state(cpu, MODULE_MB);
+    uint8_t slot = (addr & 0x0F00) >> 8;
     uint8_t alow = addr & 0x7F;
     uint8_t chip = (addr & 0x80) ? 0 : 1;
+    mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, (SlotType_t)slot);
 
     if (DEBUG) printf("mb_read_Cx00: %02x\n", alow);
 
@@ -949,8 +1002,8 @@ uint8_t mb_read_Cx00(cpu_state *cpu, uint16_t addr) {
  */
 }
 
-void generate_mockingboard_frame(cpu_state *cpu) {
-    mb_cpu_data *mb_d = (mb_cpu_data *)get_module_state(cpu, MODULE_MB);
+void generate_mockingboard_frame(cpu_state *cpu, SlotType_t slot) {
+    mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, slot);
     const int samples_per_frame = static_cast<int>(735);  // 16.67ms worth of samples -
     // TODO: 736 is an ugly hack. We need to calculate number of samples based on cycles.
     uint64_t cycle_diff = cpu->cycles - mb_d->last_cycle;
@@ -966,8 +1019,7 @@ void generate_mockingboard_frame(cpu_state *cpu) {
     mb_d->audio_buffer.clear();
 }
 
-void insert_empty_mockingboard_frame(cpu_state *cpu) {
-    mb_cpu_data *mb_d = (mb_cpu_data *)get_module_state(cpu, MODULE_MB);
+void insert_empty_mockingboard_frame(mb_cpu_data *mb_d) {
     const float empty_frame[736*2] = {0.0f};
     SDL_PutAudioStreamData(mb_d->stream, empty_frame, 736 * 2 * sizeof(float));
 }
@@ -984,6 +1036,7 @@ void init_slot_mockingboard(cpu_state *cpu, SlotType_t slot) {
     mb_d->d_6522[0].reg_num = 0x00;
     mb_d->mockingboard = new MockingboardEmulator(&mb_d->audio_buffer);
     mb_d->last_cycle = 0;
+    mb_d->slot = slot;
 
     speaker_state_t *speaker_d = (speaker_state_t *)get_module_state(cpu, MODULE_SPEAKER);
     int dev_id = speaker_d->device_id;
@@ -1003,18 +1056,29 @@ void init_slot_mockingboard(cpu_state *cpu, SlotType_t slot) {
     }
     mb_d->stream = stream;
 
-    set_module_state(cpu, MODULE_MB, mb_d);
+    set_slot_state(cpu, slot, mb_d);
 
-    insert_empty_mockingboard_frame(cpu);
+    insert_empty_mockingboard_frame(mb_d);
 
-    // These won't work because we need to set up registers in CS00 and CS80. So weird.
+    // regular c0xx_register won't work because we need to set up registers in CS00 and CS80. So weird.
     // for now, just tie this in inside bus.cpp which is ugly. But we need a more generalized
     // mechanism for all these different ways we can read/write to I/O memory. Maybe a function 
     // pointer in the memory map alongside the memory type flag?
+}
 
-    /* register_C0xx_memory_write_handler(slot_base + MB_6522_DDRA, mb_write_C0x0);
-    register_C0xx_memory_write_handler(slot_base + MB_6522_DDRB, mb_write_C0x0);
-    register_C0xx_memory_write_handler(slot_base + MB_6522_ORA, mb_write_C0x0);
-    register_C0xx_memory_write_handler(slot_base + MB_6522_ORB, mb_write_C0x0); */
-
+void mb_reset(cpu_state *cpu) {
+    mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, SLOT_4);
+    mb_d->mockingboard->reset();
+    for (int i = 0; i < 2; i++) {
+        mb_d->d_6522[i].t1_counter = 0;
+        mb_d->d_6522[i].t2_counter = 0;
+        mb_d->d_6522[i].t1_triggered_cycles = 0;
+        mb_d->d_6522[i].t2_triggered_cycles = 0;
+        mb_d->d_6522[i].t1_latch = 0;
+        mb_d->d_6522[i].t2_latch = 0;
+        mb_d->d_6522[i].acr = 0;
+        mb_d->d_6522[i].ifr = 0;
+        mb_d->d_6522[i].ier = 0;
+    }
+    set_slot_irq(cpu, mb_d->slot, 0); // TODO: need to use actual slot. the reset routines need the slot number as argument.
 }

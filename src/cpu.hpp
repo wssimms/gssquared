@@ -24,6 +24,7 @@
 #include "memoryspecs.hpp"
 #include "clock.hpp"
 #include "util/EventQueue.hpp"
+#include "util/EventTimer.hpp"
 
 //#include "clock.hpp"
 
@@ -208,6 +209,10 @@ struct cpu_state {
     EventQueue *event_queue = nullptr;
 
     void *module_store[MODULE_NUM_MODULES];
+    void *slot_store[NUM_SLOTS];
+
+    EventTimer event_timer;
+
 };
 
 #define HLT_INSTRUCTION 1
@@ -237,8 +242,10 @@ void set_clock_mode(cpu_state *cpu, clock_mode mode);
 const char* processor_get_name(int processor_type);
 
 void *get_module_state(cpu_state *cpu, module_id_t module_id);
-
 void set_module_state(cpu_state *cpu, module_id_t module_id, void *state);
+
+void *get_slot_state(cpu_state *cpu, SlotType_t slot);
+void set_slot_state(cpu_state *cpu, SlotType_t slot, void *state);
 
 void init_default_memory_map(cpu_state *cpu);
 

@@ -3493,5 +3493,57 @@ if envelope is 0 and tone amplitude is zero, we're still playing a note. that's 
 
 Logarithmic volume lookup table: done.
 I am using a gain of 0.6, built into the lookup table.
+split into stereo channels - done. And it causes less weirdness with the simple "divisor mix" in the output, since at any given time there's a max of 3 channels being mixed instead of six.
+Also applying the gain of 0.6 seems to help overall results.
+Should do much more 
 
+Now I will need to analyze the sample generation window stuff. Let this just sit here over lunch and see if we get out of sync. though I think I generated based on cpu->cycles / nominal cycles per second. in the event we have clock slips, though, this probably gets out of sync. Also, we may be generating too many samples.
+One thing we could do, is if no sound sources are active, don't send samples. then the next time we send samples, we will automatically be in sync.
 
+the end of NY, NY I think is just a buggy demo. everything else is working so well..
+
+yes, it got out of sync just sitting there. There was a delay before sounds started emitting, due to backlog (too much buffered data).
+
+There is apparently some technique for auto-detecting a mockingboard, it's in SkyFox. Some other software lets you select mockingboard version and slot. Will have to look into that and make sure we react appropriately. that's what they get for not having a ROM! (having no luck determining what this detection routine is. Will have to boot skyfox and see what registers it hits, and where.)
+
+[ ] need to hook ctrl-reset to Mockingboard reset.
+
+Add some debug diagnostics to see if we can figure out how/where Bank Street Music Writer is trying to detect the MB.
+
+## Apr 26, 2025
+
+mb / 6522 interrupts! I implemented an IRQ handler in the cpu. Now, to implement the counter mechanism in the 6522. This is the interrupt 
+
+This is what the demo disk "interrupt-driven music" does.
+
+mb_write_Cx00: 0b 40 ; auxiliary control register - 0x40 bit 6 means "continuous interrupts". (0 in bit 6 means one-shot interrupt)
+mb_write_Cx00: 0e c0 ; interrupt enable register - bit 7 = set flag; bit 6 = set 'timer 1 interrupt enabled'
+mb_write_Cx00: 04 ff ; W - T1 low-order latch ; R - T1 low-order counter
+mb_write_Cx00: 05 69 ; R/W  - T1 high-order counter
+
+That's 0x69FF - 27135. About 37 times per second. or, 2,220 per minute.
+
+Whenever the low-order is written, it first goes into a latch. Then it's transferred into the counter whenever the high-order is written, so that the lo and hi are always put into the counter at exactly the same time.
+The high order also goes into a latch.
+Whenever the counter ticks down past 0, it reloads the counter from the latches automatically.
+When latch is transferred into counter, the interrupt flag is cleared, and the timer begins countdown.
+
+The cool thing here is this thing runs like clockwork; no matter how long our code might take, this counter will fire again exactly on interval. Saves a huge amount of effort trying to count cycles.
+
+Page 2-42 of the 6522 data sheet goes into detail on the difference between REG6/7 and REG4/5. basically whether T1 interrupt flag is also set/reset.
+
+So why would they enable shift register? Hm. Disregard for now.
+
+So - write to 4, just store lo-order in latch. Then write to 5, trigger the other stuff.
+
+So let's create event timer. ok, that's in and working. It does seriously slow things down however! Instead of maintaining an ordered tree (an expensive data structure on the heap) - at any given time there won't be -that- many of these things. Keep them in a fixed-size array. Whenever we insert one, we do this: we find an empty slot in that array and write the new record to it; and keep track of the cycle count of the next event (if new_event < next_event then next_event = new_event>). Then we can just scan the array when an event occurs. OR we can just cache the next cycle time and keep the current object and structure.
+
+Or, maybe, we just fetch the next event time when we enter the cpu loop (or the index of the next event). that won't work, because it might change inside the loop. Yes, update the cache value whenever we modify the queue.
+
+interrupt routines are working in the cpu - however the song is powering through at warp speed. I suspect the IRQ is not getting cleared, which will cause the code to immediately loop straight back in to the IRQ handler. In the morning, make sure I put in code to DE-assert IRQ in appropriate cases. (I am certain I am not doing this at all right now).
+
+## Apr 27, 2025
+
+So we have this current concept of getting and storing device state information based on a device type. The problem is, we may want multiple instances of the same type of device. For instance, two Disk II cards, or, two Mockingboards.
+
+So, we need different routines for storing non-slot device info (for which there can only be one instance), but also slot-device info (for which we may have multiple instances.) 

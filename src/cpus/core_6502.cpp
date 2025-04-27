@@ -71,8 +71,6 @@ int execute_next(cpu_state *cpu) {
     if (DEBUG(DEBUG_REGISTERS)) fprintf(stdout, " | PC: $%04X, A: $%02X, X: $%02X, Y: $%02X, P: $%02X, S: $%02X || ", cpu->pc, cpu->a_lo, cpu->x_lo, cpu->y_lo, cpu->p, cpu->sp);
 
     if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "%04X: ", cpu->pc); // so PC is correct.
-    opcode_t opcode = read_byte_from_pc(cpu);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "%s", get_opcode_name(opcode));
 
     if (!cpu->I && cpu->irq_asserted) { // if IRQ is not disabled, and IRQ is asserted, handle it.
         push_word(cpu, cpu->pc); // push current PC
@@ -80,7 +78,13 @@ int execute_next(cpu_state *cpu) {
         cpu->p |= FLAG_I; // interrupt disable flag set to 1.
         cpu->pc = read_word(cpu, IRQ_VECTOR);
         if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, " => $%04X", cpu->pc);
+        incr_cycles(cpu);
+        incr_cycles(cpu);
+        return 0;
     }
+
+    opcode_t opcode = read_byte_from_pc(cpu);
+    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "%s", get_opcode_name(opcode));
 
     switch (opcode) {
 

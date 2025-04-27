@@ -102,6 +102,7 @@ const char* processor_get_name(int processor_type) {
     return processor_models[processor_type].name;
 }
 
+/** State storage for non-slot devices. */
 void *get_module_state(cpu_state *cpu, module_id_t module_id) {
     void *state = cpu->module_store[module_id];
     if (state == nullptr) {
@@ -113,6 +114,22 @@ void *get_module_state(cpu_state *cpu, module_id_t module_id) {
 void set_module_state(cpu_state *cpu, module_id_t module_id, void *state) {
     cpu->module_store[module_id] = state;
 }
+
+/** State storage for slot devices. */
+void *get_slot_state(cpu_state *cpu, SlotType_t slot) {
+    void *state = cpu->slot_store[slot];
+    if (state == nullptr) {
+        fprintf(stderr, "Slot Data for slot %d not initialized\n", slot);
+    }
+    return state;
+}
+
+void set_slot_state(cpu_state *cpu, SlotType_t slot, void *state) {
+    cpu->slot_store[slot] = state;
+}
+
+
+
 
 void set_slot_irq(cpu_state *cpu, uint8_t slot, bool irq) {
     if (irq) {

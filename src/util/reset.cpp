@@ -22,6 +22,7 @@
 #include "devices/languagecard/languagecard.hpp"
 #include "devices/parallel/parallel.hpp"
 #include "memory.hpp"
+#include "devices/mockingboard/mb.hpp"
 
 // TODO: implement register_reset_handler so a device can register a reset handler.
 // and when system_reset is called, it will call all the registered reset handlers.
@@ -40,4 +41,5 @@ void system_reset(cpu_state *cpu, bool cold_start)  {
     init_default_memory_map(cpu);
     reset_languagecard(cpu); // reset language card
     parallel_reset(cpu);
+    mb_reset(cpu);
 }

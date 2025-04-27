@@ -25,15 +25,43 @@
 #define MB_6522_ORA  0x01
 #define MB_6522_ORB  0x00
 
+#define MB_6522_T1C_L 0x04
+#define MB_6522_T1C_H 0x05
+#define MB_6522_T1L_L 0x06
+#define MB_6522_T1L_H 0x07
+
+#define MB_6522_T2C_L 0x08
+#define MB_6522_T2C_H 0x09
+
+#define MB_6522_ACR 0x0B
+#define MB_6522_PCR 0x0C
+#define MB_6522_IFR 0x0D
+#define MB_6522_IER 0x0E
+
 #define MB_6522_1 0x00
 #define MB_6522_2 0x80
 
 struct mb_6522_data {
-    uint8_t ora;
-    uint8_t orb;
-    uint8_t ddra;
-    uint8_t ddrb; 
-    uint8_t reg_num;   
+   
+    uint8_t ora; /* 0x00 */
+    uint8_t orb; /* 0x01 */
+    uint8_t ddra; /* 0x02 */
+    uint8_t ddrb; /* 0x03 */
+
+    uint8_t acr; /* 0x0B */
+    uint8_t ifr; /* 0x0D */
+    uint8_t ier; /* 0x0E */
+
+    uint16_t t1_latch;
+    uint16_t t1_counter;  
+    uint16_t t2_latch;
+    uint16_t t2_counter;
+
+    uint64_t t1_triggered_cycles; // used to calculate what t1 and t2 are at any given cycle. ((cycle_now - triggered_cycles) % latch)
+    uint64_t t2_triggered_cycles;
+
+    uint8_t reg_num;
+
 };
 
 class MockingboardEmulator; // forward declaration
@@ -44,9 +72,11 @@ struct mb_cpu_data {
     std::vector<float> audio_buffer;
     SDL_AudioStream *stream;
     uint64_t last_cycle;
+    uint8_t slot;
 };
 
 void init_slot_mockingboard(cpu_state *cpu, SlotType_t slot);
 void mb_write_Cx00(cpu_state *cpu, uint16_t addr, uint8_t data);
 uint8_t mb_read_Cx00(cpu_state *cpu, uint16_t addr);
-void generate_mockingboard_frame(cpu_state *cpu);
+void generate_mockingboard_frame(cpu_state *cpu, SlotType_t slot);
+void mb_reset(cpu_state *cpu);
