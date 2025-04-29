@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 # Set the project name
 project(gssquared)
 
-# Set default to static for our internal libraries
+# Set default to static for our internal libraries 
 set(BUILD_SHARED_LIBS OFF)
 
 # Mac-specific settings

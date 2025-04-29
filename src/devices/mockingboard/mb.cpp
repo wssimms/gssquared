@@ -911,7 +911,7 @@ while (1) {
 void mb_6522_propagate_interrupt(cpu_state *cpu, mb_cpu_data *mb_d) {
     // for each chip, calculate the IFR bit 7.
     for (int i = 0; i < 2; i++) {
-        mb_6522_data *tc = &mb_d->d_6522[i];
+        mb_6522_regs *tc = &mb_d->d_6522[i];
         uint8_t irq = ((tc->ifr.value & tc->ier.value) & 0x7F) > 0;
         // set bit 7 of IFR to the result.
         tc->ifr.bits.irq = irq;
@@ -932,7 +932,7 @@ void mb_t1_timer_callback(uint64_t instanceID, void *user_data) {
     mb_6522_propagate_interrupt(cpu, mb_d);
  
     // TODO: there are two chips; track each IRQ individually and update card IRQ line from that.
-    mb_6522_data *tc = &mb_d->d_6522[chip];
+    mb_6522_regs *tc = &mb_d->d_6522[chip];
     tc->t1_counter = tc->t1_latch;
     if (tc->t1_counter == 0) { // if they enable interrupts before setting the counter (and it's zero) set it to 65535 to avoid infinite loop.
         tc->t1_counter = 65535;
@@ -955,7 +955,7 @@ void mb_t2_timer_callback(uint64_t instanceID, void *user_data) {
     mb_6522_propagate_interrupt(cpu, mb_d);
 
     // TODO: there are two chips; track each IRQ individually and update card IRQ line from that.
-    mb_6522_data *tc = &mb_d->d_6522[chip];
+    mb_6522_regs *tc = &mb_d->d_6522[chip];
     tc->t2_counter = tc->t2_latch;
 
     if (tc->ier.bits.timer2) {
@@ -970,7 +970,7 @@ void mb_write_Cx00(cpu_state *cpu, uint16_t addr, uint8_t data) {
     mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, (SlotType_t)slot);
 
     if (DEBUG) printf("mb_write_Cx00: %02d %d %02x %02x\n", slot, chip, alow, data);
-    mb_6522_data *tc = &mb_d->d_6522[chip]; // which 6522 chip this is.
+    mb_6522_regs *tc = &mb_d->d_6522[chip]; // which 6522 chip this is.
 
     switch (alow) {
 
@@ -1017,7 +1017,7 @@ void mb_write_Cx00(cpu_state *cpu, uint16_t addr, uint8_t data) {
         case MB_6522_T1C_H:
             /* 8 bits loaded into T1 high-order latch. Also both high-and-low order latches transferred into T1 Counter. T1 Interrupt flag is also reset (2-42) */
             tc->t1_latch = (tc->t1_latch & 0x00FF) | (data << 8);
-            tc->t1_counter = tc->t1_latch;
+            tc->t1_counter = tc->t1_latch ? tc->t1_latch : 65535;
             tc->ifr.bits.timer1 = 0;
             tc->t1_triggered_cycles = cpu->cycles;
             if (tc->ier.bits.timer1) {
@@ -1067,6 +1067,15 @@ void mb_write_Cx00(cpu_state *cpu, uint16_t addr, uint8_t data) {
     }
 }
 
+uint64_t calc_cycle_diff(mb_6522_regs *tc, uint64_t cycles) {
+    // treat latch of 0 as 65535.
+    uint32_t latchval = tc->t1_latch;
+    if (latchval == 0) {
+        latchval = 65536;
+    }
+    return latchval - ((cycles - tc->t1_triggered_cycles) % latchval);
+}
+
 uint8_t mb_read_Cx00(cpu_state *cpu, uint16_t addr) {
     uint8_t slot = (addr & 0x0F00) >> 8;
     uint8_t alow = addr & 0x7F;
@@ -1099,14 +1108,16 @@ uint8_t mb_read_Cx00(cpu_state *cpu, uint16_t addr) {
         case MB_6522_T1C_L:  {  // IFR Timer 1 flag cleared by read T1 counter low. pg 2-42
             mb_d->d_6522[chip].ifr.bits.timer1 = 0;
             mb_6522_propagate_interrupt(cpu, mb_d);
-            uint64_t cycle_diff = mb_d->d_6522[chip].t1_latch - ((cpu->cycles - mb_d->d_6522[chip].t1_triggered_cycles) % mb_d->d_6522[chip].t1_latch);
+            uint64_t cycle_diff = calc_cycle_diff(&mb_d->d_6522[chip], cpu->cycles);
+            //uint64_t cycle_diff = mb_d->d_6522[chip].t1_latch - ((cpu->cycles - mb_d->d_6522[chip].t1_triggered_cycles) % mb_d->d_6522[chip].t1_latch);
             retval = cycle_diff & 0xFF;
             break;
         }
         case MB_6522_T1C_H:    {  // IFR Timer 1 flag cleared by read T1 counter high. pg 2-42
             mb_d->d_6522[chip].ifr.bits.timer1 = 0;
             mb_6522_propagate_interrupt(cpu, mb_d);
-            uint64_t cycle_diff = mb_d->d_6522[chip].t1_latch - ((cpu->cycles - mb_d->d_6522[chip].t1_triggered_cycles) % mb_d->d_6522[chip].t1_latch);
+            uint64_t cycle_diff = calc_cycle_diff(&mb_d->d_6522[chip], cpu->cycles);
+            //uint64_t cycle_diff = mb_d->d_6522[chip].t1_latch - ((cpu->cycles - mb_d->d_6522[chip].t1_triggered_cycles) % mb_d->d_6522[chip].t1_latch);
             retval = (cycle_diff >> 8) & 0xFF;
             break;
         }
@@ -1181,6 +1192,13 @@ void init_slot_mockingboard(cpu_state *cpu, SlotType_t slot) {
         mb_d->d_6522[i].ora = 0x00;
         mb_d->d_6522[i].orb = 0x00;
         mb_d->d_6522[i].reg_num = 0x00;
+        mb_d->d_6522[i].ifr.value = 0;
+        mb_d->d_6522[i].ier.value = 0;
+        mb_d->d_6522[i].acr = 0;
+        mb_d->d_6522[i].pcr = 0;
+        mb_d->d_6522[i].sr = 0;
+        mb_d->d_6522[i].t1_triggered_cycles = 0;
+        mb_d->d_6522[i].t2_triggered_cycles = 0;
     }
 
     speaker_state_t *speaker_d = (speaker_state_t *)get_module_state(cpu, MODULE_SPEAKER);
@@ -1215,10 +1233,11 @@ void mb_reset(cpu_state *cpu) {
     mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, SLOT_4);
     mb_d->mockingboard->reset();
     for (int i = 0; i < 2; i++) {
+        // counters keep going as-is on reset, but no interrupts
         //mb_d->d_6522[i].t1_counter = 0;
         //mb_d->d_6522[i].t2_counter = 0;
-        mb_d->d_6522[i].t1_triggered_cycles = 0;
-        mb_d->d_6522[i].t2_triggered_cycles = 0;
+        //mb_d->d_6522[i].t1_triggered_cycles = 0;
+        //mb_d->d_6522[i].t2_triggered_cycles = 0;
         //mb_d->d_6522[i].t1_latch = 0;
         //mb_d->d_6522[i].t2_latch = 0;
         mb_d->d_6522[i].acr = 0;

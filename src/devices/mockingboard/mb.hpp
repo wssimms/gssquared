@@ -70,7 +70,7 @@ union ier_t {
     } bits;
 };
 
-struct mb_6522_data {
+struct mb_6522_regs {
    
     uint8_t ora; /* 0x00 */
     uint8_t orb; /* 0x01 */
@@ -99,7 +99,7 @@ class MockingboardEmulator; // forward declaration
 
 struct mb_cpu_data {
     MockingboardEmulator *mockingboard;
-    mb_6522_data d_6522[2];
+    mb_6522_regs d_6522[2];
     std::vector<float> audio_buffer;
     SDL_AudioStream *stream;
     uint64_t last_cycle;
