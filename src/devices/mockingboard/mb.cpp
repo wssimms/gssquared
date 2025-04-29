@@ -933,13 +933,15 @@ void mb_t1_timer_callback(uint64_t instanceID, void *user_data) {
  
     // TODO: there are two chips; track each IRQ individually and update card IRQ line from that.
     mb_6522_regs *tc = &mb_d->d_6522[chip];
+    
     tc->t1_counter = tc->t1_latch;
-    if (tc->t1_counter == 0) { // if they enable interrupts before setting the counter (and it's zero) set it to 65535 to avoid infinite loop.
-        tc->t1_counter = 65535;
+    uint16_t counter = tc->t1_counter;
+    if (counter == 0) { // if they enable interrupts before setting the counter (and it's zero) set it to 65535 to avoid infinite loop.
+        counter = 65535;
     }
 
     if (tc->ier.bits.timer1) {
-        cpu->event_timer.scheduleEvent(cpu->cycles + tc->t1_counter, mb_t1_timer_callback, instanceID , cpu);
+        cpu->event_timer.scheduleEvent(cpu->cycles + counter, mb_t1_timer_callback, instanceID , cpu);
     }
 }
 
@@ -1060,7 +1062,12 @@ void mb_write_Cx00(cpu_state *cpu, uint16_t addr, uint8_t data) {
                 if (!tc->ier.bits.timer1) {
                     cpu->event_timer.cancelEvents(instanceID);
                 } else { // if we set the counter/latch BEFORE we enable interrupts.
-                    cpu->event_timer.scheduleEvent(tc->t1_triggered_cycles + tc->t1_counter, mb_t1_timer_callback, instanceID , cpu);
+                    uint64_t cycle_base = tc->t1_triggered_cycles == 0 ? cpu->cycles : tc->t1_triggered_cycles;
+                    uint16_t counter = tc->t1_counter;
+                    if (counter == 0) { // if they enable interrupts before setting the counter (and it's zero) set it to 65535 to avoid infinite loop.
+                        counter = 65535;
+                    }
+                    cpu->event_timer.scheduleEvent(cycle_base + counter, mb_t1_timer_callback, instanceID , cpu);
                 }
             }
             break;
