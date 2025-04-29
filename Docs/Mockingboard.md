@@ -287,3 +287,20 @@ https://github.com/AppleWin/AppleWin/blob/master/resource/Mockingboard-D.rom
 
 But whoops, that's the Apple IIc standalone thing.
 
+## Compatibility
+
+see spreadsheet
+
+Ultima IV - I am getting fairly far into it; mockingboard music works in the intro (interrupt driven); but at various points in the game I get hung up at PC 0x0348. Why? Don't Know. Need a debugger! the code seems to be:
+
+0348: LDA $82
+034A: BNE $0348
+
+that is clearly something pending interrupts. Well, of course I haven't finished all the code yet. Maybe they use timer 2? run with full MB debug.
+
+Bank Street Music Writer - it pings early on:
+mb_read_Cx00: 04
+mb_read_Cx00: 04
+
+That's the T1 low-order counter. In almost all cards, this will be ROM and the value won't change. I bet they're checking to see if it changes.
+

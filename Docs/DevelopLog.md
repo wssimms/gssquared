@@ -3547,3 +3547,80 @@ interrupt routines are working in the cpu - however the song is powering through
 So we have this current concept of getting and storing device state information based on a device type. The problem is, we may want multiple instances of the same type of device. For instance, two Disk II cards, or, two Mockingboards.
 
 So, we need different routines for storing non-slot device info (for which there can only be one instance), but also slot-device info (for which we may have multiple instances.) 
+
+Sweet! the interrupt-driven music demo now works, however, it doesn't shut off at the end, so I am missing something that is supposed to shut them off.. last thing they hit was this:
+
+mb_write_Cx00: 04 1 0b 00   // 
+mb_write_Cx00: 04 1 0e 7f   // disables all interrupts
+
+0b is ACR - that sets bits 7, 6, 5 to "one shot interrupt".
+
+Also still need to fix up reading the current counter values.
+
+only reschedule an interrupt when Timer 1 interrupt enable is set.
+
+[ ] Refactor all the slot cards to use the Slot State concept instead of Device State.
+
+Once a T1 counter hits 0, it either stops, or, restarts depending on setting in ACR.
+
+What is the default (reset state) value of these registers?
+Note that a load to a low order T1 counter is effectively a load to a low order T1 latch
+
+If we're in once-decrement mode (ACR6 is 0) then if we are reading at a time beyond cpu->trigger then the counter read should be zero.
+If ACR6 is 1, then we read a continuously cycling interval (i.e. the modulus).
+
+Reset clears all internal registers except T1 and T2 counters and latches and the SR. T1 and T2 and the interrupt logic are disabled from operation. (This is while Reset is being held). 
+let's say they're zero and ACR6 is 0 - then the counter will not count down or generate interrupts.
+So if ACR6=0 and counter=0 return 0 on a read.
+every time we trigger and interrupt and re-load latches, should we 
+the WDC doc contradicts the Rockwell doc. Reg 7 write in WDC says IFR6 reset. Rockwell does not mention it. A 2004 WDC doc also says:
+IFR6 is reset on write to 4, 5, 7, but not 6.
+on a reset we need to propagate irq.
+claude claims the counters are initialized to 0xFFFF on a power-on. That would make sense. but is it true?
+chatgpt is saying they are undefined. but that's referring to output of pins while in reset state I think.
+interrupt flags in IFR are set when they would be; interrupt disabled just means they won't propagate.
+there's only one way to know for sure; check another emu ( ha ha ). apple2ts implements mockingboard too. on power up, it has latches at 0 and the counter is counting. That makes sense, that this is what bank street writer is checking for. it also lets you select sound fonts.
+oh, funny, that's exactly what I'm doing right now. BSMW still claims no mockingboard. hmm.
+T2 operates as a one-shot counter only, but otherwise similar to T1.
+
+I broke the mockingboard demo where it plays a launch sound after the mockingboard. i.e. I broke the interrupts.
+
+## Apr 28, 2025
+
+Fixed the broken interrupts. it was in a couple places. Also, got music working in game play stage in ultima IV.
+
+ok, this is the Skyfox MB detect code:
+
+```
+ | PC: $6856, A: $00, X: $04, Y: $04, P: $20, S: $A5 || 6856: LDY #$04
+ | PC: $6858, A: $00, X: $04, Y: $04, P: $20, S: $A5 || 6858: JSR $686C [#685A] -> S[0x01 A4]$686C
+ | PC: $686C, A: $00, X: $04, Y: $04, P: $20, S: $A3 || 686C: LDA ($70),Y  -> $C404.   mb_read_Cx00: 04
+irq_to_slot: 4 0
+  [#52] <- $C404
+ | PC: $686E, A: $52, X: $04, Y: $04, P: $20, S: $A3 || 686E: CMP $70 -> #$00   M: 52  N: 00  S: 52  Z:0 C:1 N:0 V:0   ; 3 cycles
+ | PC: $6870, A: $52, X: $04, Y: $04, P: $21, S: $A3 || 6870: SBC ($70),Y  -> $C404.   mb_read_Cx00: 04 ; 5+ cycles. Assume it's 5 since no wrap.
+irq_to_slot: 4 0
+  [#5A] <- $C404   M: 52  N: 5A  S: F8  Z:0 C:0 N:1 V:0
+ | PC: $6872, A: $F8, X: $04, Y: $04, P: $A0, S: $A3 || 6872: CMP #$08   M: F8  N: 08  S: F0  Z:0 C:1 N:1 V:0
+ | PC: $6874, A: $F8, X: $04, Y: $04, P: $A1, S: $A3 || 6874: RTS [#685A] <- S[0x01 A4]$685B
+ | PC: $685B, A: $F8, X: $04, Y: $04, P: $A1, S: $A5 || 685B: BNE #$07 => $6864 (taken)
+```
+
+So it puts $C100 into $70 and $71, then indexes indirect by Y (which contains 4). So it reads each slot $CS04. Then it burns some cycles. Then it subtracts from C404 and if the difference is not 8, then it assumes we're not a mockingboard.
+
+Issue is we're reading the same value twice. no we weren't. I wasn't printing the value! Derp.  ok, now I'm printing the value - determined I was counting up, not down (of course I was). now that I'm counting in reverse, skyfox detects the card; gets the first notes out; then hangs in an infinite interrupt loop. After it gets the first notes out, it is writing zeroes to all C400 to C4FF in reverse. What? Why? That's when we get the interrupt hang. Probably when we zero out the counter/latches for no good reason. hah.
+
+Another note: initially, skyfox is only writing the low counter, 0xFF. that means interrupts every 255 cycles. Is it assuming the high register is something other than 0? Is it thinking there are many chips on here? I don't understand. of course we ignore this? yes.
+
+what does mockingboard2.dsk do btw?loads a bunch of stuff.. then writes to $C443, $C440, $C443?? Whaa? then never gets an interrupt. That must be related to the speech chip. yes:
+https://git.applefritter.com/Apple-2-Tools/4cade/commit/3f0a2d86799d72f5109951854825264b4daf40a5
+
+```
+         lda   #$80                  ; ctl=1
+@mb_smc2
+         sta   $c443
+         lda   #$c0
+         sta   $c443                 ; C = SSI reg 3, S/S I or A = 6522#1 ddr a
+         lda   #$c0                  ; duration=11 phoneme=000000 (pause)
+```
+yah. So I guess that would be the final bit to do.

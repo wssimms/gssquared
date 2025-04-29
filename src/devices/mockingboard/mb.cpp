@@ -31,8 +31,7 @@
 #include "bus.hpp"
 #include "devices/speaker/speaker.hpp"
 
-#define DEBUG 0
-
+#define DEBUG 1
 
 enum AY_Registers {
     A_Tone_Low = 0,
@@ -912,27 +911,55 @@ void mb_6522_propagate_interrupt(cpu_state *cpu, mb_cpu_data *mb_d) {
     // for each chip, calculate the IFR bit 7.
     for (int i = 0; i < 2; i++) {
         mb_6522_data *tc = &mb_d->d_6522[i];
-        uint8_t irq = ((tc->ifr & tc->ier) & 0x7F) > 0;
+        uint8_t irq = ((tc->ifr.value & tc->ier.value) & 0x7F) > 0;
         // set bit 7 of IFR to the result.
-        tc->ifr = (tc->ifr & 0x7F) | (irq << 7);
+        tc->ifr.bits.irq = irq;
     }
-    bool irq_to_slot = (mb_d->d_6522[0].ifr & mb_d->d_6522[0].ier) | (mb_d->d_6522[1].ifr & mb_d->d_6522[1].ier);
+    bool irq_to_slot = (mb_d->d_6522[0].ifr.value & mb_d->d_6522[0].ier.value & 0x7F) || (mb_d->d_6522[1].ifr.value & mb_d->d_6522[1].ier.value & 0x7F);
+    printf("irq_to_slot: %d %d\n", mb_d->slot, irq_to_slot);
     set_slot_irq(cpu, mb_d->slot, irq_to_slot);
 }
 
-void mb_timer_callback(uint64_t instanceID, void *user_data) {
+void mb_t1_timer_callback(uint64_t instanceID, void *user_data) {
     cpu_state *cpu = (cpu_state *)user_data;
     uint8_t slot = (instanceID & 0x0F00) >> 8;
     uint8_t chip = (instanceID & 0x000F);
     mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, (SlotType_t)slot);
 
-
     std::cout << "MB 6522 Timer callback " << slot << " " << chip << std::endl;
-    cpu->irq_asserted |= (1 << slot); // set slot IRQ line high.
+    mb_d->d_6522[chip].ifr.bits.timer1 = 1; // "Set by 'time out of T1'"
+    mb_6522_propagate_interrupt(cpu, mb_d);
+ 
     // TODO: there are two chips; track each IRQ individually and update card IRQ line from that.
     mb_6522_data *tc = &mb_d->d_6522[chip];
     tc->t1_counter = tc->t1_latch;
-    cpu->event_timer.scheduleEvent(cpu->cycles + tc->t1_counter, mb_timer_callback, instanceID , cpu);
+    if (tc->t1_counter == 0) { // if they enable interrupts before setting the counter (and it's zero) set it to 65535 to avoid infinite loop.
+        tc->t1_counter = 65535;
+    }
+
+    if (tc->ier.bits.timer1) {
+        cpu->event_timer.scheduleEvent(cpu->cycles + tc->t1_counter, mb_t1_timer_callback, instanceID , cpu);
+    }
+}
+
+// TODO: don't reschedule if interrupts are disabled.
+void mb_t2_timer_callback(uint64_t instanceID, void *user_data) {
+    cpu_state *cpu = (cpu_state *)user_data;
+    uint8_t slot = (instanceID & 0x0F00) >> 8;
+    uint8_t chip = (instanceID & 0x000F);
+    mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, (SlotType_t)slot);
+
+    std::cout << "MB 6522 Timer callback " << slot << " " << chip << std::endl;
+    mb_d->d_6522[chip].ifr.bits.timer2 = 1; // "Set by 'time out of T2'"
+    mb_6522_propagate_interrupt(cpu, mb_d);
+
+    // TODO: there are two chips; track each IRQ individually and update card IRQ line from that.
+    mb_6522_data *tc = &mb_d->d_6522[chip];
+    tc->t2_counter = tc->t2_latch;
+
+    if (tc->ier.bits.timer2) {
+        cpu->event_timer.scheduleEvent(cpu->cycles + tc->t2_counter, mb_t2_timer_callback, instanceID , cpu);
+    }
 }
 
 void mb_write_Cx00(cpu_state *cpu, uint16_t addr, uint8_t data) {
@@ -952,7 +979,7 @@ void mb_write_Cx00(cpu_state *cpu, uint16_t addr, uint8_t data) {
         case MB_6522_DDRB:
             tc->ddrb = data;
             break;
-        case MB_6522_ORA:
+        case MB_6522_ORA: case MB_6522_ORA_NH:
             tc->ora = data;
             break;
         case MB_6522_ORB:
@@ -974,14 +1001,67 @@ void mb_write_Cx00(cpu_state *cpu, uint16_t addr, uint8_t data) {
                 if (DEBUG) printf("queueRegisterChange: [%lf] chip: %d reg: %02x val: %02x\n", time, chip, tc->reg_num, tc->ora);
             }
             break;
+        case MB_6522_T1L_L: 
+            /* 8 bits loaded into T1 low-order latches. This operation is no different than a write into REG 4 (2-42) */
+            tc->t1_latch = (tc->t1_latch & 0xFF00) | data;
+            break;
+        case MB_6522_T1L_H:
+            /* 8 bits loaded into T1 high-order latches. Unlike REG 4 OPERATION, no latch-to-counter transfers take place (2-42) */
+            tc->t1_latch = (tc->t1_latch & 0x00FF) | (data << 8);
+            break;
         case MB_6522_T1C_L:
+            /* 8 bits loaded into T1 low-order latches. Transferred into low-order counter at the time the high-order counter is loaded (reg 5) */
             tc->t1_latch = (tc->t1_latch & 0xFF00) | data;
             break;
         case MB_6522_T1C_H:
+            /* 8 bits loaded into T1 high-order latch. Also both high-and-low order latches transferred into T1 Counter. T1 Interrupt flag is also reset (2-42) */
             tc->t1_latch = (tc->t1_latch & 0x00FF) | (data << 8);
             tc->t1_counter = tc->t1_latch;
-            cpu->event_timer.scheduleEvent(3000000, mb_timer_callback, 0x10000000 | (slot << 8) | chip , cpu);
-
+            tc->ifr.bits.timer1 = 0;
+            tc->t1_triggered_cycles = cpu->cycles;
+            if (tc->ier.bits.timer1) {
+                cpu->event_timer.scheduleEvent(cpu->cycles + tc->t1_counter, mb_t1_timer_callback, 0x10000000 | (slot << 8) | chip , cpu);
+            } else {
+                cpu->event_timer.cancelEvents(0x10000000 | (slot << 8) | chip);
+            }
+            break;
+        case MB_6522_PCR:
+            tc->pcr = data;
+            break;
+        case MB_6522_SR:
+            tc->sr = data;
+            break;
+        case MB_6522_ACR:
+            tc->acr = data;
+            break;
+        case MB_6522_IFR:
+            {
+                uint8_t wdata = data & 0x7F;
+                // for any bit set in wdata, clear the corresponding bit in the IFR.
+                // Pg 2-49 6522 Data Sheet
+                tc->ifr.value &= ~wdata;
+                mb_6522_propagate_interrupt(cpu, mb_d);
+            }
+            break;
+        case MB_6522_IER:
+            {
+                // if bit 7 is a 0, then each 1 in bits 0-6 clears the corresponding bit in the IER
+                // if bit 7 is a 1, then each 1 in bits 0-6 enables the corresponding interrupt.
+                // Pg 2-49 6522 Data Sheet
+                if (data & 0x80) {
+                    tc->ier.value |= data & 0x7F;
+                } else {
+                    tc->ier.value &= ~data;
+                }
+                mb_6522_propagate_interrupt(cpu, mb_d);
+                uint64_t instanceID = 0x10000000 | (slot << 8) | chip;
+                // if timer1 interrupt is disabled, cancel any pending events. (Only enable + write to T1C will reschedule)
+                if (!tc->ier.bits.timer1) {
+                    cpu->event_timer.cancelEvents(instanceID);
+                } else { // if we set the counter/latch BEFORE we enable interrupts.
+                    cpu->event_timer.scheduleEvent(tc->t1_triggered_cycles + tc->t1_counter, mb_t1_timer_callback, instanceID , cpu);
+                }
+            }
             break;
     }
 }
@@ -992,14 +1072,72 @@ uint8_t mb_read_Cx00(cpu_state *cpu, uint16_t addr) {
     uint8_t chip = (addr & 0x80) ? 0 : 1;
     mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, (SlotType_t)slot);
 
-    if (DEBUG) printf("mb_read_Cx00: %02x\n", alow);
-
-/*     if (alow == MB_6522_DDRA) {
-        data = mb_d->d_6522[0].ddra;
-    } else if (alow == MB_6522_DDRB) {
-        data = mb_d->d_6522[0].ddrb;
+    if (DEBUG) printf("mb_read_Cx00: %02x => ", alow);
+    uint8_t retval = 0xFF;
+    switch (alow) {
+        case MB_6522_DDRA:
+            retval = mb_d->d_6522[chip].ddra;
+            break;
+        case MB_6522_DDRB:
+            retval = mb_d->d_6522[chip].ddrb;
+            break;
+        case MB_6522_ORA: case MB_6522_ORA_NH:
+            retval = mb_d->d_6522[chip].ora;
+            break;
+        case MB_6522_ORB:
+            retval = mb_d->d_6522[chip].orb;
+            break;
+        case MB_6522_T1L_L:
+            /* 8 bits from T1 low order latch transferred to mpu. unlike read T1 low counter, does not cause reset of T1 IFR6. */
+            retval = mb_d->d_6522[chip].t1_latch & 0xFF;
+            break;
+        case MB_6522_T1L_H:     
+            /* 8 bits from t1 high order latch transferred to mpu */
+            retval = (mb_d->d_6522[chip].t1_latch >> 8) & 0xFF;
+            break;
+        case MB_6522_T1C_L:  {  // IFR Timer 1 flag cleared by read T1 counter low. pg 2-42
+            mb_d->d_6522[chip].ifr.bits.timer1 = 0;
+            mb_6522_propagate_interrupt(cpu, mb_d);
+            uint64_t cycle_diff = mb_d->d_6522[chip].t1_latch - ((cpu->cycles - mb_d->d_6522[chip].t1_triggered_cycles) % mb_d->d_6522[chip].t1_latch);
+            retval = cycle_diff & 0xFF;
+            break;
+        }
+        case MB_6522_T1C_H:    {  // IFR Timer 1 flag cleared by read T1 counter high. pg 2-42
+            mb_d->d_6522[chip].ifr.bits.timer1 = 0;
+            mb_6522_propagate_interrupt(cpu, mb_d);
+            uint64_t cycle_diff = mb_d->d_6522[chip].t1_latch - ((cpu->cycles - mb_d->d_6522[chip].t1_triggered_cycles) % mb_d->d_6522[chip].t1_latch);
+            retval = (cycle_diff >> 8) & 0xFF;
+            break;
+        }
+        case MB_6522_T2C_L: { /* read only lo latch */
+            uint64_t cycle_diff = mb_d->d_6522[chip].t2_latch - ((cpu->cycles - mb_d->d_6522[chip].t2_triggered_cycles) % mb_d->d_6522[chip].t2_latch);
+            retval = (cycle_diff) & 0xFF;
+            break;
+        }
+        case MB_6522_T2C_H: { /* read only hi counter */
+            uint64_t cycle_diff = mb_d->d_6522[chip].t2_latch - ((cpu->cycles - mb_d->d_6522[chip].t2_triggered_cycles) % mb_d->d_6522[chip].t2_latch);
+            retval = (cycle_diff >> 8) & 0xFF;            
+            break;
+        }
+        case MB_6522_PCR:
+            retval = mb_d->d_6522[chip].pcr;
+            break;
+        case MB_6522_SR:
+            retval = mb_d->d_6522[chip].sr;
+            break;
+        case MB_6522_ACR:
+            retval = mb_d->d_6522[chip].acr;
+            break;
+        case MB_6522_IFR:
+            retval = mb_d->d_6522[chip].ifr.value;
+            break;
+        case MB_6522_IER:
+            // if a read of this register is done, bit 7 will be "1" and all other bits will reflect their enable/disable state.
+            retval = mb_d->d_6522[chip].ier.value | 0x80;
+            break;
     }
- */
+    if (DEBUG) printf("%02x\n", retval);
+    return retval;
 }
 
 void generate_mockingboard_frame(cpu_state *cpu, SlotType_t slot) {
@@ -1029,14 +1167,20 @@ void init_slot_mockingboard(cpu_state *cpu, SlotType_t slot) {
     printf("init_slot_mockingboard: %d\n", slot);
 
     mb_cpu_data *mb_d = new mb_cpu_data;
-    mb_d->d_6522[0].ddra = 0xFF;
-    mb_d->d_6522[0].ddrb = 0xFF;
-    mb_d->d_6522[0].ora = 0x00;
-    mb_d->d_6522[0].orb = 0x00;
-    mb_d->d_6522[0].reg_num = 0x00;
     mb_d->mockingboard = new MockingboardEmulator(&mb_d->audio_buffer);
     mb_d->last_cycle = 0;
     mb_d->slot = slot;
+    for (int i = 0; i < 2; i++) { /* on init set to zeroes */
+        mb_d->d_6522[i].t1_counter = 0;
+        mb_d->d_6522[i].t2_counter = 0;
+        mb_d->d_6522[i].t1_latch = 0;
+        mb_d->d_6522[i].t2_latch = 0;
+        mb_d->d_6522[i].ddra = 0xFF;
+        mb_d->d_6522[i].ddrb = 0xFF;
+        mb_d->d_6522[i].ora = 0x00;
+        mb_d->d_6522[i].orb = 0x00;
+        mb_d->d_6522[i].reg_num = 0x00;
+    }
 
     speaker_state_t *speaker_d = (speaker_state_t *)get_module_state(cpu, MODULE_SPEAKER);
     int dev_id = speaker_d->device_id;
@@ -1070,15 +1214,16 @@ void mb_reset(cpu_state *cpu) {
     mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, SLOT_4);
     mb_d->mockingboard->reset();
     for (int i = 0; i < 2; i++) {
-        mb_d->d_6522[i].t1_counter = 0;
-        mb_d->d_6522[i].t2_counter = 0;
+        //mb_d->d_6522[i].t1_counter = 0;
+        //mb_d->d_6522[i].t2_counter = 0;
         mb_d->d_6522[i].t1_triggered_cycles = 0;
         mb_d->d_6522[i].t2_triggered_cycles = 0;
-        mb_d->d_6522[i].t1_latch = 0;
-        mb_d->d_6522[i].t2_latch = 0;
+        //mb_d->d_6522[i].t1_latch = 0;
+        //mb_d->d_6522[i].t2_latch = 0;
         mb_d->d_6522[i].acr = 0;
-        mb_d->d_6522[i].ifr = 0;
-        mb_d->d_6522[i].ier = 0;
-    }
-    set_slot_irq(cpu, mb_d->slot, 0); // TODO: need to use actual slot. the reset routines need the slot number as argument.
+        mb_d->d_6522[i].ifr.value = 0;
+        mb_d->d_6522[i].ier.value = 0;
+    }   
+    mb_6522_propagate_interrupt(cpu, mb_d);
+    //set_slot_irq(cpu, mb_d->slot, 0); // TODO: need to use actual slot. the reset routines need the slot number as argument.
 }

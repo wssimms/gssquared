@@ -32,14 +32,43 @@
 
 #define MB_6522_T2C_L 0x08
 #define MB_6522_T2C_H 0x09
-
+#define MB_6522_SR 0x0A
 #define MB_6522_ACR 0x0B
 #define MB_6522_PCR 0x0C
 #define MB_6522_IFR 0x0D
 #define MB_6522_IER 0x0E
+#define MB_6522_ORA_NH 0x0F
 
 #define MB_6522_1 0x00
 #define MB_6522_2 0x80
+
+
+union ifr_t {
+    uint8_t value;
+    struct {
+        uint8_t ca2 : 1;
+        uint8_t ca1 : 1;
+        uint8_t shift_register : 1;
+        uint8_t cb2 : 1;
+        uint8_t cb1 : 1;
+        uint8_t timer2 : 1;
+        uint8_t timer1 : 1;
+        uint8_t irq : 1;
+    } bits;
+};
+
+union ier_t {
+    uint8_t value;
+    struct {
+        uint8_t ca2 : 1;
+        uint8_t ca1 : 1;
+        uint8_t shift_register : 1;
+        uint8_t cb2 : 1;
+        uint8_t cb1 : 1;
+        uint8_t timer2 : 1;
+        uint8_t timer1 : 1;
+    } bits;
+};
 
 struct mb_6522_data {
    
@@ -48,9 +77,11 @@ struct mb_6522_data {
     uint8_t ddra; /* 0x02 */
     uint8_t ddrb; /* 0x03 */
 
+    uint8_t sr; /* 0x0A */
     uint8_t acr; /* 0x0B */
-    uint8_t ifr; /* 0x0D */
-    uint8_t ier; /* 0x0E */
+    uint8_t pcr; /* 0x0C */
+    ifr_t ifr; /* 0x0D */
+    ier_t ier; /* 0x0E */
 
     uint16_t t1_latch;
     uint16_t t1_counter;  
