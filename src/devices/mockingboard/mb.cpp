@@ -24,6 +24,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_timer.h>
 #include <SDL3/SDL_audio.h>
+#include <cmath>
 
 #include "gs2.hpp"
 #include "cpu.hpp"
