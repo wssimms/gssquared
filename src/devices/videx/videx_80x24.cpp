@@ -134,7 +134,7 @@ void update_display_videx(cpu_state *cpu, /* SlotType_t slot */ videx_data * vid
     // at startup was enough. NOPE.
     SDL_RenderClear(ds->renderer); 
 
-// TODO: openemulator disagrees, claims bit 5 = 1 means display cursor. But the manual clearly says bit 5 = 0 means cursor is on.
+// openemulator disagrees, claims bit 5 = 1 means display cursor. But the manual clearly says bit 5 = 0 means cursor is on.
     bool cursor_blink_mode = (videx_d->reg[R10_CURSOR_START] & 0b01000000) != 0;
     bool cursor_enabled =    (videx_d->reg[R10_CURSOR_START] & 0b00100000) != 0;
 

@@ -3115,7 +3115,7 @@ Perhaps this will be a Dialog, not a Container?
 
 For this we will draw everything, then draw this on top (it will always be after all other containers), and direct input events only to this container. (it is a modal dialog after all). 
 
-[ ] strndup is a posix function. Replace with a C++ convention.
+[x] strndup is a posix function. Replace with a C++ convention. (replaced with our own version for windows)
 
 ## Apr 6, 2025
 
@@ -3349,7 +3349,7 @@ uint8_t read_byte_from_pc
 
 none of these are inlines. I should try that.. made no difference. The compiler must have already been optimizing them out.
 
-[ ] bug: when you run the apple ii graphics demo (bob bishop image waterfall thing) in ludicrous speed, way too many disk sounds get queued up. WAY. they keep playing forever. Maybe clean the soundeffect queues on a ctrl-reset?
+[ ] bug: when you run the apple ii graphics demo (bob bishop image waterfall thing) in ludicrous speed, way too many disk sounds get queued up. WAY. they keep playing forever. Maybe clean the soundeffect queues on a ctrl-reset? Or, disable disk soundeffects in ludicrous speed?
 
 ## Apr 13, 2025
 
@@ -3506,7 +3506,7 @@ yes, it got out of sync just sitting there. There was a delay before sounds star
 
 There is apparently some technique for auto-detecting a mockingboard, it's in SkyFox. Some other software lets you select mockingboard version and slot. Will have to look into that and make sure we react appropriately. that's what they get for not having a ROM! (having no luck determining what this detection routine is. Will have to boot skyfox and see what registers it hits, and where.)
 
-[ ] need to hook ctrl-reset to Mockingboard reset.
+[x] need to hook ctrl-reset to Mockingboard reset.
 
 Add some debug diagnostics to see if we can figure out how/where Bank Street Music Writer is trying to detect the MB.
 
@@ -3559,7 +3559,7 @@ Also still need to fix up reading the current counter values.
 
 only reschedule an interrupt when Timer 1 interrupt enable is set.
 
-[ ] Refactor all the slot cards to use the Slot State concept instead of Device State.
+[x] Refactor all the slot cards to use the Slot State concept instead of Device State.
 
 Once a T1 counter hits 0, it either stops, or, restarts depending on setting in ACR.
 
@@ -3662,11 +3662,14 @@ I just patched up my "RGB" mode instead of writing a whole new RGB mode. One thi
 Things for a "real" II+ release. Whoa, is that happening?
 
 This release goals (0.3):
-* refactor all the other slot cards (like mb) to use the slot_store instead of device_store.
+* [done] refactor all the other slot cards (like mb) to use the slot_store instead of device_store.
+* [ ] implement reset routine registry
+* [ ] implement accelerated floppy mode
 * vector the RGB stuff as discussed in DisplayNG correctly.
 * make OSD fully match DisplayNG.
 * refactor the hinky code we have in bus for handling mockingboard, I/O space memory switching, etc.
 * Fix the joystick.
+* implement floating-bus read based on calculated video scan position.
 
 Release 0.35:
 * Bring in a decent readable font for the OSD elements
@@ -3683,7 +3686,8 @@ Next release goals (0.4):
 
 Then, we'll be in a position to start working on the IIe, which will be (0.5)!
 
-We can legit only have one Videx in a system. Doesn't make sense to have multiple. Change its config setup to be slot-based, but, somewhere we need to have a flag that we can only have one in a system.
+We can legit only have one Videx in a system. Doesn't make sense to have multiple. Change its config setup to be slot-based, but,
+[ ] somewhere we need to have a flag that we can only have one in a system.
 
 I have the Videx building. HOWEVER: I hard-coded references to Slot 3 all over the place. So that needs to be fixed tomorrow.
 

@@ -71,7 +71,7 @@ const int TRACK_SIZE = 0x1A00; // https://retrocomputing.stackexchange.com/quest
 const int TRACK_MAX_DATA = 0x18D0; // Nelson
 
 const int GAP_A_SIZE = 64; // was 149
-const int GAP_B_SIZE = 5; // TODO: This is what DOS33 uses. What about ProDOS?
+const int GAP_B_SIZE = 5; // This is what DOS33 uses. Seems to work for ProDOS too.
 const int GAP_C_SIZE = 21;
 /* const int ADDRESS_FIELD_SIZE = 15;
 const int DATA_FIELD_SIZE = 350; */

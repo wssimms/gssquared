@@ -506,7 +506,7 @@ public:
                 for (int i = 0; i < 3; i++) {
                     if (chip.tone_channels[i].use_envelope) {
                         // Keep as float, divide by 15 here to normalize to 0-1 range
-                        chip.tone_channels[i].volume = chip.current_envelope_level/*  / 15.0f */; // TODO: what to do here? target_envelope_level is already normalized to 0-1
+                        chip.tone_channels[i].volume = chip.current_envelope_level; // target_envelope_level is already normalized to 0-1
                     }
                 }
             }
@@ -931,7 +931,7 @@ void mb_t1_timer_callback(uint64_t instanceID, void *user_data) {
     mb_d->d_6522[chip].ifr.bits.timer1 = 1; // "Set by 'time out of T1'"
     mb_6522_propagate_interrupt(cpu, mb_d);
  
-    // TODO: there are two chips; track each IRQ individually and update card IRQ line from that.
+    // there are two chips; track each IRQ individually and update card IRQ line from that.
     mb_6522_regs *tc = &mb_d->d_6522[chip];
     
     tc->t1_counter = tc->t1_latch;

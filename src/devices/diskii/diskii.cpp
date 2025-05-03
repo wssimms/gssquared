@@ -331,12 +331,7 @@ void unmount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive) {
     //diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
     diskII_controller *diskII_d = (diskII_controller *)get_slot_state(cpu, (SlotType_t)slot);
 
-
-    // TODO: this will write the disk image back to disk.
-    /* if (diskII_slot[slot].drive[drive].media_d && diskII_slot[slot].drive[drive].modified) {
-        std::cout << "Unmounting disk " << diskII_slot[slot].drive[drive].media_d->filestub << " with unsaved changes." << std::endl;
-        writeback_disk_image(cpu, slot, drive);
-    } */
+    // we used to write disk image here, but, moved to mount.cpp
 
     // reset all the track parameters to default to prepare for loading a new image.
     for (int i = 0; i < 35; i++) {
@@ -596,7 +591,7 @@ void diskII_write_C0xx(cpu_state *cpu, uint16_t address, uint8_t value) {
     int drive = diskII_d->drive_select;
 
     diskII &seldrive = diskII_d->drive[drive];
-    // TODO: need to handle the case where the motor is off.
+
     // store the value being written into the write_shift_register. It will be stored in the disk image when Q6L is tweaked in read.
     switch (reg) {
         case DiskII_Motor_Off: // only one drive at a time is motorized.
