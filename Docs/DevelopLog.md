@@ -3624,3 +3624,62 @@ https://git.applefritter.com/Apple-2-Tools/4cade/commit/3f0a2d86799d72f510995185
          lda   #$c0                  ; duration=11 phoneme=000000 (pause)
 ```
 yah. So I guess that would be the final bit to do.
+
+## Apr 29, 2025
+
+Something is different between platforms - on linux, the Mockingboard1 demo disk blows chunks when it gets to the interrupt handling bits. Non-interrupt driven seems to work just fine.
+
+btw here is some subtle 6522 voodoo:
+
+http://forum.6502.org/viewtopic.php?f=4&t=2901
+
+apparently after a 0, it takes a cycle for the latch to get reloaded. So that's why they load with value-1 in some places.
+
+the interrupt is never clearing when we're in debug build. Also, coredump on linux. what the what
+
+Whoa what's this? scheduleEvent: 13744632839234567870
+Then we never get another schedule event and the interrupts never go away. Weird. ok.
+That value is 0xBEBEBEBE (64 bits). I needed to initialize some registers, derpy derp.
+
+So still not working on linux. what else is uninitialized. Ultima turns interrupts on before doing writing the counters. So, t1_triggered_cycles is zero. the IRQ never clears..
+
+ok, I have added checks so we never use a 0 value for t1_triggered_cycles, nor do we ever use a zero value for t1_counter or latch. In the event of a 0, assume 65536 cycles. Made sure this change was done throughout the code, and that resolved the issues with Ultima IV. Let's try Skyfox again.. big fat nope! This stuff sure is twitchy.
+
+Run another set of test across these games..
+
+Rescue Raiders hangs after displaying Terrorists have been found at Cherbourg. I am wondering if that's a copy protection thing, because this is a .nib disk image. I can disable the mockingboard and try it again.. nope, with MB disabled it gets past that screen.
+
+oh, there's the noise register, I'm not even sure what that is. I'm not checking it anywhere. That is an omission.
+
+## May 1, 2025
+
+big RGB discussion in DisplayNG.
+
+## May 2, 2025
+
+I just patched up my "RGB" mode instead of writing a whole new RGB mode. One thing to note: if we have blue, then black, then blue again, I cut off the first blue too quickly. I do everything that way.. it makes for crisp single-pixel lines. It's not necessarily bad.. though noticable in Taxman where the top left corner of boxes the lines don't quite meet the same way. It's definitely the trailing pixel.. I'm gonna call it good for now.
+
+Things for a "real" II+ release. Whoa, is that happening?
+
+This release goals (0.3):
+* refactor all the other slot cards (like mb) to use the slot_store instead of device_store.
+* vector the RGB stuff as discussed in DisplayNG correctly.
+* make OSD fully match DisplayNG.
+* refactor the hinky code we have in bus for handling mockingboard, I/O space memory switching, etc.
+* Bring in a decent readable font for the OSD elements
+
+Next release goals (0.4):
+
+* GS2 starts in powered-off mode.
+* can power on and power off.
+* can edit slots / hw config when powered off.
+* "powered off" means everything is shut down and deallocated, only running event loop and OSD.
+* when we go to power off (from inside OSD), check to see if disks need writing, and throw up appropriate dialogs.
+* put "modified" indicator of some kind on the disk icons.
+* Implement general filter on speaker.cpp.
+
+Then, we'll be in a position to start working on the IIe, which will be (0.5)!
+
+We can legit only have one Videx in a system. Doesn't make sense to have multiple. Change its config setup to be slot-based, but, somewhere we need to have a flag that we can only have one in a system.
+
+I have the Videx building. HOWEVER: I hard-coded references to Slot 3 all over the place. So that needs to be fixed tomorrow.

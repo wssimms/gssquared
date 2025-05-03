@@ -71,12 +71,12 @@ uint8_t memory_bus_read(cpu_state *cpu, uint16_t address) {
     if (address >= 0xC100 && address < 0xC800) { // Slot-card firmware.
         uint8_t slot = (address / 0x100) & 0x7;
         if (cpu->C8xx_slot != slot) {
-            call_C8xx_handler(cpu, slot);
+            call_C8xx_handler(cpu, (SlotType_t)slot);
         }
         return raw_memory_read(cpu, address);
     }
     if (cpu->C8xx_slot == 3 && address >= 0xCC00 && address <= 0xCDFF) {
-        return videx_memory_read(cpu, address);
+        return videx_memory_read(cpu, (SlotType_t)cpu->C8xx_slot, address);
     }
     /* Identifcal with what's in memory_bus_write */
     if (address == 0xCFFF) {
@@ -105,7 +105,7 @@ void memory_bus_write(cpu_state *cpu, uint16_t address, uint8_t value) {
     }
 #endif
     if (cpu->C8xx_slot == 3 && address >= 0xCC00 && address <= 0xCDFF) {
-        videx_memory_write(cpu, address, value);
+        videx_memory_write(cpu, (SlotType_t)cpu->C8xx_slot, address, value);
         return;
     }
     if (address == 0xCFFF) {

@@ -36,9 +36,10 @@ void pdblock2_print_cmdbuffer(pdblock_cmd_buffer *pdb) {
 }
 
 drive_status_t pdblock2_osd_status(cpu_state *cpu, uint64_t key) {
-    pdblock2_data * pdblock_d = (pdblock2_data *)get_module_state(cpu, MODULE_PD_BLOCK2);
     uint8_t slot = key >> 8;
     uint8_t drive = key & 0xFF;
+    pdblock2_data * pdblock_d = (pdblock2_data *)get_slot_state(cpu, (SlotType_t)slot);
+    
     media_t seldrive = pdblock_d->prodosblockdevices[slot][drive];
 
     bool motor = false;
@@ -62,8 +63,7 @@ drive_status_t pdblock2_osd_status(cpu_state *cpu, uint64_t key) {
     return {mounted, fname, motor, seldrive.last_block_accessed};
 }
 
-uint8_t pdblock2_status(cpu_state *cpu, uint8_t slot, uint8_t drive) {
-    pdblock2_data * pdblock_d = (pdblock2_data *)get_module_state(cpu, MODULE_PD_BLOCK2);
+uint8_t pdblock2_status(cpu_state *cpu, pdblock2_data *pdblock_d, uint8_t slot, uint8_t drive) {
     
     if (pdblock_d->prodosblockdevices[slot][drive].file == nullptr) {
         return 0x01; // device not ready
@@ -77,9 +77,10 @@ uint8_t pdblock2_status(cpu_state *cpu, uint8_t slot, uint8_t drive) {
  * They read and write memory to the cpu using the memory functions
  * that take into account the memory map, so, we can write data into
  * any bank selected as the CPU (or a 'DMA' device like us) would see it.
+ * slot and drive here might be virtual as one physical slot can map drives
+ * to a different virtual slot.
  */
-void pdblock2_read_block(cpu_state *cpu, uint8_t slot, uint8_t drive, uint16_t block, uint16_t addr) {
-    pdblock2_data * pdblock_d = (pdblock2_data *)get_module_state(cpu, MODULE_PD_BLOCK2);
+void pdblock2_read_block(cpu_state *cpu, pdblock2_data *pdblock_d, uint8_t slot, uint8_t drive, uint16_t block, uint16_t addr) {
 
     // TODO: read the block into the address.
     static uint8_t block_buffer[512];
@@ -101,8 +102,7 @@ void pdblock2_read_block(cpu_state *cpu, uint8_t slot, uint8_t drive, uint16_t b
     //debug_dump_memory(cpu, addr, addr + media[slot][drive].block_size);
 }
 
-void pdblock2_write_block(cpu_state *cpu, uint8_t slot, uint8_t drive, uint16_t block, uint16_t addr) {
-    pdblock2_data * pdblock_d = (pdblock2_data *)get_module_state(cpu, MODULE_PD_BLOCK2);
+void pdblock2_write_block(cpu_state *cpu, pdblock2_data *pdblock_d, uint8_t slot, uint8_t drive, uint16_t block, uint16_t addr) {
 
     // TODO: read the block into the address.
     static uint8_t block_buffer[512];
@@ -124,11 +124,11 @@ void pdblock2_write_block(cpu_state *cpu, uint8_t slot, uint8_t drive, uint16_t 
     pdblock_d->prodosblockdevices[slot][drive].last_block_access_time = SDL_GetTicksNS();
 }
 
-void pdblock2_execute(cpu_state *cpu) {
+void pdblock2_execute(cpu_state *cpu, pdblock2_data *pdblock_d) {
     uint8_t cmd, dev, unit, slot, drive;
     uint16_t block, addr;
 
-    pdblock2_data * pdblock_d = (pdblock2_data *)get_module_state(cpu, MODULE_PD_BLOCK2);
+    //pdblock2_data * pdblock_d = (pdblock2_data *)get_module_state(cpu, MODULE_PD_BLOCK2);
 
     if (DEBUG(DEBUG_PD_BLOCK)) pdblock2_print_cmdbuffer(&pdblock_d->cmd_buffer);
 
@@ -163,7 +163,7 @@ void pdblock2_execute(cpu_state *cpu) {
         << ", Block: " << std::hex << (int)block << ", Addr: " << std::hex << (int)addr << ", CMD: " 
         << std::hex << (int)cmd << std::endl;
 
-    uint8_t st = pdblock2_status(cpu, slot, drive);
+    uint8_t st = pdblock2_status(cpu, pdblock_d, slot, drive);
     if (st) {
         pdblock_d->cmd_buffer.error = PD_ERROR_NO_DEVICE;
         return;
@@ -174,12 +174,12 @@ void pdblock2_execute(cpu_state *cpu) {
         pdblock_d->cmd_buffer.status1 = media->block_count & 0xFF;
         pdblock_d->cmd_buffer.status2 = (media->block_count >> 8) & 0xFF;
     } else if (cmd == 0x01) {
-        pdblock2_read_block(cpu, slot, drive, block, addr);
+        pdblock2_read_block(cpu, pdblock_d, slot, drive, block, addr);
         pdblock_d->cmd_buffer.error = 0x00;
         pdblock_d->cmd_buffer.status1 = 0x00;
         pdblock_d->cmd_buffer.status2 = 0x00;
     } else if (cmd == 0x02) {
-        pdblock2_write_block(cpu, slot, drive, block, addr);
+        pdblock2_write_block(cpu, pdblock_d, slot, drive, block, addr);
         pdblock_d->cmd_buffer.error = 0x00;
         pdblock_d->cmd_buffer.status1 = 0x00;
         pdblock_d->cmd_buffer.status2 = 0x00;
@@ -189,7 +189,7 @@ void pdblock2_execute(cpu_state *cpu) {
 }
 
 bool mount_pdblock2(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor *media) {
-    pdblock2_data * pdblock_d = (pdblock2_data *)get_module_state(cpu, MODULE_PD_BLOCK2);
+    pdblock2_data * pdblock_d = (pdblock2_data *)get_slot_state(cpu, (SlotType_t)slot);
 
     //if (DEBUG(DEBUG_PD_BLOCK)) printf("Mounting ProDOS block device %s slot %d drive %d\n", media->filename, slot, drive);
     if (DEBUG(DEBUG_PD_BLOCK)) std::cout << "Mounting ProDOS block device " << media->filename << " slot " << slot << " drive " << drive << std::endl;
@@ -206,9 +206,9 @@ bool mount_pdblock2(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descripto
 }
 
 void unmount_pdblock2(cpu_state *cpu, uint64_t key) {
-    pdblock2_data * pdblock_d = (pdblock2_data *)get_module_state(cpu, MODULE_PD_BLOCK2);
     uint8_t slot = key >> 8;
     uint8_t drive = key & 0xFF;
+    pdblock2_data * pdblock_d = (pdblock2_data *)get_slot_state(cpu, (SlotType_t)slot);
     if (pdblock_d->prodosblockdevices[slot][drive].file) {
         fclose(pdblock_d->prodosblockdevices[slot][drive].file);
         pdblock_d->prodosblockdevices[slot][drive].file = nullptr;
@@ -217,7 +217,8 @@ void unmount_pdblock2(cpu_state *cpu, uint64_t key) {
 }
 
 void pdblock2_write_C0x0(cpu_state *cpu, uint16_t addr, uint8_t data) {
-    pdblock2_data * pdblock_d = (pdblock2_data *)get_module_state(cpu, MODULE_PD_BLOCK2);
+    SlotType_t slot = (SlotType_t)((addr - 0xC080) / 0x10);
+    pdblock2_data * pdblock_d = (pdblock2_data *)get_slot_state(cpu, slot);
 
     if ((addr & 0xF) == 0x00) {
         if (DEBUG(DEBUG_PD_BLOCK)) std::cout << "PD_CMD_RESET: " << std::hex << (int)data << std::endl;
@@ -230,13 +231,14 @@ void pdblock2_write_C0x0(cpu_state *cpu, uint16_t addr, uint8_t data) {
         }
     } else if ((addr & 0xF) == 0x02) {
         if (DEBUG(DEBUG_PD_BLOCK)) std::cout << "PD_CMD_EXECUTE: " << std::hex << (int)data << std::endl;
-        pdblock2_execute(cpu);
+        pdblock2_execute(cpu, pdblock_d);
         pdblock_d->cmd_buffer.index = 0;
     } 
 }
 
 uint8_t pdblock2_read_C0x0(cpu_state *cpu, uint16_t addr) {
-    pdblock2_data * pdblock_d = (pdblock2_data *)get_module_state(cpu, MODULE_PD_BLOCK2);
+    SlotType_t slot = (SlotType_t)((addr - 0xC080) / 0x10);
+    pdblock2_data * pdblock_d = (pdblock2_data *)get_slot_state(cpu, slot);
     uint8_t val;
 
     if ((addr & 0xF) == 0x03) {
@@ -258,8 +260,10 @@ void init_pdblock2(cpu_state *cpu, SlotType_t slot)
 {
     if (DEBUG(DEBUG_PD_BLOCK)) std::cout << "Initializing ProDOS Block2 slot " << slot << std::endl;
     pdblock2_data * pdblock_d = new pdblock2_data;
+    pdblock_d->id = DEVICE_ID_PD_BLOCK2;
+    
     // set in CPU so we can reference later
-    set_module_state(cpu, MODULE_PD_BLOCK2, pdblock_d);
+    set_slot_state(cpu, slot, pdblock_d);
 
     ResourceFile *rom = new ResourceFile("roms/cards/pdblock2/pdblock2.rom", READ_ONLY);
     if (rom == nullptr) {

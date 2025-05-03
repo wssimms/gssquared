@@ -24,15 +24,14 @@
 #include "display/display.hpp"
 
 
-void videx_set_line_dirty(cpu_state *cpu, int line) {
-    videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
+void videx_set_line_dirty(videx_data * videx_d, int line) {
     if (line>=0 && line<24) {
         videx_d->line_dirty[line] = true;
     }
 }
 
-void videx_set_line_dirty_by_addr(cpu_state *cpu, uint16_t addr) { /* addr is address in 2048 video memory */
-    videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
+void videx_set_line_dirty_by_addr(videx_data * videx_d, uint16_t addr) { /* addr is address in 2048 video memory */
+    //videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
     uint16_t start = videx_d->reg[R12_START_ADDR_HI] << 8 | videx_d->reg[R13_START_ADDR_LO];
     uint16_t offset = (addr - start) & 0x7FF;
     int line = offset / 80;
@@ -43,13 +42,13 @@ void videx_set_line_dirty_by_addr(cpu_state *cpu, uint16_t addr) { /* addr is ad
     }
 }
 
-void map_rom_videx(cpu_state *cpu) {
+void map_rom_videx(cpu_state *cpu, SlotType_t slot) {
     // CB00 - CBFF, Cs00 - CsFF: bytes $300-$3FF of ROM file
     // C800 - CAFF: bytes $000-$2FF of ROM file
     // CC00 - CDFF: 512 byte page N of screen memory
     // CEFF - CFFF: unused
 
-    videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
+    videx_data * videx_d = (videx_data *)get_slot_state(cpu, slot);
     uint8_t *dp = videx_d->rom->get_data();
     memory_map_page_both(cpu, 0xC8, dp + 0x000, MEM_IO);
     memory_map_page_both(cpu, 0xC9, dp + 0x100, MEM_IO);
@@ -62,15 +61,16 @@ void map_rom_videx(cpu_state *cpu) {
     //if (DEBUG(DEBUG_VIDEX)) fprintf(stdout, "mapped in videx $C800-$CFFF\n");
 }
 
-void update_videx_screen_memory(cpu_state *cpu) {
-    videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
+void update_videx_screen_memory(cpu_state *cpu, videx_data * videx_d) {
+    //videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
 
     memory_map_page_both(cpu, 0xCC, videx_d->screen_memory + (videx_d->selected_page * 2) * 0x100, MEM_IO);
     memory_map_page_both(cpu, 0xCD, videx_d->screen_memory + (videx_d->selected_page * 2) * 0x100 + 0x100, MEM_IO);
 }
 
 uint8_t videx_read_C0xx(cpu_state *cpu, uint16_t addr) {
-    videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
+    uint8_t slot = (addr - 0xC080) >> 4;
+    videx_data * videx_d = (videx_data *)get_slot_state(cpu, (SlotType_t)slot);
     
     uint8_t reg = (addr & 0x0F);
     if (reg == VIDEX_REG_VAL) {
@@ -78,7 +78,7 @@ uint8_t videx_read_C0xx(cpu_state *cpu, uint16_t addr) {
     } else {
         uint8_t pg = reg >> 2;
         videx_d->selected_page = (videx_page_t) pg;
-        update_videx_screen_memory(cpu);
+        update_videx_screen_memory(cpu, videx_d);
         if (DEBUG(DEBUG_VIDEX)) fprintf(stdout, "videx_read_C0xx: %04X %d\n", addr, pg);
     }
     
@@ -86,7 +86,8 @@ uint8_t videx_read_C0xx(cpu_state *cpu, uint16_t addr) {
 }
 
 void videx_write_C0xx(cpu_state *cpu, uint16_t addr, uint8_t data) {
-    videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
+    uint8_t slot = (addr - 0xC080) >> 4;
+    videx_data * videx_d = (videx_data *)get_slot_state(cpu, (SlotType_t)slot);
     uint8_t reg = addr & 0xF;
 
     if (DEBUG(DEBUG_VIDEX)) fprintf(stdout, "videx_write_C0xx: %04X %d\n", addr, data);
@@ -97,41 +98,47 @@ void videx_write_C0xx(cpu_state *cpu, uint16_t addr, uint8_t data) {
         int selreg = videx_d->selected_register;    
         
         if ((selreg == R14_CURSOR_HI) || (selreg == R15_CURSOR_LO)) {
-            videx_set_line_dirty_by_addr(cpu, videx_d->reg[R14_CURSOR_HI] << 8 | videx_d->reg[R15_CURSOR_LO] /* whichever line the cursor was on */);
+            /* whichever line the cursor was on */
+            videx_set_line_dirty_by_addr(videx_d, videx_d->reg[R14_CURSOR_HI] << 8 | videx_d->reg[R15_CURSOR_LO]);
         }
  
         videx_d->reg[selreg] = data;
  
         if ((selreg == R10_CURSOR_START) || (selreg == R11_CURSOR_END)) {
-            videx_set_line_dirty_by_addr(cpu, videx_d->reg[R14_CURSOR_HI] << 8 | videx_d->reg[R15_CURSOR_LO] /* whichever line the cursor is now on */);
+             /* whichever line the cursor is now on */
+            videx_set_line_dirty_by_addr(videx_d, videx_d->reg[R14_CURSOR_HI] << 8 | videx_d->reg[R15_CURSOR_LO]);
         }
         if ((selreg == R12_START_ADDR_HI) || (selreg == R13_START_ADDR_LO)) { /* all lines are dirty */
             for (int line = 0; line < 24; line++) {
-                videx_set_line_dirty(cpu, line);
+                videx_set_line_dirty(videx_d, line);
             }
         }
         if ((selreg == R14_CURSOR_HI) || (selreg == R15_CURSOR_LO)) {
-            videx_set_line_dirty_by_addr(cpu, videx_d->reg[R14_CURSOR_HI] << 8 | videx_d->reg[R15_CURSOR_LO] /* whichever line the cursor was on */);
+            /* whichever line the cursor was on */
+            videx_set_line_dirty_by_addr(videx_d, videx_d->reg[R14_CURSOR_HI] << 8 | videx_d->reg[R15_CURSOR_LO]);
         }
         if (DEBUG(DEBUG_VIDEX)) fprintf(stdout, "register %02X set to %02x\n", videx_d->selected_register, data);
     }
 }
 
 uint8_t videx_read_C0xx_anc0(cpu_state *cpu, uint16_t addr) {
-    videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
+    //uint8_t slot = (addr - 0xC080) >> 4;
+    videx_data * videx_d = (videx_data *)get_slot_state(cpu, SLOT_3);
     videx_d->video_enabled = (addr & 0x1);
     if (DEBUG(DEBUG_VIDEX)) fprintf(stdout, "videx_read_C0xx_anc0: %04X %d\n", addr, videx_d->video_enabled);
     return videx_d->video_enabled;
 }
 
 void videx_write_C0xx_anc0(cpu_state *cpu, uint16_t addr, uint8_t data) {
-    videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
+    //uint8_t slot = (addr - 0xC080) >> 4;
+    videx_data * videx_d = (videx_data *)get_slot_state(cpu, SLOT_3);
     videx_d->video_enabled = (addr & 0x1);
     if (DEBUG(DEBUG_VIDEX)) fprintf(stdout, "videx_write_C0xx_anc0: %04X %d\n", addr, videx_d->video_enabled);
 }
 
 void init_slot_videx(cpu_state *cpu, SlotType_t slot) {
     videx_data * videx_d = new videx_data;
+    videx_d->id = DEVICE_ID_VIDEX;
     // set in CPU so we can reference later
     videx_d->screen_memory = new uint8_t[VIDEX_SCREEN_MEMORY];
     videx_d->selected_register = 0;
@@ -184,7 +191,7 @@ void init_slot_videx(cpu_state *cpu, SlotType_t slot) {
     videx_d->char_set = videx_d->char_memory;
     videx_d->alt_char_set = videx_d->char_memory + 2048;
 
-    set_module_state(cpu, MODULE_VIDEX, videx_d);
+    set_slot_state(cpu, slot, videx_d);
 
     fprintf(stdout, "init_slot_videx %d\n", slot);
 

@@ -14,8 +14,11 @@
  *   You should have received a copy of the GNU General Public License
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#pragma once
 
-void render_videx_scanline_80x24(cpu_state *cpu, int y, void *pixels, int pitch);
-void update_display_videx(cpu_state *cpu);
-void videx_memory_write(cpu_state *cpu, uint16_t address, uint8_t value);
-uint8_t videx_memory_read(cpu_state *cpu, uint16_t address);
+#include "videx.hpp"
+
+void render_videx_scanline_80x24(cpu_state *cpu, videx_data * videx_d, int y, void *pixels, int pitch);
+void update_display_videx(cpu_state *cpu, SlotType_t slot);
+void videx_memory_write(cpu_state *cpu, SlotType_t slot, uint16_t address, uint8_t value);
+uint8_t videx_memory_read(cpu_state *cpu, SlotType_t slot, uint16_t address);

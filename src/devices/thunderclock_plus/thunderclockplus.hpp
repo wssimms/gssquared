@@ -21,7 +21,7 @@
 #include "cpu.hpp"
 #include "util/ResourceFile.hpp"
 
-struct thunderclock_state {
+struct thunderclock_state: public SlotData {
     ResourceFile *rom;
 };
 

@@ -116,20 +116,17 @@ void set_module_state(cpu_state *cpu, module_id_t module_id, void *state) {
 }
 
 /** State storage for slot devices. */
-void *get_slot_state(cpu_state *cpu, SlotType_t slot) {
-    void *state = cpu->slot_store[slot];
-    if (state == nullptr) {
+SlotData *get_slot_state(cpu_state *cpu, SlotType_t slot) {
+    SlotData *state = cpu->slot_store[slot];
+    /* if (state == nullptr) {
         fprintf(stderr, "Slot Data for slot %d not initialized\n", slot);
-    }
+    } */
     return state;
 }
 
-void set_slot_state(cpu_state *cpu, SlotType_t slot, void *state) {
+void set_slot_state(cpu_state *cpu, SlotType_t slot, /* void */ SlotData *state) {
     cpu->slot_store[slot] = state;
 }
-
-
-
 
 void set_slot_irq(cpu_state *cpu, uint8_t slot, bool irq) {
     if (irq) {

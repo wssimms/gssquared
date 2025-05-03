@@ -25,6 +25,8 @@
 #include "clock.hpp"
 #include "util/EventQueue.hpp"
 #include "util/EventTimer.hpp"
+#include "devices.hpp"
+#include "SlotData.hpp"
 
 //#include "clock.hpp"
 
@@ -95,10 +97,10 @@ typedef enum {
     MODULE_LANGCARD,
     MODULE_THUNDERCLOCK,
     MODULE_PRODOS_CLOCK,
-    MODULE_PD_BLOCK2,
+    //MODULE_PD_BLOCK2,
     MODULE_PARALLEL,
     MODULE_VIDEX,
-    MODULE_MB,
+    //MODULE_MB,
     MODULE_NUM_MODULES
 } module_id_t;
 
@@ -190,7 +192,7 @@ struct cpu_state {
     memory_map *memory;
 
     int8_t C8xx_slot;
-    void (*C8xx_handlers[8])(cpu_state *cpu) = {nullptr};
+    void (*C8xx_handlers[8])(cpu_state *cpu, SlotType_t slot) = {nullptr};
 
     uint64_t last_tick;
     uint64_t next_tick;
@@ -209,7 +211,7 @@ struct cpu_state {
     EventQueue *event_queue = nullptr;
 
     void *module_store[MODULE_NUM_MODULES];
-    void *slot_store[NUM_SLOTS];
+    /*void */ SlotData *slot_store[NUM_SLOTS];
 
     EventTimer event_timer;
 
@@ -244,8 +246,8 @@ const char* processor_get_name(int processor_type);
 void *get_module_state(cpu_state *cpu, module_id_t module_id);
 void set_module_state(cpu_state *cpu, module_id_t module_id, void *state);
 
-void *get_slot_state(cpu_state *cpu, SlotType_t slot);
-void set_slot_state(cpu_state *cpu, SlotType_t slot, void *state);
+SlotData *get_slot_state(cpu_state *cpu, SlotType_t slot);
+void set_slot_state(cpu_state *cpu, SlotType_t slot, SlotData *state);
 
 void init_default_memory_map(cpu_state *cpu);
 

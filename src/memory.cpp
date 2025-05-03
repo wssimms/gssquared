@@ -151,13 +151,13 @@ void memory_map_page_both(cpu_state *cpu, uint16_t page, uint8_t *data, memory_t
     cpu->memory->pages_write[page] = data;
 }
 
-void register_C8xx_handler(cpu_state *cpu, uint8_t slot, void (*handler)(cpu_state *cpu)) {
+void register_C8xx_handler(cpu_state *cpu, SlotType_t slot, void (*handler)(cpu_state *cpu, SlotType_t slot)) {
     cpu->C8xx_handlers[slot] = handler;
 }
 
-void call_C8xx_handler(cpu_state *cpu, uint8_t slot) {
+void call_C8xx_handler(cpu_state *cpu, SlotType_t slot) {
     if (cpu->C8xx_handlers[slot] != nullptr) {
-        cpu->C8xx_handlers[slot](cpu);
+        cpu->C8xx_handlers[slot](cpu, slot);
     }
     cpu->C8xx_slot = slot;
 }

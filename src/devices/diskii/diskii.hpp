@@ -20,6 +20,9 @@
 
 #include "util/media.hpp"
 #include "util/mount.hpp"
+#include "devices.hpp"
+#include "slots.hpp"
+
 #define DiskII_Ph0_Off 0x00
 #define DiskII_Ph0_On 0x01
 #define DiskII_Ph1_Off 0x02
@@ -61,7 +64,7 @@ struct diskII {
     media_descriptor *media_d;
 };
 
-struct diskII_controller {
+struct diskII_controller : public SlotData {
     diskII drive[2];
     uint8_t drive_select;
     bool motor;

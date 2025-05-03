@@ -26,9 +26,9 @@ uint32_t videx_color_table[DM_NUM_MONO_MODES] = {
     0xFFBF00FF, // amber.
 };
 
-void render_videx_scanline_80x24(cpu_state *cpu, int y, void *pixels, int pitch) {
+void render_videx_scanline_80x24(cpu_state *cpu, videx_data * videx_d, int y, void *pixels, int pitch) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
+    //videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
     uint32_t *texturePixels = (uint32_t *)pixels;
 
     uint32_t color_value = videx_color_table[ds->display_mono_color];
@@ -89,8 +89,8 @@ void render_videx_scanline_80x24(cpu_state *cpu, int y, void *pixels, int pitch)
 
 void videx_render_line(cpu_state *cpu, int y) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
-
+    //videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
+    videx_data * videx_d = (videx_data *)get_slot_state(cpu, SLOT_3);
     if (y < 0 || y >= 24) {
         return;
     }
@@ -119,7 +119,7 @@ void videx_render_line(cpu_state *cpu, int y) {
         fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
         return;
     }
-    render_videx_scanline_80x24(cpu, y, pixels, pitch);
+    render_videx_scanline_80x24(cpu, videx_d, y, pixels, pitch);
     SDL_UnlockTexture(videx_d->videx_texture);
 }
 
@@ -127,10 +127,10 @@ void videx_render_line(cpu_state *cpu, int y) {
  * Update Display: for Display System Videx.
  * Called once per frame (16.67ms, 60fps) to update the display.
  */
-void update_display_videx(cpu_state *cpu) {
+void update_display_videx(cpu_state *cpu, SlotType_t slot) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
-
+    //videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
+    videx_data * videx_d = (videx_data *)get_slot_state(cpu, slot);
     // the backbuffer must be cleared each frame. The docs state this clearly
     // but I didn't know what the backbuffer was. Also, I assumed doing it once
     // at startup was enough. NOPE.
@@ -153,7 +153,7 @@ void update_display_videx(cpu_state *cpu) {
             cursor_updated = true;
         }
         if (cursor_updated) {
-            videx_set_line_dirty_by_addr(cpu, videx_d->reg[R14_CURSOR_HI] << 8 | videx_d->reg[R15_CURSOR_LO]);
+            videx_set_line_dirty_by_addr(videx_d, videx_d->reg[R14_CURSOR_HI] << 8 | videx_d->reg[R15_CURSOR_LO]);
         }
     }
 
@@ -174,15 +174,17 @@ void update_display_videx(cpu_state *cpu) {
     SDL_RenderTexture(ds->renderer, videx_d->videx_texture, NULL, &dstrect);
 }
 
-void videx_memory_write(cpu_state *cpu, uint16_t address, uint8_t value) {
-    videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
+void videx_memory_write(cpu_state *cpu, SlotType_t slot, uint16_t address, uint8_t value) {
+    //videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
+    videx_data * videx_d = (videx_data *)get_slot_state(cpu, slot);
     uint16_t faddr = (videx_d->selected_page * 2) * 0x100 + (address & 0x1FF);
     videx_d->screen_memory[faddr] = value;
-    videx_set_line_dirty_by_addr(cpu, faddr);
+    videx_set_line_dirty_by_addr(videx_d, faddr);
 }
 
-uint8_t videx_memory_read(cpu_state *cpu, uint16_t address) {
-    videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
+uint8_t videx_memory_read(cpu_state *cpu, SlotType_t slot, uint16_t address) {
+    //videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
+    videx_data * videx_d = (videx_data *)get_slot_state(cpu, slot);
     uint16_t faddr = (videx_d->selected_page * 2) * 0x100 + (address & 0x1FF);
     return videx_d->screen_memory[faddr];
 }

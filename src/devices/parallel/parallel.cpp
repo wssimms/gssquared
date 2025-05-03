@@ -6,7 +6,8 @@
 #include "parallel.hpp"
 
 void parallel_write_C0x0(cpu_state *cpu, uint16_t addr, uint8_t data) {
-    parallel_data * parallel_d = (parallel_data *)get_module_state(cpu, MODULE_PARALLEL);
+    uint8_t slot = (addr - 0xC080) >> 4;
+    parallel_data * parallel_d = (parallel_data *)get_slot_state(cpu, (SlotType_t)slot);
     if (DEBUG(DEBUG_PARALLEL)) {
         printf("parallel_write_C0x0 %x\n", data);
     }
@@ -18,15 +19,19 @@ void parallel_write_C0x0(cpu_state *cpu, uint16_t addr, uint8_t data) {
 }
 
 void parallel_reset(cpu_state *cpu) {
-    parallel_data * parallel_d = (parallel_data *)get_module_state(cpu, MODULE_PARALLEL);
-    if (parallel_d->output != nullptr) {
-        fclose(parallel_d->output);
-        parallel_d->output = nullptr;
+    for (int i = 0; i < 8; i++) {
+        parallel_data *parallel_d = (parallel_data *)get_slot_state(cpu, (SlotType_t)i);
+
+        if ((parallel_d != nullptr) && (parallel_d->id == DEVICE_ID_PARALLEL)) {
+            fclose(parallel_d->output);
+            parallel_d->output = nullptr;
+        }
     }
 }
 
 void init_slot_parallel(cpu_state *cpu, SlotType_t slot) {
     parallel_data * parallel_d = new parallel_data;
+    parallel_d->id = DEVICE_ID_PARALLEL;
     // set in CPU so we can reference later
     
     ResourceFile *rom = new ResourceFile("roms/cards/parallel/parallel.rom", READ_ONLY);
@@ -37,7 +42,7 @@ void init_slot_parallel(cpu_state *cpu, SlotType_t slot) {
     rom->load();
     parallel_d->rom = rom;
 
-    set_module_state(cpu, MODULE_PARALLEL, parallel_d);
+    set_slot_state(cpu, slot, parallel_d);
 
     fprintf(stdout, "init_slot_parallel %d\n", slot);
 

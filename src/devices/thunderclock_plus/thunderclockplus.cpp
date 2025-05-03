@@ -92,6 +92,9 @@ uint64_t get_thunderclock_time() {
  * The first bit we fetch is the LSB of the seconds-units field. 
  */
 uint8_t thunderclock_read_register(cpu_state *cpu, uint16_t address) {
+    uint8_t slot = (address - 0xC080) >> 4;
+    thunderclock_state * thunderclock_d = (thunderclock_state *)get_slot_state(cpu, (SlotType_t)slot);
+
     fprintf(stderr, "Thunderclock Plus read register %04X => %02X\n", address, thunderclock_command_register);
     
     uint8_t bit = (thunderclock_time_register & 0x01) << 7;
@@ -101,6 +104,8 @@ uint8_t thunderclock_read_register(cpu_state *cpu, uint16_t address) {
 }
 
 void thunderclock_write_register(cpu_state *cpu, uint16_t address, uint8_t value) {
+    uint8_t slot = (address - 0xC080) >> 4;
+    thunderclock_state * thunderclock_d = (thunderclock_state *)get_slot_state(cpu, (SlotType_t)slot);
     fprintf(stderr, "Thunderclock Plus write register %X value %X\n", address, value);
     // check for strobe HI to LO transition. Then perform commmand.
     if ((thunderclock_command_register & TCP_STB) && ((value & TCP_STB) == 0)) {
@@ -121,8 +126,8 @@ void thunderclock_write_register(cpu_state *cpu, uint16_t address, uint8_t value
 
 }
 
-void map_rom_thunderclock(cpu_state *cpu) {
-    thunderclock_state * thunderclock_d = (thunderclock_state *)get_module_state(cpu, MODULE_THUNDERCLOCK);
+void map_rom_thunderclock(cpu_state *cpu, SlotType_t slot) {
+    thunderclock_state * thunderclock_d = (thunderclock_state *)get_slot_state(cpu, slot);
     uint8_t *dp = thunderclock_d->rom->get_data();
     for (uint8_t page = 0; page < 8; page++) {
         memory_map_page_both(cpu, page + 0xC8, dp + (page * 0x100), MEM_IO);
@@ -137,8 +142,8 @@ void init_slot_thunderclock(cpu_state *cpu, SlotType_t slot) {
     fprintf(stderr, "Thunderclock Plus init at SLOT %d address %X\n", slot, thunderclock_cmd_reg);
 
     thunderclock_state * thunderclock_d = new thunderclock_state;
-
-    set_module_state(cpu, MODULE_THUNDERCLOCK, thunderclock_d);
+    thunderclock_d->id = DEVICE_ID_THUNDER_CLOCK;
+    set_slot_state(cpu, slot, thunderclock_d);
 
     ResourceFile *rom = new ResourceFile("roms/cards/tcp/tcp.rom", READ_ONLY);
     if (rom == nullptr) {

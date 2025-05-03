@@ -89,7 +89,8 @@ void prodos_clock_getln_handler(cpu_state *cpu, char *buf) {
 }
 
 void prodos_clock_write_register(cpu_state *cpu, uint16_t address, uint8_t value) {
-    prodos_clock_state * prodosclock_d = (prodos_clock_state *)get_module_state(cpu, MODULE_PRODOS_CLOCK);
+    uint8_t slot = (address - 0xC080) >> 4;
+    prodos_clock_state * prodosclock_d = (prodos_clock_state *)get_slot_state(cpu, (SlotType_t)slot);
     fprintf(stderr, "prodos_clock_write_register: %04x %02x\n", address, value);
     if (value == PRODOS_CLOCK_GETLN_TRIGGER) {
         prodos_clock_getln_handler(cpu, prodosclock_d->buf);
@@ -101,7 +102,7 @@ void init_slot_prodosclock(cpu_state *cpu, SlotType_t slot) {
 
     prodos_clock_state * prodosclock_d = new prodos_clock_state;
 
-    set_module_state(cpu, MODULE_PRODOS_CLOCK, prodosclock_d);
+    set_slot_state(cpu, slot, prodosclock_d);
 
     // load the firmware into the slot memory
     uint8_t slx = 0x80 + (slot * 0x10) + PRODOS_CLOCK_PV_TRIGGER;

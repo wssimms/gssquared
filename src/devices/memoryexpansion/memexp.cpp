@@ -23,7 +23,9 @@
 #include "debug.hpp"
 
 void memexp_write_C0x0(cpu_state *cpu, uint16_t addr, uint8_t data) {
-    memexp_data * memexp_d = (memexp_data *)get_module_state(cpu, MODULE_MEMEXP);
+    uint8_t slot = (addr - 0xC080) >> 4;
+    memexp_data * memexp_d = (memexp_data *)get_slot_state(cpu, (SlotType_t)slot);
+
     uint8_t old_lo = memexp_d->addr_low;
     uint8_t old_med = memexp_d->addr_med;
 
@@ -37,7 +39,8 @@ void memexp_write_C0x0(cpu_state *cpu, uint16_t addr, uint8_t data) {
 }
 
 void memexp_write_C0x1(cpu_state *cpu, uint16_t addr, uint8_t data) {
-    memexp_data * memexp_d = (memexp_data *)get_module_state(cpu, MODULE_MEMEXP);
+    uint8_t slot = (addr - 0xC080) >> 4;
+    memexp_data * memexp_d = (memexp_data *)get_slot_state(cpu, (SlotType_t)slot);
     
     uint8_t old_lo = memexp_d->addr_low;
     uint8_t old_med = memexp_d->addr_med;
@@ -49,27 +52,37 @@ void memexp_write_C0x1(cpu_state *cpu, uint16_t addr, uint8_t data) {
 }
 
 void memexp_write_C0x2(cpu_state *cpu, uint16_t addr, uint8_t data) {
-    memexp_data * memexp_d = (memexp_data *)get_module_state(cpu, MODULE_MEMEXP);
+    uint8_t slot = (addr - 0xC080) >> 4;
+    memexp_data * memexp_d = (memexp_data *)get_slot_state(cpu, (SlotType_t)slot);
+
     memexp_d->addr_high = data;
 }
 
 uint8_t memexp_read_C0x0(cpu_state *cpu, uint16_t addr) {
-    memexp_data * memexp_d = (memexp_data *)get_module_state(cpu, MODULE_MEMEXP);
+    uint8_t slot = (addr - 0xC080) >> 4;
+    memexp_data * memexp_d = (memexp_data *)get_slot_state(cpu, (SlotType_t)slot);
+
     return memexp_d->addr_low;
 }
 
 uint8_t memexp_read_C0x1(cpu_state *cpu, uint16_t addr) {
-    memexp_data * memexp_d = (memexp_data *)get_module_state(cpu, MODULE_MEMEXP);
+    uint8_t slot = (addr - 0xC080) >> 4;
+    memexp_data * memexp_d = (memexp_data *)get_slot_state(cpu, (SlotType_t)slot);
+
     return memexp_d->addr_med;
 }
 
 uint8_t memexp_read_C0x2(cpu_state *cpu, uint16_t addr) {
-    memexp_data * memexp_d = (memexp_data *)get_module_state(cpu, MODULE_MEMEXP);
+    uint8_t slot = (addr - 0xC080) >> 4;
+    memexp_data * memexp_d = (memexp_data *)get_slot_state(cpu, (SlotType_t)slot);
+
     return memexp_d->addr_high | 0xF0; // hi nybble here is always 0xF if card has 1MB or less.
 }
 
 uint8_t memexp_read_C0x3(cpu_state *cpu, uint16_t addr) {
-    memexp_data * memexp_d = (memexp_data *)get_module_state(cpu, MODULE_MEMEXP);
+    uint8_t slot = (addr - 0xC080) >> 4;
+    memexp_data * memexp_d = (memexp_data *)get_slot_state(cpu, (SlotType_t)slot);
+
     uint8_t data = memexp_d->data[memexp_d->addr];
     if (DEBUG(DEBUG_MEMEXP)) {
         printf("memexp_read_C0x3 %x => %x\n", memexp_d->addr, data);
@@ -79,7 +92,8 @@ uint8_t memexp_read_C0x3(cpu_state *cpu, uint16_t addr) {
 }
 
 void memexp_write_C0x3(cpu_state *cpu, uint16_t addr, uint8_t data) {
-    memexp_data * memexp_d = (memexp_data *)get_module_state(cpu, MODULE_MEMEXP);
+    uint8_t slot = (addr - 0xC080) >> 4;
+    memexp_data * memexp_d = (memexp_data *)get_slot_state(cpu, (SlotType_t)slot);
     memexp_d->data[memexp_d->addr] = data;
     if (DEBUG(DEBUG_MEMEXP)) {
         printf("memexp_write_C0x3 %x => %x\n", data, memexp_d->addr);
@@ -87,8 +101,10 @@ void memexp_write_C0x3(cpu_state *cpu, uint16_t addr, uint8_t data) {
     memexp_d->addr++;
 }
 
-void map_rom_memexp(cpu_state *cpu) {
-    memexp_data * memexp_d = (memexp_data *)get_module_state(cpu, MODULE_MEMEXP);
+void map_rom_memexp(cpu_state *cpu, SlotType_t slot) {
+    //memexp_data * memexp_d = (memexp_data *)get_module_state(cpu, MODULE_MEMEXP);
+    memexp_data * memexp_d = (memexp_data *)get_slot_state(cpu, slot);
+
     uint8_t *dp = memexp_d->rom->get_data();
     for (uint8_t page = 0; page < 8; page++) {
         memory_map_page_both(cpu, page + 0xC8, dp + 0x800 + (page * 0x100), MEM_IO);
@@ -101,6 +117,7 @@ void map_rom_memexp(cpu_state *cpu) {
 void init_slot_memexp(cpu_state *cpu, SlotType_t slot) {
     memexp_data * memexp_d = new memexp_data;
     // set in CPU so we can reference later
+    memexp_d->id = DEVICE_ID_MEM_EXPANSION;
     memexp_d->data = new uint8_t[MEMEXP_SIZE];
     memexp_d->addr = 0;
 
@@ -112,7 +129,7 @@ void init_slot_memexp(cpu_state *cpu, SlotType_t slot) {
     rom->load();
     memexp_d->rom = rom;
 
-    set_module_state(cpu, MODULE_MEMEXP, memexp_d);
+    set_slot_state(cpu, slot, memexp_d);
 
     fprintf(stdout, "init_slot_memexp %d\n", slot);
 

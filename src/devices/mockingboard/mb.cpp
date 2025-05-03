@@ -1186,6 +1186,7 @@ void init_slot_mockingboard(cpu_state *cpu, SlotType_t slot) {
     printf("init_slot_mockingboard: %d\n", slot);
 
     mb_cpu_data *mb_d = new mb_cpu_data;
+    mb_d->id = DEVICE_ID_MOCKINGBOARD;
     mb_d->mockingboard = new MockingboardEmulator(&mb_d->audio_buffer);
     mb_d->last_cycle = 0;
     mb_d->slot = slot;

@@ -298,13 +298,14 @@ void update_display_apple2(cpu_state *cpu) {
 
 void update_display(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
+    videx_data * videx_d = (videx_data *)get_slot_state(cpu, SLOT_3);
 
     if (videx_d->video_enabled && ds->display_mode == TEXT_MODE) {
-        update_display_videx(cpu);
+        update_display_videx(cpu, SLOT_3); // TODO: videx should register a "video update" callback and we will get the slot # there.
     } else {
         update_display_apple2(cpu);
     }
+    // TODO: IIgs will need a hook here too - do same video update callback function.
 }
 
 void force_display_update(cpu_state *cpu) {

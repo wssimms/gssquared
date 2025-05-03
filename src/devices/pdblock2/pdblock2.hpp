@@ -21,6 +21,7 @@
 #include "cpu.hpp"
 #include "util/media.hpp"
 #include "util/mount.hpp"
+#include "slots.hpp"
 
 #define MAX_PD_BUFFER_SIZE 16
 #define PD_CMD_RESET 0xC080
@@ -57,7 +58,7 @@ struct pdblock_cmd_buffer {
     uint8_t status2;
 };
 
-struct pdblock2_data {
+struct pdblock2_data: public SlotData {
     uint8_t *rom;
     pdblock_cmd_buffer cmd_buffer;
     media_t prodosblockdevices[7][2];
@@ -82,7 +83,7 @@ enum pdblock_cmd {
 #define PD_ERROR_NO_DEVICE 0x28
 #define PD_ERROR_WRITE_PROTECTED 0x2B
 
-void pdblock2_execute(cpu_state *cpu);
+void pdblock2_execute(cpu_state *cpu, pdblock2_data *pdblock_d);
 void init_pdblock2(cpu_state *cpu, SlotType_t slot);
 bool mount_pdblock2(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor *media);
 void unmount_pdblock2(cpu_state *cpu, uint64_t key);

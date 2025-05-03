@@ -15,6 +15,8 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#pragma once
+
 #include "gs2.hpp"
 #include "cpu.hpp"
 #include "util/ResourceFile.hpp"
@@ -85,7 +87,7 @@ const videx_char_set_file_t videx_char_roms[VIDEX_CHAR_SET_COUNT] = {
     { "Inverse", "roms/cards/videx/videx-inverse.bin" }
 };
 
-typedef struct videx_data {
+typedef struct videx_data: public SlotData {
     SDL_Texture *videx_texture;
 
     uint8_t video_enabled = 0;
@@ -110,10 +112,10 @@ typedef struct videx_data {
 } videx_data;
 
 void init_slot_videx(cpu_state *cpu, SlotType_t slot);
-void videx_set_line_dirty_by_addr(cpu_state *cpu, uint16_t addr);
-void videx_set_line_dirty(cpu_state *cpu, int line);
-void update_videx_screen_memory(cpu_state *cpu);
-void map_rom_videx(cpu_state *cpu);
+void videx_set_line_dirty_by_addr(videx_data * videx_d, uint16_t addr);
+void videx_set_line_dirty(videx_data * videx_d, int line);
+void update_videx_screen_memory(cpu_state *cpu, videx_data * videx_d);
+void map_rom_videx(cpu_state *cpu, SlotType_t slot);
 void update_display_videx(cpu_state *cpu);
 void videx_render_line(cpu_state *cpu, int y);
 

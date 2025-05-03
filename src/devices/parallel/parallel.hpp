@@ -5,7 +5,7 @@
 
 #define PARALLEL_DEV 0x00
 
-struct parallel_data {
+struct parallel_data: public SlotData {
     ResourceFile *rom = nullptr;
     FILE *output = nullptr;
 };

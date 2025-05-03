@@ -18,6 +18,7 @@
 #include "gs2.hpp"
 #include "cpu.hpp"
 #include "util/ResourceFile.hpp"
+#include "SlotData.hpp"
 
 #define MEMEXP_ADDR_LOW 0x0000
 #define MEMEXP_ADDR_MED 0x0001
@@ -27,7 +28,7 @@
 
 #define MEMEXP_SIZE 1024*1024
 
-typedef struct memexp_data {
+typedef struct memexp_data: public SlotData {
     union {
         uint32_t addr;
         struct {
