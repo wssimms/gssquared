@@ -41,5 +41,7 @@ void system_reset(cpu_state *cpu, bool cold_start)  {
     init_default_memory_map(cpu);
     reset_languagecard(cpu); // reset language card
     parallel_reset(cpu);
+#if MOCKINGBOARD_ENABLED
     mb_reset(cpu);
+#endif
 }

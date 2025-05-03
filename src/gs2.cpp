@@ -313,6 +313,7 @@ void run_cpus(void) {
             last_app_event_update = current_time;
         }
 
+#if MOCKINGBOARD_ENABLED
         /* Emit Mockingboard Frame */
         current_time = SDL_GetTicksNS();
         if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_mockingboard_update > 16667000)
@@ -321,7 +322,7 @@ void run_cpus(void) {
             generate_mockingboard_frame(cpu, SLOT_4);
             last_mockingboard_update = current_time;
         }
-
+#endif
         /* Emit Video Frame */
         current_time = SDL_GetTicksNS();
         if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_display_update > 16667000)
