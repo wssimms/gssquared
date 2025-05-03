@@ -92,3 +92,150 @@ Each byte starts at a 180 degree phase offset from each other, and, the whole sc
 The video frame can now be generated, if we like, down to the cycle level. We can track where the "beam" is based on cycle counts. This is just some simple math. So if display mode is changed in the middle of a scanline, we could in theory start rendering the bitstream based on the new mode from that point on. This is how some of the other emulators do it (OE, AppleWin).
 I still am not sure how important this is to me. But, we're much closer to being able to do it.
 
+
+# New RGB Approach
+
+took a look at the hgrd code - I remember that I manually brought in a filter coefficient array instead of calculating it. If I want to try higher-bandwidth devices, I can edit a template in openemulator and try them live! ok that's cool. Once I settle on parameters in OE I can calculate a new coefficient array for 'RGB'. And that would be easier than trying to write more special code for 'rgb mode'.
+
+these params are pretty good for composite, about the best we get. if chrome bandwidth is too high, the color changes so rapidly you get effectively dithering.
+
+```
+        <property name="videoBandwidth" value="7000000"/>
+        <property name="videoLumaBandwidth" value="2000000"/>
+        <property name="videoChromaBandwidth" value="2250000"/>
+```
+
+the higher the videoLumaBandwidth, the more you get the dot pattern colored as opposed to smeared. i.e., you see distinct black dots in the middle of what should be color fields. text in gr mode at 6M / 2.25M is colored, but very easy to read. 2.5M for each isn't bad either. slight dithering effect but good text resolution.
+
+if luma too high, you get black. in middle range, you get for example yellow and darker yellow where there's a 0 bit. The black dots (high luma) might be how the IIe RGB worked. (SOMEWHERE in my memory i remember a crisp display with striations. it's not the GS RGB.)
+
+SO. no, that doesn't work. RGB is in nature different from NTSC. it does not split luma from chroma in the same way, and it does not combine colors the same way. SO, that implies the IIgs video display chip is doing some very special things.
+
+This is interesting..
+https://comp.sys.apple2.narkive.com/r0nqAIM3/mega-ii-chip-information
+
+the GS might be using a ROM lookup table. "VGC takes standard apple II video information from the Mega II and generates the video output".
+"adds enhancements to existing apple ii video modes"
+There's a bit in the manual that discusses how to view the dhgr color generation, as a sliding window 4 pixels wide. That might be the best way to think about it - the color of a pixel is determined by a lookup of those 4 values. That would be a 16-color lookup table. OH. the Mega II diagram says: 16x12. 16 entries, 12 bits - 4096 colors. I think that's what Mega II / VGC is doing. This would also make HGR and DHGR consistent with each other. How about LGR? it is clearly using solid colors. So the GS is picking the color based on the LGR nibble value, and keeping that one throughout the LGR block. Same for DLGR.
+
+So, it's a lookup table you want, is it?
+
+AppleWin does this:
+
+```
+	uint32_t mask  =  0x01C0; //  00|000001 1|1000000
+	uint32_t chck1 =  0x0140; //  00|000001 0|1000000
+	uint32_t chck2 =  0x0080; //  00|000000 1|0000000
+
+	// HIRES render in RGB works on a pixel-basis (1-bit data in framebuffer)
+	// The pixel can be 'color', if it makes a 101 or 010 pattern with the two neighbour bits
+	// In all other cases, it's black if 0 and white if 1
+	// The value of 'color' is defined on a 2-bits basis
+```
+
+Call it a 3-bit sliding window of the hgr data. So what would this look like using the dhgr data? a 6-bit sliding window (or, in dhgr, 8-bit?)
+
+let's assume 6.
+
+1100110011001100
+
+so 110011 is a color
+001100 is a color (phase shifted 90 or 180 degrees in the LUT)
+111111 is white
+000000 is black
+
+this is dhgr table from:
+https://www.appleoldies.ca/graphics/dhgr/dhgrtechnote.txt
+
+```
+                                                Repeated
+                                                Binary
+          Color         aux1  main1 aux2  main2 Pattern
+          Black          00    00    00    00    0000
+          Magenta        08    11    22    44    0001
+          Brown          44    08    11    22    0010
+          Orange         4C    19    33    66    0011
+          Dark Green     22    44    08    11    0100
+          Grey1          2A    55    2A    55    0101
+          Green          66    4C    19    33    0110
+          Yellow         6E    5D    3B    77    0111
+          Dark Blue      11    22    44    08    1000
+          Violet         19    33    66    4C    1001
+          Grey2          55    2A    55    2A    1010
+          Pink           5D    3B    77    6E    1011
+          Medium Blue    33    66    4C    19    1100
+          Light Blue     3B    77    6E    5D    1101
+          Aqua           77    6E    5D    3B    1110
+          White          7F    7F    7F    7F    1111
+```
+
+* violet = 1100
+* Green = 0011
+* Medium Blue = 0110 - 1 dot shift
+* orange = 1001 - 1 dot shift
+* white = 1111
+* black = 0000
+
+So extracted - the hires colors map into this, blue/orange phase-shifted from the violet/green.
+
+This approach should still pick up the artifacts. It's not dissimilar to the ntsc code in that regard. hires will always generate only one of those six patterns (except on color and byte edge crossings).
+
+The IIGS LGR is clearly generated more like the way I did it originally. (i.e. we have a color, paint the block that color - i.e., no artifacts, except, there is just a tiny hair of phosphor matrix coloring).
+
+On the IIGS RGB, there is -no NTSC fringing-. It DOES do the dots / half pixel for the hi bit delay.
+
+```
+   11 00 11 00 - repeated violet
+
+00 11 00         - color - ror 2, violet
+   11 00 11      - color - violet
+      00 11 00   - color. ror 2 violet.
+         11 00 00 - black.
+```
+00 11 11 - black, white, white (double of course)
+11 11 00 - white, white, black (double up of course)
+
+this is hires bits, not 560 dots:
+
+10 - gives us a single dot of purple
+1010 - gives us three dots of purple. i.e., it fills the 0 with the same purple color
+111 - three dots of white
+
+1001 - should be a dot of purple and a dot of green.
+
+So on any pixel - we look ahead 2 pixels. if there is any kind of repeating pattern, 010 or 101, we color this dot and the next dot. (a "wide" pixel)
+if we have a non-repeating pattern, 100, we color only this dot. (a "narrow" pixel)
+
+When we draw white line at right edge (279), we do get this value in memory: C0
+that is, shifted, and last bit set. last bit set is not a double 1. so we don't get white, we get brown. (hi res artifact!)
+(unshifted would get us what..) unshifted gets us green. 0x40. 1 in odd column, so yeah, green.
+So the color lookup is based on the 560 dots value. but we're jumping by two dots.
+So on GS RGB there ARE some artifacts but they're not because of ntsc. they're because of the way bit streams are calculomated.
+
+how about look behind one, look ahead one
+```
+   11 11 11 00 00 - white
+
+00 11 11          - white
+   11 11 11       - white  - white. ror 2 it's still white.
+      11 11 00    - white. 
+         11 00 00 - the pixels are off, so NO COLOR.
+```
+
+I think I'm going to bag the above, and just patch the current 'rgb' code. Which isn't awful.
+NO I AM NOT A QUITTER! HA HA.
+
+I did fix a bug where when writing black I was writing with alpha=0, which is wrong. Fixed to write 0xFF alpha.
+
+So, I think the bug was actually: you have to clear the buffer before you update the texture. that old thing again. So now I clear the entire scanline to 0x000000FF before doing the other updates. Much happier. let's try Choplifter, to "test".
+
+Let's think about modes again.
+
+there is:
+   NTSC (color) mode
+   RGB (color) mode
+   Mono mode (based on NTSC engine)
+      with green, amber, white color choices.
+   There should not be a mono+rgb mode. Doesn't make sense.
+   These should be vectored in display.cpp, not anywhere else.
+   

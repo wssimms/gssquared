@@ -3666,6 +3666,9 @@ This release goals (0.3):
 * vector the RGB stuff as discussed in DisplayNG correctly.
 * make OSD fully match DisplayNG.
 * refactor the hinky code we have in bus for handling mockingboard, I/O space memory switching, etc.
+* Fix the joystick.
+
+Release 0.35:
 * Bring in a decent readable font for the OSD elements
 
 Next release goals (0.4):
@@ -3683,3 +3686,9 @@ Then, we'll be in a position to start working on the IIe, which will be (0.5)!
 We can legit only have one Videx in a system. Doesn't make sense to have multiple. Change its config setup to be slot-based, but, somewhere we need to have a flag that we can only have one in a system.
 
 I have the Videx building. HOWEVER: I hard-coded references to Slot 3 all over the place. So that needs to be fixed tomorrow.
+
+## May 3, 2025
+
+First bit of code is the annunciator hooks. These should go in their own module (i.e. global) that videx can read.
+
+So I think the Videx is now slot-independent (i.e., *I* don't hard code slot 3 anywhere) except the Videx firmware itself assumes slot 3, I think.

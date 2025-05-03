@@ -250,6 +250,8 @@ add_library(gs2_devices_videx     src/devices/videx/videx.cpp src/devices/videx/
 
 add_library(gs2_devices_mockingboard     src/devices/mockingboard/mb.cpp )
 
+add_library(gs2_devices_annunciator     src/devices/annunciator/annunciator.cpp )
+
 add_library(gs2_cpu src/cpus/cpu_6502.cpp src/cpus/cpu_65c02.cpp )
 
 add_library(gs2_util src/util/media.cpp src/util/ResourceFile.cpp src/util/dialog.cpp src/util/mount.cpp src/util/reset.cpp
@@ -312,6 +314,7 @@ target_link_libraries(gs2
     gs2_devices_videx
     gs2_devices_pdblock2
     gs2_devices_mockingboard
+    gs2_devices_annunciator
     gs2_util
     gs2_ui
 )

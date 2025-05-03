@@ -128,7 +128,6 @@ void videx_render_line(cpu_state *cpu, videx_data * videx_d, int y) {
  */
 void update_display_videx(cpu_state *cpu, /* SlotType_t slot */ videx_data * videx_d) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    //videx_data * videx_d = (videx_data *)get_slot_state(cpu, slot);
 
     // the backbuffer must be cleared each frame. The docs state this clearly
     // but I didn't know what the backbuffer was. Also, I assumed doing it once
