@@ -23,7 +23,7 @@
 #include "display.hpp"
 
 uint32_t hgr_mono_color_table[2] = {
-    0x00000000,
+    0x000000FF,
     0x009933FF,
 };
 
@@ -55,6 +55,8 @@ void render_hgr_scanline_mono(cpu_state *cpu, int y, void *pixels, int pitch) {
 
     uint32_t* texturePixels = (uint32_t*)pixels;
     for (int row = 0; row < 8; row++) {
+        uint32_t base = row * pitchoff;
+
         for (int x = 0; x < 40; x++) {
             int charoff = x * 14;
 
@@ -62,16 +64,14 @@ void render_hgr_scanline_mono(cpu_state *cpu, int y, void *pixels, int pitch) {
             uint8_t character = raw_memory_read(cpu, address);
             uint8_t ch_D7 = character & 0x80;
 
-            uint32_t base = row * pitchoff;
-
             for (int bit = 0; bit < 14; bit+=2) {
                 uint8_t thisBitOn = (character & 0x01);
-                uint32_t pixel = thisBitOn ? color_value : 0x00000000;
+                uint32_t pixel = thisBitOn ? color_value : 0x000000FF;
                 if (ch_D7 == 0) { // no delay
                     texturePixels[base + charoff + bit ] = pixel;
-                    texturePixels[base + charoff + bit + 1] = 0x00000000;
+                    texturePixels[base + charoff + bit + 1] = 0x000000FF;
                 } else {
-                    texturePixels[base + charoff + bit ] = 0x00000000;
+                    texturePixels[base + charoff + bit ] = 0x000000FF;
                     texturePixels[base + charoff + bit + 1] = pixel;
                 }
 
@@ -115,6 +115,13 @@ void render_hgr_scanline_color(cpu_state *cpu, int y, void *pixels, int pitch) {
 
     uint32_t* texturePixels = (uint32_t*)pixels;
     for (int row = 0; row < 8; row++) {
+        uint32_t base = row * pitchoff;
+
+        // clear the entire line first.
+        for (int x = 0; x < 560; x++) {
+            texturePixels[base + x] = 0x000000FF;
+        }
+
         for (int x = 0; x < 40; x++) {
             int charoff = x * 14;
 
@@ -122,26 +129,25 @@ void render_hgr_scanline_color(cpu_state *cpu, int y, void *pixels, int pitch) {
             uint8_t character = raw_memory_read(cpu, address);
             uint8_t ch_D7 = (character & 0x80) >> 7;
 
-            uint32_t base = row * pitchoff;
-
             // color choice is two variables: odd or even pixel column. And D7 bit.
 
             for (int bit = 0; bit < 14; bit+=2) {
 
                 uint8_t thisBitOn = (character & 0x01);
                 uint32_t color_value = hgr_color_table[(ch_D7 << 1) | (pixel_column&1) ];
-                uint32_t pixel = thisBitOn ? color_value : 0x00000000;
+                uint32_t pixel = thisBitOn ? color_value : 0x000000FF;
+                
                 if (ch_D7 == 0) { // no delay
                     texturePixels[base + charoff + bit ] = pixel;
                     texturePixels[base + charoff + bit + 1] = pixel;
-                    if (composite && pixel_column >=2 && (pixel != 0x00000000) && (texturePixels[base + charoff + bit - 4] == pixel)  ) {
+                    if (composite && pixel_column >=2 && (pixel != 0x000000FF) && (texturePixels[base + charoff + bit - 4] == pixel)  ) {
                         texturePixels[base + charoff + bit - 2] = pixel;
                         texturePixels[base + charoff + bit - 1] = pixel;
                     }
                 } else {
                     texturePixels[base + charoff + bit + 1 ] = pixel;
                     if ((charoff + bit + 2) < 560) texturePixels[base + charoff + bit + 2] = pixel; // add bounds check
-                    if (composite && pixel_column >= 2 &&  (pixel != 0x00000000) && (texturePixels[base + charoff + bit - 3] == pixel)) {
+                    if (composite && pixel_column >= 2 &&  (pixel != 0x000000FF) && (texturePixels[base + charoff + bit - 3] == pixel)) {
                         texturePixels[base + charoff + bit] = pixel;
                         texturePixels[base + charoff + bit - 1] = pixel;
                     }
