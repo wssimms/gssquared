@@ -101,6 +101,7 @@ typedef enum {
     MODULE_PARALLEL,
     MODULE_VIDEX,
     //MODULE_MB,
+    MODULE_ANNUNCIATOR,
     MODULE_NUM_MODULES
 } module_id_t;
 
@@ -247,6 +248,7 @@ void *get_module_state(cpu_state *cpu, module_id_t module_id);
 void set_module_state(cpu_state *cpu, module_id_t module_id, void *state);
 
 SlotData *get_slot_state(cpu_state *cpu, SlotType_t slot);
+SlotData *get_slot_state_by_id(cpu_state *cpu, device_id id);
 void set_slot_state(cpu_state *cpu, SlotType_t slot, SlotData *state);
 
 void init_default_memory_map(cpu_state *cpu);
