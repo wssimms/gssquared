@@ -62,8 +62,6 @@ void map_rom_videx(cpu_state *cpu, SlotType_t slot) {
 }
 
 void update_videx_screen_memory(cpu_state *cpu, videx_data * videx_d) {
-    //videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
-
     memory_map_page_both(cpu, 0xCC, videx_d->screen_memory + (videx_d->selected_page * 2) * 0x100, MEM_IO);
     memory_map_page_both(cpu, 0xCD, videx_d->screen_memory + (videx_d->selected_page * 2) * 0x100 + 0x100, MEM_IO);
 }
@@ -119,21 +117,6 @@ void videx_write_C0xx(cpu_state *cpu, uint16_t addr, uint8_t data) {
         }
         if (DEBUG(DEBUG_VIDEX)) fprintf(stdout, "register %02X set to %02x\n", videx_d->selected_register, data);
     }
-}
-
-uint8_t videx_read_C0xx_anc0(cpu_state *cpu, uint16_t addr) {
-    //uint8_t slot = (addr - 0xC080) >> 4;
-    videx_data * videx_d = (videx_data *)get_slot_state(cpu, SLOT_3);
-    videx_d->video_enabled = (addr & 0x1);
-    if (DEBUG(DEBUG_VIDEX)) fprintf(stdout, "videx_read_C0xx_anc0: %04X %d\n", addr, videx_d->video_enabled);
-    return videx_d->video_enabled;
-}
-
-void videx_write_C0xx_anc0(cpu_state *cpu, uint16_t addr, uint8_t data) {
-    //uint8_t slot = (addr - 0xC080) >> 4;
-    videx_data * videx_d = (videx_data *)get_slot_state(cpu, SLOT_3);
-    videx_d->video_enabled = (addr & 0x1);
-    if (DEBUG(DEBUG_VIDEX)) fprintf(stdout, "videx_write_C0xx_anc0: %04X %d\n", addr, videx_d->video_enabled);
 }
 
 void init_slot_videx(cpu_state *cpu, SlotType_t slot) {
@@ -219,16 +202,6 @@ void init_slot_videx(cpu_state *cpu, SlotType_t slot) {
     // register the write handler for C0xx
     register_C0xx_memory_write_handler(slot_base + VIDEX_REG_ADDR, videx_write_C0xx);
     register_C0xx_memory_write_handler(slot_base + VIDEX_REG_VAL, videx_write_C0xx);
-
-    // register the write handler for annunciator 0
-    // TODO: this needs to get moved to its own module. because what happens is the
-    // anunciator value is set, and they hot-wire that signal back to the card to enable/disable
-    // the video.
-    register_C0xx_memory_read_handler(0xC058, videx_read_C0xx_anc0);
-    register_C0xx_memory_read_handler(0xC059, videx_read_C0xx_anc0);
-
-    register_C0xx_memory_write_handler(0xC058, videx_write_C0xx_anc0);
-    register_C0xx_memory_write_handler(0xC059, videx_write_C0xx_anc0);
 
     register_C8xx_handler(cpu, slot, map_rom_videx);
 }

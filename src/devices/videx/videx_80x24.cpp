@@ -87,10 +87,9 @@ void render_videx_scanline_80x24(cpu_state *cpu, videx_data * videx_d, int y, vo
     }
 }
 
-void videx_render_line(cpu_state *cpu, int y) {
+void videx_render_line(cpu_state *cpu, videx_data * videx_d, int y) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    //videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
-    videx_data * videx_d = (videx_data *)get_slot_state(cpu, SLOT_3);
+
     if (y < 0 || y >= 24) {
         return;
     }
@@ -127,10 +126,10 @@ void videx_render_line(cpu_state *cpu, int y) {
  * Update Display: for Display System Videx.
  * Called once per frame (16.67ms, 60fps) to update the display.
  */
-void update_display_videx(cpu_state *cpu, SlotType_t slot) {
+void update_display_videx(cpu_state *cpu, /* SlotType_t slot */ videx_data * videx_d) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    //videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
-    videx_data * videx_d = (videx_data *)get_slot_state(cpu, slot);
+    //videx_data * videx_d = (videx_data *)get_slot_state(cpu, slot);
+
     // the backbuffer must be cleared each frame. The docs state this clearly
     // but I didn't know what the backbuffer was. Also, I assumed doing it once
     // at startup was enough. NOPE.
@@ -159,7 +158,7 @@ void update_display_videx(cpu_state *cpu, SlotType_t slot) {
 
     for (int line = 0; line < 24; line++) {
         if (videx_d->line_dirty[line]) {
-            videx_render_line(cpu, line);
+            videx_render_line(cpu, videx_d, line);
             videx_d->line_dirty[line] = false;
         }
     }

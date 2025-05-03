@@ -124,7 +124,17 @@ SlotData *get_slot_state(cpu_state *cpu, SlotType_t slot) {
     return state;
 }
 
+SlotData *get_slot_state_by_id(cpu_state *cpu, device_id id) {
+    for (int i = 0; i < 8; i++) {
+        if (cpu->slot_store[i] && cpu->slot_store[i]->id == id) {
+            return cpu->slot_store[i];
+        }
+    }
+    return nullptr;
+}
+
 void set_slot_state(cpu_state *cpu, SlotType_t slot, /* void */ SlotData *state) {
+    state->_slot = slot;
     cpu->slot_store[slot] = state;
 }
 

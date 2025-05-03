@@ -36,6 +36,7 @@
 #include "display/ntsc.hpp"
 #include "devices/videx/videx.hpp"
 #include "devices/videx/videx_80x24.hpp"
+#include "devices/annunciator/annunciator.hpp"
 
 display_page_t display_pages[NUM_DISPLAY_PAGES] = {
     {
@@ -269,7 +270,6 @@ void init_display_font(rom_data *rd) {
  */
 void update_display_apple2(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
 
     // the backbuffer must be cleared each frame. The docs state this clearly
     // but I didn't know what the backbuffer was. Also, I assumed doing it once
@@ -285,23 +285,22 @@ void update_display_apple2(cpu_state *cpu) {
         }
     }
 
- /*    if (updated) { */
-        SDL_FRect dstrect = {
-            (float)ds->border_width,
-            (float)ds->border_height,
-            (float)BASE_WIDTH, 
-            (float)BASE_HEIGHT
-        };
-        SDL_RenderTexture(ds->renderer, ds->screenTexture, NULL, &dstrect);
-/*     } */
+    SDL_FRect dstrect = {
+        (float)ds->border_width,
+        (float)ds->border_height,
+        (float)BASE_WIDTH, 
+        (float)BASE_HEIGHT
+    };
+    SDL_RenderTexture(ds->renderer, ds->screenTexture, NULL, &dstrect);
 }
 
 void update_display(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    videx_data * videx_d = (videx_data *)get_slot_state(cpu, SLOT_3);
+    annunciator_state_t * anc_d = (annunciator_state_t *)get_module_state(cpu, MODULE_ANNUNCIATOR);
+    videx_data * videx_d = (videx_data *)get_slot_state_by_id(cpu, DEVICE_ID_VIDEX);
 
-    if (videx_d->video_enabled && ds->display_mode == TEXT_MODE) {
-        update_display_videx(cpu, SLOT_3); // TODO: videx should register a "video update" callback and we will get the slot # there.
+    if (videx_d && ds->display_mode == TEXT_MODE && anc_d && anc_d->annunciators[0] ) {
+        update_display_videx(cpu, videx_d ); 
     } else {
         update_display_apple2(cpu);
     }
@@ -405,7 +404,7 @@ void flip_display_scale_mode(cpu_state *cpu) {
 
 void render_line(cpu_state *cpu, int y) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
+    //videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
 
     RGBA mono_color_value ;
 

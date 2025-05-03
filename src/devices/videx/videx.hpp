@@ -117,5 +117,5 @@ void videx_set_line_dirty(videx_data * videx_d, int line);
 void update_videx_screen_memory(cpu_state *cpu, videx_data * videx_d);
 void map_rom_videx(cpu_state *cpu, SlotType_t slot);
 void update_display_videx(cpu_state *cpu);
-void videx_render_line(cpu_state *cpu, int y);
+void videx_render_line(cpu_state *cpu, videx_data * videx_d, int y);
 
