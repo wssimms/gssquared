@@ -27,7 +27,7 @@
 #include "devices/loader.hpp"
 #include "util/reset.hpp"
 #include "devices/diskii/diskii.hpp"
-
+#include "display/ntsc.hpp"
 void handle_window_resize(cpu_state *cpu, int new_w, int new_h) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
         
@@ -87,6 +87,18 @@ bool handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
         } else {
             flip_display_color_engine(cpu);
         }
+        return true;
+    }
+    if ((key == SDLK_KP_PLUS || key == SDLK_KP_MINUS)) {
+        printf("key: %x, mod: %x\n", key, mod);
+        if (mod & SDL_KMOD_ALT) { // ALT == hue (windows key on my mac)
+            config.videoHue += ((key == SDLK_KP_PLUS) ? 0.025f : -0.025f);
+        } else if (mod & SDL_KMOD_SHIFT) { // WINDOWS == brightness
+            config.videoSaturation += ((key == SDLK_KP_PLUS) ? 0.1f : -0.1f);
+        }
+        init_hgr_LUT();
+        force_display_update(cpu);
+        printf("video hue: %f, saturation: %f\n", config.videoHue, config.videoSaturation);
         return true;
     }
     /* if (key == SDLK_F7) {
