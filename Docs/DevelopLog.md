@@ -3696,3 +3696,19 @@ I have the Videx building. HOWEVER: I hard-coded references to Slot 3 all over t
 First bit of code is the annunciator hooks. These should go in their own module (i.e. global) that videx can read.
 
 So I think the Videx is now slot-independent (i.e., *I* don't hard code slot 3 anywhere) except the Videx firmware itself assumes slot 3, I think.
+
+I wonder if I should also check into the ntsc lookup table code and instrument to see how fast it is. yeah, it's taking a half second to initialize. That doesn't seem right?
+
+Mike's hgrd lookup table calculator does this:
+for each of 4 phases; it iterates through all 1 << 17 (131072) possible bit patterns that are 17 bits long.
+then it runs processAppleIIScanline_init on each one of those to get an output pixel, and store it for the LUT.
+For each of those iterations, it's creating two vector objects, doing a bunch of sin/cos, etc. Maybe this is a good thing to test profiling on. ok, yeah.
+
+## May 4, 2025
+
+Integrated in the new optimized video LUT generation routines, and am testing with 
+
+Interestingly, there is a minor "fade-in" effect at the left and right edges, where even with a white field, there are artifacts as we come onto white. Not sure if that's supposed to happen - not sure if it happened before. I don't think it did. Checked it out - in fact, they were there before. it might be a hair more pronounced on 7/45 than 8/50. But the images are -extremely- similar.
+
+[ ]: don't forget that the mockingboard still gets out of time sync slowly.
+

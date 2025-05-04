@@ -19,6 +19,7 @@
 
 #include "display/ntsc.hpp"
 #include "display/font.hpp"
+#include "display/filters.hpp"
 
 uint8_t *frameBuffer;
 
@@ -28,6 +29,8 @@ void init_displayng() {
 
     buildHires40Font(MODEL_IIE, 0);
     setupConfig();
+    generate_filters(NUM_TAPS);
+
     uint64_t start = SDL_GetTicksNS();
     init_hgr_LUT();
     uint64_t end = SDL_GetTicksNS();

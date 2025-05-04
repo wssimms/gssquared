@@ -113,6 +113,8 @@ SO. no, that doesn't work. RGB is in nature different from NTSC. it does not spl
 
 This is interesting..
 https://comp.sys.apple2.narkive.com/r0nqAIM3/mega-ii-chip-information
+https://tek4um.com/Apple%20Cork%20Cupertino%20Arhive/photos/2gsDesingDoc1985/
+
 
 the GS might be using a ROM lookup table. "VGC takes standard apple II video information from the Mega II and generates the video output".
 "adds enhancements to existing apple ii video modes"
@@ -239,3 +241,72 @@ there is:
    There should not be a mono+rgb mode. Doesn't make sense.
    These should be vectored in display.cpp, not anywhere else.
    
+
+# Optimizing the LUT-creation code.
+
+Starting point:
+
+LUT init time: 425731833 nanoseconds (425 milliseconds).
+
+the phase is only ever one of four values. it's 0, 0.25, 0.5, 0.75.
+So precalculate these ..
+LUT init time: 402014750 nanoseconds
+
+pre-calculate them once and put them into config. SCORE.
+
+width being pased in to processAppleIIScanline_init is 48.
+He's 'painting' the 17 bits into positions 8 .. 24. plus 3, or 27. So use 28 as width instead of 48?
+I don't think we need to loop in here..
+
+put the bit pattern into frameData 0 .. 16
+run processAppleIIScanline only on pixel position 8.
+
+we DO need to convert 17 pixels to YIQ
+but we DON'T need to run the filter on anything except the center pixel. That, mind-blowingly, gets us to:
+
+LUT init time: 27367666 nanoseconds
+
+a 15x speedup. ok that is still not fast enough yet to change this at runtime. It is, however, fast enough to pre-compute a couple different ones at startup time.
+
+Next, we are calling processPixel 9M times, doing two float multiplies, and a divide of luminance by 255. The thing is, luminance is only ever 0 or 255. So luminance is only ever 0 or 1. So the values are either:
+  luminance = 255: output = 1.0f, config.phase_sin, config.phase_cos
+  luminance = 0  : output = 0.0f, 0.0f, 0.0f
+
+ok, not getting it below 27ms so far, but simplifying and cleaning up the code..
+
+so with the phases.. wouldn't phases 1-3 just be the same data as phase 0, only indexed differently? if that's true, then perhaps we could greatly reduce the memory footprint and execution time by 4x. That would help with cache etc too. cuz it's a half million x 4 = 2MB of data.
+
+while there are some lines in here that repeat the entire line compared to other entries, there is no clear-cut repetition.
+
+I bet we may need to calculate the filter for N taps if that's how many taps we want. As opposed to 8. We're calculating for 8 but only using 5 or 6 or whatever. I bet that's the issue.
+
+
+
+so with the phases.. wouldn't phases 1-3 just be the same data as phase 0, only indexed differently? if that's true, then perhaps we could greatly reduce the memory footprint and execution time by 4x. That would help with cache etc too. cuz it's a half million x 4 = 2MB of data.
+
+while there are some lines in here that repeat the entire line compared to other entries, there is no clear-cut repetition.
+
+I bet we may need to calculate the filter for N taps if that's how many taps we want. As opposed to 8. We're calculating for 8 but only using 5 or 6 or whatever. I bet that's the issue.
+
+
+8 / 50 = looks great
+7 / 45 = pretty good
+6 / 35 = pretty good
+5 / 25 = some artifacts
+
+
+Light wavelengths in nm of different CRT phosphors:
+
+https://www.labguysworld.com/crt_phosphor_research.pdf
+
+I think it's going to be : the actual phosphor frequency, but, some average brightness based on peak and persistence. "time to decay to 10% of peak".
+For instance P1 green says 20ms to decay to 10% of peak. So a frame is 16ms, so the average brightness will be what, 50%, assuming a linear dropoff? There are online wavelength to RGB converter tools.
+
+Measurement app says 549nm dominant wavelength on the monitor ///. The app is probably not calibrated well. and the ambient light might be affecting my readings. but it was reading 549/550 on both. So maybe that's the way to do it.
+
+openemulator measures at 495nm. The Apple monochrome monitor //e uses EIA Type P31 phosphor; the "monochrome monitor" uses EIA P4. P4 peak is 540 - HOWEVER "range" is 330-699", i.e., white. Probably not evenly. P1 says peak 525 range 490-580 (fairly narrow). P31 is 531nm.
+
+So the dominant is not the only important thing, but, is just the peak.
+
+OK, I have continued refactoring the code here, I have it from 28ms down to 16ms by eliminating unnecessary arrays, flattening applyFilter and yiqtorgb into processappleIIScanline_lut. Combined two loops into one that were operating on the same indexes. Made the processing of the filter linear instead of center, then outside + and - etc repeating until 8. The next chunk - the code is using an integer to iterate through all 128k possible bit combinations; it is then generating an array of 17 bytes to represent these. Then it calls processScanline, which parses those bytes. 
+inputScanline[x] is being accessed in order. So instead of generating and reading bytes, let's just pass in the int and process the bits right in processAppleIIscanline_lut. That shaved another 2ms. 

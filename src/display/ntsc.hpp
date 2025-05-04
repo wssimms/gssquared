@@ -30,15 +30,26 @@ struct ntsc_config {
     int height;
     float colorBurst;
     float subcarrier;
+    float videoSaturation;
+    float videoHue;
+    float videoBrightness;
+
     std::vector<std::vector<float>> filterCoefficients;
     float decoderOffset[3]; // TODO: first value should brightness. -1 to +1.
     Matrix3x3 decoderMatrix;
     float phaseInfo[2];
+
+    float phase_sin[4];
+    float phase_cos[4];
+
+    // precalculated YUV lookup table. only two input pixel values (0 and 255)
+    float pixelYUV[2][4][3];
 };
 
 #define FRAME_WIDTH 560
 #define FRAME_HEIGHT 192
-#define NUM_TAPS 8  //  5 = 11 bits (32K) (same)  6 = 13 bits (128K) (same)  7 = 15 bits (512K) (same)  8 = 17 bits (2M) (diff)  
+#define NUM_TAPS 7  //  5 = 11 bits (32K) (same)  6 = 13 bits (128K) (same)  7 = 15 bits (512K) (same)  8 = 17 bits (2M) (diff)  
+#define CHEBYSHEV_SIDELOBE_DB 45
 
 // Constants
 const float NTSC_FSC = 3.579545e6; // NTSC colorburst frequency
