@@ -263,7 +263,6 @@ void update_flash_state(cpu_state *cpu) {
 
     // 2 times per second (every 30 frames), the state of flashing characters (those matching 0b01xxxxxx) must be reversed.
     
-    
     if (++(ds->flash_counter) < 15) {
         return;
     }

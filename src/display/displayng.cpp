@@ -15,6 +15,7 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <iostream>
 
 #include "display/ntsc.hpp"
 #include "display/font.hpp"
@@ -27,5 +28,8 @@ void init_displayng() {
 
     buildHires40Font(MODEL_IIE, 0);
     setupConfig();
+    uint64_t start = SDL_GetTicksNS();
     init_hgr_LUT();
+    uint64_t end = SDL_GetTicksNS();
+    std::cout << "init_hgr_LUT took " << (end - start) / 1000.0 << " microseconds" << std::endl;
 }

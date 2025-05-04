@@ -34,7 +34,7 @@ ntsc_config config ;
 
 RGBA mono_color_table[DM_NUM_MONO_MODES] = {
     {0xFF, 0xFF, 0xFF, 0xFF }, // white
-    {0xFF, 0x55, 0xFF, 0x00 }, // green
+    {0xFF, 0x4A, 0xFF, 0x00 }, // green (was 55) chosen from measuring @ 549nm and https://academo.org/demos/wavelength-to-colour-relationship/
     {0xFF, 0x00, 0xBF, 0xFF }  // amber
 };
 
