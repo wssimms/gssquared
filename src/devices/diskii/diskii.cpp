@@ -723,9 +723,10 @@ void diskii_reset(cpu_state *cpu) {
     printf("diskii_reset\n");
     // TODO: this should be a callback from the CPU reset handler.
     for (int i = 0; i < 8; i++) {
-        diskII_controller *diskII_d = (diskII_controller *)get_slot_state(cpu, (SlotType_t)i);
-
-        if ((diskII_d != nullptr) && (diskII_d->id == DEVICE_ID_DISK_II)) {
+        SlotData *slot_data = get_slot_state(cpu, (SlotType_t)i);
+        
+        if ((slot_data != nullptr) && (slot_data->id == DEVICE_ID_DISK_II)) {
+            diskII_controller *diskII_d = (diskII_controller *)slot_data;
             diskII_d->motor = 0;
             diskII_d->mark_cycles_turnoff = 0;
         }

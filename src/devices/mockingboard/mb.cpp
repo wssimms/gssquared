@@ -31,8 +31,7 @@
 #include "mb.hpp"
 #include "bus.hpp"
 #include "devices/speaker/speaker.hpp"
-
-#define DEBUG 0
+#include "debug.hpp"
 
 enum AY_Registers {
     A_Tone_Low = 0,
@@ -73,9 +72,7 @@ const char *register_names[] = {
 };
 
 void debug_register_change(double current_time, uint8_t chip_index, uint8_t reg, uint8_t value) {
-    //if (DEBUG) {
-        std::cout << "[" << current_time << "] Register " << register_names[reg] << " set to: " << static_cast<int>(value) << std::endl;
-    //}
+    std::cout << "[" << current_time << "] Register " << register_names[reg] << " set to: " << static_cast<int>(value) << std::endl;
 }
 
 
@@ -206,7 +203,7 @@ public:
         chip.registers[event.register_num] = event.value;
         
         //debug_register_change(current_time, event.chip_index, event.register_num, event.value);
-        if (DEBUG) display_registers();
+        if (DEBUG(DEBUG_MOCKINGBOARD)) display_registers();
 
 /*         // Debug output for important register changes
         if (event.chip_index == 0) {
@@ -455,7 +452,7 @@ public:
         }
         
         // Debug output for envelope level at start of each call
-        if (0 && DEBUG) std::cout << "[" << current_time << "] Envelope status - Level: " << static_cast<int>(chips[0].envelope_output) 
+        if (0 && DEBUG(DEBUG_MOCKINGBOARD)) std::cout << "[" << current_time << "] Envelope status - Level: " << static_cast<int>(chips[0].envelope_output) 
                   << " (counter: " << static_cast<int>(chips[0].envelope_counter) 
                   << "/" << static_cast<int>(chips[0].envelope_period) 
                   << ", shape: " << static_cast<int>(chips[0].envelope_shape)
@@ -733,7 +730,7 @@ private:
         filter_state& filter = filters[filter_index];
   
         filter.alpha = computeAlpha(cutofffreq, OUTPUT_SAMPLE_RATE);
-        if (DEBUG) printf("setChannelAlpha(%d:%d): tonePeriod: %d (%d), cutoffHz: %f, sampleRate: %f, alpha: %f\n", 
+        if (DEBUG(DEBUG_MOCKINGBOARD)) printf("setChannelAlpha(%d:%d): tonePeriod: %d (%d), cutoffHz: %f, sampleRate: %f, alpha: %f\n", 
             chip_index, channel, tone_period, tp, cutofffreq, OUTPUT_SAMPLE_RATE, filter.alpha);
     }
 
@@ -929,7 +926,7 @@ void mb_t1_timer_callback(uint64_t instanceID, void *user_data) {
     uint8_t chip = (instanceID & 0x000F);
     mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, (SlotType_t)slot);
 
-    std::cout << "MB 6522 Timer callback " << slot << " " << chip << std::endl;
+    if (DEBUG(DEBUG_MOCKINGBOARD)) std::cout << "MB 6522 Timer callback " << slot << " " << chip << std::endl;
     mb_d->d_6522[chip].ifr.bits.timer1 = 1; // "Set by 'time out of T1'"
     mb_6522_propagate_interrupt(cpu, mb_d);
  
@@ -973,7 +970,7 @@ void mb_write_Cx00(cpu_state *cpu, uint16_t addr, uint8_t data) {
     uint8_t chip = (addr & 0x80) ? 0 : 1;
     mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, (SlotType_t)slot);
 
-    if (DEBUG) printf("mb_write_Cx00: %02d %d %02x %02x\n", slot, chip, alow, data);
+    if (DEBUG(DEBUG_MOCKINGBOARD)) printf("mb_write_Cx00: %02d %d %02x %02x\n", slot, chip, alow, data);
     mb_6522_regs *tc = &mb_d->d_6522[chip]; // which 6522 chip this is.
 
     switch (alow) {
@@ -999,11 +996,11 @@ void mb_write_Cx00(cpu_state *cpu, uint16_t addr, uint8_t data) {
 
             if (data == 7) { // this is the register number.
                 tc->reg_num = tc->ora;
-                if (DEBUG) printf("reg_num: %02x\n", tc->reg_num);
+                if (DEBUG(DEBUG_MOCKINGBOARD)) printf("reg_num: %02x\n", tc->reg_num);
             } else if (data == 6) { // write to the specified register
                 double time = cpu->cycles / 1020500.0;
                 mb_d->mockingboard->queueRegisterChange(time, chip, tc->reg_num, tc->ora);
-                if (DEBUG) printf("queueRegisterChange: [%lf] chip: %d reg: %02x val: %02x\n", time, chip, tc->reg_num, tc->ora);
+                if (DEBUG(DEBUG_MOCKINGBOARD)) printf("queueRegisterChange: [%lf] chip: %d reg: %02x val: %02x\n", time, chip, tc->reg_num, tc->ora);
             }
             break;
         case MB_6522_T1L_L: 
@@ -1094,7 +1091,7 @@ uint8_t mb_read_Cx00(cpu_state *cpu, uint16_t addr) {
     uint8_t chip = (addr & 0x80) ? 0 : 1;
     mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, (SlotType_t)slot);
 
-    if (DEBUG) printf("mb_read_Cx00: %02x => ", alow);
+    if (DEBUG(DEBUG_MOCKINGBOARD)) printf("mb_read_Cx00: %02x => ", alow);
     uint8_t retval = 0xFF;
     switch (alow) {
         case MB_6522_DDRA:
@@ -1161,7 +1158,7 @@ uint8_t mb_read_Cx00(cpu_state *cpu, uint16_t addr) {
             retval = mb_d->d_6522[chip].ier.value | 0x80;
             break;
     }
-    if (DEBUG) printf("%02x\n", retval);
+    if (DEBUG(DEBUG_MOCKINGBOARD)) printf("%02x\n", retval);
     return retval;
 }
 
@@ -1200,7 +1197,7 @@ void generate_mockingboard_frame(cpu_state *cpu, SlotType_t slot) {
     }
     mb_d->audio_buffer.clear();
 
-    if (DEBUG) {
+    if (DEBUG(DEBUG_MOCKINGBOARD)) {
         if (frames++ > 60) {
             frames = 0;
             // Get the number of samples in SDL audio stream buffer
