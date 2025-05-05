@@ -32,7 +32,7 @@
 #include "bus.hpp"
 #include "devices/speaker/speaker.hpp"
 
-#define DEBUG 1
+#define DEBUG 0
 
 enum AY_Registers {
     A_Tone_Low = 0,
@@ -1196,14 +1196,16 @@ void generate_mockingboard_frame(cpu_state *cpu, SlotType_t slot) {
     }
     mb_d->audio_buffer.clear();
 
-    if (frames++ > 60) {
-        frames = 0;
-        // Get the number of samples in SDL audio stream buffer
-        int samples_in_buffer = 0;
-        if (mb_d->stream) {
-            samples_in_buffer = SDL_GetAudioStreamAvailable(mb_d->stream) / sizeof(float);
+    if (DEBUG) {
+        if (frames++ > 60) {
+            frames = 0;
+            // Get the number of samples in SDL audio stream buffer
+            int samples_in_buffer = 0;
+            if (mb_d->stream) {
+                samples_in_buffer = SDL_GetAudioStreamAvailable(mb_d->stream) / sizeof(float);
+            }
+            printf("MB Status: buffer: %d, audio buffer size: %d, samples_per_frame: %d\n", samples_in_buffer, abs, samples_per_frame);
         }
-        printf("MB Status: buffer: %d, audio buffer size: %d, samples_per_frame: %d\n", samples_in_buffer, abs, samples_per_frame);
     }
 
 }
