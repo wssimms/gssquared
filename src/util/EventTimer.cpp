@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <limits>
 #include <iostream>
+#include "debug.hpp"
 
 // Constructor implementation
 EventTimer::EventTimer() = default;
@@ -11,7 +12,7 @@ EventTimer::~EventTimer() = default;
 
 // Add a new event to the queue
 void EventTimer::scheduleEvent(uint64_t triggerCycles, void (*callback)(uint64_t, void*), uint64_t instanceID, void* userData) {
-    std::cout << "scheduleEvent: " << triggerCycles << " InstanceID: " << instanceID << std::endl;
+    if (DEBUG(DEBUG_EVENT_TIMER)) std::cout << "scheduleEvent: " << triggerCycles << " InstanceID: " << instanceID << std::endl;
     
     // Check if an event with the same instanceID already exists
     auto existingEvent = std::find_if(events.begin(), events.end(), 
@@ -50,7 +51,7 @@ void EventTimer::processEvents(uint64_t currentCycles) {
             return a.triggerCycles > b.triggerCycles;
         });
         events.pop_back();
-        std::cout << "Processing event: " << event.triggerCycles << " InstanceID: " << event.instanceID << std::endl;
+        if (DEBUG(DEBUG_EVENT_TIMER)) std::cout << "Processing event: " << event.triggerCycles << " InstanceID: " << event.instanceID << std::endl;
         // Call the callback function
         if (event.triggerCallback) {
             event.triggerCallback(event.instanceID, event.userData);
