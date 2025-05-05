@@ -178,6 +178,8 @@ public:
             for (int r = 0; r < 16; r++) {
                 chips[c].registers[r] = 0;
             }
+            chips[c].registers[Mixer_Control] = 0x3F; // channels disabled
+            chips[c].mixer_control = 0x3F; // channels disabled
         }
     }
 
@@ -553,7 +555,7 @@ public:
 
                 // Scale by number of active channels
                 if (active_channels[c] > 0) {
-                    mixed_output[c] /= active_channels[c]; 
+                    mixed_output[c] /= active_channels[c];
                 }
                 
             }
@@ -1160,20 +1162,50 @@ uint8_t mb_read_Cx00(cpu_state *cpu, uint16_t addr) {
 }
 
 void generate_mockingboard_frame(cpu_state *cpu, SlotType_t slot) {
+    static int frames = 0;
+
     mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, slot);
-    const int samples_per_frame = static_cast<int>(735);  // 16.67ms worth of samples -
+    //const int samples_per_frame = static_cast<int>(735);  // 16.67ms worth of samples -
     // TODO: 736 is an ugly hack. We need to calculate number of samples based on cycles.
+    int samples_per_frame = 735;
+
+    if (mb_d->stream) {
+        int samples_in_buffer = SDL_GetAudioStreamAvailable(mb_d->stream) / sizeof(float);
+        if (samples_in_buffer < 1000) {
+            samples_per_frame = 736;
+        } else if (samples_in_buffer > 2000) {
+            samples_per_frame = 734;
+        } else {
+            samples_per_frame = 735;
+        }
+    }
+
     uint64_t cycle_diff = cpu->cycles - mb_d->last_cycle;
+    //const int samples_per_frame = ((cycle_diff * 44100) / 1020500.0);
+
     mb_d->last_cycle = cpu->cycles;
-    mb_d->mockingboard->generateSamples(((cycle_diff / 1020500.0) * 44100)+1);
+
+    mb_d->mockingboard->generateSamples(samples_per_frame);
 
     // Clear the audio buffer after each frame to prevent memory buildup
     // Send the generated audio data to the SDL audio stream
-    if (mb_d->audio_buffer.size() > 0) {
+    int abs = mb_d->audio_buffer.size();
+    if (abs > 0) {
         //printf("generate_mockingboard_frame: %zu\n", mb_d->audio_buffer.size());
         SDL_PutAudioStreamData(mb_d->stream, mb_d->audio_buffer.data(), mb_d->audio_buffer.size() * sizeof(float));
     }
     mb_d->audio_buffer.clear();
+
+    if (frames++ > 60) {
+        frames = 0;
+        // Get the number of samples in SDL audio stream buffer
+        int samples_in_buffer = 0;
+        if (mb_d->stream) {
+            samples_in_buffer = SDL_GetAudioStreamAvailable(mb_d->stream) / sizeof(float);
+        }
+        printf("MB Status: buffer: %d, audio buffer size: %d, samples_per_frame: %d\n", samples_in_buffer, abs, samples_per_frame);
+    }
+
 }
 
 void insert_empty_mockingboard_frame(mb_cpu_data *mb_d) {
