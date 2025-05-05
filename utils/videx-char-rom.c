@@ -18,32 +18,38 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define CHAR_WIDTH 8
+#define CHAR_HEIGHT 16
+
 int main(int argc, char *argv[]) {
     FILE *fp;
-    unsigned char buffer[8];
+    unsigned char buffer[CHAR_HEIGHT];
     size_t bytes_read;
     int char_index = 0;
 
     if (argc != 2) {
-        fprintf(stderr, "Usage: %s <rom_filename>\n", argv[0]);
+        fprintf(stderr, "Usage: %s <rom_filename_stub>\n", argv[0]);
         return 1;
     }
 
-    fp = fopen(argv[1], "rb");
+    char rom_filename[256];
+    snprintf(rom_filename, sizeof(rom_filename), "../roms/cards/videx/videx-%s.bin", argv[1]);
+
+    fp = fopen(rom_filename, "rb");
     if (!fp) {
-        perror("Error opening file");
+        fprintf(stderr, "Error opening file: %s\n", rom_filename);
         return 1;
     }
 
     // Read 8 bytes at a time (one character)
-    while ((bytes_read = fread(buffer, 1, 8, fp)) == 8) {
+    while ((bytes_read = fread(buffer, 1, CHAR_HEIGHT, fp)) == CHAR_HEIGHT) {
         // Print character index and file offset
-        printf("Character 0x%02X (offset 0x%04X):\n", char_index, char_index * 8);
+        printf("Character 0x%02X (offset 0x%04X):\n", char_index, char_index * CHAR_HEIGHT);
         
         // Print each line of the character
-        for (int line = 0; line < 8; line++) {
+        for (int line = 0; line < CHAR_HEIGHT; line++) {
             // Process each bit
-            for (int bit = 7; bit >= 0; bit--) {
+            for (int bit = CHAR_WIDTH - 1; bit >= 0; bit--) {
                 printf("%c", (buffer[line] & (1 << bit)) ? '*' : '.');
             }
             printf("\n");
