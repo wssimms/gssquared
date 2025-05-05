@@ -1020,6 +1020,9 @@ void mb_write_Cx00(cpu_state *cpu, uint16_t addr, uint8_t data) {
             break;
         case MB_6522_T1C_H:
             /* 8 bits loaded into T1 high-order latch. Also both high-and-low order latches transferred into T1 Counter. T1 Interrupt flag is also reset (2-42) */
+            // write of t1 counter high clears the interrupt.
+            mb_d->d_6522[chip].ifr.bits.timer1 = 0;
+            mb_6522_propagate_interrupt(cpu, mb_d);
             tc->t1_latch = (tc->t1_latch & 0x00FF) | (data << 8);
             tc->t1_counter = tc->t1_latch ? tc->t1_latch : 65535;
             tc->ifr.bits.timer1 = 0;
@@ -1123,8 +1126,9 @@ uint8_t mb_read_Cx00(cpu_state *cpu, uint16_t addr) {
             break;
         }
         case MB_6522_T1C_H:    {  // IFR Timer 1 flag cleared by read T1 counter high. pg 2-42
-            mb_d->d_6522[chip].ifr.bits.timer1 = 0;
-            mb_6522_propagate_interrupt(cpu, mb_d);
+            // read of t1 counter high DOES NOT clear interrupt; write does.
+            //mb_d->d_6522[chip].ifr.bits.timer1 = 0;
+            //mb_6522_propagate_interrupt(cpu, mb_d);
             uint64_t cycle_diff = calc_cycle_diff(&mb_d->d_6522[chip], cpu->cycles);
             //uint64_t cycle_diff = mb_d->d_6522[chip].t1_latch - ((cpu->cycles - mb_d->d_6522[chip].t1_triggered_cycles) % mb_d->d_6522[chip].t1_latch);
             retval = (cycle_diff >> 8) & 0xFF;
