@@ -23,8 +23,10 @@ void parallel_reset(cpu_state *cpu) {
         parallel_data *parallel_d = (parallel_data *)get_slot_state(cpu, (SlotType_t)i);
 
         if ((parallel_d != nullptr) && (parallel_d->id == DEVICE_ID_PARALLEL)) {
-            fclose(parallel_d->output);
-            parallel_d->output = nullptr;
+            if (parallel_d->output != nullptr) {
+                fclose(parallel_d->output);
+                parallel_d->output = nullptr;
+            }
         }
     }
 }
