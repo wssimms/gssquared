@@ -3712,3 +3712,11 @@ Interestingly, there is a minor "fade-in" effect at the left and right edges, wh
 
 [ ]: don't forget that the mockingboard still gets out of time sync slowly.
 
+735 is sometimes not enough samples and causes crackling.
+736 consistently is too many - it's 3,600 extra samples per minute.
+perhaps I can read the number of samples in queue, and insert a number of samples appropriate to keep the queue length within a range of say 3,000 to 4,000.
+if it's more than 4,000, do 734.
+if it's less than 3,000, do 736.
+in that range, do 735.
+
+Well, ok, that is keeping it in range. it remains to be seen if that causes weird artifacts. Well, let's test that1
