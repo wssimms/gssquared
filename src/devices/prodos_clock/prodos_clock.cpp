@@ -101,7 +101,7 @@ void init_slot_prodosclock(cpu_state *cpu, SlotType_t slot) {
     fprintf(stderr, "ProDOS_Clock init at SLOT %d\n", slot);
 
     prodos_clock_state * prodosclock_d = new prodos_clock_state;
-
+    prodosclock_d->id = DEVICE_ID_PRODOS_CLOCK;
     set_slot_state(cpu, slot, prodosclock_d);
 
     // load the firmware into the slot memory
