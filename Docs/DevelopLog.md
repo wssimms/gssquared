@@ -3720,3 +3720,14 @@ if it's less than 3,000, do 736.
 in that range, do 735.
 
 Well, ok, that is keeping it in range. it remains to be seen if that causes weird artifacts. Well, let's test that1
+
+## May 5, 2025
+
+I think I may have stabilized MB in ultima - sometimes it was getting in a loop where interrupts were never turning off. I fixed a bug - write to T1C-H is supposed to clear interrupt. I had that wrong - I had it on read T1c-H.
+
+looking at skyfox again - it is crashing with PC=0000, which is a brk. and it's infinitely looping there because interrupts are enabled. So need to enable the full opcode trace to see what's happening.
+
+I am not 100% certain, but I think my having all the interrupt-generating stuff and other MB stuff hard-coded to 1.0205mhz means mockingboard music that's interrupt-driven plays at a normal 1mhz rate. i.e. it's as if the mockingboard is running with a 1mhz clock even if the cpu is clocked faster. Stuff that is managed by the CPU tho gets buffered. So perhaps we should change the 10205 everywhere except the interrupt timer. Or, maybe that would mean scaling the interrupt timer based on the clock speed..
+
+Disk II reset caused a segfault on linux? Oh, I may still have a problem there.. not that, it's the parallel card trying to fclose a null pointer. fixed.
+
