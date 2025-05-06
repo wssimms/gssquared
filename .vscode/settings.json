@@ -57,7 +57,13 @@
         "stack": "cpp",
         "unordered_map": "cpp",
         "vector": "cpp",
-        "fstream": "cpp"
+        "fstream": "cpp",
+        "charconv": "cpp",
+        "forward_list": "cpp",
+        "chrono": "cpp",
+        "regex": "cpp"
     },
-    "makefile.configureOnOpen": false
+    "makefile.configureOnOpen": false,
+    "todo-tree.tree.scanMode": "workspace",
+    "todo-tree.tree.showBadges": true
 }
