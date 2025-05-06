@@ -36,6 +36,8 @@ enum MainAtlas {
     Unidisk_Light,
     Unidisk_Drive1,
     Unidisk_Drive2,
+    WhiteDisplayButton,
+    RGBDisplayButton,
     MainAtlas_count
 };
 

@@ -168,6 +168,7 @@ void set_white_display(void *data) {
     printf("set_white_display %p\n", data);
     cpu_state *cpu = (cpu_state *)data;
     set_display_mono_color(cpu, DM_MONO_WHITE);
+    set_display_engine(cpu, DM_ENGINE_MONO);
 }
 
 void set_mhz_1_0(void *data) {
@@ -350,9 +351,9 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManag
     slot_container->layout();
     containers.push_back(slot_container);
 
-    Container_t *mon_color_con = new Container_t(renderer, 4, SC);
+    Container_t *mon_color_con = new Container_t(renderer, 5, SC);
     mon_color_con->set_position(100, 510);
-    mon_color_con->set_size(260, 65);
+    mon_color_con->set_size(320, 65);
     containers.push_back(mon_color_con);
 
     Style_t CB;
@@ -361,17 +362,20 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManag
     CB.border_color = 0x000000FF;
     CB.padding = 2;
     Button_t *mc1 = new Button_t(aa, ColorDisplayButton, CB);
-    Button_t *mc2 = new Button_t(aa, ColorDisplayButton, CB);
+    Button_t *mc2 = new Button_t(aa, RGBDisplayButton, CB);
     Button_t *mc3 = new Button_t(aa, GreenDisplayButton, CB);
     Button_t *mc4 = new Button_t(aa, AmberDisplayButton, CB);
+    Button_t *mc5 = new Button_t(aa, WhiteDisplayButton, CB);
     mc1->set_click_callback(set_color_display_ntsc, cpu);
     mc2->set_click_callback(set_color_display_rgb, cpu);
     mc3->set_click_callback(set_green_display, cpu);
     mc4->set_click_callback(set_amber_display, cpu);
+    mc5->set_click_callback(set_white_display, cpu);
     mon_color_con->add_tile(mc1, 0);
     mon_color_con->add_tile(mc2, 1);
     mon_color_con->add_tile(mc3, 2);
     mon_color_con->add_tile(mc4, 3);
+    mon_color_con->add_tile(mc5, 4);
     mon_color_con->layout();
 
     Container_t *speed_con = new Container_t(renderer, 4, SC);

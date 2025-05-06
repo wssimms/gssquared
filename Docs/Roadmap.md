@@ -4,7 +4,7 @@
 ## Release 0.3
 
 [x] refactor all the other slot cards (like mb) to use the slot_store instead of device_store.  
-[ ] vector the RGB stuff as discussed in DisplayNG correctly.  
+[x] vector the RGB stuff as discussed in DisplayNG correctly.  
 [ ] make OSD fully match DisplayNG.  
 [ ] refactor the hinky code we have in bus for handling mockingboard, I/O space memory switching, etc.  
 [ ] Fix the joystick.  
