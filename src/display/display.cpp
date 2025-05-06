@@ -279,7 +279,17 @@ void update_display_apple2(cpu_state *cpu) {
     int updated = 0;
     for (int line = 0; line < 24; line++) {
         if (ds->dirty_line[line]) {
-            render_line(cpu, line);
+            switch (ds->display_color_engine) {
+                case DM_ENGINE_NTSC:
+                    render_line_ntsc(cpu, line);
+                    break;
+                case DM_ENGINE_RGB:
+                    render_line_rgb(cpu, line);
+                    break;
+                default:
+                    render_line_mono(cpu, line);
+                    break;
+            }
             ds->dirty_line[line] = 0;
             updated = 1;
         }
@@ -374,6 +384,7 @@ void set_graphics_mode(cpu_state *cpu, display_graphics_mode_t mode) {
     update_line_mode(cpu);
 }
 
+#if 0
 void flip_display_color_engine(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     if (ds->display_color_engine == DM_ENGINE_RGB) {
@@ -383,6 +394,7 @@ void flip_display_color_engine(cpu_state *cpu) {
     }
     force_display_update(cpu);
 }
+#endif
 
 void flip_display_scale_mode(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
@@ -399,9 +411,9 @@ void flip_display_scale_mode(cpu_state *cpu) {
     force_display_update(cpu);
 }
 
-// TODO: this code can likely lock the whole screen, so we do one lock
-// (relatively expensive) instead of one lock per line.
+// anything we lock we have to completely replace.
 
+#if 0
 void render_line(cpu_state *cpu, int y) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     //videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
@@ -530,7 +542,9 @@ if (color)
     SDL_UnlockTexture(ds->screenTexture);
 #endif
 }
+#endif
 
+#if 0
 void render_line_old(cpu_state *cpu, int y) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     RGBA mono_color_value = mono_color_table[ds->display_mono_color];
@@ -608,6 +622,104 @@ void render_line_old(cpu_state *cpu, int y) {
             }
         }
     }
+
+    SDL_UnlockTexture(ds->screenTexture);
+}
+#endif
+
+void render_line_ntsc(cpu_state *cpu, int y) {
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+
+    // this writes into texture - do not put border stuff here.
+    SDL_Rect updateRect = {
+        0,          // X position (left of window))
+        y * 8,      // Y position (8 pixels per character)
+        BASE_WIDTH,        // Width of line
+        8           // Height of line
+    };
+
+    void* pixels;
+    int pitch;
+
+    if (!SDL_LockTexture(ds->screenTexture, &updateRect, &pixels, &pitch)) {
+        fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
+        return;
+    }
+
+    line_mode_t mode = ds->line_mode[y];
+
+    if (mode == LM_LORES_MODE) render_lgrng_scanline(cpu, y);
+    else if (mode == LM_HIRES_MODE) render_hgrng_scanline(cpu, y, (uint8_t *)pixels);
+    else render_text_scanline_ng(cpu, y);
+
+    RGBA mono_color_value = { 0xFF, 0xFF, 0xFF, 0xFF }; // override mono color to white when we're in color mode
+
+    if (ds->display_mode == TEXT_MODE) {
+        processAppleIIFrame_Mono(frameBuffer + (y * 8 * 560), (RGBA *)pixels, y * 8, (y + 1) * 8, mono_color_value);
+    } else {
+        processAppleIIFrame_LUT(frameBuffer + (y * 8 * 560), (RGBA *)pixels, y * 8, (y + 1) * 8);
+    }
+    SDL_UnlockTexture(ds->screenTexture);
+}
+
+void render_line_rgb(cpu_state *cpu, int y) {
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+
+    // this writes into texture - do not put border stuff here.
+    SDL_Rect updateRect = {
+        0,                 // X position (left of window))
+        y * 8,             // Y position (8 pixels per character)
+        BASE_WIDTH,        // Width of line
+        8                  // Height of line
+    };
+
+    void* pixels;
+    int pitch;
+
+    if (!SDL_LockTexture(ds->screenTexture, &updateRect, &pixels, &pitch)) {
+        fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
+        return;
+    }
+
+    line_mode_t mode = ds->line_mode[y];
+
+    if (mode == LM_LORES_MODE) render_lores_scanline(cpu, y, pixels, pitch);
+    else if (mode == LM_HIRES_MODE) render_hgr_scanline(cpu, y, pixels, pitch);
+    else render_text_scanline(cpu, y, pixels, pitch);
+
+    SDL_UnlockTexture(ds->screenTexture);
+}
+
+void render_line_mono(cpu_state *cpu, int y) {
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+
+    RGBA mono_color_value ;
+
+    // this writes into texture - do not put border stuff here.
+    SDL_Rect updateRect = {
+        0,          // X position (left of window))
+        y * 8,      // Y position (8 pixels per character)
+        BASE_WIDTH,        // Width of line
+        8           // Height of line
+    };
+
+    void* pixels;
+    int pitch;
+
+    if (!SDL_LockTexture(ds->screenTexture, &updateRect, &pixels, &pitch)) {
+        fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
+        return;
+    }
+
+    line_mode_t mode = ds->line_mode[y];
+
+    if (mode == LM_LORES_MODE) render_lgrng_scanline(cpu, y);
+    else if (mode == LM_HIRES_MODE) render_hgrng_scanline(cpu, y, (uint8_t *)pixels);
+    else render_text_scanline_ng(cpu, y);
+
+    mono_color_value = mono_color_table[ds->display_mono_color];
+
+    processAppleIIFrame_Mono(frameBuffer + (y * 8 * 560), (RGBA *)pixels, y * 8, (y + 1) * 8, mono_color_value);
 
     SDL_UnlockTexture(ds->screenTexture);
 }
@@ -733,7 +845,7 @@ display_state_t::display_state_t() {
     display_color_engine = DM_ENGINE_NTSC;
     display_mono_color = DM_MONO_GREEN;
     display_pixel_mode = DM_PIXEL_FUZZ;
-    display_color_mode = DM_RENDER_COLOR;
+    //display_color_mode = DM_RENDER_COLOR;
 
     for (int i = 0; i < 24; i++) {
         dirty_line[i] = 0;
@@ -783,15 +895,16 @@ void init_mb_device_display(cpu_state *cpu, SlotType_t slot) {
     init_display_sdl(ds);
 }
 
-void set_display_color_mode(cpu_state *cpu, display_color_mode_t mode) {
+
+void toggle_display_engine(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    ds->display_color_mode = mode;
+    ds->display_color_engine = (display_color_engine_t)((ds->display_color_engine + 1) % DM_NUM_COLOR_ENGINES);
     force_display_update(cpu);
 }
 
-void toggle_display_color_mode(cpu_state *cpu) {
+void set_display_engine(cpu_state *cpu, display_color_engine_t mode) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    ds->display_color_mode = (display_color_mode_t)((ds->display_color_mode + 1) % DM_NUM_COLOR_MODES);
+    ds->display_color_engine = mode;
     force_display_update(cpu);
 }
 

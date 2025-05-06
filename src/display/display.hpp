@@ -58,6 +58,7 @@ typedef enum {
 typedef enum {
     DM_ENGINE_NTSC = 0,
     DM_ENGINE_RGB,
+    DM_ENGINE_MONO,
     DM_NUM_COLOR_ENGINES
 } display_color_engine_t;
 
@@ -74,11 +75,11 @@ typedef enum {
     DM_NUM_PIXEL_MODES
 } display_pixel_mode_t;
 
-typedef enum {
+/* typedef enum {
     DM_RENDER_COLOR = 0,
     DM_RENDER_MONO,
     DM_NUM_COLOR_MODES
-} display_color_mode_t;
+} display_color_mode_t; */
 
 /** End Display Modes */
 
@@ -133,8 +134,7 @@ public:
     display_color_engine_t display_color_engine;
     display_mono_color_t display_mono_color;
     display_pixel_mode_t display_pixel_mode;
-    display_color_mode_t display_color_mode;
-
+    //display_color_mode_t display_color_mode;
 
     display_mode_t display_mode;
     display_split_mode_t display_split_mode;
@@ -163,11 +163,14 @@ void free_display(cpu_state *cpu);
 void txt_memory_write(uint16_t , uint8_t );
 void update_flash_state(cpu_state *cpu);
 void init_mb_device_display(cpu_state *cpu, SlotType_t slot);
-void render_line(cpu_state *cpu, int y);
+void render_line_ntsc(cpu_state *cpu, int y);
+void render_line_rgb(cpu_state *cpu, int y);
+void render_line_mono(cpu_state *cpu, int y);
 void pre_calculate_font(rom_data *rd);
 void init_display_font(rom_data *rd);
-void set_display_color_mode(cpu_state *cpu, display_color_mode_t mode);
-void toggle_display_color_mode(cpu_state *cpu);
+void toggle_display_engine(cpu_state *cpu);
+void set_display_engine(cpu_state *cpu, display_color_engine_t mode);
+
 void toggle_display_fullscreen(cpu_state *cpu);
 void update_line_mode(cpu_state *cpu);
 void set_display_mode(cpu_state *cpu, display_mode_t mode);
@@ -176,7 +179,7 @@ void set_graphics_mode(cpu_state *cpu, display_graphics_mode_t mode);
 void display_capture_mouse(cpu_state *cpu, bool capture);
 void display_dump_hires_page(cpu_state *cpu, int page);
 void display_dump_text_page(cpu_state *cpu, int page);
-void flip_display_color_engine(cpu_state *cpu);
+
 void flip_display_scale_mode(cpu_state *cpu);
 void raise_window(cpu_state *cpu);
 void set_display_mono_color(cpu_state *cpu, display_mono_color_t mode);

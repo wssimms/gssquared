@@ -40,7 +40,7 @@ uint32_t hgr_color_table[4] = { //    Cur   Col   D7
     0xff5000FF, // orange              1     1     1
 };
 
-
+#if 0
 void render_hgr_scanline_mono(cpu_state *cpu, int y, void *pixels, int pitch) {
     
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
@@ -88,22 +88,21 @@ void render_hgr_scanline_mono(cpu_state *cpu, int y, void *pixels, int pitch) {
         }
     }
 }
+#endif 
 
 void render_hgr_scanline(cpu_state *cpu, int y, void *pixels, int pitch) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
 
-    if (ds->display_color_mode == DM_RENDER_MONO) {
-        render_hgr_scanline_mono(cpu, y, pixels, pitch);
-    } else {
+
         render_hgr_scanline_color(cpu, y, pixels, pitch);
-    }
+
 }
 
 void render_hgr_scanline_color(cpu_state *cpu, int y, void *pixels, int pitch) {
     
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    //display_color_mode_t color_mode = ds->color_mode;
-    //uint32_t color_value = hgr_color_table[color_mode];
+
+
     display_page_t *display_page = ds->display_page_table;
     uint16_t *HGR_PAGE_TABLE = display_page->hgr_page_table;
     uint8_t composite = true; // set to true if we are in composite mode.

@@ -240,7 +240,17 @@ there is:
       with green, amber, white color choices.
    There should not be a mono+rgb mode. Doesn't make sense.
    These should be vectored in display.cpp, not anywhere else.
-   
+   All options: user can select LINEAR or NEAREST.
+   Another option: scanline option (to show distinct scanlines).
+
+F2 becomes: toggle between display engines - NTSC, RGB, Mono.
+
+Have:
+
+render_line_ntsc
+render_line_rgb
+render_line_mono
+
 
 # Optimizing the LUT-creation code.
 

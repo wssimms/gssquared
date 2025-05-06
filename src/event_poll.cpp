@@ -82,11 +82,7 @@ bool handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
         return true;
     }
     if (key == SDLK_F5) {
-        if (mod & SDL_KMOD_CTRL) {
-            flip_display_scale_mode(cpu);
-        } else {
-            flip_display_color_engine(cpu);
-        }
+        flip_display_scale_mode(cpu);
         return true;
     }
     if ((key == SDLK_KP_PLUS || key == SDLK_KP_MINUS)) {
@@ -134,7 +130,7 @@ bool handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
         return true;
     }
     if (key == SDLK_F2) {
-        toggle_display_color_mode(cpu);
+        toggle_display_engine(cpu);
         force_display_update(cpu);
         return true;
     }

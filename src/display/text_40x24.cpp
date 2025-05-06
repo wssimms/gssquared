@@ -88,11 +88,9 @@ void render_text_scanline(cpu_state *cpu, int y, void *pixels, int pitch) {
     uint32_t color_value;  
     uint16_t *TEXT_PAGE_TABLE = ds->display_page_table->text_page_table;
 
-    if (ds->display_color_mode == DM_RENDER_MONO) {
-        color_value = text_color_table[color_mode];
-    } else { // in color mode, text is white.
+
         color_value = 0xFFFFFFFF;
-    }
+
     
     // Bounds checking
     if (y < 0 || y >= 24) {
