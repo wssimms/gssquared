@@ -3731,3 +3731,8 @@ I am not 100% certain, but I think my having all the interrupt-generating stuff 
 
 Disk II reset caused a segfault on linux? Oh, I may still have a problem there.. not that, it's the parallel card trying to fclose a null pointer. fixed.
 
+## May 6, 2025
+
+on a lark I added "auto ludicrous speed when any disk II is on". it does indeed accelerate disk II accesses. they're instant. it screws up mockingboard output, which doesn't work after any period of ludicrous speed. But everything else is ace , ha ha. The audio generation window must get ahead of realtime, and can't come back.
+
+Also, you can't ctrl-reset to stop things from booting because they --boot too fast--.

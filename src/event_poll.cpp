@@ -172,6 +172,13 @@ void event_poll(cpu_state *cpu, SDL_Event &event) {
         case SDL_EVENT_MOUSE_WHEEL:
             handle_mouse_wheel(cpu, event.wheel.y);
             break;
+        case SDL_EVENT_GAMEPAD_ADDED:
+            add_gamepad(cpu, event);
+            break;
+        case SDL_EVENT_GAMEPAD_REMOVED:
+            remove_gamepad(cpu, event);
+            break;
+#if 0
         case SDL_EVENT_JOYSTICK_ADDED:
             /* this event is sent for each hotplugged stick, but also each already-connected joystick during SDL_Init(). */
             joystick_added(cpu, &event);
@@ -179,5 +186,7 @@ void event_poll(cpu_state *cpu, SDL_Event &event) {
         case SDL_EVENT_JOYSTICK_REMOVED:
             joystick_removed(cpu, &event);
             break;
+#endif
+
     }
 }

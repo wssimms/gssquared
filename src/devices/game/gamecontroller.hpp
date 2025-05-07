@@ -58,16 +58,25 @@ typedef struct gamec_state_t {
     int game_switch_1;
     int game_switch_2;
 
-    int game_input_trigger_0;
-    int game_input_trigger_1;
-    int game_input_trigger_2;
-    int game_input_trigger_3;
+    uint64_t game_input_trigger_0;
+    uint64_t game_input_trigger_1;
+    uint64_t game_input_trigger_2;
+    uint64_t game_input_trigger_3;
 
     int mouse_wheel_pos_0; // only one wheel per mouse.
     int paddle_flip_01;
-    SDL_Joystick *joystick0;
+
+    bool gamepad_connected = false;
+    SDL_Gamepad *gamepad = nullptr;
+    SDL_JoystickID id = -1;
+
+//    SDL_Joystick *joystick0;
 } gamec_state_t;
 
 void init_mb_game_controller(cpu_state *cpu, SlotType_t slot);
-void joystick_added(cpu_state *cpu, SDL_Event *event);
+/* void joystick_added(cpu_state *cpu, SDL_Event *event);
 void joystick_removed(cpu_state *cpu, SDL_Event *event);
+ */
+
+bool add_gamepad(cpu_state *cpu, SDL_Event &event);
+void remove_gamepad(cpu_state *cpu, SDL_Event &event);
