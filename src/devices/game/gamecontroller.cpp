@@ -27,11 +27,6 @@
 #include "debug.hpp"
 #include "devices/game/gamecontroller.hpp"
 
-/* int game_switch_0 = 0;
-int game_switch_1 = 0;
-int game_switch_2 = 0;
- */
-
 /**
  * this is a relatively naive implementation of game controller,
  * translating mouse position inside the emulator window, to the paddle/joystick
