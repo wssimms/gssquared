@@ -77,7 +77,7 @@ uint8_t strobe_game_inputs(cpu_state *cpu, uint16_t address) {
             ds->game_input_trigger_0 = x_trigger;
             ds->game_input_trigger_1 = y_trigger;
         }
-        if (DEBUG(DEBUG_GAME)) fprintf(stdout, "Strobe game inputs: %f, %f: %d, %d\n", mouse_x, mouse_y, ds->game_input_trigger_0, ds->game_input_trigger_1);
+        if (DEBUG(DEBUG_GAME)) fprintf(stdout, "Strobe game inputs: %f, %f: %llu, %llu\n", mouse_x, mouse_y, ds->game_input_trigger_0, ds->game_input_trigger_1);
     } else if (ds->gtype[0] == GAME_INPUT_TYPE_MOUSEWHEEL) {
         ds->game_input_trigger_0 = cpu->cycles + (3000 / 255) * ds->mouse_wheel_pos_0;
     } else if (ds->gtype[0] == GAME_INPUT_TYPE_GAMEPAD) {
@@ -149,9 +149,9 @@ uint8_t read_game_input_3(cpu_state *cpu, uint16_t address) {
 uint8_t read_game_switch_0(cpu_state *cpu, uint16_t address) {
     gamec_state_t *ds = (gamec_state_t *)get_module_state(cpu, MODULE_GAMECONTROLLER);
     if (ds->gtype[0] == GAME_INPUT_TYPE_GAMEPAD) {
-        if (SDL_GetGamepadButton(ds->gamepad, SDL_GAMEPAD_BUTTON_SOUTH)) {
+        if (SDL_GetGamepadButton(ds->gamepad, SDL_GAMEPAD_BUTTON_EAST)) {
             ds->game_switch_0 = 1;
-        } else if (SDL_GetGamepadButton(ds->gamepad, SDL_GAMEPAD_BUTTON_WEST)) {
+        } else if (SDL_GetGamepadButton(ds->gamepad, SDL_GAMEPAD_BUTTON_NORTH)) {
             ds->game_switch_0 = 1;
         } else if (SDL_GetGamepadButton(ds->gamepad, SDL_GAMEPAD_BUTTON_LEFT_SHOULDER)) {
             ds->game_switch_0 = 1;
@@ -167,9 +167,9 @@ uint8_t read_game_switch_0(cpu_state *cpu, uint16_t address) {
 uint8_t read_game_switch_1(cpu_state *cpu, uint16_t address) {
     gamec_state_t *ds = (gamec_state_t *)get_module_state(cpu, MODULE_GAMECONTROLLER);
     if (ds->gtype[0] == GAME_INPUT_TYPE_GAMEPAD) {
-        if (SDL_GetGamepadButton(ds->gamepad, SDL_GAMEPAD_BUTTON_EAST)) {
+        if (SDL_GetGamepadButton(ds->gamepad, SDL_GAMEPAD_BUTTON_SOUTH)) {
             ds->game_switch_1 = 1;
-        } else if (SDL_GetGamepadButton(ds->gamepad, SDL_GAMEPAD_BUTTON_NORTH)) {
+        } else if (SDL_GetGamepadButton(ds->gamepad, SDL_GAMEPAD_BUTTON_WEST)) {
             ds->game_switch_1 = 1;
         } else if (SDL_GetGamepadButton(ds->gamepad, SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER)) {
             ds->game_switch_1 = 1;
@@ -223,8 +223,10 @@ bool add_gamepad(cpu_state *cpu, SDL_Event &event) {
                     SDL_Quit();
                     return false;
                 }
+
                 gp_d->gamepad_connected = true;
                 gp_d->id = gpid[0];
+
                 /* for (int i = 0; i < SDL_GAMEPAD_AXIS_COUNT; i++) {
                     gp_d->gpaxis_names[i] = SDL_GetGamepadStringForAxis((SDL_GamepadAxis)i);
                 } */
