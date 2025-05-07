@@ -65,14 +65,14 @@ uint8_t strobe_game_inputs(cpu_state *cpu, uint16_t address) {
         float mouse_x, mouse_y;
         SDL_GetMouseState(&mouse_x, &mouse_y);
         if (ds->paddle_flip_01) {
-            int x_trigger =  cpu->cycles + (3000 / 255) * (255-((mouse_x *255) / WINDOW_WIDTH));
-            int y_trigger = cpu->cycles + (3000 / 255) * (255-((mouse_y *255) / WINDOW_HEIGHT));
+            uint64_t x_trigger =  cpu->cycles + (3000 / 255) * (255-((mouse_x *255) / WINDOW_WIDTH));
+            uint64_t y_trigger = cpu->cycles + (3000 / 255) * (255-((mouse_y *255) / WINDOW_HEIGHT));
 
             ds->game_input_trigger_0 = y_trigger;
             ds->game_input_trigger_1 =x_trigger;   
         } else {
-            int x_trigger =  cpu->cycles + (3000 / 255) * ((mouse_x *255) / WINDOW_WIDTH);
-            int y_trigger = cpu->cycles + (3000 / 255) * ((mouse_y *255) / WINDOW_HEIGHT);
+            uint64_t x_trigger =  cpu->cycles + (3000 / 255) * ((mouse_x *255) / WINDOW_WIDTH);
+            uint64_t y_trigger = cpu->cycles + (3000 / 255) * ((mouse_y *255) / WINDOW_HEIGHT);
 
             ds->game_input_trigger_0 = x_trigger;
             ds->game_input_trigger_1 = y_trigger;
@@ -103,8 +103,8 @@ uint8_t strobe_game_inputs(cpu_state *cpu, uint16_t address) {
         //const float y = (((float)axis1 + 32760.0) / 256.0f);  /* make it -1.0f to 1.0f */
         //const float y = (( 32767.0 - (float)axis1) / 256.0f);  /* make it -1.0f to 1.0f */
 
-        int x_trigger =  cpu->cycles + ((GAME_INPUT_DECAY_TIME * axis0) / 255);
-        int y_trigger = cpu->cycles + ((GAME_INPUT_DECAY_TIME * axis1) / 255);
+        uint64_t x_trigger =  cpu->cycles + ((GAME_INPUT_DECAY_TIME * axis0) / 255);
+        uint64_t y_trigger = cpu->cycles + ((GAME_INPUT_DECAY_TIME * axis1) / 255);
 
         ds->game_input_trigger_0 = x_trigger;
         ds->game_input_trigger_1 = y_trigger;
