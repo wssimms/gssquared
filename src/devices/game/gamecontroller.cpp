@@ -48,7 +48,7 @@ int game_switch_2 = 0;
  * 
  * Read the Mouse X,Y location.
  * 3ms is what the //e reference says the decay time is.
- * 3ms = 3000 cycles.
+ * 3ms = 2800 cycles.
  */
 
 #define GAME_INPUT_DECAY_TIME 2800
@@ -60,21 +60,21 @@ uint8_t strobe_game_inputs(cpu_state *cpu, uint16_t address) {
         float mouse_x, mouse_y;
         SDL_GetMouseState(&mouse_x, &mouse_y);
         if (ds->paddle_flip_01) {
-            uint64_t x_trigger =  cpu->cycles + (3000 / 255) * (255-((mouse_x *255) / WINDOW_WIDTH));
-            uint64_t y_trigger = cpu->cycles + (3000 / 255) * (255-((mouse_y *255) / WINDOW_HEIGHT));
+            uint64_t x_trigger =  cpu->cycles + (GAME_INPUT_DECAY_TIME / 255) * (255-((mouse_x *255) / WINDOW_WIDTH));
+            uint64_t y_trigger = cpu->cycles + (GAME_INPUT_DECAY_TIME / 255) * (255-((mouse_y *255) / WINDOW_HEIGHT));
 
             ds->game_input_trigger_0 = y_trigger;
             ds->game_input_trigger_1 =x_trigger;   
         } else {
-            uint64_t x_trigger =  cpu->cycles + (3000 / 255) * ((mouse_x *255) / WINDOW_WIDTH);
-            uint64_t y_trigger = cpu->cycles + (3000 / 255) * ((mouse_y *255) / WINDOW_HEIGHT);
+            uint64_t x_trigger =  cpu->cycles + (GAME_INPUT_DECAY_TIME / 255) * ((mouse_x *255) / WINDOW_WIDTH);
+            uint64_t y_trigger = cpu->cycles + (GAME_INPUT_DECAY_TIME / 255) * ((mouse_y *255) / WINDOW_HEIGHT);
 
             ds->game_input_trigger_0 = x_trigger;
             ds->game_input_trigger_1 = y_trigger;
         }
         if (DEBUG(DEBUG_GAME)) fprintf(stdout, "Strobe game inputs: %f, %f: %llu, %llu\n", mouse_x, mouse_y, ds->game_input_trigger_0, ds->game_input_trigger_1);
     } else if (ds->gtype[0] == GAME_INPUT_TYPE_MOUSEWHEEL) {
-        ds->game_input_trigger_0 = cpu->cycles + (3000 / 255) * ds->mouse_wheel_pos_0;
+        ds->game_input_trigger_0 = cpu->cycles + (GAME_INPUT_DECAY_TIME / 255) * ds->mouse_wheel_pos_0;
     } else if (ds->gtype[0] == GAME_INPUT_TYPE_GAMEPAD) {
         // TODO: this gamepad joystick can go horizontally to the full extent, but diagnoally not. can scale
         // the axes larger, to get the corners to full extent if we want.
@@ -216,10 +216,6 @@ bool add_gamepad(cpu_state *cpu, SDL_Event &event) {
 
                 gp_d->gamepad_connected = true;
                 gp_d->id = gpid[0];
-
-                /* for (int i = 0; i < SDL_GAMEPAD_AXIS_COUNT; i++) {
-                    gp_d->gpaxis_names[i] = SDL_GetGamepadStringForAxis((SDL_GamepadAxis)i);
-                } */
                 gp_d->gtype[0] = GAME_INPUT_TYPE_GAMEPAD;
             }
         }
