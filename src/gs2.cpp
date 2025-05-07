@@ -226,7 +226,7 @@ void run_cpus(void) {
 
         if (! cpu->halt) {
             while (cpu->cycles - last_cycle_count < cycles_for_this_burst) { // 1/60th second.
-                cpu->event_timer.processEvents(cpu->cycles);
+                cpu->event_timer.processEvents(cpu->cycles); // TODO: implement a cache to speed up this check.
                 if ((cpu->execute_next)(cpu) > 0) { // never returns 0 right now
                     break;
                 }
@@ -242,8 +242,11 @@ void run_cpus(void) {
         uint64_t display_time;
         uint64_t event_time;
         uint64_t app_event_time;
-        if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_event_update > 16667000)
-            || (cpu->clock_mode != CLOCK_FREE_RUN)) {
+
+        bool this_free_run = (cpu->clock_mode == CLOCK_FREE_RUN) || (any_diskii_motor_on(cpu));
+
+        if ((this_free_run) && (current_time - last_event_update > 16667000)
+            || (!this_free_run)) {
             current_time = SDL_GetTicksNS();
             SDL_Event event;
             while(SDL_PollEvent(&event)) {
@@ -262,16 +265,16 @@ void run_cpus(void) {
 
         /* Emit Audio Frame */
         current_time = SDL_GetTicksNS();
-        if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_audio_update > 16667000)
-            || (cpu->clock_mode != CLOCK_FREE_RUN)) {            
+        if ((this_free_run) && (current_time - last_audio_update > 16667000)
+            || (!this_free_run)) {            
             audio_generate_frame(cpu, last_cycle_window_start, cycle_window_start);
             audio_time = SDL_GetTicksNS() - current_time;
             last_audio_update = current_time;
         }
 
         current_time = SDL_GetTicksNS();
-        if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_app_event_update > 16667000)
-            || (cpu->clock_mode != CLOCK_FREE_RUN)) {
+        if ((this_free_run) && (current_time - last_app_event_update > 16667000)
+            || (!this_free_run)) {
             Event *event = cpu->event_queue->getNextEvent();
             if (event) {
                 switch (event->getEventType()) {
@@ -316,8 +319,8 @@ void run_cpus(void) {
 #if MOCKINGBOARD_ENABLED
         /* Emit Mockingboard Frame */
         current_time = SDL_GetTicksNS();
-        if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_mockingboard_update > 16667000)
-            || (cpu->clock_mode != CLOCK_FREE_RUN)) {
+        if ((this_free_run) && (current_time - last_mockingboard_update > 16667000)
+            || (!this_free_run)) {
             // TODO: need to iterate slots and call their "generate_frame" functions as appropriate.
             generate_mockingboard_frame(cpu, SLOT_4);
             last_mockingboard_update = current_time;
@@ -325,8 +328,8 @@ void run_cpus(void) {
 #endif
         /* Emit Video Frame */
         current_time = SDL_GetTicksNS();
-        if ((cpu->clock_mode == CLOCK_FREE_RUN) && (current_time - last_display_update > 16667000)
-            || (cpu->clock_mode != CLOCK_FREE_RUN)) {
+        if ((this_free_run) && (current_time - last_display_update > 16667000)
+            || (!this_free_run)) {
             update_flash_state(cpu);
             update_display(cpu);    
             osd->render();
@@ -359,7 +362,7 @@ void run_cpus(void) {
         // calculate what sleep-until time should be.
         uint64_t wakeup_time = last_cycle_time + (cpu->cycles - last_cycle_count) * cpu->cycle_duration_ns;
 
-        if (cpu->clock_mode != CLOCK_FREE_RUN) {
+        if (!this_free_run)  {
             uint64_t sleep_loops = 0;
             uint64_t current_time = SDL_GetTicksNS();
             if (current_time > wakeup_time) {
@@ -382,12 +385,6 @@ void run_cpus(void) {
         last_cycle_window_start = cycle_window_start;
     }
 }
-/* void test_timer_callback(void *user_data) {
-    cpu_state *cpu = (cpu_state *)user_data;
-    std::cout << "Timer callback" << std::endl;
-    cpu->irq_asserted |= (1 << 4); // slot 4
-} */
-
 
 gs2_app_t gs2_app_values;
 
