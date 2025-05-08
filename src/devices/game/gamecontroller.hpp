@@ -43,17 +43,24 @@
 #define GAME_AN3_OFF 0xC05E
 #define GAME_AN3_ON  0xC05F
 
-enum game_input_type {
-    GAME_INPUT_TYPE_MOUSE = 0,
+#define MAX_GAMEPAD_COUNT 2
+
+typedef enum game_input_type {
+    GAME_INPUT_TYPE_NONE = 0,
+    GAME_INPUT_TYPE_MOUSE = 1,
     GAME_INPUT_TYPE_MOUSEWHEEL,
     GAME_INPUT_TYPE_GAMEPAD,
     GAME_INPUT_TYPE_JOYSTICK,
     NUM_GAME_INPUT_TYPES
-};
+} game_input_t;
+
+typedef struct gamepad_state {
+    game_input_t game_type;
+    SDL_JoystickID id;
+    SDL_Gamepad *gamepad;    
+} gamepad_state_t;
 
 typedef struct gamec_state_t {
-    enum game_input_type gtype[4];
-
     int game_switch_0;
     int game_switch_1;
     int game_switch_2;
@@ -66,17 +73,9 @@ typedef struct gamec_state_t {
     int mouse_wheel_pos_0; // only one wheel per mouse.
     int paddle_flip_01;
 
-    bool gamepad_connected = false;
-    SDL_Gamepad *gamepad = nullptr;
-    SDL_JoystickID id = -1;
-
-//    SDL_Joystick *joystick0;
+    gamepad_state gps[MAX_GAMEPAD_COUNT];   
 } gamec_state_t;
 
 void init_mb_game_controller(cpu_state *cpu, SlotType_t slot);
-/* void joystick_added(cpu_state *cpu, SDL_Event *event);
-void joystick_removed(cpu_state *cpu, SDL_Event *event);
- */
-
 bool add_gamepad(cpu_state *cpu, SDL_Event &event);
-void remove_gamepad(cpu_state *cpu, SDL_Event &event);
+bool remove_gamepad(cpu_state *cpu, SDL_Event &event);

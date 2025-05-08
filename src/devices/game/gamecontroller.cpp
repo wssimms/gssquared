@@ -64,22 +64,24 @@ struct JoystickValues {
  * @return JoystickValues Apple II compatible values {x: 0-255, y: 0-255}
  */
 JoystickValues convertJoystickValues(int32_t x, int32_t y) {
-    // Handle the center position separately
-    /* if (x == 0 && y == 0) {
-        return {128, 128}; // Center of Apple II range
-    } */
-   /*  if (std::abs(x) < 1000) {
+    // was told to ignore very small values as on some joysticks center can be off and there can be noise.
+    if (std::abs(x) < 1000) {
         x = 0;
     }
     if (std::abs(y) < 1000) {
         y = 0;
-    } */
+    }
     // Normalize input values to range [-1, 1]
     double xNorm = static_cast<double>(x) / 32767.0;
     double yNorm = static_cast<double>(y) / 32767.0;
     
     // Calculate the length of the vector (distance from center)
     double length = std::sqrt(xNorm * xNorm + yNorm * yNorm);
+    
+    // If length is 0 or very small, return center position
+    if (length < 0.0001) {
+        return {128, 128}; // Center of Apple II range
+    }
     
     // Normalize to unit vector
     double xUnit = xNorm / length;
@@ -97,8 +99,8 @@ JoystickValues convertJoystickValues(int32_t x, int32_t y) {
     ySquare = yUnit * scale * std::min(length, 1.0);
     
     // Scale and shift to Apple II range (0-255)
-    int xApple = static_cast<int>(std::round((xSquare + 1.0) * 127.5));
-    int yApple = static_cast<int>(std::round((ySquare + 1.0) * 127.5));
+    int xApple = static_cast<int>(std::round((xSquare + 1.0) * 128));
+    int yApple = static_cast<int>(std::round((ySquare + 1.0) * 128));
     
     // Clamp values to ensure they're within 0-255 range
     return {
@@ -110,7 +112,7 @@ JoystickValues convertJoystickValues(int32_t x, int32_t y) {
 uint8_t strobe_game_inputs(cpu_state *cpu, uint16_t address) {
     gamec_state_t *ds = (gamec_state_t *)get_module_state(cpu, MODULE_GAMECONTROLLER);
 
-    if (ds->gtype[0] == GAME_INPUT_TYPE_MOUSE) {
+    if (ds->gps[0].game_type == GAME_INPUT_TYPE_MOUSE) {
         float mouse_x, mouse_y;
         SDL_GetMouseState(&mouse_x, &mouse_y);
         if (ds->paddle_flip_01) {
@@ -127,14 +129,14 @@ uint8_t strobe_game_inputs(cpu_state *cpu, uint16_t address) {
             ds->game_input_trigger_1 = y_trigger;
         }
         if (DEBUG(DEBUG_GAME)) fprintf(stdout, "Strobe game inputs: %f, %f: %llu, %llu\n", mouse_x, mouse_y, ds->game_input_trigger_0, ds->game_input_trigger_1);
-    } else if (ds->gtype[0] == GAME_INPUT_TYPE_MOUSEWHEEL) {
+    } else if (ds->gps[0].game_type == GAME_INPUT_TYPE_MOUSEWHEEL) {
         ds->game_input_trigger_0 = cpu->cycles + (GAME_INPUT_DECAY_TIME / 255) * ds->mouse_wheel_pos_0;
-    } else if (ds->gtype[0] == GAME_INPUT_TYPE_GAMEPAD) {
+    } else if (ds->gps[0].game_type == GAME_INPUT_TYPE_GAMEPAD) {
         // TODO: this gamepad joystick can go horizontally to the full extent, but diagnoally not. can scale
         // the axes larger, to get the corners to full extent if we want.
         
-        int32_t axis0 = SDL_GetGamepadAxis(ds->gamepad, SDL_GAMEPAD_AXIS_LEFTX);
-        int32_t axis1 = SDL_GetGamepadAxis(ds->gamepad, SDL_GAMEPAD_AXIS_LEFTY);
+        int32_t axis0 = SDL_GetGamepadAxis(ds->gps[0].gamepad, SDL_GAMEPAD_AXIS_LEFTX);
+        int32_t axis1 = SDL_GetGamepadAxis(ds->gps[0].gamepad, SDL_GAMEPAD_AXIS_LEFTY);
 
 #if 0
         if (std::abs(axis0) < 1000) {
@@ -196,12 +198,12 @@ uint8_t read_game_input_3(cpu_state *cpu, uint16_t address) {
 
 uint8_t read_game_switch_0(cpu_state *cpu, uint16_t address) {
     gamec_state_t *ds = (gamec_state_t *)get_module_state(cpu, MODULE_GAMECONTROLLER);
-    if (ds->gtype[0] == GAME_INPUT_TYPE_GAMEPAD) {
-        if (SDL_GetGamepadButton(ds->gamepad, SDL_GAMEPAD_BUTTON_EAST)) {
+    if (ds->gps[0].game_type == GAME_INPUT_TYPE_GAMEPAD) {
+        if (SDL_GetGamepadButton(ds->gps[0].gamepad, SDL_GAMEPAD_BUTTON_EAST)) {
             ds->game_switch_0 = 1;
-        } else if (SDL_GetGamepadButton(ds->gamepad, SDL_GAMEPAD_BUTTON_NORTH)) {
+        } else if (SDL_GetGamepadButton(ds->gps[0].gamepad, SDL_GAMEPAD_BUTTON_NORTH)) {
             ds->game_switch_0 = 1;
-        } else if (SDL_GetGamepadButton(ds->gamepad, SDL_GAMEPAD_BUTTON_LEFT_SHOULDER)) {
+        } else if (SDL_GetGamepadButton(ds->gps[0].gamepad, SDL_GAMEPAD_BUTTON_LEFT_SHOULDER)) {
             ds->game_switch_0 = 1;
         } else {
             ds->game_switch_0 = 0;
@@ -214,12 +216,12 @@ uint8_t read_game_switch_0(cpu_state *cpu, uint16_t address) {
 
 uint8_t read_game_switch_1(cpu_state *cpu, uint16_t address) {
     gamec_state_t *ds = (gamec_state_t *)get_module_state(cpu, MODULE_GAMECONTROLLER);
-    if (ds->gtype[0] == GAME_INPUT_TYPE_GAMEPAD) {
-        if (SDL_GetGamepadButton(ds->gamepad, SDL_GAMEPAD_BUTTON_SOUTH)) {
+    if (ds->gps[0].game_type == GAME_INPUT_TYPE_GAMEPAD) {
+        if (SDL_GetGamepadButton(ds->gps[0].gamepad, SDL_GAMEPAD_BUTTON_SOUTH)) {
             ds->game_switch_1 = 1;
-        } else if (SDL_GetGamepadButton(ds->gamepad, SDL_GAMEPAD_BUTTON_WEST)) {
+        } else if (SDL_GetGamepadButton(ds->gps[0].gamepad, SDL_GAMEPAD_BUTTON_WEST)) {
             ds->game_switch_1 = 1;
-        } else if (SDL_GetGamepadButton(ds->gamepad, SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER)) {
+        } else if (SDL_GetGamepadButton(ds->gps[0].gamepad, SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER)) {
             ds->game_switch_1 = 1;
         } else {
             ds->game_switch_1 = 0;
@@ -232,7 +234,19 @@ uint8_t read_game_switch_1(cpu_state *cpu, uint16_t address) {
 
 uint8_t read_game_switch_2(cpu_state *cpu, uint16_t address) {
     gamec_state_t *ds = (gamec_state_t *)get_module_state(cpu, MODULE_GAMECONTROLLER);
-    ds->game_switch_2 = (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_MASK(SDL_BUTTON_MIDDLE)) != 0;
+    if (ds->gps[1].game_type == GAME_INPUT_TYPE_GAMEPAD) {
+        if (SDL_GetGamepadButton(ds->gps[1].gamepad, SDL_GAMEPAD_BUTTON_EAST)) {
+            ds->game_switch_2 = 1;
+        } else if (SDL_GetGamepadButton(ds->gps[1].gamepad, SDL_GAMEPAD_BUTTON_NORTH)) {
+            ds->game_switch_2 = 1;
+        } else if (SDL_GetGamepadButton(ds->gps[1].gamepad, SDL_GAMEPAD_BUTTON_LEFT_SHOULDER)) {
+            ds->game_switch_2 = 1;
+        } else {
+            ds->game_switch_2 = 0;
+        }
+    } else {
+        ds->game_switch_2 = (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_MASK(SDL_BUTTON_RIGHT)) != 0;
+    }
     return ds->game_switch_2 ? 0x80 : 0x00;
 }
 
@@ -247,50 +261,66 @@ uint8_t read_game_switch_2(cpu_state *cpu, uint16_t address) {
  * So when a JS comes online, we automatically switch logic to use the joystick;
  * and when it goes offline, we switch back to mouse.
  * TODO: detect a 2nd joystick and wire that into game inputs 2/3 also.
+ * Support up to 2 gamepads. ensure we load gamepad1 first, and then gamepad2.
  */
 
+bool recompute_gamepads(gamec_state_t *gp_d) {
+    int gpcount;
+    SDL_JoystickID *gpid = SDL_GetGamepads(&gpcount);
+    printf("Gamepad count: %d\n", gpcount);
 
-bool add_gamepad(cpu_state *cpu, SDL_Event &event) {
-    gamec_state_t *gp_d = (gamec_state_t *)get_module_state(cpu, MODULE_GAMECONTROLLER);
-    printf("add_gamepad: %d\n", event.type);
-    if (!gp_d->gamepad_connected) {
-        if (SDL_HasGamepad()) {
-
-            int gpcount;
-            SDL_JoystickID *gpid = SDL_GetGamepads(&gpcount);
-            printf("Gamepad count: %d\n", gpcount);
-            for (int i = 0; i < gpcount; i++) {
-                const char *nm = SDL_GetGamepadNameForID(gpid[i]);
-                printf("Gamepad ID: %d, name: %s\n", gpid[i], nm);
-            }
-            // if there is only one, connect to it.
-            if (gpcount == 1) {
-                gp_d->gamepad = SDL_OpenGamepad(gpid[0]);
-                if (gp_d->gamepad == NULL) {
-                    printf("Error opening gamepad: %s\n", SDL_GetError());
-                    SDL_Quit();
-                    return false;
-                }
-
-                gp_d->gamepad_connected = true;
-                gp_d->id = gpid[0];
-                gp_d->gtype[0] = GAME_INPUT_TYPE_GAMEPAD;
-            }
+    for (int i = 0; i < gpcount; i++) {
+        const char *nm = SDL_GetGamepadNameForID(gpid[i]);
+        printf("Gamepad ID: %d, name: %s\n", gpid[i], nm);
+    }
+    // if there is only one, connect to it.
+    if (gpcount == 0) {
+        gp_d->gps[0].game_type = GAME_INPUT_TYPE_MOUSE;
+        gp_d->gps[1].game_type = GAME_INPUT_TYPE_MOUSE;
+        gp_d->gps[0].gamepad = nullptr;
+        gp_d->gps[1].gamepad = nullptr;
+        gp_d->gps[0].id = -1;
+        gp_d->gps[1].id = -1;
+    }
+    if (gpcount == 1) {
+        gp_d->gps[0].gamepad = SDL_OpenGamepad(gpid[0]);
+        if (gp_d->gps[0].gamepad== NULL) {
+            printf("Error opening gamepad: %s\n", SDL_GetError());
+            return false;
         }
+        gp_d->gps[0].id = gpid[0];
+        gp_d->gps[0].game_type = GAME_INPUT_TYPE_GAMEPAD;
+
+        // zero out second gamepad info, because there is only one.
+        gp_d->gps[1].game_type = GAME_INPUT_TYPE_MOUSE;
+        gp_d->gps[1].gamepad = nullptr;
+        gp_d->gps[1].id = -1;
+    }
+    if (gpcount >= 2) {
+        gp_d->gps[1].gamepad = SDL_OpenGamepad(gpid[1]);
+        if (gp_d->gps[1].gamepad== NULL) {
+            printf("Error opening gamepad: %s\n", SDL_GetError());
+            SDL_Quit();
+            return false;
+        }
+        gp_d->gps[1].id = gpid[1];
+        gp_d->gps[1].game_type = GAME_INPUT_TYPE_GAMEPAD;
     }
     return true;
 }
 
-void remove_gamepad(cpu_state *cpu, SDL_Event &event) {
+bool add_gamepad(cpu_state *cpu, SDL_Event &event) {
+    gamec_state_t *gp_d = (gamec_state_t *)get_module_state(cpu, MODULE_GAMECONTROLLER);
+    printf("add_gamepad: %d\n", event.type);
+
+    return recompute_gamepads(gp_d);
+}
+
+bool remove_gamepad(cpu_state *cpu, SDL_Event &event) {
     gamec_state_t *gp_d = (gamec_state_t *)get_module_state(cpu, MODULE_GAMECONTROLLER);
     printf("remove_gamepad: %d\n", event.type);
-    if (gp_d->gamepad_connected) {
-        SDL_CloseGamepad(gp_d->gamepad);
-        gp_d->gamepad_connected = false;
-        gp_d->gamepad = nullptr;
-        gp_d->id = -1;
-        gp_d->gtype[0] = GAME_INPUT_TYPE_MOUSE;
-    }
+
+    return recompute_gamepads(gp_d);
 }
 
 void init_mb_game_controller(cpu_state *cpu, SlotType_t slot) {
@@ -306,15 +336,13 @@ void init_mb_game_controller(cpu_state *cpu, SlotType_t slot) {
     ds->game_input_trigger_3 = 0;
     ds->mouse_wheel_pos_0 = 0;
     ds->paddle_flip_01 = 0; // to swap the mouse axes so Y is paddle 0
-    ds->gtype[0] = GAME_INPUT_TYPE_MOUSE;
-    ds->gtype[1] = GAME_INPUT_TYPE_MOUSE;
-    ds->gtype[2] = GAME_INPUT_TYPE_MOUSE;
-    ds->gtype[3] = GAME_INPUT_TYPE_MOUSE;
+    ds->gps[0].game_type = GAME_INPUT_TYPE_MOUSE;
+    ds->gps[1].game_type = GAME_INPUT_TYPE_MOUSE;
+    ds->gps[0].gamepad = nullptr;
+    ds->gps[1].gamepad = nullptr;
+    ds->gps[0].id = -1;
+    ds->gps[1].id = -1;
 
-    ds->gamepad_connected = false;
-    ds->gamepad = nullptr;
-    ds->id = -1;
-    
     // set in CPU so we can reference later
     set_module_state(cpu, MODULE_GAMECONTROLLER, ds);
 
