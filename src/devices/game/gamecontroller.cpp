@@ -48,6 +48,65 @@
 
 #define GAME_INPUT_DECAY_TIME 2800
 
+/**
+ * @struct JoystickValues
+ * @brief Structure to hold joystick coordinate values
+ */
+struct JoystickValues {
+    int x;
+    int y;
+};
+
+/**
+ * @brief Converts modern circular joystick values to Apple II square joystick range
+ * @param x Raw X input from modern joystick (-32767 to 32767)
+ * @param y Raw Y input from modern joystick (-32767 to 32767)
+ * @return JoystickValues Apple II compatible values {x: 0-255, y: 0-255}
+ */
+JoystickValues convertJoystickValues(int32_t x, int32_t y) {
+    // Handle the center position separately
+    /* if (x == 0 && y == 0) {
+        return {128, 128}; // Center of Apple II range
+    } */
+   /*  if (std::abs(x) < 1000) {
+        x = 0;
+    }
+    if (std::abs(y) < 1000) {
+        y = 0;
+    } */
+    // Normalize input values to range [-1, 1]
+    double xNorm = static_cast<double>(x) / 32767.0;
+    double yNorm = static_cast<double>(y) / 32767.0;
+    
+    // Calculate the length of the vector (distance from center)
+    double length = std::sqrt(xNorm * xNorm + yNorm * yNorm);
+    
+    // Normalize to unit vector
+    double xUnit = xNorm / length;
+    double yUnit = yNorm / length;
+    
+    double xSquare, ySquare;
+    
+    // Find the maximum scale factor to map to a square
+    // The maximum scale is determined by which component (x or y) will hit the boundary first
+    double scale = 1.0 / std::max(std::abs(xUnit), std::abs(yUnit));
+    
+    // Scale the unit vector by our scale factor and by the original length
+    // This maintains the proportional distance from center
+    xSquare = xUnit * scale * std::min(length, 1.0);
+    ySquare = yUnit * scale * std::min(length, 1.0);
+    
+    // Scale and shift to Apple II range (0-255)
+    int xApple = static_cast<int>(std::round((xSquare + 1.0) * 127.5));
+    int yApple = static_cast<int>(std::round((ySquare + 1.0) * 127.5));
+    
+    // Clamp values to ensure they're within 0-255 range
+    return {
+        std::clamp(xApple, 0, 255),
+        std::clamp(yApple, 0, 255)
+    };
+}
+
 uint8_t strobe_game_inputs(cpu_state *cpu, uint16_t address) {
     gamec_state_t *ds = (gamec_state_t *)get_module_state(cpu, MODULE_GAMECONTROLLER);
 
@@ -77,6 +136,7 @@ uint8_t strobe_game_inputs(cpu_state *cpu, uint16_t address) {
         int32_t axis0 = SDL_GetGamepadAxis(ds->gamepad, SDL_GAMEPAD_AXIS_LEFTX);
         int32_t axis1 = SDL_GetGamepadAxis(ds->gamepad, SDL_GAMEPAD_AXIS_LEFTY);
 
+#if 0
         if (std::abs(axis0) < 1000) {
             axis0 = 0;
         }
@@ -87,9 +147,12 @@ uint8_t strobe_game_inputs(cpu_state *cpu, uint16_t address) {
         axis1 += 32768;
         axis0 >>= 8;
         axis1 >>= 8;
-
         uint64_t x_trigger =  cpu->cycles + ((GAME_INPUT_DECAY_TIME * axis0) / 255);
         uint64_t y_trigger = cpu->cycles + ((GAME_INPUT_DECAY_TIME * axis1) / 255);
+#endif
+        JoystickValues jv = convertJoystickValues(axis0, axis1);
+        uint64_t x_trigger =  cpu->cycles + ((GAME_INPUT_DECAY_TIME * jv.x) / 255);
+        uint64_t y_trigger = cpu->cycles + ((GAME_INPUT_DECAY_TIME * jv.y) / 255);
 
         ds->game_input_trigger_0 = x_trigger;
         ds->game_input_trigger_1 = y_trigger;
