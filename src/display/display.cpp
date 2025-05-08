@@ -180,86 +180,6 @@ void set_display_page2(cpu_state *cpu) {
     set_display_page(cpu, DISPLAY_PAGE_2);
 }
 
-uint64_t init_display_sdl(display_state_t *ds) {
-    
-    // TODO: this is to suggest opengl. metal backlogs periodically.
-    //SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
-
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
-        fprintf(stderr, "Error initializing SDL: %s\n", SDL_GetError());
-        return 1;
-    }
-
-    int window_width = (BASE_WIDTH + ds->border_width*2) * SCALE_X;
-    int window_height = (BASE_HEIGHT + ds->border_height*2) * SCALE_Y;
-    float aspect_ratio = (float)window_width / (float)window_height
-    ;
-    ds->window = SDL_CreateWindow(
-        "GSSquared - Apple ][ Emulator", 
-        (BASE_WIDTH + ds->border_width*2) * SCALE_X, 
-        (BASE_HEIGHT + ds->border_height*2) * SCALE_Y, 
-        SDL_WINDOW_RESIZABLE
-    );
-
-    if (!ds->window) {
-        fprintf(stderr, "Window could not be created! SDL_Error: %s\n", SDL_GetError());
-        return 1;
-    }
-
-    // Set minimum and maximum window sizes to maintain reasonable dimensions
-    SDL_SetWindowMinimumSize(ds->window, window_width / 2, window_height / 2);  // Half size
-    SDL_SetWindowMaximumSize(ds->window, window_width * 2, window_height * 2);  // 4x size
-    
-    // Set the window's aspect ratio to match the Apple II display (560:384)
-    SDL_SetWindowAspectRatio(ds->window, aspect_ratio, aspect_ratio);
-
-    for (int i = 0; i < SDL_GetNumRenderDrivers(); i++) {
-        const char *name = SDL_GetRenderDriver(i);
-        printf("Render driver %d: %s\n", i, name);
-    }
-
-    // Create renderer with nearest-neighbor scaling (sharp pixels)
-    ds->renderer = SDL_CreateRenderer(ds->window, NULL );
-    
-    if (!ds->renderer) {
-        fprintf(stderr, "Error creating renderer: %s\n", SDL_GetError());
-        return 1;
-    }
-
-    const char *rname = SDL_GetRendererName(ds->renderer);
-    printf("Renderer: %s\n", rname);
-
-    // Set scaling quality to nearest neighbor for sharp pixels
-    /* SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0"); */
-    SDL_SetRenderScale(ds->renderer, SCALE_X, SCALE_Y);
-
-    // Create the screen texture
-    ds->screenTexture = SDL_CreateTexture(ds->renderer,
-        SDL_PIXELFORMAT_RGBA8888,
-        SDL_TEXTUREACCESS_STREAMING,
-        BASE_WIDTH, BASE_HEIGHT);
-
-    if (!ds->screenTexture) {
-        fprintf(stderr, "Error creating screen texture: %s\n", SDL_GetError());
-        return 1;
-    }
-
-    SDL_SetTextureBlendMode(ds->screenTexture, SDL_BLENDMODE_NONE); /* GRRRRRRR. This was defaulting to SDL_BLENDMODE_BLEND. */
-    // LINEAR gets us appropriately blurred pixels.
-    // NEAREST gets us sharp pixels.
-    // TODO: provide a UI toggle for this.
-    SDL_SetTextureScaleMode(ds->screenTexture, SDL_SCALEMODE_LINEAR);
-
-    // Clear the texture to black
-    SDL_SetRenderDrawColor(ds->renderer, 0, 0, 0, 255);
-    SDL_RenderClear(ds->renderer);
-    SDL_RenderPresent(ds->renderer);
-
-    SDL_RaiseWindow(ds->window);
-
-    return 0;
-}
-
 void init_display_font(rom_data *rd) {
     pre_calculate_font(rd);
 }
@@ -270,11 +190,11 @@ void init_display_font(rom_data *rd) {
  */
 void update_display_apple2(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    video_system_t *vs = cpu->video_system;
 
     // the backbuffer must be cleared each frame. The docs state this clearly
     // but I didn't know what the backbuffer was. Also, I assumed doing it once
     // at startup was enough. NOPE.
-    SDL_RenderClear(ds->renderer); 
 
     int updated = 0;
     for (int line = 0; line < 24; line++) {
@@ -294,20 +214,18 @@ void update_display_apple2(cpu_state *cpu) {
             updated = 1;
         }
     }
-
-    SDL_FRect dstrect = {
-        (float)ds->border_width,
-        (float)ds->border_height,
-        (float)BASE_WIDTH, 
-        (float)BASE_HEIGHT
-    };
-    SDL_RenderTexture(ds->renderer, ds->screenTexture, NULL, &dstrect);
+    vs->render_frame(ds->screenTexture);
 }
 
 void update_display(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     annunciator_state_t * anc_d = (annunciator_state_t *)get_module_state(cpu, MODULE_ANNUNCIATOR);
     videx_data * videx_d = (videx_data *)get_slot_state_by_id(cpu, DEVICE_ID_VIDEX);
+
+    // the backbuffer must be cleared each frame. The docs state this clearly
+    // but I didn't know what the backbuffer was. Also, I assumed doing it once
+    // at startup was enough. NOPE.
+    cpu->video_system->clear();
 
     if (videx_d && ds->display_mode == TEXT_MODE && anc_d && anc_d->annunciators[0] ) {
         update_display_videx(cpu, videx_d ); 
@@ -323,15 +241,6 @@ void force_display_update(cpu_state *cpu) {
         ds->dirty_line[y] = 1;
     }
 }
-
-void free_display(cpu_state *cpu) {
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    if (ds->screenTexture) SDL_DestroyTexture(ds->screenTexture);
-    if (ds->renderer) SDL_DestroyRenderer(ds->renderer);
-    if (ds->window) SDL_DestroyWindow(ds->window);
-    SDL_Quit();
-}
-
 
 void update_line_mode(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
@@ -398,6 +307,7 @@ void flip_display_color_engine(cpu_state *cpu) {
 
 void flip_display_scale_mode(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    video_system_t *vs = cpu->video_system;
     SDL_ScaleMode scale_mode;
 
     if (ds->display_pixel_mode == DM_PIXEL_FUZZ) {
@@ -415,7 +325,7 @@ void flip_display_scale_mode(cpu_state *cpu) {
 
 void render_line_ntsc(cpu_state *cpu, int y) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-
+    video_system_t *vs = cpu->video_system;
     // this writes into texture - do not put border stuff here.
     SDL_Rect updateRect = {
         0,          // X position (left of window))
@@ -450,6 +360,7 @@ void render_line_ntsc(cpu_state *cpu, int y) {
 
 void render_line_rgb(cpu_state *cpu, int y) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    video_system_t *vs = cpu->video_system;
 
     // this writes into texture - do not put border stuff here.
     SDL_Rect updateRect = {
@@ -478,6 +389,7 @@ void render_line_rgb(cpu_state *cpu, int y) {
 
 void render_line_mono(cpu_state *cpu, int y) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    video_system_t *vs = cpu->video_system;
 
     RGBA mono_color_value ;
 
@@ -618,8 +530,9 @@ void txt_bus_write_C057(cpu_state *cpu, uint16_t address, uint8_t value) {
 
 
 void display_capture_mouse(cpu_state *cpu, bool capture) {
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    SDL_SetWindowRelativeMouseMode(ds->window, capture);
+    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    video_system_t *vs = cpu->video_system;
+    SDL_SetWindowRelativeMouseMode(vs->window, capture);
 }
 
 /**
@@ -636,13 +549,12 @@ display_state_t::display_state_t() {
     for (int i = 0; i < 24; i++) {
         dirty_line[i] = 0;
     }
-    display_fullscreen_mode = DISPLAY_WINDOWED_MODE;
     display_mode = TEXT_MODE;
     display_split_mode = FULL_SCREEN;
     display_graphics_mode = LORES_MODE;
-    window = nullptr;
+/*     window = nullptr;
     renderer = nullptr;
-    screenTexture = nullptr;
+    screenTexture = nullptr; */
     display_page_num = DISPLAY_PAGE_1;
     display_page_table = &display_pages[display_page_num];
     flash_state = false;
@@ -654,6 +566,22 @@ display_state_t::display_state_t() {
 void init_mb_device_display(cpu_state *cpu, SlotType_t slot) {
     // alloc and init display state
     display_state_t *ds = new display_state_t;
+    video_system_t *vs = cpu->video_system;
+    // Create the screen texture
+    ds->screenTexture = SDL_CreateTexture(vs->renderer,
+        SDL_PIXELFORMAT_RGBA8888,
+        SDL_TEXTUREACCESS_STREAMING,
+        BASE_WIDTH, BASE_HEIGHT);
+
+    if (!ds->screenTexture) {
+        fprintf(stderr, "Error creating screen texture: %s\n", SDL_GetError());
+    }
+
+    SDL_SetTextureBlendMode(ds->screenTexture, SDL_BLENDMODE_NONE); /* GRRRRRRR. This was defaulting to SDL_BLENDMODE_BLEND. */
+    // LINEAR gets us appropriately blurred pixels.
+    // NEAREST gets us sharp pixels.
+    // TODO: provide a UI toggle for this.
+    SDL_SetTextureScaleMode(ds->screenTexture, SDL_SCALEMODE_LINEAR);
 
     init_displayng();
 
@@ -678,7 +606,7 @@ void init_mb_device_display(cpu_state *cpu, SlotType_t slot) {
     register_C0xx_memory_write_handler(0xC056, txt_bus_write_C056);
     register_C0xx_memory_write_handler(0xC057, txt_bus_write_C057);
 
-    init_display_sdl(ds);
+    //init_display_sdl(ds);
 }
 
 
@@ -698,12 +626,6 @@ void set_display_mono_color(cpu_state *cpu, display_mono_color_t mode) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     ds->display_mono_color = mode;
     force_display_update(cpu);
-}
-
-void toggle_display_fullscreen(cpu_state *cpu) {
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    ds->display_fullscreen_mode = (display_fullscreen_mode_t)((ds->display_fullscreen_mode + 1) % NUM_FULLSCREEN_MODES);
-    SDL_SetWindowFullscreen(ds->window, ds->display_fullscreen_mode);
 }
 
 void display_dump_file(cpu_state *cpu, const char *filename, uint16_t base_addr, uint16_t sizer) {
@@ -733,6 +655,7 @@ void display_dump_text_page(cpu_state *cpu, int page) {
 }
 
 void raise_window(cpu_state *cpu) {
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    SDL_RaiseWindow(ds->window);
+    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    video_system_t *vs = cpu->video_system;
+    SDL_RaiseWindow(vs->window);
 }

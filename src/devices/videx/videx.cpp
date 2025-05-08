@@ -121,6 +121,8 @@ void videx_write_C0xx(cpu_state *cpu, uint16_t addr, uint8_t data) {
 
 void init_slot_videx(cpu_state *cpu, SlotType_t slot) {
     videx_data * videx_d = new videx_data;
+    video_system_t *vs = cpu->video_system;
+
     videx_d->id = DEVICE_ID_VIDEX;
     // set in CPU so we can reference later
     videx_d->screen_memory = new uint8_t[VIDEX_SCREEN_MEMORY];
@@ -141,7 +143,7 @@ void init_slot_videx(cpu_state *cpu, SlotType_t slot) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
 
     // Create the screen texture for Videx
-    videx_d->videx_texture = SDL_CreateTexture(ds->renderer,
+    videx_d->videx_texture = SDL_CreateTexture(vs->renderer,
         SDL_PIXELFORMAT_RGBA8888,
         SDL_TEXTUREACCESS_STREAMING,
         VIDEX_SCREEN_WIDTH, VIDEX_SCREEN_HEIGHT);

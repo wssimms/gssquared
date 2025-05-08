@@ -93,39 +93,23 @@ typedef enum {
     NUM_DISPLAY_PAGES
 } display_page_number_t;
 
-typedef enum {
-    DISPLAY_WINDOWED_MODE = 0,
-    DISPLAY_FULLSCREEN_MODE = 1,
-    NUM_FULLSCREEN_MODES
-} display_fullscreen_mode_t;
-
 typedef class display_state_t {
 
 public:
     display_state_t();
 
-    SDL_Window *window;
-    SDL_Renderer* renderer ;
     SDL_Texture* screenTexture;
-
-    int border_width = BORDER_WIDTH;
-    int border_height = BORDER_HEIGHT;
-
-    display_fullscreen_mode_t display_fullscreen_mode;
-    //display_color_mode_t color_mode;
 
     display_color_engine_t display_color_engine;
     display_mono_color_t display_mono_color;
     display_pixel_mode_t display_pixel_mode;
-    //display_color_mode_t display_color_mode;
 
     display_mode_t display_mode;
     display_split_mode_t display_split_mode;
     display_graphics_mode_t display_graphics_mode;
     display_page_number_t display_page_num;
     display_page_t *display_page_table;
-    //display_hgr_model_t display_hgr_model;
-    //SDL_ScaleMode display_scale_mode;
+
     bool flash_state;
     int flash_counter;
 
@@ -140,9 +124,6 @@ extern uint32_t lores_color_table[16];
 void force_display_update(cpu_state *cpu);
 void update_display(cpu_state *cpu);
 
-uint64_t init_display_sdl(display_state_t *ds);
-void free_display(cpu_state *cpu);
-
 void txt_memory_write(uint16_t , uint8_t );
 void update_flash_state(cpu_state *cpu);
 void init_mb_device_display(cpu_state *cpu, SlotType_t slot);
@@ -154,7 +135,6 @@ void init_display_font(rom_data *rd);
 void toggle_display_engine(cpu_state *cpu);
 void set_display_engine(cpu_state *cpu, display_color_engine_t mode);
 
-void toggle_display_fullscreen(cpu_state *cpu);
 void update_line_mode(cpu_state *cpu);
 void set_display_mode(cpu_state *cpu, display_mode_t mode);
 void set_split_mode(cpu_state *cpu, display_split_mode_t mode);

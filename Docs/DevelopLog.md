@@ -3733,6 +3733,30 @@ Disk II reset caused a segfault on linux? Oh, I may still have a problem there..
 
 ## May 6, 2025
 
-on a lark I added "auto ludicrous speed when any disk II is on". it does indeed accelerate disk II accesses. they're instant. it screws up mockingboard output, which doesn't work after any period of ludicrous speed. But everything else is ace , ha ha. The audio generation window must get ahead of realtime, and can't come back.
+on a lark I added "auto ludicrous speed when any disk II is on". it does indeed accelerate disk II accesses. they're instant. it screws up mockingboard output, which doesn't work after any period of ludicrous speed. But everything else is ace , ha ha. The audio generation window must get ahead of realtime, and can't come back. cycles gets ahead of the real time timer.
+
+[ ] needs to disable ludicrous speed --when disk is scheduled for turnoff, not when it's actually turned off--  
 
 Also, you can't ctrl-reset to stop things from booting because they --boot too fast--.
+
+XPS Diagnostic IIe disk has a disk drive speed tester thing on it. It says I'm at 266 rpm, instead of 300. Be nice to investigate that code and see what it's doing.
+
+made a lot of improvements to the joystick/game controller code. Still to do:
+
+[x] support a 2nd joystick connecting  
+[x] see about scaling when we're doing diagnoals. Karateka I can't make the guy run by pushing to upper-right, even though I'm supposed to be able to.  
+
+## May 7, 2025
+
+the Atari Joyport / Sirius Joyport is a device that maps an atari joystick (essentially a number of buttons) to the 3 button inputs on an apple ii. combined with the annunciators you can read two axes on two joysticks and 3 buttons.
+
+## May 8, 2025
+
+I have a thing here to refactor so the video subsystem initialization and state is kept in a separate area. Right now it's part of the "mb display". However, since we now have two and ultimately even more display subsystems, all the SDL variables (renderer, window, etc.) ought to live outside the display code, in their own CPU struct.
+
+ok the first pass at video refactor is done. However, I think I need to bring the texture back into the apple ii display mode - each display renderer subsystem should have its own texture. ok that's done.
+
+And, the video_system_t should be a class, with constructor, destructor, and more importantly, methods to render a full frame, managing scaling and the bodrer area appropriately. Did it! Also brought in the toggle_fullscreen concept.
+
+That's a fair bit cleaner.
+

@@ -50,6 +50,7 @@
 #include "util/soundeffects.hpp"
 #include "devices/diskii/diskii.hpp"
 #include "devices/mockingboard/mb.hpp"
+#include "videosystem.hpp"
 
 /**
  * References: 
@@ -243,7 +244,7 @@ void run_cpus(void) {
         uint64_t event_time;
         uint64_t app_event_time;
 
-        bool this_free_run = (cpu->clock_mode == CLOCK_FREE_RUN)/*  || (any_diskii_motor_on(cpu)) */;
+        bool this_free_run = (cpu->clock_mode == CLOCK_FREE_RUN) || (any_diskii_motor_on(cpu));
 
         if ((this_free_run) && (current_time - last_event_update > 16667000)
             || (!this_free_run)) {
@@ -333,8 +334,9 @@ void run_cpus(void) {
             update_flash_state(cpu);
             update_display(cpu);    
             osd->render();
-            display_state_t *ds = (display_state_t *)get_module_state(&CPUs[0], MODULE_DISPLAY);
-            SDL_RenderPresent(ds->renderer);
+            /* display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY); */
+            video_system_t *vs = cpu->video_system;
+            vs->present();
             display_time = SDL_GetTicksNS() - current_time;
             last_display_update = current_time;
         }
@@ -520,6 +522,8 @@ int main(int argc, char *argv[]) {
     set_cpu_processor(&CPUs[0], platform->processor_type);
     CPUs[0].mounts = new Mounts(&CPUs[0]); // TODO: this should happen in a CPU constructor.
 
+    CPUs[0].video_system = new video_system_t();
+
     init_display_font(rd);
 
     SystemConfig_t *system_config = get_system_config(1);
@@ -550,10 +554,11 @@ int main(int argc, char *argv[]) {
         CPUs[0].mounts->mount_media(disk_mount);
     }
 
-    display_state_t *ds = (display_state_t *)get_module_state(&CPUs[0], MODULE_DISPLAY);
-    osd = new OSD(&CPUs[0], ds->renderer, ds->window, slot_manager, 1120, 768);
+    //display_state_t *ds = (display_state_t *)get_module_state(&CPUs[0], MODULE_DISPLAY);
+    video_system_t *vs = CPUs[0].video_system;
+    osd = new OSD(&CPUs[0], vs->renderer, vs->window, slot_manager, 1120, 768);
     // TODO: this should be handled differently. have osd save/restore?
-    int error = SDL_SetRenderTarget(ds->renderer, nullptr);
+    int error = SDL_SetRenderTarget(vs->renderer, nullptr);
     if (!error) {
         fprintf(stderr, "Error setting render target: %s\n", SDL_GetError());
         return 1;
@@ -582,7 +587,7 @@ int main(int argc, char *argv[]) {
 
     //dump_full_speaker_event_log();
 
-    free_display(&CPUs[0]);
+    delete CPUs[0].video_system;
     
     debug_dump_memory(&CPUs[0], 0x1230, 0x123F);
     return 0;

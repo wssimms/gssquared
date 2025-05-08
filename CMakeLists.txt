@@ -276,6 +276,7 @@ add_executable(gs2 src/gs2.cpp src/bus.cpp src/clock.cpp src/debug.cpp src/cpu.c
     src/platforms.cpp
     src/event_poll.cpp
     src/devices.cpp src/slots.cpp src/systemconfig.cpp
+    src/videosystem.cpp
     )
 
 # Set up common include directories for all targets

@@ -156,7 +156,7 @@ void init_cpus() { // this is the same as a power-on event.
 
         set_clock_mode(&CPUs[i], CLOCK_1_024MHZ);
 
-        CPUs[i].next_tick = mach_absolute_time() + CPUs[i].cycle_duration_ticks; 
+        // TODO: this doesn't exist any more. update. CPUs[i].next_tick = mach_absolute_time() + CPUs[i].cycle_duration_ticks; 
     }
 }
 
@@ -274,7 +274,7 @@ int main(int argc, char *argv[]) {
 
     //dump_full_speaker_event_log();
 
-    free_display();
+    delete CPUs[0].video_system;
 
     debug_dump_memory(&CPUs[0], 0x1230, 0x123F);
     return 0;

@@ -27,6 +27,7 @@
 #include "util/EventTimer.hpp"
 #include "devices.hpp"
 #include "SlotData.hpp"
+#include "videosystem.hpp"
 
 //#include "clock.hpp"
 
@@ -207,6 +208,8 @@ struct cpu_state {
     float e_mhz = 0;
     
     execute_next_fn execute_next;
+
+    video_system_t *video_system;
 
     Mounts *mounts;
     EventQueue *event_queue = nullptr;

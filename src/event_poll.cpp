@@ -28,28 +28,8 @@
 #include "util/reset.hpp"
 #include "devices/diskii/diskii.hpp"
 #include "display/ntsc.hpp"
-void handle_window_resize(cpu_state *cpu, int new_w, int new_h) {
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-        
-    // Calculate new scale factors based on window size ratio
-    float new_scale_x = (float)new_w / BASE_WIDTH;
-    float new_scale_y = (float)new_h / (BASE_HEIGHT + ds->border_height*2);
- 
-    // TODO: technically this works, but, we should adjust the border_width to center the image.
-    // Means borders should be in variable in the display_state_t.
-    if (new_scale_x > (new_scale_y / 2.0f)) {
-        new_scale_x = new_scale_y / 2.0f;
-    }
-
-    ds->border_width = ((new_w / new_scale_x)- BASE_WIDTH) / 2;
-
-    printf("handle_window_resize: new_w: %d, new_h: %d new scale: %f, %f, border w: %d, h: %d\n", new_w, new_h, new_scale_x, new_scale_y, ds->border_width, ds->border_height);
-
-    SDL_SetRenderScale(ds->renderer, new_scale_x, new_scale_y);
-}
 
 // Loops until there are no events in queue waiting to be read.
-static SDL_Joystick *joystick = NULL;
 
 bool handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
 
@@ -126,7 +106,7 @@ bool handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
         }
     }
     if (key == SDLK_F3) {
-        toggle_display_fullscreen(cpu);
+        cpu->video_system->toggle_fullscreen();
         return true;
     }
     if (key == SDLK_F2) {
@@ -152,10 +132,7 @@ void event_poll(cpu_state *cpu, SDL_Event &event) {
             break;
 
         case SDL_EVENT_WINDOW_RESIZED: {
-            display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-            if (ds && ds->window) {
-                handle_window_resize(cpu, event.window.data1, event.window.data2);
-            }
+            cpu->video_system->window_resize(event.window.data1, event.window.data2);
             break;
         }
 
@@ -178,15 +155,5 @@ void event_poll(cpu_state *cpu, SDL_Event &event) {
         case SDL_EVENT_GAMEPAD_REMOVED:
             remove_gamepad(cpu, event);
             break;
-#if 0
-        case SDL_EVENT_JOYSTICK_ADDED:
-            /* this event is sent for each hotplugged stick, but also each already-connected joystick during SDL_Init(). */
-            joystick_added(cpu, &event);
-            break;
-        case SDL_EVENT_JOYSTICK_REMOVED:
-            joystick_removed(cpu, &event);
-            break;
-#endif
-
     }
 }

@@ -128,11 +128,7 @@ void videx_render_line(cpu_state *cpu, videx_data * videx_d, int y) {
  */
 void update_display_videx(cpu_state *cpu, /* SlotType_t slot */ videx_data * videx_d) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-
-    // the backbuffer must be cleared each frame. The docs state this clearly
-    // but I didn't know what the backbuffer was. Also, I assumed doing it once
-    // at startup was enough. NOPE.
-    SDL_RenderClear(ds->renderer); 
+    video_system_t *vs = cpu->video_system;
 
 // openemulator disagrees, claims bit 5 = 1 means display cursor. But the manual clearly says bit 5 = 0 means cursor is on.
     bool cursor_blink_mode = (videx_d->reg[R10_CURSOR_START] & 0b01000000) != 0;
@@ -161,15 +157,10 @@ void update_display_videx(cpu_state *cpu, /* SlotType_t slot */ videx_data * vid
             videx_d->line_dirty[line] = false;
         }
     }
-    SDL_FRect dstrect = {
-        (float)ds->border_width,
-        (float)ds->border_height,
-        (float)BASE_WIDTH, 
-        (float)BASE_HEIGHT
-    };
+    
     SDL_SetTextureBlendMode(videx_d->videx_texture, SDL_BLENDMODE_ADD); // double-draw this to increase brightness.
-    SDL_RenderTexture(ds->renderer, videx_d->videx_texture, NULL, &dstrect);
-    SDL_RenderTexture(ds->renderer, videx_d->videx_texture, NULL, &dstrect);
+    vs->render_frame(videx_d->videx_texture);
+    vs->render_frame(videx_d->videx_texture);
 }
 
 void videx_memory_write(cpu_state *cpu, SlotType_t slot, uint16_t address, uint8_t value) {

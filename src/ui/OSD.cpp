@@ -235,23 +235,6 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManag
     if (!cpTexture) {
         throw std::runtime_error(std::string("Error creating cpTexture: ") + SDL_GetError());
     }
-    /* cpu->osd.controlPanelTexture = cpTexture; */
-
-    /* SDL_SetRenderTarget(renderer, cpTexture);
-    
-    SDL_RenderClear(renderer);
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
-
-    // make the background opaque and black.
-    SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
-    SDL_RenderFillRect(renderer, NULL);
-
-    SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xC0);
-    SDL_FRect rect = {0, 50, (float)(window_w-100), (float)(window_h-100)};
-    SDL_RenderFillRect(renderer, &rect);
-    
-    SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xFF, 0xFF);
-    SDL_RenderDebugText(renderer, 50, 80, "This is your menu. It isn't very done, hai!"); */
 
     Style_t CS;
     CS.padding = 4;
