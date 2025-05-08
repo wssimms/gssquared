@@ -22,17 +22,6 @@
 #include "debug.hpp"
 #include "display.hpp"
 
-uint32_t hgr_mono_color_table[2] = {
-    0x000000FF,
-    0x009933FF,
-};
-
-uint32_t hgr_mono_table[DM_NUM_MONO_MODES] = {
-    0xFFFFFFFF, // white
-    0x00FF55FF, // 0x009933FF  // green
-    0xFFBF00FF, // amber.
-};
-
 uint32_t hgr_color_table[4] = { //    Cur   Col   D7
     0xDC43E1FF, // purple              1     0     0
     0x40DE00FF, // green               1     1     0
@@ -40,68 +29,9 @@ uint32_t hgr_color_table[4] = { //    Cur   Col   D7
     0xff5000FF, // orange              1     1     1
 };
 
-#if 0
-void render_hgr_scanline_mono(cpu_state *cpu, int y, void *pixels, int pitch) {
-    
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    display_mono_color_t color_mode = ds->display_mono_color;
-    uint32_t color_value = hgr_mono_table[color_mode];
-    display_page_t *display_page = ds->display_page_table;
-    uint16_t *HGR_PAGE_TABLE = display_page->hgr_page_table;
-
-    int pitchoff = pitch / 4;
-
-    uint8_t lastBitOn = 0; // set to 0 at start of scanline.
-
-    uint32_t* texturePixels = (uint32_t*)pixels;
-    for (int row = 0; row < 8; row++) {
-        uint32_t base = row * pitchoff;
-
-        for (int x = 0; x < 40; x++) {
-            int charoff = x * 14;
-
-            uint16_t address = HGR_PAGE_TABLE[y] + (row * 0x0400) + x;
-            uint8_t character = raw_memory_read(cpu, address);
-            uint8_t ch_D7 = character & 0x80;
-
-            for (int bit = 0; bit < 14; bit+=2) {
-                uint8_t thisBitOn = (character & 0x01);
-                uint32_t pixel = thisBitOn ? color_value : 0x000000FF;
-                if (ch_D7 == 0) { // no delay
-                    texturePixels[base + charoff + bit ] = pixel;
-                    texturePixels[base + charoff + bit + 1] = 0x000000FF;
-                } else {
-                    texturePixels[base + charoff + bit ] = 0x000000FF;
-                    texturePixels[base + charoff + bit + 1] = pixel;
-                }
-
-                if (thisBitOn && lastBitOn) { // if last bit was also on, then this is a "double wide white" pixel.
-                    texturePixels[base + charoff + bit - 1] = color_value;
-                    texturePixels[base + charoff + bit] = color_value;
-                    texturePixels[base + charoff + bit + 1] = color_value;
-                }
-
-                lastBitOn = (character & 0x01);
-
-                character >>= 1;
-            }
-        }
-    }
-}
-#endif 
-
 void render_hgr_scanline(cpu_state *cpu, int y, void *pixels, int pitch) {
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-
-
-        render_hgr_scanline_color(cpu, y, pixels, pitch);
-
-}
-
-void render_hgr_scanline_color(cpu_state *cpu, int y, void *pixels, int pitch) {
     
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-
 
     display_page_t *display_page = ds->display_page_table;
     uint16_t *HGR_PAGE_TABLE = display_page->hgr_page_table;

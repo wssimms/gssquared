@@ -52,7 +52,6 @@ typedef enum {
     LM_HIRES_MODE   = 2
 } line_mode_t;
 
-
 /** Display Modes */
 
 typedef enum {
@@ -75,16 +74,7 @@ typedef enum {
     DM_NUM_PIXEL_MODES
 } display_pixel_mode_t;
 
-/* typedef enum {
-    DM_RENDER_COLOR = 0,
-    DM_RENDER_MONO,
-    DM_NUM_COLOR_MODES
-} display_color_mode_t; */
-
 /** End Display Modes */
-
-
-
 
 typedef uint16_t display_page_table_t[24] ;
 
@@ -108,13 +98,6 @@ typedef enum {
     DISPLAY_FULLSCREEN_MODE = 1,
     NUM_FULLSCREEN_MODES
 } display_fullscreen_mode_t;
-
-/* typedef enum {
-    DISPLAY_MODEL_RGB = 0,
-    DISPLAY_MODEL_COMP,
-    NUM_DISPLAY_HGR_MODELS
-} display_hgr_model_t;
- */
 
 typedef class display_state_t {
 

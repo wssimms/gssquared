@@ -21,6 +21,4 @@
 #include "cpu.hpp"
 
 void hgr_memory_write(cpu_state *cpu, uint16_t address, uint8_t value);
-void render_hgr_scanline_mono(cpu_state *cpu, int y, void *pixels, int pitch);
-void render_hgr_scanline_color(cpu_state *cpu, int y, void *pixels, int pitch);
 void render_hgr_scanline(cpu_state *cpu, int y, void *pixels, int pitch);
