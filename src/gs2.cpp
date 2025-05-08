@@ -243,7 +243,7 @@ void run_cpus(void) {
         uint64_t event_time;
         uint64_t app_event_time;
 
-        bool this_free_run = (cpu->clock_mode == CLOCK_FREE_RUN) || (any_diskii_motor_on(cpu));
+        bool this_free_run = (cpu->clock_mode == CLOCK_FREE_RUN)/*  || (any_diskii_motor_on(cpu)) */;
 
         if ((this_free_run) && (current_time - last_event_update > 16667000)
             || (!this_free_run)) {
