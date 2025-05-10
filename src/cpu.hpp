@@ -171,6 +171,20 @@ struct cpu_state {
     };
     union {
         struct {
+            #if defined(__LITTLE_ENDIAN__)
+                uint8_t d_lo;  /* Lower 8 bits of Direct Page Register */
+                uint8_t d_hi;  /* Upper 8 bits of Direct Page Register */
+            #elif defined(__BIG_ENDIAN__)
+                uint8_t d_hi;  /* Upper 8 bits of Direct Page Register */
+                uint8_t d_lo;  /* Lower 8 bits of Y Index Register */
+            #else
+                #error "Endianness not defined. Please define __LITTLE_ENDIAN__ or __BIG_ENDIAN__"
+            #endif
+        };
+        uint16_t d;   /* Full 16-bit Y Index Register */
+    };
+    union {
+        struct {
             uint8_t C : 1;  /* Carry Flag */
             uint8_t Z : 1;  /* Zero Flag */
             uint8_t I : 1;  /* Interrupt Disable Flag */
