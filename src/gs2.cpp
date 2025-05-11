@@ -244,7 +244,7 @@ void run_cpus(void) {
         uint64_t event_time;
         uint64_t app_event_time;
 
-        bool this_free_run = (cpu->clock_mode == CLOCK_FREE_RUN) || (any_diskii_motor_on(cpu));
+        bool this_free_run = (cpu->clock_mode == CLOCK_FREE_RUN) || (gs2_app_values.disk_accelerator && (any_diskii_motor_on(cpu)));
 
         if ((this_free_run) && (current_time - last_event_update > 16667000)
             || (!this_free_run)) {
@@ -413,7 +413,7 @@ int main(int argc, char *argv[]) {
 
     if (gs2_app_values.console_mode) {
         // parse command line optionss
-        while ((opt = getopt(argc, argv, "p:a:b:d:")) != -1) {
+        while ((opt = getopt(argc, argv, "xp:a:b:d:")) != -1) {
             switch (opt) {
                 case 'p':
                     platform_id = std::stoi(optarg);
@@ -447,6 +447,9 @@ int main(int argc, char *argv[]) {
                             disks_to_mount.push_back({slot, drive, filename});
                         }
                     }
+                    break;
+                case 'x':
+                    gs2_app_values.disk_accelerator = true;
                     break;
                 default:
                     std::cerr << "Usage: " << argv[0] << " [-p platform] [-a program.bin] [-b loader.bin] [-dsXdX=filename]\n";

@@ -34,6 +34,7 @@ typedef uint8_t opcode_t;
 typedef struct gs2_app_t {
     const char *base_path;
     bool console_mode = false;
+    bool disk_accelerator = false;
 } gs2_app_t;
 
 extern gs2_app_t gs2_app_values;
