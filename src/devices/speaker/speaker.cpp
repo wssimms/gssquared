@@ -17,6 +17,7 @@
 
 #include <cstdio>
 #include <SDL3/SDL.h>
+#include <cmath>
 
 /* #include <mach/mach_time.h> */
 
