@@ -327,6 +327,8 @@ add_subdirectory(apps/denibblizer)
 
 add_subdirectory(apps/diskid)
 
+add_subdirectory(apps/speaker)
+
 # Update the executable's include directories to remove redundant paths
 target_include_directories(gs2 PRIVATE
     ${CMAKE_SOURCE_DIR}/src
