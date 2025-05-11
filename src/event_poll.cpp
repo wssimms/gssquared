@@ -57,8 +57,8 @@ bool handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
         return true; 
     }
     if (key == SDLK_F8) {
-        //toggle_speaker_recording(cpu);
-        debug_dump_disk_images(cpu);
+        toggle_speaker_recording(cpu);
+        //debug_dump_disk_images(cpu);
         return true;
     }
     if (key == SDLK_F5) {
