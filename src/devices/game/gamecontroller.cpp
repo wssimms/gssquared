@@ -19,6 +19,7 @@
  * "Game Controller" or "Game Input"
  * 
  */
+#include <cmath>
 
 #include <SDL3/SDL.h>
 #include "gs2.hpp"
