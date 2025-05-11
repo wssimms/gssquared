@@ -25,6 +25,7 @@
 #include "debug.hpp"
 #include "bus.hpp"
 #include "devices/speaker/speaker.hpp"
+#include "devices/speaker/LowPass.hpp"
 
 /**
  * Each audio frame is for 17000 samples per frame (1020500 samples/second, 1/60th second)
