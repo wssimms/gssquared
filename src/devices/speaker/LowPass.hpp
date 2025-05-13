@@ -33,8 +33,19 @@ public:
     void setCoefficients(double cutoffFreq, double sampleRate);
 
     // Process a single sample
-    double process(double input);
+    /* double process(double input); */
+    inline double process(double input) {
+    // Calculate output
+    double output = b0 * input + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
     
+    // Update state variables
+    x2 = x1;
+    x1 = input;
+    y2 = y1;
+    y1 = output;
+    
+    return output;
+}
     // Process a block of samples
     std::vector<double> processBlock(const std::vector<double>& inputBlock);
     

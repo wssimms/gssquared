@@ -37,7 +37,7 @@ void LowPassFilter::setCoefficients(double cutoffFreq, double sampleRate) {
 }
 
 // Process a single sample
-double LowPassFilter::process(double input) {
+/* double LowPassFilter::process(double input) {
     // Calculate output
     double output = b0 * input + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
     
@@ -48,7 +48,7 @@ double LowPassFilter::process(double input) {
     y1 = output;
     
     return output;
-}
+} */
 
 // Process a block of samples
 std::vector<double> LowPassFilter::processBlock(const std::vector<double>& inputBlock) {

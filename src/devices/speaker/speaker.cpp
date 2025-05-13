@@ -50,8 +50,8 @@ uint64_t audio_generate_frame(cpu_state *cpu, uint64_t cycle_window_start, uint6
     int16_t *working_buffer = speaker_state->working_buffer;
     EventBuffer *event_buffer = &speaker_state->event_buffer;
 
-    static uint64_t ns_per_sample = 1000000000 / SAMPLE_RATE;  // 22675.736
-    static uint64_t ns_per_cycle = cpu->cycle_duration_ns; // must calculate from actual results in ludicrous speed
+    //static uint64_t ns_per_sample = 1000000000 / SAMPLE_RATE;  // 22675.736
+    //static uint64_t ns_per_cycle = cpu->cycle_duration_ns; // must calculate from actual results in ludicrous speed
 
     if (cycle_window_start == 0 && cycle_window_end == 0) {
         printf("audio_generate_frame: first time send empty frame and a bit more\n");
@@ -95,7 +95,7 @@ uint64_t audio_generate_frame(cpu_state *cpu, uint64_t cycle_window_start, uint6
     uint64_t cyc = cycle_window_start;
 
     for (uint64_t samp = 0; samp < samples_count; samp++) {
-        float contribution = 0;
+        double contribution = 0;
         for (uint64_t cyc_i = 0; cyc_i < cycles_per_sample; cyc_i ++) {
             if (event_buffer->peek_oldest(event_tick)) { // only do this if there is an event in the buffer.
                 if (event_tick <= cyc) {
@@ -108,10 +108,10 @@ uint64_t audio_generate_frame(cpu_state *cpu, uint64_t cycle_window_start, uint6
             cyc++;
         }
 
-        float raw_sample_value = 0.0f;
+        double raw_sample_value = 0.0f;
         if (cycles_per_sample > 0) {
             // Calculate raw sample value
-            raw_sample_value = (contribution / (float)cycles_per_sample) * speaker_state->amplitude;
+            raw_sample_value = (contribution / (double)cycles_per_sample) * speaker_state->amplitude;
         } else {
             // there was no change in speaker state during this cycle.
             // if cycles_per_sample is 0, then something is very wrong. called during startup?
@@ -119,7 +119,7 @@ uint64_t audio_generate_frame(cpu_state *cpu, uint64_t cycle_window_start, uint6
         }
         
         //float final_value = applyLowPassFilter(speaker_state->current_value);
-        float final_value = speaker_state->postFilter->process(raw_sample_value);
+        double final_value = speaker_state->postFilter->process(raw_sample_value);
         if (final_value > 32767.0f) final_value = 32767.0f;
         if (final_value < -32768.0f) final_value = -32768.0f;
         
@@ -204,9 +204,9 @@ void init_mb_speaker(cpu_state *cpu, SlotType_t slot) {
         register_C0xx_memory_write_handler(addr, speaker_memory_write);
     }
     speaker_state->preFilter = new LowPassFilter();
-    speaker_state->preFilter->setCoefficients(8000.0f, (float)1020500); // 1020500 is actual possible sample rate of input toggles.
+    speaker_state->preFilter->setCoefficients(8000.0f, (double)1020500); // 1020500 is actual possible sample rate of input toggles.
     speaker_state->postFilter = new LowPassFilter();
-    speaker_state->postFilter->setCoefficients(8000.0f, (float)SAMPLE_RATE);
+    speaker_state->postFilter->setCoefficients(8000.0f, (double)SAMPLE_RATE);
 }
 
 void speaker_start(cpu_state *cpu) {

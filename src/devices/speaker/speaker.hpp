@@ -75,9 +75,9 @@ typedef struct speaker_state_t {
     SDL_AudioDeviceID device_id = 0;
     SDL_AudioStream *stream = NULL;
     int device_started = 0;
-    float polarity = 1.0f;
-    float target_polarity = 1.0f;
-    float amplitude = AMPLITUDE_PEAK; // suggested 50%
+    double polarity = 1.0f;
+    double target_polarity = 1.0f;
+    double amplitude = AMPLITUDE_PEAK; // suggested 50%
 
     LowPassFilter *preFilter;
     LowPassFilter *postFilter;
