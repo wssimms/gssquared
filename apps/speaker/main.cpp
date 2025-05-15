@@ -145,28 +145,36 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    cpu.cycles = 17000;
 
     init_mb_speaker(&cpu, SLOT_NONE);
     // load events into the event buffer that is allocated by the speaker module.
     speaker_state_t *speaker_state = (speaker_state_t *)get_module_state(&cpu, MODULE_SPEAKER);
     uint64_t event;
+
+    // skip any long silence, start playback / reconstruction at first event.
+    uint64_t first_event = 0;
+    uint64_t last_event = 0;
+
     while (fscanf(recording, "%llu", &event) != EOF) {
         speaker_state->event_buffer.add_event(event);
-        /* if (debug_level & DEBUG_SPEAKER) {
-            fprintf(stdout, "Event: %llu\n", event);
-        } */
+        if (first_event == 0) {
+            first_event = event;
+        }
+        last_event = event;
     }
     fclose(recording);
 
     speaker_start(&cpu);
 
+    cpu.cycles = first_event;
+
     if (write_output) {
         wav_file = create_wav_file("test.wav");
     }
     uint64_t cycle_window_last = 0;
-    
-    for (int i = 0; i < ((event / 17000)); i++) {
+    uint64_t num_frames = ((last_event - first_event) / 17000);
+
+    for (int i = 0; i < num_frames; i++) {
         event_poll_local(&cpu);
         
         uint64_t samps = audio_generate_frame(&cpu, cycle_window_last, cpu.cycles);
