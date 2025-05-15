@@ -10,6 +10,8 @@ set(BUILD_SHARED_LIBS OFF)
 if(APPLE)
     set(CMAKE_OSX_SYSROOT "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk")
     set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0")
+    # Fat binary for arm64 and x86_64
+    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
 
     # Mac-specific bundle configuration
     set(MACOSX_BUNDLE_ICON_FILE gs2.icns)
@@ -153,6 +155,12 @@ function(configure_sdl_builds)
     if(APPLE)
         set(CMAKE_OSX_SYSROOT "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk" CACHE PATH "SDK path" FORCE)
         set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "Deployment target" FORCE)
+        if(APPLE_ARCHITECTURE)
+            set(CMAKE_OSX_ARCHITECTURES ${APPLE_ARCHITECTURE})
+        else()
+            set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
+        endif()
+        #set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Build architectures for OS X" FORCE)
     endif()
     
     set(SDL_SHARED ON)
