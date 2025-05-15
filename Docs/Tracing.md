@@ -23,6 +23,7 @@ struct system_log_entry_t {
     uint16_t x;
     uint16_t y;
     uint16_t sp;
+    uint16_t d;
     uint8_t p;
     uint8_t db;
     uint8_t pb;
@@ -36,7 +37,7 @@ cpu {
     alignas(64) log_entry_t log;
 }
 
-12 + 11 + 1 + 2 + 1 = 29 <- sweet
+12 + 11 + 1 + 2 + 1 = 31 <- sweet
 
 This records the opcode and operand data; the values of registers before execution of the instruction; and the memory value read or written.
 

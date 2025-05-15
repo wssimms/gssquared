@@ -4,10 +4,9 @@
 #include "display/display.hpp"
 
 video_system_t::video_system_t() {
-    
-    // TODO: this is to suggest opengl. metal backlogs periodically.
-    //SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
 
+    //SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
+    //SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         fprintf(stderr, "Error initializing SDL: %s\n", SDL_GetError());
     }

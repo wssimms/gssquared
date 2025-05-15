@@ -3760,3 +3760,77 @@ And, the video_system_t should be a class, with constructor, destructor, and mor
 
 That's a fair bit cleaner.
 
+## May 9, 2025
+
+Star Wars II is cool, but the paddle axes are exactly backwards from what makes sense on a joystick. Ugh. So we need a "reverse paddle/joystick axes" button.
+
+## May 10, 2025
+
+did some thinking about trace architecture. See the Tracing file.
+
+Doing some work on the speaker. It's still buzzy. I don't like that. OE's speaker beep is very clear, and has relatively high frequency pitch.
+I put a filter on the output, and it doesn't affect the buzziness, but it does dampen the high frequencies making it sound muffled.
+
+test-first - starting point
+
+test-2nd: set decay rate to 0x20 (was 0x200)
+
+test-3rd: set filter alpha from 0.6 to 0.3
+this produces a much smoother incline - HOWEVER.
+the start of a transition is very sharp. The end of a transition is very smooth. in OE, the output is nearly linear.
+changing alpha to 0.1 makes the waveforms very nearly a sawtooth or triangle wave. The frequencies cut off around 9khz. BUT there were still frequency spikes at higher frequencies! Hmmm.
+
+
+oh that's interesting. OE is using 48K samples, we're using 44.1K samples. 
+
+*** So, we can have a fractional cycle contribution per sample.
+
+oh holy shit. I set the sample rate to 102000, samples per frame 1700. This creates an even divisor and the output is PERFECT.
+
+SO. The issue all along has been, we are introducing noise probably for several reasons. But the big one was, we were not accounting for fractional cycles in sample calculation. I suppose after the loop is over I could do a one-time check for 
+
+lots of testing. That was DEFINITELY the issue.
+
+Timelord has a high pitched whine on GS2, OE, and a fuzzy whine on Virtual II. Ugh. Guess what? On the real thing, it doesn't.
+
+So, have to figure out a good filter system. And, figure out how to handle the fractional cycle contribution. BUT IT WORKS.
+
+I believe SDL3 is properly doing resampling as needed in software, even with weird non-standard sample rate etc. No need to complexify my algorithm. However, we might benefit from a low-pass filter of the input square samples before we cram it into SDL. And, might experiment a bit with the parameters. (Yes, I did a low-pass on the individual cycle samples as we accumulate in the contribution, and a second low pass after downsampling.)
+
+I wonder what would happen if I passed in 1020500 samples per second to SDL and forewent all my contribution stuff.. there's only one way to find out!
+
+On Mini, audio_time is now 40-50uS. On PC, it's 130uS. So this is quite a bit slower than before.
+
+So, the audio routines are currently taking between 40 and 50 microseconds. This is pretty good, but I will miss when they didn't sound right but only took 6 microseconds. Ten times faster but garbage, ha ha. So, there are these following potential optimizations:
+
+* switch to fixed-point math?
+* maybe we can SIMD the filters by filtering the whole input and output frame all at once, instead of inline in the code.
+
+## May 12, 2025
+
+"For read operations, it's usually OK to read from a wrong address first, then reread from the correct address afterwards. You definitely don't want to write to a wrong address though, so on STA nnnn,X, the write is always on the 5th cycle (when the address is fully calculated), and the 4th cycle (where the address is sometimes wrong) is just a read that gets thrown away."
+
+this is 6502 voodoo! if it's a RAM read nobody cares, but, if it's a I/O read it could impact a state machine. For instance, 
+
+https://stackoverflow.com/questions/78183925/need-clarification-on-the-dummy-read-in-absolute-x-indexed
+https://retrocomputing.stackexchange.com/questions/14801/6502-false-reads-and-apple-ii-i-o
+https://groups.google.com/g/comp.sys.apple2.programmer/c/qk7MZPRgVXI
+
+This may NOT be present in 65c02, but MAY be present again in 65c816.
+
+audit.dsk fails test 0007 due to this: I am not doing the false reads. I guess I will have to look into that! That could be breaking a few other things..
+
+```
+	clc					; Read $C083, $C083 (read/write RAM bank 2)
+	ldx #0					; Uses "6502 false read"
+	inc $C083,x				;
+	jsr .test				;
+	!byte $23, $34, $11, $23, $34		;
+						;
+```
+
+Audio: Changing everything to double and making process() an inline cut audio frame processing time by 50%.
+
+## May 14, 2025
+
+implemented SDL_DelayPrecise instead of busy-waiting, which apparently is working quite well. It "sneaks" up on the desired time delay. That is basically the algorithm I was contemplating recently. Works great! Only 4% cpu use!

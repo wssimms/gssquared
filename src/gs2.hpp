@@ -35,6 +35,7 @@ typedef struct gs2_app_t {
     const char *base_path;
     bool console_mode = false;
     bool disk_accelerator = false;
+    bool sleep_mode = false;
 } gs2_app_t;
 
 extern gs2_app_t gs2_app_values;

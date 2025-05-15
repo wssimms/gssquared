@@ -113,7 +113,7 @@ Dies during game load with gazillions of unknown opcodes.
 
 ## Karateka (Brutal Deluxe crack)
 
-seems to be working quite well!
+seems to be working quite well! (fixed inability to run by updating joystick code)
 
 ## Alien Typhoon
 
@@ -123,3 +123,10 @@ in paddle mode, even when joystick is still, the paddle reading is very jittery.
 
 Ascii Express 3.46 loads. Of course, we don't have any serial ports on here right now. But, it also boots up into 80 column mode when it sees the Videx Videoterm! ha!
 
+## Wizardry
+
+if there's a Videx, wizardry (aka Pascal) turns it on. Then all you see is the Videx screen. Huh.
+
+## Epyx Preview Disk
+
+baseball ok. Winter Games, something's not right, is it trying to double-buffer and it isn't triggering correctly?

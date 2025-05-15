@@ -320,3 +320,12 @@ So the dominant is not the only important thing, but, is just the peak.
 
 OK, I have continued refactoring the code here, I have it from 28ms down to 16ms by eliminating unnecessary arrays, flattening applyFilter and yiqtorgb into processappleIIScanline_lut. Combined two loops into one that were operating on the same indexes. Made the processing of the filter linear instead of center, then outside + and - etc repeating until 8. The next chunk - the code is using an integer to iterate through all 128k possible bit combinations; it is then generating an array of 17 bytes to represent these. Then it calls processScanline, which parses those bytes. 
 inputScanline[x] is being accessed in order. So instead of generating and reading bytes, let's just pass in the int and process the bits right in processAppleIIscanline_lut. That shaved another 2ms. 
+
+## Further Discussion
+
+I see this referenced here:
+
+https://groups.google.com/g/comp.sys.apple2/c/X_LKB6t6njE
+https://observablehq.com/@zellyn/apple-ii-ntsc-emulation-openemulator-explainer
+https://zellyn.com/apple2shader/ - the webgl port of openemulator ntsc code. 
+https://github.com/zellyn/apple2shader

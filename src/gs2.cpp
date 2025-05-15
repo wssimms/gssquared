@@ -371,12 +371,15 @@ void run_cpus(void) {
                 cpu->clock_slip++;
                 printf("Clock slip: event_time: %10llu, audio_time: %10llu, display_time: %10llu, app_event_time: %10llu, total: %10llu\n", event_time, audio_time, display_time, app_event_time, event_time + audio_time + display_time + app_event_time);
             } else {
-                // busy wait sync cycle time
-                SDL_DelayPrecise(wakeup_time - SDL_GetTicksNS());
-/*                 do {
-                    sleep_loops++;
-                } while (SDL_GetTicksNS() < wakeup_time);
- */            }
+                if (gs2_app_values.sleep_mode) {
+                    SDL_DelayPrecise(wakeup_time - SDL_GetTicksNS());
+                } else {
+                    // busy wait sync cycle time
+                    do {
+                        sleep_loops++;
+                    } while (SDL_GetTicksNS() < wakeup_time);
+                }
+            }
         }
 
         //printf("event_time / audio time / display time / total time: %9llu %9llu %9llu %9llu\n", event_time, audio_time, display_time, event_time + audio_time + display_time);
@@ -414,7 +417,7 @@ int main(int argc, char *argv[]) {
 
     if (gs2_app_values.console_mode) {
         // parse command line optionss
-        while ((opt = getopt(argc, argv, "xp:a:b:d:")) != -1) {
+        while ((opt = getopt(argc, argv, "sxp:a:b:d:")) != -1) {
             switch (opt) {
                 case 'p':
                     platform_id = std::stoi(optarg);
@@ -452,8 +455,13 @@ int main(int argc, char *argv[]) {
                 case 'x':
                     gs2_app_values.disk_accelerator = true;
                     break;
+                case 's':
+                    gs2_app_values.sleep_mode = true;
+                    break;
                 default:
-                    std::cerr << "Usage: " << argv[0] << " [-p platform] [-a program.bin] [-b loader.bin] [-dsXdX=filename]\n";
+                    std::cerr << "Usage: " << argv[0] << " [-p platform] [-a program.bin] [-b loader.bin] [-dsXdX=filename] [-x] [-s] \n";
+                    std::cerr << "  -s: sleep mode (don't busy-wait, sleep)\n";
+                    std::cerr << "  -x: disk accelerator (speed up CPU when disk II drive is active)\n";
                     //fprintf(stderr, "Usage: %s [-p platform] [-a program.bin] [-b loader.bin] [-dsXdX=filename]\n", argv[0]);
                     exit(1);
             }
