@@ -72,9 +72,6 @@ uint64_t audio_generate_frame(cpu_state *cpu, uint64_t cycle_window_start, uint6
         SDL_PutAudioStreamData(speaker_state->stream, working_buffer, SAMPLES_PER_FRAME*sizeof(int16_t));
     }
 
-    // is it more accurate to convert cycles to time then to samples??
-    // convert cycles to time
-
     uint64_t samples_count = SAMPLES_PER_FRAME; // (time_delta / ns_per_sample)+1; // 734.7 - round up to 735
 
     // if samples_count is too large (say, 1500) then we have somehow fallen behind,
@@ -115,7 +112,7 @@ uint64_t audio_generate_frame(cpu_state *cpu, uint64_t cycle_window_start, uint6
         } else {
             // there was no change in speaker state during this cycle.
             // if cycles_per_sample is 0, then something is very wrong. called during startup?
-            raw_sample_value = speaker_state->amplitude * speaker_state->polarity;
+            raw_sample_value = speaker_state->polarity * speaker_state->amplitude;
         }
         
         //float final_value = applyLowPassFilter(speaker_state->current_value);
@@ -127,8 +124,7 @@ uint64_t audio_generate_frame(cpu_state *cpu, uint64_t cycle_window_start, uint6
 
         // Modified amplitude decay - slightly more natural exponential decay
         speaker_state->amplitude *= 0.997f; // Exponential decay factor
-        if (speaker_state->amplitude < 0) speaker_state->amplitude = 0;
-
+        //if (speaker_state->amplitude < 0) speaker_state->amplitude = 0; // don't think this matters any more
     }
     // copy samples out to audio stream
     SDL_PutAudioStreamData(speaker_state->stream, working_buffer, samples_count*sizeof(int16_t));
