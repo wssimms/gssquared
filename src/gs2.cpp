@@ -372,10 +372,11 @@ void run_cpus(void) {
                 printf("Clock slip: event_time: %10llu, audio_time: %10llu, display_time: %10llu, app_event_time: %10llu, total: %10llu\n", event_time, audio_time, display_time, app_event_time, event_time + audio_time + display_time + app_event_time);
             } else {
                 // busy wait sync cycle time
-                do {
+                SDL_DelayPrecise(wakeup_time - SDL_GetTicksNS());
+/*                 do {
                     sleep_loops++;
                 } while (SDL_GetTicksNS() < wakeup_time);
-            }
+ */            }
         }
 
         //printf("event_time / audio time / display time / total time: %9llu %9llu %9llu %9llu\n", event_time, audio_time, display_time, event_time + audio_time + display_time);
