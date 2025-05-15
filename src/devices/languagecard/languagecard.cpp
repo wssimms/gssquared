@@ -128,7 +128,7 @@ void set_memory_pages_based_on_flags(cpu_state *cpu) {
 uint8_t languagecard_read_C0xx(cpu_state *cpu, uint16_t address) {
     languagecard_state_t *lc = (languagecard_state_t *)get_module_state(cpu, MODULE_LANGCARD);
 
-    if (DEBUG(DEBUG_LANGCARD)) printf("languagecard_read_%04X [%llu] ", address, cpu->cycles);
+    if (DEBUG(DEBUG_LANGCARD)) printf("languagecard read %04X [%llu] ", address, cpu->cycles);
 
     if (address & LANG_A3 ) {
         // 1 = any access sets Bank_1
@@ -182,7 +182,7 @@ uint8_t languagecard_read_C0xx(cpu_state *cpu, uint16_t address) {
 void languagecard_write_C0xx(cpu_state *cpu, uint16_t address, uint8_t value) {
     languagecard_state_t *lc = (languagecard_state_t *)get_module_state(cpu, MODULE_LANGCARD);
 
-    if (DEBUG(DEBUG_LANGCARD)) printf("languagecard_write_C0xx %04X value: %02X\n", address, value);
+    if (DEBUG(DEBUG_LANGCARD)) printf("languagecard write %04X value: %02X\n", address, value);
     lc->FF_PRE_WRITE = 0;
 
     if (address & LANG_A3 ) {
