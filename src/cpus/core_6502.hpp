@@ -78,7 +78,7 @@ inline void add_and_set_flags(cpu_state *cpu, uint8_t N) {
         cpu->C = (S & 0x0100) >> 8;
         cpu->V =  !((M ^ N) & 0x80) && ((M ^ S8) & 0x80); // from 6502.org article https://www.righto.com/2012/12/the-6502-overflow-flag-explained.html?m=1
         set_n_z_flags(cpu, cpu->a_lo);
-        if (DEBUG(DEBUG_REGISTERS)) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  C: %02X  V: %02X", M, N, cpu->a_lo, cpu->C, cpu->V);
+        //if (DEBUG(DEBUG_REGISTERS)) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  C: %02X  V: %02X", M, N, cpu->a_lo, cpu->C, cpu->V);
     } else {              // decimal mode
         uint8_t M = bcd_to_int(cpu->a_lo);
         uint8_t N1 = bcd_to_int(N);
@@ -86,7 +86,7 @@ inline void add_and_set_flags(cpu_state *cpu, uint8_t N) {
         cpu->a_lo = int_to_bcd(S8);
         cpu->C = (S8 > 99);
         set_n_z_flags(cpu, cpu->a_lo);
-        if (DEBUG(DEBUG_REGISTERS)) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  C: %02X  V: %02X", M, N, cpu->a_lo, cpu->C, cpu->V);
+        //if (DEBUG(DEBUG_REGISTERS)) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  C: %02X  V: %02X", M, N, cpu->a_lo, cpu->C, cpu->V);
     }
 }
 
@@ -104,7 +104,7 @@ inline uint8_t subtract_core(cpu_state *cpu, uint8_t M, uint8_t N, uint8_t C) {
     cpu->C = (S & 0x0100) >> 8;
     cpu->V =  !((M ^ N1) & 0x80) && ((M ^ S8) & 0x80);
     set_n_z_flags(cpu, S8);
-    if (DEBUG(DEBUG_REGISTERS)) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  C: %01X  V: %01X Z: %01X", M, N, S8, cpu->C, cpu->V, cpu->Z);
+    //if (DEBUG(DEBUG_REGISTERS)) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  C: %01X  V: %01X Z: %01X", M, N, S8, cpu->C, cpu->V, cpu->Z);
     return S8;
 }
 
@@ -121,7 +121,7 @@ inline void subtract_and_set_flags(cpu_state *cpu, uint8_t N) {
         cpu->V =  !((M ^ N1) & 0x80) && ((M ^ S8) & 0x80);
         cpu->a_lo = S8; // store the result in the accumulator. I accidentally deleted this before.
         set_n_z_flags(cpu, S8);
-        if (DEBUG(DEBUG_REGISTERS)) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  Z:%01X C:%01X N:%01X V:%01X ", M, N, S8, cpu->Z, cpu->C, cpu->N, cpu->V);
+        //if (DEBUG(DEBUG_REGISTERS)) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  Z:%01X C:%01X N:%01X V:%01X ", M, N, S8, cpu->Z, cpu->C, cpu->N, cpu->V);
     } else {
         uint8_t M = bcd_to_int(cpu->a_lo);
         uint8_t N1 = bcd_to_int(N);
@@ -134,7 +134,7 @@ inline void subtract_and_set_flags(cpu_state *cpu, uint8_t N) {
         }
         cpu->a_lo = int_to_bcd(S8);
         set_n_z_flags(cpu, cpu->a_lo);
-        if (DEBUG(DEBUG_REGISTERS)) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  Z:%01X C:%01X N:%01X V:%01X ", M, N, S8, cpu->Z, cpu->C, cpu->N, cpu->V);
+        //if (DEBUG(DEBUG_REGISTERS)) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  Z:%01X C:%01X N:%01X V:%01X ", M, N, S8, cpu->Z, cpu->C, cpu->N, cpu->V);
     }
 }
 
@@ -152,7 +152,7 @@ inline void compare_and_set_flags(cpu_state *cpu, uint8_t M, uint8_t N) {
     //cpu->V =  !((M ^ N1) & 0x80) && ((M ^ S8) & 0x80);
     set_n_z_flags(cpu, S8);
     //if (DEBUG) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  C: %01X  V: %01X Z: %01X", M, N, S8, cpu->C, cpu->V, cpu->Z);
-    if (DEBUG(DEBUG_REGISTERS)) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  Z:%01X C:%01X N:%01X V:%01X ", M, N, S8, cpu->Z, cpu->C, cpu->N, cpu->V);
+    //if (DEBUG(DEBUG_REGISTERS)) fprintf(stdout, "   M: %02X  N: %02X  S: %02X  Z:%01X C:%01X N:%01X V:%01X ", M, N, S8, cpu->Z, cpu->C, cpu->N, cpu->V);
 
 }
 
@@ -163,7 +163,7 @@ inline void compare_and_set_flags(cpu_state *cpu, uint8_t M, uint8_t N) {
 inline void branch_if(cpu_state *cpu, uint8_t N, bool condition) {
     uint16_t oaddr = cpu->pc;
     uint16_t taddr = oaddr + (int8_t) N;
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " => $%04X", taddr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " => $%04X", taddr);
 
     if (condition) {
         if ((oaddr-2) == taddr) { // this test should back up 2 bytes.. so the infinite branch is actually bxx FE.
@@ -178,7 +178,7 @@ inline void branch_if(cpu_state *cpu, uint8_t N, bool condition) {
         if ((oaddr & 0xFF00) != (taddr & 0xFF00)) {
             incr_cycles(cpu);
         }
-        if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " (taken)");
+        //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " (taken)");
     }
 }
 
@@ -199,34 +199,39 @@ inline void branch_if(cpu_state *cpu, uint8_t N, bool condition) {
 /* These also generate the disassembly output - the operand address and mode */
 inline zpaddr_t get_operand_address_zeropage(cpu_state *cpu) {
     zpaddr_t zpaddr = read_byte_from_pc(cpu);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%02X", zpaddr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%02X", zpaddr);
+    TRACE(cpu->trace_entry.operand = zpaddr; cpu->trace_entry.eaddr = zpaddr; )
     return zpaddr;
 }
 
 inline zpaddr_t get_operand_address_zeropage_x(cpu_state *cpu) {
     zpaddr_t zpaddr = read_byte_from_pc(cpu);
     zpaddr_t taddr = zpaddr + cpu->x_lo; // make sure it wraps.
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%02X,X", zpaddr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%02X,X", zpaddr);
+    TRACE(cpu->trace_entry.operand = zpaddr; cpu->trace_entry.eaddr = taddr; )
     return taddr;
 }
 
 inline zpaddr_t get_operand_address_zeropage_y(cpu_state *cpu) {
     zpaddr_t zpaddr = read_byte_from_pc(cpu);
     zpaddr_t taddr = zpaddr + cpu->y_lo; // make sure it wraps.
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%02X,Y", zpaddr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%02X,Y", zpaddr);
+    TRACE(cpu->trace_entry.operand = zpaddr; cpu->trace_entry.eaddr = taddr; )
     return taddr;
 }
 
 inline absaddr_t get_operand_address_absolute(cpu_state *cpu) {
     absaddr_t addr = read_word_from_pc(cpu);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%04X", addr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%04X", addr);
+    TRACE(cpu->trace_entry.operand = addr; cpu->trace_entry.eaddr = addr; )
     return addr;
 }
 
 inline absaddr_t get_operand_address_absolute_indirect(cpu_state *cpu) {
     absaddr_t addr = read_word_from_pc(cpu);
     absaddr_t taddr = read_word(cpu, addr);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " ($%04X) -> $%04X", addr, taddr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " ($%04X) -> $%04X", addr, taddr);
+    TRACE(cpu->trace_entry.operand = addr; cpu->trace_entry.eaddr = taddr; )
     return taddr;
 }
 
@@ -236,7 +241,8 @@ inline absaddr_t get_operand_address_absolute_x(cpu_state *cpu) {
     if ((addr & 0xFF00) != (taddr & 0xFF00)) {
         incr_cycles(cpu);
     }
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%04X,X", addr); // can add effective address here.
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%04X,X", addr); // can add effective address here.
+    TRACE(cpu->trace_entry.operand = addr; cpu->trace_entry.eaddr = taddr; )
     return taddr;
 }
 
@@ -246,14 +252,16 @@ inline absaddr_t get_operand_address_absolute_y(cpu_state *cpu) {
     if ((addr & 0xFF00) != (taddr & 0xFF00)) {
         incr_cycles(cpu);
     }
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%04X,Y", addr); // can add effective address here.
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%04X,Y", addr); // can add effective address here.
+    TRACE(cpu->trace_entry.operand = addr; cpu->trace_entry.eaddr = taddr; )
     return taddr;
 }
 
 inline uint16_t get_operand_address_indirect_x(cpu_state *cpu) {
     zpaddr_t zpaddr = read_byte_from_pc(cpu);
     absaddr_t taddr = read_word(cpu,(uint8_t)(zpaddr + cpu->x_lo)); // make sure it wraps.
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " ($%02X,X)  -> $%04X", zpaddr, taddr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " ($%02X,X)  -> $%04X", zpaddr, taddr);
+    TRACE(cpu->trace_entry.operand = zpaddr; cpu->trace_entry.eaddr = taddr;)
     return taddr;
 }
 
@@ -265,7 +273,8 @@ inline absaddr_t get_operand_address_indirect_y(cpu_state *cpu) {
     if ((iaddr & 0xFF00) != (taddr & 0xFF00)) {
         incr_cycles(cpu);
     }
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " ($%02X),Y  -> $%04X", zpaddr, taddr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " ($%02X),Y  -> $%04X", zpaddr, taddr);
+    TRACE(cpu->trace_entry.operand = zpaddr; cpu->trace_entry.eaddr = taddr;)
     return taddr;
 }
 
@@ -273,53 +282,61 @@ inline absaddr_t get_operand_address_indirect_y(cpu_state *cpu) {
 
 inline byte_t get_operand_immediate(cpu_state *cpu) {
     byte_t N = read_byte_from_pc(cpu);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " #$%02X", N);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " #$%02X", N);
+    TRACE(cpu->trace_entry.operand = N;)
     return N;
 }
 
 inline byte_t get_operand_zeropage(cpu_state *cpu) {
     zpaddr_t addr = get_operand_address_zeropage(cpu);
     byte_t N = read_byte(cpu, addr);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " -> #$%02X", N);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " -> #$%02X", N);
+    TRACE(cpu->trace_entry.eaddr = addr; cpu->trace_entry.operand = addr; cpu->trace_entry.data = N;)
     return N;
 }
 
 inline void store_operand_zeropage(cpu_state *cpu, byte_t N) {
     zpaddr_t addr = get_operand_address_zeropage(cpu);
     write_byte(cpu, addr, N);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] -> $%02X", N, addr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] -> $%02X", N, addr);
+    TRACE(cpu->trace_entry.eaddr = addr; cpu->trace_entry.data = N;)
 }
 
 inline byte_t get_operand_zeropage_x(cpu_state *cpu) {
     zpaddr_t addr = get_operand_address_zeropage_x(cpu);
     byte_t N = read_byte(cpu, addr);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%02X] <- $%02X", N, addr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%02X] <- $%02X", N, addr);
+    TRACE(cpu->trace_entry.data = N;)
     return N;
 }
 
 inline void store_operand_zeropage_x(cpu_state *cpu, byte_t N) {
     zpaddr_t addr = get_operand_address_zeropage_x(cpu);
     write_byte(cpu, addr, N);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "  [#%02X] -> $%02X", N, addr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "  [#%02X] -> $%02X", N, addr);
+    TRACE(cpu->trace_entry.data = N;)
 }
 
 inline byte_t get_operand_zeropage_y(cpu_state *cpu) {
     zpaddr_t zpaddr = get_operand_address_zeropage_y(cpu);
     byte_t N = read_byte(cpu, zpaddr);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] <- $%02X", N, zpaddr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] <- $%02X", N, zpaddr);
+    TRACE(cpu->trace_entry.data = N;)
     return N;
 }
 
 inline void store_operand_zeropage_y(cpu_state *cpu, byte_t N) {
     zpaddr_t zpaddr = get_operand_address_zeropage_y(cpu);
     write_byte(cpu, zpaddr, N);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "  [#%02X] -> $%02X", N, zpaddr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "  [#%02X] -> $%02X", N, zpaddr);
+    TRACE(cpu->trace_entry.data = N;)
 }
 
 inline byte_t get_operand_zeropage_indirect_x(cpu_state *cpu) {
     absaddr_t taddr = get_operand_address_indirect_x(cpu);
     byte_t N = read_byte(cpu, taddr);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "  [#%02X] <- $%04X", N, taddr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "  [#%02X] <- $%04X", N, taddr);
+    TRACE( cpu->trace_entry.data = N;)
     return N;
 }
 
@@ -327,63 +344,73 @@ inline void store_operand_zeropage_indirect_x(cpu_state *cpu, byte_t N) {
     absaddr_t taddr = get_operand_address_indirect_x(cpu);
     write_byte(cpu, taddr, N);
     if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] <- $%04X", N, taddr);
+    TRACE( cpu->trace_entry.data = N;)
 }
 
 inline byte_t get_operand_zeropage_indirect_y(cpu_state *cpu) {
     absaddr_t addr = get_operand_address_indirect_y(cpu);
     byte_t N = read_byte(cpu, addr);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "  [#%02X] <- $%04X", N, addr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "  [#%02X] <- $%04X", N, addr);
+    TRACE(cpu->trace_entry.data = N;)
     return N;
 }
 
 inline void store_operand_zeropage_indirect_y(cpu_state *cpu, byte_t N) {
     absaddr_t addr = get_operand_address_indirect_y(cpu);
     write_byte(cpu, addr, N);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] -> $%04X", N, addr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] -> $%04X", N, addr);
+    TRACE(cpu->trace_entry.data = N;)
 }
 
 inline byte_t get_operand_absolute(cpu_state *cpu) {
     absaddr_t addr = get_operand_address_absolute(cpu);
     byte_t N = read_byte(cpu, addr);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] <- $%04X", N, addr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] <- $%04X", N, addr);
+    TRACE(cpu->trace_entry.data = N;)
     return N;
 }
 
 inline void store_operand_absolute(cpu_state *cpu, byte_t N) {
     absaddr_t addr = get_operand_address_absolute(cpu);
     write_byte(cpu, addr, N);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] <- $%04X", N, addr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] <- $%04X", N, addr);
+    TRACE(cpu->trace_entry.data = N;)
 }
 
 inline byte_t get_operand_absolute_x(cpu_state *cpu) {
     absaddr_t addr = get_operand_address_absolute_x(cpu);
     byte_t N = read_byte(cpu, addr);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] <- $%04X", N, addr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] <- $%04X", N, addr);
+    TRACE(cpu->trace_entry.data = N;)
     return N;
 }
 
 inline void store_operand_absolute_x(cpu_state *cpu, byte_t N) {
     absaddr_t addr = get_operand_address_absolute_x(cpu);
     write_byte(cpu, addr, N);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] -> $%04X", N, addr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] -> $%04X", N, addr);
+    TRACE(cpu->trace_entry.data = N;)
 }
 
 inline byte_t get_operand_absolute_y(cpu_state *cpu) {
     absaddr_t addr = get_operand_address_absolute_y(cpu);
     byte_t N = read_byte(cpu, addr);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] <- $%04X", N, addr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] <- $%04X", N, addr);
+    TRACE(cpu->trace_entry.data = N;)
     return N;
 }
 
 inline void store_operand_absolute_y(cpu_state *cpu, byte_t N) {
     absaddr_t addr = get_operand_address_absolute_y(cpu);
     write_byte(cpu, addr, N);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] -> $%04X", N, addr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] -> $%04X", N, addr);
+    TRACE(cpu->trace_entry.data = N;)
 }
 
 inline byte_t get_operand_relative(cpu_state *cpu) {
     byte_t N = read_byte_from_pc(cpu);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " #$%02X", N);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " #$%02X", N);
+    TRACE(cpu->trace_entry.operand = N;)
     return N;
 }
 
@@ -392,27 +419,31 @@ inline void op_transfer_to_x(cpu_state *cpu, byte_t N) {
     cpu->x_lo = N;
     set_n_z_flags(cpu, cpu->x_lo);
     incr_cycles(cpu);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "[#$%02X] -> X", N);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "[#$%02X] -> X", N);
+    TRACE(cpu->trace_entry.data = N;)
 }
 
 inline void op_transfer_to_y(cpu_state *cpu, byte_t N) {
     cpu->y_lo = N;
     set_n_z_flags(cpu, cpu->y_lo);
     incr_cycles(cpu);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "[#$%02X] -> Y", N);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "[#$%02X] -> Y", N);
+    TRACE(cpu->trace_entry.data = N;)
 }
 
 inline void op_transfer_to_a(cpu_state *cpu, byte_t N) {
     cpu->a_lo = N;
     set_n_z_flags(cpu, cpu->a_lo);
     incr_cycles(cpu);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "[#$%02X] -> A", N);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "[#$%02X] -> A", N);
+    TRACE(cpu->trace_entry.data = N;)
 }
 
 inline void op_transfer_to_s(cpu_state *cpu, byte_t N) {
     cpu->sp = N;
     incr_cycles(cpu);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "[#$%02X] -> S", N);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "[#$%02X] -> S", N);
+    TRACE(cpu->trace_entry.data = N;)
 }
 
 /**
@@ -424,30 +455,31 @@ inline void dec_operand(cpu_state *cpu, absaddr_t addr) {
     incr_cycles(cpu);
     write_byte(cpu, addr, N);
     set_n_z_flags(cpu, N);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X]", N);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X]", N);
+    TRACE( cpu->trace_entry.data = N;)
 }
 
 inline void dec_operand_zeropage(cpu_state *cpu) {
     zpaddr_t zpaddr = get_operand_address_zeropage(cpu);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%02X", zpaddr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%02X", zpaddr);
     dec_operand(cpu, zpaddr);
 }
 
 inline void dec_operand_zeropage_x(cpu_state *cpu) {
     zpaddr_t zpaddr = get_operand_address_zeropage_x(cpu);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%02X", zpaddr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%02X", zpaddr);
     dec_operand(cpu, zpaddr);
 }
 
 inline void dec_operand_absolute(cpu_state *cpu) {
     absaddr_t addr = get_operand_address_absolute(cpu);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%04X", addr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%04X", addr);
     dec_operand(cpu, addr);
 }
 
 inline void dec_operand_absolute_x(cpu_state *cpu) {
     absaddr_t addr = get_operand_address_absolute_x(cpu);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%04X", addr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%04X", addr);
     dec_operand(cpu, addr);
 }
 
@@ -460,30 +492,31 @@ inline void inc_operand(cpu_state *cpu, absaddr_t addr) {
     incr_cycles(cpu);
     write_byte(cpu, addr, N);
     set_n_z_flags(cpu, N);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X]", N);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X]", N);
+    TRACE(cpu->trace_entry.data = N;)
 }
 
 inline void inc_operand_zeropage(cpu_state *cpu) {
     zpaddr_t zpaddr = get_operand_address_zeropage(cpu);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%02X", zpaddr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%02X", zpaddr);
     inc_operand(cpu, zpaddr);
 }
 
 inline void inc_operand_zeropage_x(cpu_state *cpu) {
     zpaddr_t zpaddr = get_operand_address_zeropage_x(cpu);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%02X", zpaddr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%02X", zpaddr);
     inc_operand(cpu, zpaddr);
 }
 
 inline void inc_operand_absolute(cpu_state *cpu) {
     absaddr_t addr = get_operand_address_absolute(cpu);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%04X", addr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%04X", addr);
     inc_operand(cpu, addr);
 }
 
 inline void inc_operand_absolute_x(cpu_state *cpu) {
     absaddr_t addr = get_operand_address_absolute_x(cpu);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%04X", addr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " $%04X", addr);
     inc_operand(cpu, addr);
 }
 
@@ -492,7 +525,7 @@ inline byte_t logical_shift_right(cpu_state *cpu, byte_t N) {
     N = N >> 1;
     cpu->C = C;
     set_n_z_flags(cpu, N);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%02X]", N);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%02X]", N);
     return N;
 }
 
@@ -500,7 +533,8 @@ inline byte_t logical_shift_right_addr(cpu_state *cpu, absaddr_t addr) {
     byte_t N = read_byte(cpu, addr);
     byte_t result = logical_shift_right(cpu, N);
     write_byte(cpu, addr, result);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " -> $%04X", addr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " -> $%04X", addr);
+    TRACE(cpu->trace_entry.data = result;)
     return result;
 }
 
@@ -509,7 +543,8 @@ inline byte_t arithmetic_shift_left(cpu_state *cpu, byte_t N) {
     N = N << 1;
     cpu->C = C;
     set_n_z_flags(cpu, N);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%02X]", N);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%02X]", N);
+    TRACE(cpu->trace_entry.data = N;)
     return N;
 }
 
@@ -517,7 +552,8 @@ inline byte_t arithmetic_shift_left_addr(cpu_state *cpu, absaddr_t addr) {
     byte_t N = read_byte(cpu, addr);
     byte_t result = arithmetic_shift_left(cpu, N);
     write_byte(cpu, addr, result);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " -> $%04X", addr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " -> $%04X", addr);
+    TRACE(cpu->trace_entry.data = result;)
     return result;
 }
 
@@ -528,7 +564,8 @@ inline byte_t rotate_right(cpu_state *cpu, byte_t N) {
     N |= (cpu->C << 7);
     cpu->C = C;
     set_n_z_flags(cpu, N);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%02X]", N);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%02X]", N);
+    TRACE(cpu->trace_entry.data = N;)
     return N;
 }
 
@@ -536,7 +573,8 @@ inline byte_t rotate_right_addr(cpu_state *cpu, absaddr_t addr) {
     byte_t N = read_byte(cpu, addr);
     byte_t result = rotate_right(cpu, N);
     write_byte(cpu, addr, result);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " -> $%04X", addr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " -> $%04X", addr);
+    TRACE(cpu->trace_entry.data = result;)
     return result;
 }
 
@@ -546,7 +584,8 @@ inline byte_t rotate_left(cpu_state *cpu, byte_t N) {
     N |= cpu->C;
     cpu->C = C;
     set_n_z_flags(cpu, N);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%02X]", N);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%02X]", N);
+    TRACE(cpu->trace_entry.data = N;)
     return N;
 }
 
@@ -554,7 +593,8 @@ inline byte_t rotate_left_addr(cpu_state *cpu, absaddr_t addr) {
     byte_t N = read_byte(cpu, addr);
     byte_t result = rotate_left(cpu, N);
     write_byte(cpu, addr, result);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " -> $%04X", addr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " -> $%04X", addr);
+    TRACE(cpu->trace_entry.data = result;)
     return result;
 }
 
@@ -562,14 +602,16 @@ inline void push_byte(cpu_state *cpu, byte_t N) {
     write_byte(cpu, 0x0100 + cpu->sp, N);
     cpu->sp = (uint8_t)(cpu->sp - 1);
     incr_cycles(cpu);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%02X] -> S[0x01 %02X]", N, cpu->sp + 1);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%02X] -> S[0x01 %02X]", N, cpu->sp + 1);
+    TRACE(cpu->trace_entry.data = N;)
 }
 
 inline byte_t pop_byte(cpu_state *cpu) {
     cpu->sp = (uint8_t)(cpu->sp + 1);
     byte_t N = read_byte(cpu, 0x0100 + cpu->sp);
     incr_cycles(cpu);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%02X] <- S[0x01 %02X]", N, cpu->sp - 1);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%02X] <- S[0x01 %02X]", N, cpu->sp - 1);
+    TRACE(cpu->trace_entry.data = N;)
     return N;
 }
 
@@ -578,14 +620,16 @@ inline void push_word(cpu_state *cpu, word_t N) {
     write_byte(cpu, 0x0100 + cpu->sp - 1, N & 0x00FF);
     cpu->sp = (uint8_t)(cpu->sp - 2);
     incr_cycles(cpu);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%04X] -> S[0x01 %02X]", N, cpu->sp + 1);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%04X] -> S[0x01 %02X]", N, cpu->sp + 1);
+    TRACE(cpu->trace_entry.data = N;)
 }
 
 inline absaddr_t pop_word(cpu_state *cpu) {
     absaddr_t N = read_word(cpu, 0x0100 + cpu->sp + 1);
     cpu->sp = (uint8_t)(cpu->sp + 2);
     incr_cycles(cpu);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%04X] <- S[0x01 %02X]", N, cpu->sp - 1);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, " [#%04X] <- S[0x01 %02X]", N, cpu->sp - 1);
+    TRACE(cpu->trace_entry.data = N;)
     return N;
 }
 

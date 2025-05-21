@@ -28,6 +28,7 @@
 #include "devices.hpp"
 #include "SlotData.hpp"
 #include "videosystem.hpp"
+#include "debugger/trace.hpp"
 
 //#include "clock.hpp"
 
@@ -69,9 +70,16 @@ enum processor_type {
     NUM_PROCESSOR_TYPES
 };
 
+enum execution_modes_t {
+    EXEC_NORMAL = 0,
+    EXEC_STEP_INTO,
+    EXEC_STEP_OVER
+};
+
 // a couple forward declarations
 struct cpu_state;
 class Mounts;
+struct debug_window_t;
 
 typedef int (*execute_next_fn)(cpu_state *cpu);
 
@@ -233,6 +241,13 @@ struct cpu_state {
 
     EventTimer event_timer;
 
+    /* Tracing & Debug */
+    bool trace = false;
+    system_trace_buffer *trace_buffer;
+    system_trace_entry_t trace_entry;
+    debug_window_t *debug_window;
+    execution_modes_t execution_mode = EXEC_NORMAL;
+    uint64_t instructions_left = 0;
 };
 
 #define HLT_INSTRUCTION 1
@@ -249,7 +264,7 @@ struct cpu_state {
 
 extern struct cpu_state CPUs[MAX_CPUS];
 
-void reset_system(cpu_state *cpu);
+//void reset_system(cpu_state *cpu);
 
 void cpu_reset(cpu_state *cpu);
 

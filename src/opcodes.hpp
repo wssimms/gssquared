@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #define OP_BRK_IMP 0x00
 
 #define OP_JMP 0x4C

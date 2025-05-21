@@ -124,7 +124,7 @@ const char * opcode_names[256] = {
     NULL, /* 63 */
     NULL, /* 64 */
     "ADC", /* 65 */
-    NULL, /* 66 */
+    "ROR", /* 66 */
     NULL, /* 67 */
     "PLA", /* 68 */
     "ADC", /* 69 */

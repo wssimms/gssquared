@@ -50,6 +50,21 @@
 
 int execute_next(cpu_state *cpu) {
 
+    system_trace_entry_t *tb = &cpu->trace_entry;
+    TRACE(
+    tb->cycle = cpu->cycles;
+    tb->pc = cpu->pc;
+    tb->a = cpu->a_lo;
+    tb->x = cpu->x_lo;
+    tb->y = cpu->y_lo;
+    tb->sp = cpu->sp;
+    tb->d = cpu->d;
+    tb->p = cpu->p;
+    tb->db = cpu->db;
+    tb->pb = cpu->pb;
+    )
+
+#if 0
     if (DEBUG(DEBUG_CLOCK)) {
         uint64_t current_time = get_current_time_in_microseconds();
         fprintf(stdout, "[ %llu ]", cpu->cycles);
@@ -58,7 +73,8 @@ int execute_next(cpu_state *cpu) {
         float cycles_per_second = (cpu->cycles * 1000000000.0) / (elapsed_time * 1000.0);
         fprintf(stdout, "[eHz: %.0f] ", cycles_per_second);
     }
-
+#endif
+#if 0
     if ( DEBUG(DEBUG_TIMEDRUN) && cpu->cycles > (10 * cpu->HZ_RATE) ) { // should take about 10 seconds.
         uint64_t current_time = get_current_time_in_microseconds();
         uint64_t elapsed_time = current_time - cpu->boot_time;
@@ -67,24 +83,26 @@ int execute_next(cpu_state *cpu) {
         fprintf(stdout, "[eHz: %f] ", cycles_per_second);
         cpu->halt = HLT_INSTRUCTION;
     }
+#endif
 
-    if (DEBUG(DEBUG_REGISTERS)) fprintf(stdout, " | PC: $%04X, A: $%02X, X: $%02X, Y: $%02X, P: $%02X, S: $%02X || ", cpu->pc, cpu->a_lo, cpu->x_lo, cpu->y_lo, cpu->p, cpu->sp);
+    //if (DEBUG(DEBUG_REGISTERS)) fprintf(stdout, " | PC: $%04X, A: $%02X, X: $%02X, Y: $%02X, P: $%02X, S: $%02X || ", cpu->pc, cpu->a_lo, cpu->x_lo, cpu->y_lo, cpu->p, cpu->sp);
 
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "%04X: ", cpu->pc); // so PC is correct.
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "%04X: ", cpu->pc); // so PC is correct.
 
     if (!cpu->I && cpu->irq_asserted) { // if IRQ is not disabled, and IRQ is asserted, handle it.
         push_word(cpu, cpu->pc); // push current PC
         push_byte(cpu, cpu->p | FLAG_UNUSED); // break flag and Unused bit set to 1.
         cpu->p |= FLAG_I; // interrupt disable flag set to 1.
         cpu->pc = read_word(cpu, IRQ_VECTOR);
-        if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, " => $%04X", cpu->pc);
+        //if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, " => $%04X", cpu->pc);
         incr_cycles(cpu);
         incr_cycles(cpu);
         return 0;
     }
 
     opcode_t opcode = read_byte_from_pc(cpu);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "%s", get_opcode_name(opcode));
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "%s", get_opcode_name(opcode));
+    tb->opcode = opcode;
 
     switch (opcode) {
 
@@ -1084,20 +1102,22 @@ int execute_next(cpu_state *cpu) {
                 push_byte(cpu, cpu->p | FLAG_B | FLAG_UNUSED); // break flag and Unused bit set to 1.
                 cpu->p |= FLAG_I; // interrupt disable flag set to 1.
                 cpu->pc = read_word(cpu, BRK_VECTOR);
-                if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, " => $%04X", cpu->pc);
+                //if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, " => $%04X", cpu->pc);
             }
             break;
 
         /* JMP --------------------------------- */
         case OP_JMP_ABS: /* JMP Absolute */
             {
-                absaddr_t thisaddr = cpu->pc-1;
-                cpu->pc = read_word_from_pc(cpu);
+                //absaddr_t thisaddr = cpu->pc-1;
+                absaddr_t addr = get_operand_address_absolute(cpu);
+                cpu->pc = addr;
                 /* if (thisaddr == cpu->pc) {
                     fprintf(stdout, " JUMP TO SELF INFINITE LOOP JMP $%04X\n", cpu->pc);
                     cpu->halt = HLT_INSTRUCTION;
                 } */
-                if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, " $%04X", cpu->pc);
+                //if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, " $%04X", cpu->pc);
+                //TRACE(cpu->trace_entry.operand = cpu->pc;)
             }
             break;
 
@@ -1105,7 +1125,7 @@ int execute_next(cpu_state *cpu) {
             {
                 absaddr_t addr = get_operand_address_absolute_indirect(cpu);
                 cpu->pc = addr;
-                if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, " -> [$%04X]", addr);
+                //if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, " -> [$%04X]", addr);
             }
             break;
 
@@ -1115,7 +1135,7 @@ int execute_next(cpu_state *cpu) {
                 absaddr_t addr = get_operand_address_absolute(cpu);
                 push_word(cpu, cpu->pc -1); // return address pushed is last byte of JSR instruction
                 cpu->pc = addr;
-                if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, "$%04X", cpu->pc);
+                //if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, "$%04X", cpu->pc);
             }
             break;
 
@@ -1128,7 +1148,8 @@ int execute_next(cpu_state *cpu) {
                 cpu->p = p | oldp;
 
                 cpu->pc = pop_word(cpu);
-                if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, "$%04X %02X", cpu->pc, cpu->p);
+                TRACE(cpu->trace_entry.operand = cpu->pc;)
+                //if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, "$%04X %02X", cpu->pc, cpu->p);
             }
             break;
 
@@ -1139,7 +1160,8 @@ int execute_next(cpu_state *cpu) {
                 incr_cycles(cpu);
                 cpu->pc++;
                 incr_cycles(cpu);
-                if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, "$%04X", cpu->pc);
+                //if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, "$%04X", cpu->pc);
+                TRACE(cpu->trace_entry.operand = cpu->pc;)
             }
             break;
 
@@ -1234,8 +1256,10 @@ int execute_next(cpu_state *cpu) {
         default:
             fprintf(stdout, "Unknown opcode: %04X: 0x%02X", cpu->pc-1, opcode);
             //cpu->halt = HLT_INSTRUCTION;
+            break;
     }
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "\n");
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "\n");
+    TRACE(cpu->trace_buffer->add_entry(cpu->trace_entry);)
 
     return 0;
 }

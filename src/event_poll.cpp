@@ -120,9 +120,7 @@ bool handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
         return true;
     }
     return false;
-
 }
-
 
 void event_poll(cpu_state *cpu, SDL_Event &event) {
     switch (event.type) {

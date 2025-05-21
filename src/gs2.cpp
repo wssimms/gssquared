@@ -51,6 +51,7 @@
 #include "devices/diskii/diskii.hpp"
 #include "devices/mockingboard/mb.hpp"
 #include "videosystem.hpp"
+#include "debugger/debugwindow.hpp"
 
 /**
  * References: 
@@ -172,10 +173,10 @@ void init_cpus() { // this is the same as a power-on event.
             exit(1);
         }
         //CPUs[i].execute_next = &execute_next_6502;
+        CPUs[i].trace = true;
+        CPUs[i].trace_buffer = new system_trace_buffer(100000);
 
         set_clock_mode(&CPUs[i], CLOCK_1_024MHZ);
-
-        //CPUs[i].next_tick = mach_absolute_time() + CPUs[i].cycle_duration_ticks; 
     }
 }
 
@@ -226,12 +227,35 @@ void run_cpus(void) {
         uint64_t cycles_for_this_burst = clock_mode_info[cpu->clock_mode].cycles_per_burst;
 
         if (! cpu->halt) {
-            while (cpu->cycles - last_cycle_count < cycles_for_this_burst) { // 1/60th second.
-                cpu->event_timer.processEvents(cpu->cycles); // TODO: implement a cache to speed up this check.
-                if ((cpu->execute_next)(cpu) > 0) { // never returns 0 right now
-                    break;
+            switch (cpu->execution_mode) {
+                    case EXEC_NORMAL:
+                        while (cpu->cycles - last_cycle_count < cycles_for_this_burst) { // 1/60th second.
+                            cpu->event_timer.processEvents(cpu->cycles); // TODO: implement a cache to speed up this check.
+                            (cpu->execute_next)(cpu);
+                            if (cpu->debug_window->window_open) {
+                                if (cpu->trace_entry.eaddr == 0x03FE) {
+                                    cpu->execution_mode = EXEC_STEP_INTO;
+                                    cpu->instructions_left = 0;
+                                    break;
+                                }
+                                if (cpu->trace_entry.opcode == 0x00) { // catch a BRK and stop execution.
+                                    cpu->execution_mode = EXEC_STEP_INTO;
+                                    cpu->instructions_left = 0;
+                                    break;
+                                }
+                            }
+                        }
+                        break;
+                    case EXEC_STEP_INTO:
+                        while (cpu->instructions_left) {
+                            cpu->event_timer.processEvents(cpu->cycles); // TODO: implement a cache to speed up this check.
+                            (cpu->execute_next)(cpu);
+                            cpu->instructions_left--;
+                        }
+                        break;
+                    case EXEC_STEP_OVER:
+                        break;
                 }
-            }
         } else {
             // fake-increment cycle counter to keep audio in sync.
             last_cycle_count = cpu->cycles;
@@ -244,13 +268,16 @@ void run_cpus(void) {
         uint64_t event_time;
         uint64_t app_event_time;
 
-        bool this_free_run = (cpu->clock_mode == CLOCK_FREE_RUN) || (gs2_app_values.disk_accelerator && (any_diskii_motor_on(cpu)));
+        bool this_free_run = (cpu->clock_mode == CLOCK_FREE_RUN) || (cpu->execution_mode == EXEC_STEP_INTO || (gs2_app_values.disk_accelerator && (any_diskii_motor_on(cpu))));
 
         if ((this_free_run) && (current_time - last_event_update > 16667000)
             || (!this_free_run)) {
             current_time = SDL_GetTicksNS();
             SDL_Event event;
             while(SDL_PollEvent(&event)) {
+                if (cpu->debug_window->handle_event(event)) { // ignores event if not for debug window
+                    continue;
+                }
                 if (!osd->event(event)) { // if osd doesn't handle it..
                     event_poll(cpu, event); // they say call "once per frame"
                 }
@@ -334,9 +361,9 @@ void run_cpus(void) {
             update_flash_state(cpu);
             update_display(cpu);    
             osd->render();
+            cpu->debug_window->render(cpu);
             /* display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY); */
-            video_system_t *vs = cpu->video_system;
-            vs->present();
+            cpu->video_system->present();
             display_time = SDL_GetTicksNS() - current_time;
             last_display_update = current_time;
         }
@@ -390,12 +417,15 @@ void run_cpus(void) {
         //last_time_window_start = time_window_start;
         last_cycle_window_start = cycle_window_start;
     }
+    cpu->trace_buffer->save_to_file("trace.bin");
 }
 
 gs2_app_t gs2_app_values;
 
 int main(int argc, char *argv[]) {
     std::cout << "Booting GSSquared!" << std::endl;
+
+//    printf("Size of trace_entry: %zu\n", sizeof(system_trace_entry_t));
 
     int platform_id = PLATFORM_APPLE_II_PLUS;  // default to Apple II Plus
     int opt;
@@ -535,6 +565,8 @@ int main(int argc, char *argv[]) {
     CPUs[0].mounts = new Mounts(&CPUs[0]); // TODO: this should happen in a CPU constructor.
 
     CPUs[0].video_system = new video_system_t();
+    CPUs[0].debug_window = new debug_window_t();
+    CPUs[0].debug_window->init(&CPUs[0]);
 
     init_display_font(rd);
 
@@ -601,6 +633,6 @@ int main(int argc, char *argv[]) {
 
     delete CPUs[0].video_system;
     
-    debug_dump_memory(&CPUs[0], 0x1230, 0x123F);
+    //debug_dump_memory(&CPUs[0], 0x1230, 0x123F);
     return 0;
 }
