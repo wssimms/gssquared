@@ -3834,3 +3834,40 @@ Audio: Changing everything to double and making process() an inline cut audio fr
 ## May 14, 2025
 
 implemented SDL_DelayPrecise instead of busy-waiting, which apparently is working quite well. It "sneaks" up on the desired time delay. That is basically the algorithm I was contemplating recently. Works great! Only 4% cpu use!
+
+## May 15, 2025
+
+Btw testing x86 code on Apple Silicon: $ arch -x86_64 ./yourapp
+
+## May 16, 2025
+
+system tracing! Step 1 is refactor the 'debug' logging stuff to populate the trace record instead.
+
+## May 17, 2025
+
+debugger dna has been laid. I've implemented Tracing (per Tracing.md). A couple different interfaces. First, trace logs into a circular trace buffer, which stores for each instruction, the value of all registers at the start of the instruction, then the instruction opcodes, then the instruction disassembly, followed by the effective address and memory value read or written. the effective address varies based on the instruction; for memory movement it's the actual memory location referenced, which is handy to explain indirect and indexed address modes (don't have to figure out the effective address manually.) As with everything else in the system, 
+
+I also implemented "pause execution". this sets the halt flag in the cpu. however, the way the code is right now, the clock keeps ticking along. This has the interesting effect that the audio routines will keep working. (Well, particularly, the mockingboard will). however, that also means that there will be big cycle discontinuities after you pause, or especially when you're single-stepping.
+
+Even after fixing so we don't keep incrementing cycles, the mockingboard stays synced when step tracing. ha ha ha. It's miraculous!
+
+Let's not call it halt. let's call the flag: execution mode. Execution mode will have the following values: normal; step-into; step-over. Then tie in some keyboard and buttons 
+
+if debugger is open
+   * go into single step mode on a BRK. otherwise handle BRK normally. can use brk for manual debugging checkpoints. otherwise, it means a crash, and you'll be able to see the backtrace.
+   * when we write the trace record to the buffer, we can check the PC, the EFF address, against the breakpoint list.
+   * handle up and down arrows; pgup and pgdn; home and end; mouse wheel up and down. These will scroll through the instruction buffer. Provide some visual indicator of where we are on the side of the window.
+
+For progress bar, we can have it down the right edge -
+   * draw rectangle
+   * draw portion above current location in blue
+   * draw portion below current location in green
+
+## May 18, 2025
+
+We can likely prune down the image formats SDL_image handles. We really don't need all those. Shrink the code!
+SDL_ttf isn't building. Not sure why.. oh, got it done ultimately by simplifying some cruft in the cmakelists.
+
+## May 19, 2025
+
+sdl_ttf complained when I built into a target directory 

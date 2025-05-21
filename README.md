@@ -27,13 +27,14 @@ To build GSSquared, you will need the following:
 
 I use vscode as my IDE, but, this isn't required to build.
 
+NOTE: the build process has been updated so that builds are done in and to the build/ directory, as opposed to prior versions of GS2 where builds were done into the project root directory.
+
 ## Build for Production
 
 Production builds are optimized for performance.
 
 ```
-cmake -DCMAKE_BUILD_TYPE=Release .
-make
+cmake -DCMAKE_BUILD_TYPE=Release ..
 ```
 
 ## Build for Debug
@@ -41,8 +42,7 @@ make
 Debug enables a variety of assertions, turns off optimizations, and enables memory leak and buffer overrun checking.
 
 ```
-cmake -DCMAKE_BUILD_TYPE=Debug .
-make
+cmake -DCMAKE_BUILD_TYPE=Debug ..
 ```
 
 ## macOS
@@ -55,8 +55,10 @@ You will need:
 ```
 git clone https://github.com/jawaidbazyar2/gssquared.git
 cd gssquared
-git submodule update --init
-cmake -DCMAKE_BUILD_TYPE=Release .
+git submodule update --init --recursive
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
 make
 ```
 
@@ -81,8 +83,10 @@ gs2 will currently build on Ubuntu Linux 22.04.
 ```
 git clone https://github.com/jawaidbazyar2/gssquared.git
 cd gssquared
-git submodule update --init
-cmake -DCMAKE_BUILD_TYPE=Release .
+git submodule update --init --recursive
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
 make
 ```
 
@@ -107,8 +111,10 @@ We've successfully built for windows using the following environment:
 ```
 git clone https://github.com/jawaidbazyar2/gssquared.git
 cd gssquared
-git submodule update --init
-cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+git submodule update --init --recursive
+mkdir build
+cd build
+cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ ..
 mingw32-make.exe
 ```
 
