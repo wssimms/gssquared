@@ -61,7 +61,16 @@
         "charconv": "cpp",
         "forward_list": "cpp",
         "chrono": "cpp",
-        "regex": "cpp"
+        "regex": "cpp",
+        "__tree": "cpp",
+        "any": "cpp",
+        "cinttypes": "cpp",
+        "condition_variable": "cpp",
+        "future": "cpp",
+        "list": "cpp",
+        "map": "cpp",
+        "set": "cpp",
+        "unordered_set": "cpp"
     },
     "makefile.configureOnOpen": false,
     "todo-tree.tree.scanMode": "workspace",
