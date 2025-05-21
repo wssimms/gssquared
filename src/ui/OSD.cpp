@@ -236,6 +236,9 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManag
         throw std::runtime_error(std::string("Error creating cpTexture: ") + SDL_GetError());
     }
 
+    /* Setup a text renderer for this OSD */
+    text_render = new TextRenderer(rendererp, "fonts/OpenSans-Regular.ttf", 15.0f);
+
     Style_t CS;
     CS.padding = 4;
     CS.border_width = 2;
@@ -328,6 +331,7 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManag
         char slot_text[128];
         snprintf(slot_text, sizeof(slot_text), "Slot %d: %s", i, slot_manager->get_device(static_cast<SlotType_t>(i))->name);
         Button_t* slot = new Button_t(slot_text, SS);
+        slot->set_text_renderer(text_render); // set text renderer for the button
         slot->set_size(300, 20);
         slot_container->add_tile(slot, 7 - i);    // Add in reverse order (7 to 0)
     }
@@ -582,11 +586,12 @@ void OSD::render() {
             snprintf(hud_str, sizeof(hud_str), "MHz: %8.4f", cpu->e_mhz);
             SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
             SDL_RenderDebugText(renderer, 20, window_height - 30, hud_str);
-
+#if 0
             snprintf(hud_str, sizeof(hud_str), "Cycles          PC   A  X  Y  P  (N V B D I Z C)");
             SDL_RenderDebugText(renderer, 20, window_height - 50, hud_str);
             snprintf(hud_str, sizeof(hud_str), "%-15lld %04X %02X %02X %02X %02X (%1d %1d %1d %1d %1d %1d %1d)", cpu->cycles, cpu->pc, cpu->a, cpu->x, cpu->y, cpu->p, cpu->N, cpu->V, cpu->B, cpu->D, cpu->I, cpu->Z, cpu->C);
             SDL_RenderDebugText(renderer, 20, window_height - 40, hud_str);
+#endif
         }
         SDL_SetRenderScale(renderer, ox,oy);
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);

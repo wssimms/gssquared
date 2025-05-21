@@ -19,6 +19,7 @@
 
 #include <SDL3/SDL.h>
 #include "Style.hpp"
+#include "util/TextRenderer.hpp"
 
 /**
  * @brief Base class for UI elements that can be rendered and interacted with.
@@ -41,6 +42,7 @@ protected:
     typedef void (*click_callback_t)(void* data);
     click_callback_t click_callback = nullptr;
     void* callback_data = nullptr;
+    TextRenderer *text_render = nullptr;
 
 public:
     /**
@@ -119,6 +121,7 @@ public:
     void set_border_color(uint32_t color);
     void set_hover_color(uint32_t color);
     void set_click_callback(click_callback_t callback, void* data = nullptr);
+    void set_text_renderer(TextRenderer *text_render);
 
 protected:
     /**

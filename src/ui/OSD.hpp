@@ -29,6 +29,7 @@
 #include "ModalContainer.hpp"
 #include "MousePositionTile.hpp"
 #include "AssetAtlas.hpp"
+#include "util/TextRenderer.hpp"
 
 #define SLIDE_IN 1
 #define SLIDE_OUT 2
@@ -81,6 +82,7 @@ protected:
     SDL_Window *window = nullptr;
     int window_w = 0;
     int window_h = 0;
+    TextRenderer *text_render = nullptr;
 
 public:
     cpu_state *cpu = nullptr;

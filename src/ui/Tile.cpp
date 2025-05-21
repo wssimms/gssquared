@@ -176,3 +176,7 @@ Tile_t::Tile_t(const Style_t& initial_style) : style(initial_style) {}
             click_callback(callback_data);
         }
     }
+
+    void Tile_t::set_text_renderer(TextRenderer *text_render) {
+        this->text_render = text_render;
+    }
