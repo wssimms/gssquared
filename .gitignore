@@ -26,6 +26,8 @@ assets/*
 assets/img/*
 !assets/sounds/
 !assets/sounds/*
+!assets/fonts/
+!assets/fonts/*
 !assets/img/atlas.png
 !assets/img/gs2.icns
 !assets/Info.plist
