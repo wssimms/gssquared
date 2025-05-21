@@ -20,6 +20,7 @@
  * 
  */
 #include <cmath>
+#include <algorithm>
 
 #include <SDL3/SDL.h>
 #include "gs2.hpp"
