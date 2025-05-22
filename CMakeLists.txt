@@ -1,11 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
 
-# Find and set the C++ compiler
-find_program(CMAKE_CXX_COMPILER clang++ REQUIRED)
-if(NOT CMAKE_CXX_COMPILER)
-    message(FATAL_ERROR "clang++ compiler not found. Please install it or set CMAKE_CXX_COMPILER to the full path.")
-endif()
-
 # Set the project name
 project(gssquared)
 
@@ -14,7 +8,6 @@ set(BUILD_SHARED_LIBS OFF)
 
 # Mac-specific settings
 if(APPLE)
-    set(CMAKE_OSX_SYSROOT "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk")
     set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0")
     # Fat binary for arm64 and x86_64
     set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
@@ -190,25 +183,23 @@ function(configure_sdl_builds)
     
     # Force SDL to build with the correct SDK
     if(APPLE)
-        set(CMAKE_OSX_SYSROOT "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk" CACHE PATH "SDK path" FORCE)
         set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "Deployment target" FORCE)
         if(APPLE_ARCHITECTURE)
             set(CMAKE_OSX_ARCHITECTURES ${APPLE_ARCHITECTURE})
         else()
             set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
         endif()
-        #set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Build architectures for OS X" FORCE)
     endif()
     
     set(SDL_SHARED ON)
-    
+
+    set(SDLTTF_VENDORED ON)
+    set(SDLTTF_SAMPLES ON)
+
     # Force rebuild SDL with these settings
     add_subdirectory(${CMAKE_SOURCE_DIR}/vendored/SDL EXCLUDE_FROM_ALL)
     add_subdirectory(${CMAKE_SOURCE_DIR}/vendored/SDL_image EXCLUDE_FROM_ALL)
-    set(SDLTTF_VENDORED ON)
-    set(SDLTTF_SAMPLES ON)
-    #set(SDLTTF_HARFBUZZ OFF)
-    add_subdirectory(${CMAKE_SOURCE_DIR}/vendored/SDL_ttf)
+    add_subdirectory(${CMAKE_SOURCE_DIR}/vendored/SDL_ttf EXCLUDE_FROM_ALL)
     set(BUILD_SHARED_LIBS OFF)
 endfunction()
 

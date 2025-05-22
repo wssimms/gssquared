@@ -3868,6 +3868,14 @@ For progress bar, we can have it down the right edge -
 We can likely prune down the image formats SDL_image handles. We really don't need all those. Shrink the code!
 SDL_ttf isn't building. Not sure why.. oh, got it done ultimately by simplifying some cruft in the cmakelists.
 
-## May 19, 2025
+## May 21, 2025
 
-sdl_ttf complained when I built into a target directory 
+sdl_ttf complained when I built into a target directory. I got past that. however, I keep running into other issues, so I have been hammering away at the CMakeLists.
+
+then I couldn't build SDL_ttf due to harfbuzz.cc failing compile for extremely weird reasons.
+
+SDL_ttf says it loaded a newer vendored version of harfbuzz yesterday. That almost certainly has to be the issue. Man that was a waste of two hours. I disabled HARFBUZZ to at least get my builds working again.
+
+## May 22, 2025
+
+ok, got building working. I think the error was specifying /Library causing cmake to mix the command-line and the xcode libraries. 

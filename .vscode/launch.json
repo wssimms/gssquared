@@ -5,7 +5,7 @@
             "name": "Debug gs2",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceFolder}/bin/gs2",
+            "program": "${workspaceFolder}/build/gs2",
             "args": ["-ds5d1=/Users/bazyar/src/gssquared/disk_images/AppleIISystem800k.hdv"],
             "cwd": "${workspaceFolder}",
             "preLaunchTask": "build-debug"
