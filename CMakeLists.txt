@@ -40,8 +40,8 @@ if(APPLE)
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/img/atlas.png
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/Info.plist ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/
         # Copy SDL dynamic libraries
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/libSDL3.dylib ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Frameworks/
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/libSDL3_image.dylib ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Frameworks/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/lib/libSDL3.dylib ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Frameworks/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/lib/libSDL3_image.dylib ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Frameworks/
         # Fix up runtime paths with install_name_tool if needed
         COMMAND install_name_tool -change @rpath/libSDL3.0.dylib @executable_path/../Frameworks/libSDL3.dylib ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/MacOS/gs2
         COMMAND install_name_tool -change @rpath/libSDL3_image.0.dylib @executable_path/../Frameworks/libSDL3_image.dylib ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/MacOS/gs2
@@ -59,8 +59,8 @@ if(APPLE)
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/img/atlas.png
         # Copy SDL dynamic libraries
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/mac-cli/lib
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/libSDL3.dylib ${CMAKE_BINARY_DIR}/packages/mac-cli/lib/
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/libSDL3_image.dylib ${CMAKE_BINARY_DIR}/packages/mac-cli/lib/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/lib/libSDL3.dylib ${CMAKE_BINARY_DIR}/packages/mac-cli/lib/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/lib/libSDL3_image.dylib ${CMAKE_BINARY_DIR}/packages/mac-cli/lib/
         # Fix up runtime paths
         COMMAND install_name_tool -change @rpath/libSDL3.0.dylib @executable_path/lib/libSDL3.dylib ${CMAKE_BINARY_DIR}/packages/mac-cli/gs2
         COMMAND install_name_tool -change @rpath/libSDL3_image.0.dylib @executable_path/lib/libSDL3_image.dylib ${CMAKE_BINARY_DIR}/packages/mac-cli/gs2
