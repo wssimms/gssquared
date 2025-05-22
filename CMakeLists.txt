@@ -24,8 +24,8 @@ if(APPLE)
     set(APP_ICON_MACOSX ${CMAKE_SOURCE_DIR}/assets/img/gs2.icns)
     set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.bazyar.gs2")
     set(MACOSX_BUNDLE_BUNDLE_NAME "GSSquared")
-    set(MACOSX_BUNDLE_BUNDLE_VERSION "0.1.0")
-    set(MACOSX_BUNDLE_SHORT_VERSION_STRING "0.1.0")
+    set(MACOSX_BUNDLE_BUNDLE_VERSION "0.3.0")
+    set(MACOSX_BUNDLE_SHORT_VERSION_STRING "0.3.0")
     set(MACOSX_BUNDLE_COPYRIGHT "Copyright © 2025 Jawaid Bazyar")
     
     # Custom target for creating Mac app bundle
@@ -82,6 +82,7 @@ if(APPLE)
         DEPENDS mac-package
     )
     
+    if(NEVER)
     # Custom target for development environment resources
     add_custom_target(mac-dev ALL
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/roms
@@ -94,9 +95,11 @@ if(APPLE)
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/resources/img/atlas.png
         DEPENDS gs2
     )
+    endif()
 endif()
 
 if(WIN32)
+    if (NEVER)
     # Custom target for development environment resources
     add_custom_target(win-dev ALL
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/roms
@@ -107,6 +110,7 @@ if(WIN32)
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/resources/img/atlas.png
         DEPENDS gs2
     )
+    endif()
     add_custom_target(win-package ALL
         COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/packages/gssquared-win64/
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/gssquared-win64/
@@ -163,6 +167,7 @@ if(UNIX AND NOT APPLE)
         COMMAND chrpath -r '$$ORIGIN' ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/libSDL3_ttf.so.0
         DEPENDS gs2
     )
+    if (NEVER)
     # Custom target for development environment resources
     add_custom_target(linux-dev ALL
         COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/resources
@@ -177,6 +182,7 @@ if(UNIX AND NOT APPLE)
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/resources/img/atlas.png
         DEPENDS gs2
     )
+    endif()
 endif()
 
 function(configure_sdl_builds)
@@ -201,14 +207,15 @@ function(configure_sdl_builds)
     add_subdirectory(${CMAKE_SOURCE_DIR}/vendored/SDL_image EXCLUDE_FROM_ALL)
     set(SDLTTF_VENDORED ON)
     set(SDLTTF_SAMPLES ON)
+    #set(SDLTTF_HARFBUZZ OFF)
     add_subdirectory(${CMAKE_SOURCE_DIR}/vendored/SDL_ttf)
     set(BUILD_SHARED_LIBS OFF)
 endfunction()
 
 # Set output directories
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # Generate compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
