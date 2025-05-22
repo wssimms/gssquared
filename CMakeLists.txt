@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 
+# Accepted settings:
+# APPLE_ARCHITECTURE   arm64, x86_64, arm64;x86_64
+
 # Set the project name
 project(gssquared)
 
@@ -74,36 +77,9 @@ if(APPLE)
         COMMAND hdiutil create -volname "GSSquared" -srcfolder ${CMAKE_BINARY_DIR}/tmp/dmg_contents -ov -format UDZO ${CMAKE_BINARY_DIR}/packages/GSSquared.dmg
         DEPENDS mac-package
     )
-    
-    if(NEVER)
-    # Custom target for development environment resources
-    add_custom_target(mac-dev ALL
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/roms
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/roms ${CMAKE_BINARY_DIR}/resources/roms
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/sounds
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets/sounds ${CMAKE_BINARY_DIR}/resources/sounds
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/fonts
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets/fonts ${CMAKE_BINARY_DIR}/resources/fonts
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/img
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/resources/img/atlas.png
-        DEPENDS gs2
-    )
-    endif()
 endif()
 
 if(WIN32)
-    if (NEVER)
-    # Custom target for development environment resources
-    add_custom_target(win-dev ALL
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/roms
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/roms ${CMAKE_BINARY_DIR}/resources/roms
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/sounds
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets/sounds ${CMAKE_BINARY_DIR}/resources/sounds
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/img
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/resources/img/atlas.png
-        DEPENDS gs2
-    )
-    endif()
     add_custom_target(win-package ALL
         COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/packages/gssquared-win64/
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/gssquared-win64/
@@ -160,22 +136,6 @@ if(UNIX AND NOT APPLE)
         COMMAND chrpath -r '$$ORIGIN' ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/libSDL3_ttf.so.0
         DEPENDS gs2
     )
-    if (NEVER)
-    # Custom target for development environment resources
-    add_custom_target(linux-dev ALL
-        COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/resources
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/roms
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/roms ${CMAKE_BINARY_DIR}/resources/roms
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/sounds
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets/sounds ${CMAKE_BINARY_DIR}/resources/sounds
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/fonts
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets/fonts ${CMAKE_BINARY_DIR}/resources/fonts
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/img
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/resources/img/atlas.png
-        DEPENDS gs2
-    )
-    endif()
 endif()
 
 function(configure_sdl_builds)
@@ -339,20 +299,20 @@ add_subdirectory(apps/diskid)
 
 add_subdirectory(apps/speaker)
 
-add_subdirectory(apps/trace)
+add_subdirectory(apps/gstrace)
 
 # Meta-target that builds all packages
 if(APPLE)
     add_custom_target(packages
-        DEPENDS mac-package mac-cli-package create-dmg mac-dev
+        DEPENDS mac-package mac-cli-package create-dmg
     )
 elseif(UNIX AND NOT APPLE)
     add_custom_target(packages
-        DEPENDS linux-package linux-dev
+        DEPENDS linux-package
     )
 elseif(WIN32)
     add_custom_target(packages
-        DEPENDS win-package win-dev
+        DEPENDS win-package
     )
 else()
     add_custom_target(packages

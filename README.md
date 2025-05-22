@@ -65,8 +65,9 @@ cmake --build build
 
 After building, you can create a Mac App Bundle and .dmg file. The packages are built into the packages/ directory.
 
+from project root:
 ```
-make packages
+cmake --build build --target packages
 ```
 
 
@@ -93,8 +94,9 @@ cmake --build build
 After building, you can create a folder that contains libraries and assets for linux.
 
 ```
-make packages
+cmake --build build --target packages
 ```
+
 
 Creates packages/linux-cli/ directory that has a runnable binary.
 
@@ -127,7 +129,7 @@ mingw32-make.exe packages
 ## Creating Distribution Packages
 
 ```
-make packages
+cmake --build build --target packages
 ```
 
 This will create a 'packages' directory with the following structure:
@@ -162,6 +164,10 @@ Analyzes a disk image and prints information about it.
 
 Convert a disk image file (140K 5.25 .do, .po, .dsk) to nibblized format (e.g. .nib). For testing. 
 
+## gstrace
+
+
+
 # Acknowledgements
 
 ## OpenEmulator
@@ -178,3 +184,7 @@ for the lookup table approach to the new DisplayNG code.
 ## Wyatt Wong
 
 for helping test in different build environments, and providing MacOS-Intel builds.
+
+## SDL
+
+All the amazing people in the SDL Discord, especially Sam!
