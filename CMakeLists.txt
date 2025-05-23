@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 
+# Accepted settings:
+# APPLE_ARCHITECTURE   arm64 | x86_64 | arm64;x86_64 (default: arm64;x86_64)
+# BUILD_PACKAGES       ON | OFF (default: OFF)
+# CMAKE_BUILD_TYPE     Release | Debug (default: Release)
+
 # Find Clang compilers before project() is called
 if(NOT WIN32)  # For Unix-like systems (Linux and Mac)
     find_program(CLANG_EXECUTABLE NAMES clang)
@@ -13,14 +18,8 @@ if(NOT WIN32)  # For Unix-like systems (Linux and Mac)
     endif()
 endif()
 
-# Accepted settings:
-# APPLE_ARCHITECTURE   arm64 | x86_64 | arm64;x86_64 (default: arm64;x86_64)
-# BUILD_PACKAGES       ON | OFF (default: OFF)
-# CMAKE_BUILD_TYPE     Release | Debug (default: Release)
-
 # Set the project name
 project(gssquared)
-
 
 # Set default build type to Release if not specified
 if(NOT CMAKE_BUILD_TYPE)
