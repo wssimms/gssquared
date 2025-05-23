@@ -1,5 +1,18 @@
 cmake_minimum_required(VERSION 3.10)
 
+# Find Clang compilers before project() is called
+if(NOT WIN32)  # For Unix-like systems (Linux and Mac)
+    find_program(CLANG_EXECUTABLE NAMES clang)
+    find_program(CLANGPP_EXECUTABLE NAMES clang++)
+    
+    if(CLANG_EXECUTABLE AND CLANGPP_EXECUTABLE)
+        set(CMAKE_C_COMPILER "${CLANG_EXECUTABLE}")
+        set(CMAKE_CXX_COMPILER "${CLANGPP_EXECUTABLE}")
+    else()
+        message(STATUS "Clang not found, using default system compiler")
+    endif()
+endif()
+
 # Accepted settings:
 # APPLE_ARCHITECTURE   arm64 | x86_64 | arm64;x86_64 (default: arm64;x86_64)
 # BUILD_PACKAGES       ON | OFF (default: OFF)
