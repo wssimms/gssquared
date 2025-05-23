@@ -366,9 +366,9 @@ if(UNIX AND NOT APPLE)
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/img/atlas.png
         # Copy SDL dynamic libraries with correct names
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/linux-cli/lib
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/libSDL3.so.0 ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/libSDL3_image.so.0 ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/libSDL3_ttf.so.0 ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/lib/libSDL3.so.0 ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/lib/libSDL3_image.so.0 ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/lib/libSDL3_ttf.so.0 ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/
         # Create necessary symlinks
         COMMAND ${CMAKE_COMMAND} -E create_symlink libSDL3.so.0 ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/libSDL3.so
         COMMAND ${CMAKE_COMMAND} -E create_symlink libSDL3_image.so.0 ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/libSDL3_image.so
