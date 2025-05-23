@@ -21,16 +21,6 @@ disk_images/*
 **/*_Output.txt
 **/_FileInformation.txt
 GSSquared.app/
-assets/*
-!assets/img/
-assets/img/*
-!assets/sounds/
-!assets/sounds/*
-!assets/fonts/
-!assets/fonts/*
-!assets/img/atlas.png
-!assets/img/gs2.icns
-!assets/Info.plist
 resources/*
 /Makefile
 !src/devices/prodos_block/Makefile
