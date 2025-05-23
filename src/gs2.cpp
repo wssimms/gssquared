@@ -550,7 +550,7 @@ int main(int argc, char *argv[]) {
         rom_data *rd = load_platform_roms(platform);
 
         if (!rd) {
-            system_failure("Failed to load platform roms, exiting. Did you 'cd roms; make' first?");
+            system_failure("Failed to load platform roms, exiting.");
             exit(1);
         }
         // Load into memory at correct address

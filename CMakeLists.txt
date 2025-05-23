@@ -1,141 +1,42 @@
 cmake_minimum_required(VERSION 3.10)
 
 # Accepted settings:
-# APPLE_ARCHITECTURE   arm64, x86_64, arm64;x86_64
+# APPLE_ARCHITECTURE   arm64 | x86_64 | arm64;x86_64 (default: arm64;x86_64)
+# BUILD_PACKAGES       ON | OFF (default: OFF)
+# CMAKE_BUILD_TYPE     Release | Debug (default: Release)
 
 # Set the project name
 project(gssquared)
 
+
+# Set default build type to Release if not specified
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
 # Set default to static for our internal libraries 
 set(BUILD_SHARED_LIBS OFF)
+
+# First, create a target to assemble all resources into build/ directory.
+add_custom_target(assemble_resources ALL
+    # Create resources directory structure
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/roms
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/sounds
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/img
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources/fonts
+
+    # Copy static resources
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/resources/img/atlas.png
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets/roms ${CMAKE_BINARY_DIR}/resources/roms
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets/sounds ${CMAKE_BINARY_DIR}/resources/sounds
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets/fonts ${CMAKE_BINARY_DIR}/resources/fonts
+)
 
 # Mac-specific settings
 if(APPLE)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0")
-    # Fat binary for arm64 and x86_64
-    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
-
-    # Mac-specific bundle configuration
-    set(MACOSX_BUNDLE_ICON_FILE gs2.icns)
-    set(APP_ICON_MACOSX ${CMAKE_SOURCE_DIR}/assets/img/gs2.icns)
-    set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.bazyar.gs2")
-    set(MACOSX_BUNDLE_BUNDLE_NAME "GSSquared")
-    set(MACOSX_BUNDLE_BUNDLE_VERSION "0.3.0")
-    set(MACOSX_BUNDLE_SHORT_VERSION_STRING "0.3.0")
-    set(MACOSX_BUNDLE_COPYRIGHT "Copyright © 2025 Jawaid Bazyar")
-    
-    # Custom target for creating Mac app bundle
-    add_custom_target(mac-package
-        COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/packages/GSSquared.app
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/MacOS
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Frameworks
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gs2> ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/MacOS/
-        COMMAND ${CMAKE_COMMAND} -E copy ${APP_ICON_MACOSX} ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/roms
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/roms ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/roms
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/sounds
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets/sounds ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/sounds
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/img
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Resources/img/atlas.png
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/Info.plist ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/
-        # Copy SDL dynamic libraries
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/lib/libSDL3.dylib ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Frameworks/
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/lib/libSDL3_image.dylib ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Frameworks/
-        # Fix up runtime paths with install_name_tool if needed
-        COMMAND install_name_tool -change @rpath/libSDL3.0.dylib @executable_path/../Frameworks/libSDL3.dylib ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/MacOS/gs2
-        COMMAND install_name_tool -change @rpath/libSDL3_image.0.dylib @executable_path/../Frameworks/libSDL3_image.dylib ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/MacOS/gs2
-        COMMAND install_name_tool -change @rpath/libSDL3.0.dylib @executable_path/../Frameworks/libSDL3.dylib ${CMAKE_BINARY_DIR}/packages/GSSquared.app/Contents/Frameworks/libSDL3_image.dylib
-        DEPENDS gs2
-    )
-    add_custom_target(mac-cli-package
-        COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/roms
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/roms ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/roms
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/sounds
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets/sounds ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/sounds
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gs2> ${CMAKE_BINARY_DIR}/packages/mac-cli/
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/img
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/img/atlas.png
-        # Copy SDL dynamic libraries
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/mac-cli/lib
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/lib/libSDL3.dylib ${CMAKE_BINARY_DIR}/packages/mac-cli/lib/
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/lib/libSDL3_image.dylib ${CMAKE_BINARY_DIR}/packages/mac-cli/lib/
-        # Fix up runtime paths
-        COMMAND install_name_tool -change @rpath/libSDL3.0.dylib @executable_path/lib/libSDL3.dylib ${CMAKE_BINARY_DIR}/packages/mac-cli/gs2
-        COMMAND install_name_tool -change @rpath/libSDL3_image.0.dylib @executable_path/lib/libSDL3_image.dylib ${CMAKE_BINARY_DIR}/packages/mac-cli/gs2
-        COMMAND install_name_tool -change @rpath/libSDL3.0.dylib @executable_path/lib/libSDL3.dylib ${CMAKE_BINARY_DIR}/packages/mac-cli/lib/libSDL3_image.dylib
-        DEPENDS gs2
-    )
-    
-    # Add DMG creation target
-    add_custom_target(create-dmg
-        COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/tmp/dmg_contents
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/tmp/dmg_contents
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/packages/GSSquared.app ${CMAKE_BINARY_DIR}/tmp/dmg_contents/GSSquared.app
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/README.md ${CMAKE_BINARY_DIR}/tmp/dmg_contents/README.md
-        COMMAND hdiutil create -volname "GSSquared" -srcfolder ${CMAKE_BINARY_DIR}/tmp/dmg_contents -ov -format UDZO ${CMAKE_BINARY_DIR}/packages/GSSquared.dmg
-        DEPENDS mac-package
-    )
-endif()
-
-if(WIN32)
-    add_custom_target(win-package ALL
-        COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/packages/gssquared-win64/
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/gssquared-win64/
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gs2> ${CMAKE_BINARY_DIR}/packages/gssquared-win64/
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/libSDL3.dll.a ${CMAKE_BINARY_DIR}/packages/gssquared-win64/
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/libSDL3_image.dll.a ${CMAKE_BINARY_DIR}/packages/gssquared-win64/
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/bin/SDL3.dll    ${CMAKE_BINARY_DIR}/packages/gssquared-win64/
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/bin/SDL3_image.dll    ${CMAKE_BINARY_DIR}/packages/gssquared-win64/
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/gssquared-win64/resources/roms
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/roms ${CMAKE_BINARY_DIR}/packages/gssquared-win64/resources/roms
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/gssquared-win64/resources/sounds
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/assets/sounds ${CMAKE_BINARY_DIR}/packages/gssquared-win64/resources/sounds
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/gssquared-win64/resources/img
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/packages/gssquared-win64/resources/img/atlas.png
-        DEPENDS gs2
-    )
-endif()
-
-# Linux-specific settings
-if(UNIX AND NOT APPLE)
-    # Linux-specific configuration here
-    
-    # Find the SDL libraries regardless of their exact filenames
-    file(GLOB SDL3_LIBS "${CMAKE_SOURCE_DIR}/lib/libSDL3.so*")
-    file(GLOB SDL3_IMAGE_LIBS "${CMAKE_SOURCE_DIR}/lib/libSDL3_image.so*")
-    
-    # Custom target for creating Linux package
-    add_custom_target(linux-package
-        # Delete contents of any current resources directory
-        COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/resources
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources
-
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/roms
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/roms ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/roms
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/sounds
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets/sounds ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/sounds
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/fonts
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets/fonts ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/fonts
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gs2> ${CMAKE_BINARY_DIR}/packages/linux-cli/
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/img
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/img/atlas.png
-        # Copy SDL dynamic libraries with correct names
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/linux-cli/lib
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/libSDL3.so.0 ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/libSDL3_image.so.0 ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/libSDL3_ttf.so.0 ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/
-        # Create necessary symlinks
-        COMMAND ${CMAKE_COMMAND} -E create_symlink libSDL3.so.0 ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/libSDL3.so
-        COMMAND ${CMAKE_COMMAND} -E create_symlink libSDL3_image.so.0 ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/libSDL3_image.so
-        COMMAND ${CMAKE_COMMAND} -E create_symlink libSDL3_ttf.so.0 ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/libSDL3_ttf.so
-        # Fix up runtime paths with chrpath
-        COMMAND chrpath -r '$$ORIGIN/lib' ${CMAKE_BINARY_DIR}/packages/linux-cli/gs2
-        COMMAND chrpath -r '$$ORIGIN' ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/libSDL3_image.so.0
-        COMMAND chrpath -r '$$ORIGIN' ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/libSDL3_ttf.so.0
-        DEPENDS gs2
-    )
+    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")     # Fat binary for arm64 and x86_64
 endif()
 
 function(configure_sdl_builds)
@@ -152,9 +53,7 @@ function(configure_sdl_builds)
     endif()
     
     set(SDL_SHARED ON)
-
     set(SDLTTF_VENDORED ON)
-    set(SDLTTF_SAMPLES ON)
 
     # Force rebuild SDL with these settings
     add_subdirectory(${CMAKE_SOURCE_DIR}/vendored/SDL EXCLUDE_FROM_ALL)
@@ -177,11 +76,6 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 configure_sdl_builds()
-
-# Set default build type to Release if not specified
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release)
-endif()
 
 # Define flags for different build types
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3 -ggdb3 -fsanitize=address,undefined -fno-omit-frame-pointer")
@@ -304,7 +198,7 @@ add_subdirectory(apps/gstrace)
 # Meta-target that builds all packages
 if(APPLE)
     add_custom_target(packages
-        DEPENDS mac-package mac-cli-package create-dmg
+        DEPENDS mac-bundle mac-cli-package create-dmg
     )
 elseif(UNIX AND NOT APPLE)
     add_custom_target(packages
@@ -317,5 +211,160 @@ elseif(WIN32)
 else()
     add_custom_target(packages
         COMMENT "No package targets defined for this platform"
+    )
+endif()
+
+################################################################################
+#### Packaging targets per platform
+################################################################################
+
+if(APPLE)
+    # Only create bundle and change name when explicitly building packages
+    if(BUILD_PACKAGES)
+        set_target_properties(gs2 PROPERTIES
+            OUTPUT_NAME "GSSquared"
+            MACOSX_BUNDLE TRUE
+            MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/assets/Info.plist
+            MACOSX_BUNDLE_ICON_FILE gs2.icns
+            MACOSX_BUNDLE_GUI_IDENTIFIER "com.bazyar.gs2"
+            MACOSX_BUNDLE_BUNDLE_NAME "GSSquared"
+            MACOSX_BUNDLE_BUNDLE_VERSION "0.3.0"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.3.0"
+            MACOSX_BUNDLE_COPYRIGHT "Copyright © 2025 Jawaid Bazyar"
+            #APP_ICON_MACOSX ${CMAKE_SOURCE_DIR}/assets/img/gs2.icns
+            RESOURCE_DIR ${CMAKE_BINARY_DIR}/resources
+    
+            # RPATH for dynamic libraries
+            INSTALL_RPATH "@executable_path/../Frameworks"
+            BUILD_WITH_INSTALL_RPATH TRUE
+            INSTALL_RPATH_USE_LINK_PATH TRUE
+        )
+    endif()
+
+    install(TARGETS gs2
+        BUNDLE DESTINATION .
+        COMPONENT Runtime
+        EXCLUDE_FROM_ALL
+    )
+
+    install(FILES
+        ${CMAKE_BINARY_DIR}/lib/libSDL3.dylib
+        ${CMAKE_BINARY_DIR}/lib/libSDL3_image.dylib
+        ${CMAKE_BINARY_DIR}/lib/libSDL3_ttf.dylib
+        DESTINATION "GSSquared.app/Contents/Frameworks"
+        COMPONENT Runtime
+        EXCLUDE_FROM_ALL
+    )
+
+    install(DIRECTORY ${CMAKE_BINARY_DIR}/resources/
+        DESTINATION "GSSquared.app/Contents/Resources"
+        COMPONENT Runtime
+        EXCLUDE_FROM_ALL
+    )
+
+    install(FILES
+        ${CMAKE_SOURCE_DIR}/assets/Info.plist
+        ${CMAKE_SOURCE_DIR}/assets/img/gs2.icns
+        DESTINATION "GSSquared.app/Contents"
+        COMPONENT Runtime
+        EXCLUDE_FROM_ALL
+    )
+
+    # Create a custom target that runs the install
+    add_custom_target(mac-bundle
+        # Run the install with Runtime component
+        COMMAND ${CMAKE_COMMAND} --install . --prefix ${CMAKE_BINARY_DIR}/packages --component Runtime
+        DEPENDS gs2 assemble_resources
+    )
+
+    add_custom_target(mac-cli-package
+        COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/roms
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/roms ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/roms
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/sounds
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets/sounds ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/sounds
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gs2> ${CMAKE_BINARY_DIR}/packages/mac-cli/
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/img
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/packages/mac-cli/resources/img/atlas.png
+        # Copy SDL dynamic libraries
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/mac-cli/lib
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/lib/libSDL3.dylib ${CMAKE_BINARY_DIR}/packages/mac-cli/lib/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/lib/libSDL3_image.dylib ${CMAKE_BINARY_DIR}/packages/mac-cli/lib/
+        # Fix up runtime paths
+        COMMAND install_name_tool -change @rpath/libSDL3.0.dylib @executable_path/lib/libSDL3.dylib ${CMAKE_BINARY_DIR}/packages/mac-cli/$<TARGET_FILE_NAME:gs2>
+        COMMAND install_name_tool -change @rpath/libSDL3_image.0.dylib @executable_path/lib/libSDL3_image.dylib ${CMAKE_BINARY_DIR}/packages/mac-cli/$<TARGET_FILE_NAME:gs2>
+        COMMAND install_name_tool -change @rpath/libSDL3.0.dylib @executable_path/lib/libSDL3.dylib ${CMAKE_BINARY_DIR}/packages/mac-cli/lib/libSDL3_image.dylib
+        DEPENDS gs2
+    )
+
+    # Add DMG creation target
+    add_custom_target(create-dmg
+        COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/tmp
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/tmp/dmg_contents
+        COMMAND cp -R ${CMAKE_BINARY_DIR}/packages/GSSquared.app ${CMAKE_BINARY_DIR}/tmp/dmg_contents/
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/README.md ${CMAKE_BINARY_DIR}/tmp/dmg_contents/README.md
+        COMMAND hdiutil create -volname "GSSquared" -srcfolder ${CMAKE_BINARY_DIR}/tmp/dmg_contents -ov -format UDZO ${CMAKE_BINARY_DIR}/packages/GSSquared.dmg
+        DEPENDS mac-bundle
+    )
+endif()
+
+## Windows packaging targets
+
+if(WIN32)
+    add_custom_target(win-package ALL
+        COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/packages/gssquared-win64/
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/gssquared-win64/
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gs2> ${CMAKE_BINARY_DIR}/packages/gssquared-win64/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/libSDL3.dll.a ${CMAKE_BINARY_DIR}/packages/gssquared-win64/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/libSDL3_image.dll.a ${CMAKE_BINARY_DIR}/packages/gssquared-win64/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/bin/SDL3.dll    ${CMAKE_BINARY_DIR}/packages/gssquared-win64/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/bin/SDL3_image.dll    ${CMAKE_BINARY_DIR}/packages/gssquared-win64/
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/gssquared-win64/resources/roms
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/roms ${CMAKE_BINARY_DIR}/packages/gssquared-win64/resources/roms
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/gssquared-win64/resources/sounds
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/assets/sounds ${CMAKE_BINARY_DIR}/packages/gssquared-win64/resources/sounds
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/gssquared-win64/resources/img
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/packages/gssquared-win64/resources/img/atlas.png
+        DEPENDS gs2
+    )
+endif()
+
+# Linux-packaging targets
+if(UNIX AND NOT APPLE)
+    # Linux-specific configuration here
+    
+    # Find the SDL libraries regardless of their exact filenames
+    file(GLOB SDL3_LIBS "${CMAKE_BINARY_DIR}/lib/libSDL3.so*")
+    file(GLOB SDL3_IMAGE_LIBS "${CMAKE_BINARY_DIR}/lib/libSDL3_image.so*")
+    
+    # Custom target for creating Linux package
+    add_custom_target(linux-package
+        # Delete contents of any current resources directory
+        COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/resources
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources
+
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/roms
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/roms ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/roms
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/sounds
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets/sounds ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/sounds
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/fonts
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets/fonts ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/fonts
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gs2> ${CMAKE_BINARY_DIR}/packages/linux-cli/
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/img
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/assets/img/atlas.png ${CMAKE_BINARY_DIR}/packages/linux-cli/resources/img/atlas.png
+        # Copy SDL dynamic libraries with correct names
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/linux-cli/lib
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/libSDL3.so.0 ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/libSDL3_image.so.0 ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/lib/libSDL3_ttf.so.0 ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/
+        # Create necessary symlinks
+        COMMAND ${CMAKE_COMMAND} -E create_symlink libSDL3.so.0 ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/libSDL3.so
+        COMMAND ${CMAKE_COMMAND} -E create_symlink libSDL3_image.so.0 ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/libSDL3_image.so
+        COMMAND ${CMAKE_COMMAND} -E create_symlink libSDL3_ttf.so.0 ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/libSDL3_ttf.so
+        # Fix up runtime paths with chrpath
+        COMMAND chrpath -r '$$ORIGIN/lib' ${CMAKE_BINARY_DIR}/packages/linux-cli/gs2
+        COMMAND chrpath -r '$$ORIGIN' ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/libSDL3_image.so.0
+        COMMAND chrpath -r '$$ORIGIN' ${CMAKE_BINARY_DIR}/packages/linux-cli/lib/libSDL3_ttf.so.0
+        DEPENDS gs2
     )
 endif()

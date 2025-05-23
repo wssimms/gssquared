@@ -116,23 +116,7 @@ Additional notes: Disk II does not support quarter or half tracks.
 
 ## ROMs
 
-You will of course need ROM images to run the emulator like an Apple.
-
-1. System ROM Images: https://mirrors.apple2.org.za/Apple%20II%20Documentation%20Project/Computers/Apple%20II/Apple%20II/ROM%20Images/
-2. Character ROM Image: https://mirrors.apple2.org.za/Apple%20II%20Documentation%20Project/Computers/Apple%20II/Apple%20II/ROM%20Images/Apple%20II%20Character%20ROM%20-%20341-0036.bin
-
-In the directory /roms/, there is a Makefile that will download the ROM images and combine them into single files, for the various platforms (Apple II+, //e, etc.) After the main gs2 build:
-
-```
-cd roms
-make
-```
-
-This is driven by a python script, and a JSON file in each folder.
-
-Separately, you need roms for the Thunderclock Plus, and Apple II memory expansion card. Holler if you need them.
-
-We will support doing a 'make' on those ROMs too soon.
+For now, ROMs are included in the source tree and distribution.
 
 
 ### More Character ROM stuff:

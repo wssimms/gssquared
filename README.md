@@ -34,7 +34,7 @@ NOTE: the build process has been updated so that builds are done in and to the b
 Production builds are optimized for performance.
 
 ```
-cmake -DCMAKE_BUILD_TYPE=Release ..
+cmake -DCMAKE_BUILD_TYPE=Release -S . -B build
 ```
 
 ## Build for Debug
@@ -42,7 +42,7 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 Debug enables a variety of assertions, turns off optimizations, and enables memory leak and buffer overrun checking.
 
 ```
-cmake -DCMAKE_BUILD_TYPE=Debug ..
+cmake -DCMAKE_BUILD_TYPE=Debug -S . -B build
 ```
 
 ## macOS
@@ -63,12 +63,13 @@ cmake --build build
 
 ### Mac App Bundle
 
-After building, you can create a Mac App Bundle and .dmg file. The packages are built into the packages/ directory.
-
-from project root:
+To build a Mac App Bundle and Disk Image (.dmg file), do this from project root:
 ```
+cmake -DBUILD_PACKAGES=ON -DCMAKE_BUILD_TYPE=Release -S . -B build
 cmake --build build --target packages
 ```
+
+ The app bundle and .dmg file are built into the packages/ directory.
 
 
 ## Linux

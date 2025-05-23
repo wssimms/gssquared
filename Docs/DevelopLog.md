@@ -3879,3 +3879,45 @@ SDL_ttf says it loaded a newer vendored version of harfbuzz yesterday. That almo
 ## May 22, 2025
 
 ok, got building working. I think the error was specifying /Library causing cmake to mix the command-line and the xcode libraries. 
+
+Notes from the 10X people on SDL group:
+Use the MACOSX_BUNDLE target property to tell CMake it should be a Mac app bundle
+See this: https://github.com/Ravbug/sdl3-sample/blob/main/CMakeLists.txt#L165-L179
+You can also use the RESOURCE target property to tell CMake to add resource files to the bundle in the right subdirectory
+And if you have dynamic libraries, cmake can fix the rpaths for you as well: https://github.com/Ravbug/sdl3-sample/blob/main/CMakeLists.txt#L187-L202
+
+set_target_properties(${EXECUTABLE_NAME} PROPERTIES 
+    # On macOS, make a proper .app bundle instead of a bare executable
+    MACOSX_BUNDLE TRUE
+    # Set the Info.plist file for Apple Mobile platforms. Without this file, your app
+    # will not launch. 
+    MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/src/Info.plist.in"
+
+    # in Xcode, create a Scheme in the schemes dropdown for the app.
+    XCODE_GENERATE_SCHEME TRUE
+    # Identification for Xcode
+    XCODE_ATTRIBUTE_BUNDLE_IDENTIFIER "com.ravbug.sdl3-sample"
+	XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.ravbug.sdl3-sample"
+	XCODE_ATTRIBUTE_CURRENTYEAR "${CURRENTYEAR}"
+    RESOURCE "${RESOURCE_FILES}"
+)
+
+# On macOS Platforms, ensure that the bundle is valid for distribution by calling fixup_bundle.
+# note that fixup_bundle does not work on iOS, so you will want to use static libraries 
+# or manually copy dylibs and set rpaths
+if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+    # tell Install about the target, otherwise fixup won't know about the transitive dependencies
+    install(TARGETS ${EXECUTABLE_NAME}
+    	BUNDLE DESTINATION ./install COMPONENT Runtime
+   	    RUNTIME DESTINATION ./install/bin COMPONENT Runtime
+    )
+	
+    set(DEP_DIR "${CMAKE_BINARY_DIR}")  # where to look for dependencies when fixing up
+    INSTALL(CODE 
+        "include(BundleUtilities)
+        fixup_bundle(\"$<TARGET_BUNDLE_DIR:${EXECUTABLE_NAME}>\" \"\" \"${DEP_DIR}\")
+        " 
+    )
+    set(CPACK_GENERATOR "DragNDrop")
+    include(CPack)
+endif()
