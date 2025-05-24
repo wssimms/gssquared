@@ -9,20 +9,24 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.3.0</string>
+    <string>@PROJECT_VERSION@</string>
     <key>CFBundleVersion</key>
-    <string>0.3.0</string>
+    <string>@PROJECT_VERSION@.@GIT_HASH@</string>
     <key>CFBundleExecutable</key>
     <string>GSSquared</string>
     <key>CFBundleIconFile</key>
     <string>gs2.icns</string>
     <key>LSMinimumSystemVersion</key>
-    <string>10.15</string>
+    <string>15.0</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>LSMultipleInstancesProhibited</key>
     <false/>
     <key>NSHumanReadableCopyright</key>
     <string>Copyright © 2025 Jawaid Bazyar</string>
+    <key>CFBundleGetInfoString</key>
+    <string>GSSquared @PROJECT_VERSION@ (build @GIT_HASH@)</string>
+    <key>NSHumanReadableDescription</key>
+    <string>Apple II+ and IIe Emulator, version @PROJECT_VERSION@</string>
 </dict>
 </plist> 

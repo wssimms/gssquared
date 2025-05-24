@@ -3,6 +3,60 @@ cmake_minimum_required(VERSION 3.10)
 # Set the project name
 project(gssquared)
 
+################################################################################
+#### VERSION MANAGEMENT
+################################################################################
+
+# Define base version (major.minor)
+set(VERSION_MAJOR "0")
+set(VERSION_MINOR "3")
+
+# Get git commit count for patch version (auto-incrementing)
+find_package(Git QUIET)
+if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-list --count HEAD
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_COMMIT_COUNT
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+    if(GIT_COMMIT_COUNT)
+        set(VERSION_PATCH ${GIT_COMMIT_COUNT})
+    else()
+        set(VERSION_PATCH "0")
+    endif()
+    
+    # Also get git hash for build info
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_HASH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+else()
+    set(VERSION_PATCH "0")
+    set(GIT_HASH "unknown")
+endif()
+
+# Construct full version string
+set(PROJECT_VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
+
+message(STATUS "Project version: ${PROJECT_VERSION} (git: ${GIT_HASH})")
+
+# Generate version header file
+configure_file(
+    "${PROJECT_SOURCE_DIR}/src/version.h.in"
+    "${PROJECT_BINARY_DIR}/generated/version.h"
+)
+
+# Generate Info.plist file with version information
+configure_file(
+    "${PROJECT_SOURCE_DIR}/assets/Info.plist.in"
+    "${PROJECT_BINARY_DIR}/generated/Info.plist"
+)
+
 # Accepted settings:
 # BUILD_NATIVE         Set to build (on Mac) for only the current (native) architecture. Otherwise, build for both arm64 and x86_64.
 # DEV_MODE             Set to build for development mode (CLI executable instead of bundle/package)
@@ -122,7 +176,8 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 add_library(gs2_headers INTERFACE)
 target_include_directories(gs2_headers
-    INTERFACE ${PROJECT_SOURCE_DIR}/src)
+    INTERFACE ${PROJECT_SOURCE_DIR}/src
+    INTERFACE ${PROJECT_BINARY_DIR}/generated)
 
 # all following targets will link to SDL3
 link_libraries(gs2_headers SDL3::SDL3-shared)
@@ -253,7 +308,7 @@ if(APPLE)
         set_target_properties(GSSquared PROPERTIES
             OUTPUT_NAME "GSSquared"
             MACOSX_BUNDLE TRUE
-            MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/assets/Info.plist
+            MACOSX_BUNDLE_INFO_PLIST ${PROJECT_BINARY_DIR}/generated/Info.plist
 
             # RPATH for dynamic libraries
             INSTALL_RPATH "@executable_path/../Frameworks"
@@ -264,13 +319,10 @@ if(APPLE)
         # Configure CPack
         set(CPACK_GENERATOR "Bundle")
         set(CPACK_BUNDLE_NAME "GSSquared")
-        set(CPACK_BUNDLE_PLIST "${CMAKE_SOURCE_DIR}/assets/Info.plist")
+        set(CPACK_BUNDLE_PLIST "${PROJECT_BINARY_DIR}/generated/Info.plist")
         set(CPACK_BUNDLE_ICON "${CMAKE_SOURCE_DIR}/assets/img/gs2.icns")
         # Package version info
-        set(CPACK_PACKAGE_VERSION "0.3.0")
-        set(CPACK_PACKAGE_VERSION_MAJOR "0")
-        set(CPACK_PACKAGE_VERSION_MINOR "3")
-        set(CPACK_PACKAGE_VERSION_PATCH "0")
+        set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
         # Bundle identifier and other metadata
         set(CPACK_BUNDLE_IDENTIFIER "com.bazyar.gs2")
         set(CPACK_PACKAGE_VENDOR "Jawaid Bazyar")
@@ -334,7 +386,7 @@ if(UNIX AND NOT APPLE)
     # Set CPack variables for Linux
     set(CPACK_GENERATOR "TGZ")
     set(CPACK_PACKAGE_NAME "gssquared")
-    set(CPACK_PACKAGE_VERSION "0.3.0")
+    set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
     set(CPACK_PACKAGE_VENDOR "Jawaid Bazyar")
     set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "GSSquared Apple II Emulator")
     
