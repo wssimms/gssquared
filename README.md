@@ -56,20 +56,49 @@ You will need:
 git clone https://github.com/jawaidbazyar2/gssquared.git
 cd gssquared
 git submodule update --init --recursive
-mkdir build
-cmake -DCMAKE_BUILD_TYPE=Release -S . -B build
+```
+
+If you just want to do a standard build that will result in a Mac App Bundle,
+
+```
+cmake -DDEV_MODE=OFF  -DCMAKE_BUILD_TYPE=Release -S . -B build
 cmake --build build
+cmake --install build
 ```
 
-### Mac App Bundle
+This will "install" an App Bundle into the build/ directory, named GSSquared.app. (Or in Finder, just GSSquared)
 
-To build a Mac App Bundle and Disk Image (.dmg file), do this from project root:
+### Mac DMG Disk Image
+
+To go further and build a Mac Disk Image (.dmg file), do this from project root after doing the above build,
+
 ```
-cmake -DBUILD_PACKAGES=ON -DCMAKE_BUILD_TYPE=Release -S . -B build
-cmake --build build --target packages
+cmake --build build --target package
 ```
 
- The app bundle and .dmg file are built into the packages/ directory.
+The app bundle and .dmg file are built into the packages/ directory.
+
+### Mac DEV Mode
+
+DEV Mode will just build executable into build/ (named GSSquared) suitable for execution from the command-line.
+
+```
+cmake -DDEV_MODE=ON  -DCMAKE_BUILD_TYPE=Release -S . -B build
+cmake --build build
+build/GSSquared
+```
+
+You may also use -DCMAKE_BUILD_TYPE=Debug , which will disable optimizations, and include debugger symbols in the result.
+
+### Mac Architecture
+
+By default, GSSquared builds as a "Fat Binary" or Dual-Architecture binary for both Apple Silicon and Intel CPUs.
+
+If you want to build only for your native architecture:
+
+```
+cmake -DBUILD_NATIVE=ON  -DCMAKE_BUILD_TYPE=Release -S . -B build
+```
 
 
 ## Linux

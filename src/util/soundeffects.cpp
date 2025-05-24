@@ -50,7 +50,7 @@ static bool load_soundeffect(SDL_AudioDeviceID audio_device, const char *fname, 
     char *wav_path = NULL;
 
     /* Load the .wav files from wherever the app is being run from. */
-    SDL_asprintf(&wav_path, "%s%s", gs2_app_values.base_path, fname);  /* allocate a string of the full file path */
+    SDL_asprintf(&wav_path, "%s%s", gs2_app_values.base_path.c_str(), fname);  /* allocate a string of the full file path */
     if (!SDL_LoadWAV(wav_path, &spec, &soundeffect->wav_data, &soundeffect->wav_data_len)) {
         SDL_Log("Couldn't load .wav file: %s", SDL_GetError());
         return false;

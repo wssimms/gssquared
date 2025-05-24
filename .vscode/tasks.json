@@ -4,7 +4,7 @@
         {
             "label": "build-debug",
             "type": "shell",
-            "command": "cd build; cmake -DCMAKE_BUILD_TYPE=Debug .. && cmake --build .",
+            "command": "cmake -DDEV_MODE=ON -DCMAKE_BUILD_TYPE=Debug -S . -B build && cmake --build build",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -13,7 +13,7 @@
         {
             "label": "build-release",
             "type": "shell",
-            "command": "cd build; cmake -DCMAKE_BUILD_TYPE=Release .. && cmake --build .",
+            "command": "cmake -DDEV_MODE=ON -DCMAKE_BUILD_TYPE=Release -S . -B build && cmake --build build",
             "group": "build"
         }
     ]

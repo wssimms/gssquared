@@ -19,6 +19,7 @@
 
 #include <unistd.h>
 #include <stdint.h>
+#include <string>
 
 //#include "cpu.hpp"
 
@@ -32,7 +33,7 @@ typedef uint16_t word_t;
 typedef uint8_t opcode_t;
 
 typedef struct gs2_app_t {
-    const char *base_path;
+    std::string base_path;
     bool console_mode = false;
     bool disk_accelerator = false;
     bool sleep_mode = false;
