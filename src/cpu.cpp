@@ -89,7 +89,7 @@ void set_clock_mode(cpu_state *cpu, clock_mode_t mode) {
 } */
 
 void toggle_clock_mode(cpu_state *cpu) {
-    set_clock_mode(cpu, (clock_mode)((cpu->clock_mode + 1) % NUM_CLOCK_MODES));
+    set_clock_mode(cpu, (clock_mode_t)((cpu->clock_mode + 1) % NUM_CLOCK_MODES));
     fprintf(stdout, "Clock mode: %d HZ_RATE: %llu\n", cpu->clock_mode, cpu->HZ_RATE);
 }
 

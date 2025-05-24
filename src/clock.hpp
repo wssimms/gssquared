@@ -21,7 +21,7 @@
 
 struct cpu_state; // forward declaration
 
-typedef enum clock_mode {
+typedef enum {
     CLOCK_FREE_RUN = 0,
     CLOCK_1_024MHZ,
     CLOCK_2_8MHZ,

@@ -226,7 +226,7 @@ struct cpu_state {
     uint64_t cycle_duration_ns;
     //uint64_t cycle_duration_ticks;
     uint64_t HZ_RATE;
-    clock_mode clock_mode = CLOCK_FREE_RUN;
+    clock_mode_t clock_mode = CLOCK_FREE_RUN;
     float e_mhz = 0;
     
     execute_next_fn execute_next;
