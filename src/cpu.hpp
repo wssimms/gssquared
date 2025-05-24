@@ -30,16 +30,6 @@
 #include "videosystem.hpp"
 #include "debugger/trace.hpp"
 
-#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    #define IS_LITTLE_ENDIAN 1
-#else
-    #define IS_LITTLE_ENDIAN 0
-#endif
-
-#if !defined(IS_LITTLE_ENDIAN)
-    #error "Cannot determine endianness for this platform!"
-#endif
-
 #define MAX_CPUS 1
 
 #define BRK_VECTOR 0xFFFE
