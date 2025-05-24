@@ -272,7 +272,7 @@ void run_cpus(void) ;
 
 void toggle_clock_mode(cpu_state *cpu);
 
-void set_clock_mode(cpu_state *cpu, clock_mode mode);
+void set_clock_mode(cpu_state *cpu, clock_mode_t mode);
 
 const char* processor_get_name(int processor_type);
 

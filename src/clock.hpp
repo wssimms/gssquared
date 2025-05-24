@@ -27,7 +27,7 @@ typedef enum clock_mode {
     CLOCK_2_8MHZ,
     CLOCK_4MHZ,
     NUM_CLOCK_MODES
-} clock_mode;
+} clock_mode_t;
 
 typedef struct {
     uint64_t hz_rate;

@@ -54,7 +54,7 @@ uint64_t cycle_durations_ns[] = {
 uint64_t cycles_per_burst[] = { 17008, 66665, 46666, 17008 };
  */
 
-void set_clock_mode(cpu_state *cpu, clock_mode mode) {
+void set_clock_mode(cpu_state *cpu, clock_mode_t mode) {
     // Get the conversion factor for mach_absolute_time to nanoseconds
 /*     mach_timebase_info_data_t info;
     mach_timebase_info(&info);

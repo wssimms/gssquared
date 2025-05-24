@@ -37,7 +37,7 @@ struct platform_info {
     const char* rom_dir;        // Directory under roms/
     uint16_t rom_base_addr;    // Base address for the roms
     const int processor_type;   // processor type
-    const clock_mode default_clock_mode; // default clock mode for this platform at startup.
+    const clock_mode_t default_clock_mode; // default clock mode for this platform at startup.
 };
 
 typedef uint8_t char_rom_t[256 * 8];
