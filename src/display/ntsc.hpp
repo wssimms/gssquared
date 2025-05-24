@@ -26,24 +26,24 @@
 
 
 struct ntsc_config {
-    int width;
-    int height;
-    float colorBurst;
-    float subcarrier;
-    float videoSaturation;
-    float videoHue;
-    float videoBrightness;
+    int width = 0;
+    int height = 0;
+    float colorBurst = 0.0f;
+    float subcarrier = 0.0f;
+    float videoSaturation = 1.0f;
+    float videoHue = 0.0f;
+    float videoBrightness = 0.0f;
 
-    std::vector<std::vector<float>> filterCoefficients;
-    float decoderOffset[3]; // TODO: first value should brightness. -1 to +1.
+    std::vector<std::vector<float>> filterCoefficients = std::vector<std::vector<float>>(9, std::vector<float>(3, 0.0f));
+    float decoderOffset[3] {0.0f, 0.0f, 0.0f}; // TODO: first value should brightness. -1 to +1.
     Matrix3x3 decoderMatrix;
-    float phaseInfo[2];
+    float phaseInfo[2] = {0.0f, 0.0f};
 
-    float phase_sin[4];
-    float phase_cos[4];
+    float phase_sin[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    float phase_cos[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 
     // precalculated YUV lookup table. only two input pixel values (0 and 255)
-    float pixelYUV[2][4][3];
+    float pixelYUV[2][4][3] = {};
 };
 
 #define FRAME_WIDTH 560

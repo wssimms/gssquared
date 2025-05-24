@@ -30,7 +30,15 @@
 #include "videosystem.hpp"
 #include "debugger/trace.hpp"
 
-//#include "clock.hpp"
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    #define IS_LITTLE_ENDIAN 1
+#else
+    #define IS_LITTLE_ENDIAN 0
+#endif
+
+#if !defined(IS_LITTLE_ENDIAN)
+    #error "Cannot determine endianness for this platform!"
+#endif
 
 #define MAX_CPUS 1
 
@@ -118,16 +126,14 @@ struct cpu_state {
     uint64_t boot_time; 
     union {
         struct {
-            #if defined(__LITTLE_ENDIAN__)
+            #if IS_LITTLE_ENDIAN
                 uint16_t pc;  /* Program Counter - lower 16 bits of the 24-bit program counter */
                 uint8_t pb;   /* Program Bank - upper 8 bits of the 24-bit program counter */
                 uint8_t unused; /* Padding to align with 32-bit full_pc */
-            #elif defined(__BIG_ENDIAN__)
-                uint8_t unused; /* Padding to align with 32-bit full_pc */
-                uint8_t pb;   /* Program Bank - upper 8 bits of the 24-bit program counter */
-                uint16_t pc;  /* Program Counter - lower 16 bits of the 24-bit program counter */
             #else
-                #error "Endianness not defined. Please define __LITTLE_ENDIAN__ or __BIG_ENDIAN__"
+                uint8_t unused; /* Padding to align with 32-bit full_pc */
+                uint8_t pb;   /* Program Bank - upper 8 bits of the 24-bit program counter */
+                uint16_t pc;  /* Program Counter - lower 16 bits of the 24-bit program counter */
             #endif
         };
         uint32_t full_pc; /* Full 24-bit program counter (with 8 unused bits) */
@@ -137,56 +143,48 @@ struct cpu_state {
     uint16_t sp;  /* Stack Pointer */
     union {
         struct {
-            #if defined(__LITTLE_ENDIAN__)
+            #if IS_LITTLE_ENDIAN
                 uint8_t a_lo;  /* Lower 8 bits of Accumulator */
                 uint8_t a_hi;  /* Upper 8 bits of Accumulator */
-            #elif defined(__BIG_ENDIAN__)
-                uint8_t a_hi;  /* Upper 8 bits of Accumulator */
-                uint8_t a_lo;  /* Lower 8 bits of Accumulator */
             #else
-                #error "Endianness not defined. Please define __LITTLE_ENDIAN__ or __BIG_ENDIAN__"
+                uint8_t a_hi;  /* Upper 8 bits of Accumulator */
+                uint8_t a_lo;  /* Lower 8 bits of Accumulator */
             #endif
         };
         uint16_t a;   /* Full 16-bit Accumulator */
     };
     union {
         struct {
-            #if defined(__LITTLE_ENDIAN__)
+            #if IS_LITTLE_ENDIAN
                 uint8_t x_lo;  /* Lower 8 bits of X Index Register */
                 uint8_t x_hi;  /* Upper 8 bits of X Index Register */
-            #elif defined(__BIG_ENDIAN__)
-                uint8_t x_hi;  /* Upper 8 bits of X Index Register */
-                uint8_t x_lo;  /* Lower 8 bits of X Index Register */
             #else
-                #error "Endianness not defined. Please define __LITTLE_ENDIAN__ or __BIG_ENDIAN__"
+                uint8_t x_hi;  /* Upper 8 bits of X Index Register */
+                uint8_t x_lo;  /* Lower 8 bits of X Index Register */
             #endif
         };
         uint16_t x;   /* Full 16-bit X Index Register */
     };
     union {
         struct {
-            #if defined(__LITTLE_ENDIAN__)
+            #if IS_LITTLE_ENDIAN
                 uint8_t y_lo;  /* Lower 8 bits of Y Index Register */
                 uint8_t y_hi;  /* Upper 8 bits of Y Index Register */
-            #elif defined(__BIG_ENDIAN__)
-                uint8_t y_hi;  /* Upper 8 bits of Y Index Register */
-                uint8_t y_lo;  /* Lower 8 bits of Y Index Register */
             #else
-                #error "Endianness not defined. Please define __LITTLE_ENDIAN__ or __BIG_ENDIAN__"
+                uint8_t y_hi;  /* Upper 8 bits of Y Index Register */
+                uint8_t y_lo;  /* Lower 8 bits of Y Index Register */
             #endif
         };
         uint16_t y;   /* Full 16-bit Y Index Register */
     };
     union {
         struct {
-            #if defined(__LITTLE_ENDIAN__)
+            #if IS_LITTLE_ENDIAN
                 uint8_t d_lo;  /* Lower 8 bits of Direct Page Register */
                 uint8_t d_hi;  /* Upper 8 bits of Direct Page Register */
-            #elif defined(__BIG_ENDIAN__)
+            #else
                 uint8_t d_hi;  /* Upper 8 bits of Direct Page Register */
                 uint8_t d_lo;  /* Lower 8 bits of Y Index Register */
-            #else
-                #error "Endianness not defined. Please define __LITTLE_ENDIAN__ or __BIG_ENDIAN__"
             #endif
         };
         uint16_t d;   /* Full 16-bit Y Index Register */

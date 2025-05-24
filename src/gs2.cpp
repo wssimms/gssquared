@@ -448,7 +448,7 @@ int main(int argc, char *argv[]) {
 #ifdef __APPLE__
     if (gs2_app_values.console_mode) {
         gs2_app_values.base_path = SDL_GetBasePath();
-        if (gs2_app_values.base_path.ends_with("/Resources/")) {
+        if (gs2_app_values.base_path.rfind("/Resources/") == gs2_app_values.base_path.length() - 11) {
             std::cout << "hello" << std::endl;
         } else gs2_app_values.base_path += "resources/";
     } else { 

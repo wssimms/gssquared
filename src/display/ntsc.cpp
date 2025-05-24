@@ -99,7 +99,15 @@ void setupConfig() {
     printf("Phase[0]: %.6f\n", config.phaseInfo[0]);
     printf("Phase[1]: %.6f\n", config.phaseInfo[1]);
 
-   config = {
+    config.width = FRAME_WIDTH;
+    config.height = FRAME_HEIGHT;
+    config.colorBurst = colorBurst;
+    config.subcarrier = subcarrier;
+    config.videoSaturation = 1.0f;
+    config.videoHue = 0.05f;
+    config.videoBrightness = 0.0f;
+
+   /* config = {
         .width = FRAME_WIDTH,
         .height = FRAME_HEIGHT,
         .colorBurst = colorBurst,
@@ -120,7 +128,7 @@ void setupConfig() {
         .videoSaturation = 1.0f,
         .videoHue = 0.05f,
         .videoBrightness = 0.0f
-    };
+    }; */
     generatePhaseInfo(/* scanlineY */ 0, colorBurst);
 
     // pre-calculate the sin/cos values for each of the 4 pixel positions (phases) based on
