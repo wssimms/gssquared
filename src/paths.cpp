@@ -16,6 +16,7 @@
  */
 
 #include <SDL3/SDL_filesystem.h>
+#include <iostream>
 
 #include "paths.hpp"
 #include "build_config.hpp"
@@ -40,7 +41,9 @@ const std::string& get_base_path(bool console_mode) {
 #elif defined(__APPLE__)
     if (console_mode) {
         base_path = SDL_GetBasePath();
-        if (base_path.ends_with("/Resources/")) {
+        const std::string suffix = "/Resources/";
+        if (base_path.size() >= suffix.size() && 
+            base_path.substr(base_path.size() - suffix.size()) == suffix) {
             std::cout << "hello" << std::endl;
         } else base_path += "resources/";
     } else { 
