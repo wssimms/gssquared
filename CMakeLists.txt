@@ -14,8 +14,13 @@ if(NOT WIN32)  # For Unix-like systems (Linux and Mac)
     find_program(CLANGPP_EXECUTABLE NAMES clang++)
     
     if(CLANG_EXECUTABLE AND CLANGPP_EXECUTABLE)
-        set(CMAKE_C_COMPILER "${CLANG_EXECUTABLE}")
-        set(CMAKE_CXX_COMPILER "${CLANGPP_EXECUTABLE}")
+        # Only set if not already set in cache
+        if(NOT CMAKE_C_COMPILER)
+            set(CMAKE_C_COMPILER "${CLANG_EXECUTABLE}" CACHE FILEPATH "C compiler" FORCE)
+        endif()
+        if(NOT CMAKE_CXX_COMPILER)
+            set(CMAKE_CXX_COMPILER "${CLANGPP_EXECUTABLE}" CACHE FILEPATH "C++ compiler" FORCE)
+        endif()
     else()
         message(STATUS "Clang not found, using default system compiler")
     endif()
@@ -306,7 +311,7 @@ endif()
 ## Windows packaging targets
 
 if(WIN32)
-    add_custom_target(package ALL
+    add_custom_target(packages ALL
         COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/packages/gssquared-win64/
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/packages/gssquared-win64/
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:GSSquared> ${CMAKE_BINARY_DIR}/packages/gssquared-win64/
@@ -333,7 +338,7 @@ if(UNIX AND NOT APPLE)
     file(GLOB SDL3_IMAGE_LIBS "${CMAKE_BINARY_DIR}/lib/libSDL3_image.so*")
     
     # Custom target for creating Linux package
-    add_custom_target(package
+    add_custom_target(packages
         # Delete contents of any current resources directory
         COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/resources
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/resources
