@@ -21,13 +21,18 @@ A binary release is available at [https://github.com/jawaidbazyar2/gssquared/rel
 General Build Instructions:
 
 To build GSSquared, you will need the following:
-* clang C compiler
+* clang C compiler or GCC
 * SDL3 downloaded and built from the SDL web site. (Specific steps for this are below.)
 * git
 
 I use vscode as my IDE, but, this isn't required to build.
 
+Note that GSSquared tries to force-select Clang as the compiler. If you want to override that you can edit the top of the CMakeLists and remove the clang-selection logic.
+
 NOTE: the build process has been updated so that builds are done in and to the build/ directory, as opposed to prior versions of GS2 where builds were done into the project root directory.
+
+GSSquared should also build with GCC on Ubuntu 22.04 or later, but this hasn't been tested.
+
 
 ## Build for Production
 
@@ -53,9 +58,8 @@ You will need:
 * Mac OSX 15 SDK, either Command-line or full Xcode.
 
 ```
-git clone https://github.com/jawaidbazyar2/gssquared.git
+git clone --recurse-submodules https://github.com/jawaidbazyar2/gssquared.git
 cd gssquared
-git submodule update --init --recursive
 ```
 
 If you just want to do a standard build that will result in a Mac App Bundle,
@@ -94,7 +98,7 @@ You may also use -DCMAKE_BUILD_TYPE=Debug , which will disable optimizations, an
 
 By default, GSSquared builds as a "Fat Binary" or Dual-Architecture binary for both Apple Silicon and Intel CPUs.
 
-If you want to build only for your native architecture:
+If for some reason you want to build only for your native architecture:
 
 ```
 cmake -DBUILD_NATIVE=ON  -DCMAKE_BUILD_TYPE=Release -S . -B build
@@ -103,32 +107,37 @@ cmake -DBUILD_NATIVE=ON  -DCMAKE_BUILD_TYPE=Release -S . -B build
 
 ## Linux
 
-gs2 will currently build on Ubuntu Linux 22.04.
+gs2 Linux build has been tested on:
 
-* You need the following libraries installed:
-    * libasound2-dev
-    * libpulse-dev
-    * libudev-dev
+* Ubuntu 22.04
+* clang 14
+
+You need the following libraries installed:
+* libasound2-dev
+* libpulse-dev
+* libudev-dev
 
 ```
-git clone https://github.com/jawaidbazyar2/gssquared.git
+git clone --recurse-submodules https://github.com/jawaidbazyar2/gssquared.git
 cd gssquared
-git submodule update --init --recursive
-mkdir build
+```
+
+Then to build:
+
+```
 cmake -DCMAKE_BUILD_TYPE=Release -S . -B build
 cmake --build build
 ```
 
 ### Linux App Distribution
 
-After building, you can create a folder that contains libraries and assets for linux.
+After building, you can create a folder that contains a complete package for Linux:
 
 ```
-cmake --build build --target packages
+cmake --build build --target package
 ```
 
-
-Creates packages/linux-cli/ directory that has a runnable binary.
+Creates a .TGZ package in the build/ directory that contains all the pieces you need.
 
 ## Windows
 
@@ -139,9 +148,8 @@ We've successfully built for windows using the following environment:
 * clang
 
 ```
-git clone https://github.com/jawaidbazyar2/gssquared.git
+git clone --recurse-submodules https://github.com/jawaidbazyar2/gssquared.git
 cd gssquared
-git submodule update --init --recursive
 mkdir build
 cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -B build -S .
 mingw32-make.exe
