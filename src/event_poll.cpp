@@ -116,7 +116,6 @@ bool handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
     }
     if (key == SDLK_F1) {
         display_capture_mouse(cpu, false);
-        //SDL_SetWindowRelativeMouseMode(cpu->window, false);
         return true;
     }
     return false;
@@ -141,7 +140,7 @@ void event_poll(cpu_state *cpu, SDL_Event &event) {
 
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
             display_capture_mouse(cpu, true);
-            //SDL_SetWindowRelativeMouseMode(cpu->window, true);
+            //osd->set_heads_up_message("Mouse Captured: Press F1 to release", 255);
             break;
 
         case SDL_EVENT_MOUSE_WHEEL:

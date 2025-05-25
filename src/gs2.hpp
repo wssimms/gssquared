@@ -21,8 +21,6 @@
 #include <stdint.h>
 #include <string>
 
-//#include "cpu.hpp"
-
 /* Address types */
 typedef uint8_t zpaddr_t;
 typedef uint16_t absaddr_t;

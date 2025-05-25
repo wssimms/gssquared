@@ -3886,6 +3886,7 @@ See this: https://github.com/Ravbug/sdl3-sample/blob/main/CMakeLists.txt#L165-L1
 You can also use the RESOURCE target property to tell CMake to add resource files to the bundle in the right subdirectory
 And if you have dynamic libraries, cmake can fix the rpaths for you as well: https://github.com/Ravbug/sdl3-sample/blob/main/CMakeLists.txt#L187-L202
 
+```
 set_target_properties(${EXECUTABLE_NAME} PROPERTIES 
     # On macOS, make a proper .app bundle instead of a bare executable
     MACOSX_BUNDLE TRUE
@@ -3921,3 +3922,129 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
     set(CPACK_GENERATOR "DragNDrop")
     include(CPack)
 endif()
+```
+
+## May 24, 2025
+
+I have been in build-system hell for the past 3 days. But learned a LOT about cmake. Had some folks jump in and start contributing! Awesome.
+
+Other than that, have just tweaked a few things.
+
+[ ] Still need to get Windows running with the new build system.  
+
+Tracing is working pretty well so far. Can trace on/off, can single-step and resume execution. Got a lot of great ideas on FB:
+```
+* Memory window(s). In particular I recently found myself debugging in an emulator that only let me watch one contiguous chunk of memory, but I wanted to watch two as the date being manipulated were in very different regions.
+* a disassembly window centered on the current line of code
+* text screen
+* lo res screen
+* hi res screen
+It would also be nice if the tabs you proposed were tear away tabs, so that you could look at multiple at the same time by moving each window around on your monitors as needed.
+-Memory view. It’s nice to show different “formats”. Hex, Text (maybe ASCII and Apple II encoding).
+- Setting memory breakpoints. When someone reads (or writes) from $A0, stop.
+- View the current Text screens, GR, HGR, HGR2, DHGR, even if they are not active. Extra credit to render and arbitrary bit if memory (looking for sprite data, etc) as hgr/gr/etc.
+- Disassembly window that shows upcoming instructions. Lets you set breakpoints.
+- A panel that shows all soft-switches values.
+- Load symbols for code complied in CC65.
+- I like the idea of a little monitor too.
+- Load a blob of compiled code into memory and execute it. (bload from local machine). You could make a very smooth development workflow. Compile on the PC, load into mem and debug.
+- Save / Restore state of the whole system. No need to wait to boot something. Save your games, etc.
+```
+
+I had a UI idea: when the mouse is moving over the window, show some controls. One of them will be a triangle that opens the OSD. That same tab also closes the OSD. It will be on the upper right corner sticking out, so it will always be clear what's up with it.
+
+[ ] implement the "temporary message at bottom of screen" idea I had; use it for mouse capture.   
+[ ] use general mono_color_table for rendering videx too. Probably bring those variables out and centralize them somewhere.  
+
+Mike sugggested the "save machine state". We would need to save:
+* contents of memory
+* cycle counter
+* PC, registers, etc. of course
+* values of softswitches
+
+To restore machine state, seems like the copymaster etc cards had to have done this. Instead of trying to save all of the emulator's state, perhaps we can "play back" the soft switch settings in some cases, i.e. call the routines via the memory bus interface. The audio modules (speaker, mb) are going to be tricky.
+
+So multiple requests for "show upcoming instructions". That's probably straightforward to do. Draw those in a different color to indicate they're not executed yet. Show a highlight or arrow or other indicator. Kicks in when you enter step-wise mode. The trace is everything that -has- executed. The disassembly would be everything that -will- be executed, including whatever is at the current program counter.
+Definitely implement a check that doesn't require re-rendering the debug window if nothing has changed. (e.g., sitting and staring at stepwise).
+
+I'm liking the idea of maybe extending the width of the debug window to show:
+* breakpoints
+* monitored memory
+* softswitch values per Mike above
+* mike says maybe refer to compiler symbol table?
+* show labels for well-known addresses - based on the effective address. would be hard for forward-disassembler.
+
+I was thinking I like the idea of combining monitor and debugger interface. so you'd have the regular monitor interface commands: 
+XXXX.YYYY to display memory. 
+XXXX YYYY.ZZZZ M to move memory. XXXX:YY YY to set memory. etc.
+But also things like "1234 BP", "1234.123 BP" <- set a breakpoint. 
+how closely to make this mirror monitor? there aren't that many commands in the monitor. Well, a mini-assembler could be cool.
+so, items are:
+address
+address.range
+"string"
+:val [..val, val, val]
+commands are: M (move), BS,BC (breakpoint set / clear), L (list/disassemble), V (verify), R (from file specified in string), W ()
+R would be:
+2000 "filename" R
+3000.4000 "filename" W
+C000 BS
+3FE.3FF BS
+2000 L (disassemble)
+2000 MS (memory monitor set)
+2000.2010 MC (memory monitor cancel)
+
+you would enter commands in a SDL "textedit" thing I just read about. and we can keep a small history with arrow key to get to them.
+
+Step out of: run until next RTS;
+Step into: single step
+Step over: single step, but if a JSR, run until RTS;
+
+OK, so that's one approach. The other is more of a full GUI approach. That would be a lot of work. maybe there is a widget library I can lean on.
+RmlUI is pretty sophisticated. Might do most of the things we want? Looks pretty snazzy too. ImGui looks more like stuff from 20 years ago. Square and blocky.
+
+## May 25, 2025
+
+Thinking about handling multiple CPUs. There is a decision point here: other emulators allow running multiple emulated systems at the same time - perhaps as threads. Threading presents issues with SDL (lots of stuff has to run in main thread). Also, that's not my interest - the user can always start multiple instances of the emulator, and that's easier to conceptualize.
+
+My original thought was to have a potential multi-core '816, for multitasking. Of course no software except GNO/ME (after heavy revisions) is going to know what to do with that.
+
+But let's think through what that implies. You have multiple CPU cores. The cores however share: memory, peripherals, display, etc. So, even a multi-core system would share a display screen, an OSD, a system configuration, etc.
+
+So practically instead of "CPUs[x]" being the top-level concept, we need a "system" or "motherboard" as the top-level (a global) that contains:
+   cpus[x]; slots[]; device state; etc.
+Practically, to support multi-core, there are two options: time-slice the cores inside the main event loop; or, have each 'core' have its own system thread. Geez, imagine a 4-core '816 running on the native system cores. That would be CRAY CRAY. The multi-threading approach - each thread(core) would need shared memory for the virtual RAM; how would they access hardware? How do we serialize h/w access? normally, the emulated OS would mediate multiple process access to h/w. That's not possible here. And I don't think it's possible in the emulator layer to do it.
+
+Let's say we wanted to emulate the Z80 softcard. That is a different type of CPU, but it's still two CPU "cores" in the same system. It would fit this model. (i.e. we'd execute it with time-slices like I am considering doing here with multiple '816 cores).
+
+So what we can do:
+* multiple emulated systems, each with their own hardware, display windows, time-sliced; (run each instance as a whole new process);
+* multiple CPU "cores" but the entire thing is time-sliced inside a single process/thread (or, a 6502 and a Z80 in the same process, time-sliced);
+
+so let's consider a computer struct.
+
+videosystem; // the higher level video system stuff for this window.
+
+struct computer_t {
+  systemconfig; // the "system configuration"
+  cpu_state *cpu; // cpu state for this "computer". in theory could have an array for cpu cores.
+  mmu_t *mmu; // mmu, and, memory, I/O decoding, etc lies behind this
+  module_store; slot_store; // 
+  OSD; // OSD for this "computer" instance 
+
+  void reset(); // calls reset on registered peripherals, devices, and the cpu.
+}
+
+computer_t computers[MAX_COMPUTERS];
+
+Ah ha, let's think about this now - SDL has CategoryProcess. What if for each virtual system we launched off a whole new OS-level *process*, not a thread. We could just fork off a new process from scratch. 
+
+If we do it this way, we end up with the following things:
+
+computer_t computer;
+
+only ONE of those.
+
+Maybe things will become clearer if I start to refactor cpu_struct into an object. There are a couple low-hanging fruit I can do - init_cpus, and cpu_reset. Let's dip toe in water. OK, that's done. Didn't break anything.
+
+ok, I pulled a few things into cpu_state, like reset, init, etc.

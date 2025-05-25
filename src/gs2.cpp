@@ -53,6 +53,7 @@
 #include "devices/mockingboard/mb.hpp"
 #include "videosystem.hpp"
 #include "debugger/debugwindow.hpp"
+#include "computer.hpp"
 
 /**
  * References: 
@@ -99,100 +100,18 @@
 /** Globals we haven't dealt properly with yet. */
 OSD *osd = nullptr;
 
-/**
- * initialize memory
- */
-
-void init_default_memory_map(cpu_state *cpu) {
-
-    for (int i = 0; i < (RAM_KB / GS2_PAGE_SIZE); i++) {
-        cpu->memory->page_info[i + 0x00].type = MEM_RAM;
-        cpu->memory->page_info[i + 0x00].can_read = 1;
-        cpu->memory->page_info[i + 0x00].can_write = 1;
-        cpu->memory->pages_read[i + 0x00] = cpu->main_ram_64 + i * GS2_PAGE_SIZE;
-        cpu->memory->pages_write[i + 0x00] = cpu->main_ram_64 + i * GS2_PAGE_SIZE;
-    }
-    for (int i = 0; i < (IO_KB / GS2_PAGE_SIZE); i++) {
-        cpu->memory->page_info[i + 0xC0].type = MEM_IO;
-        cpu->memory->page_info[i + 0xC0].can_read = 1;
-        cpu->memory->page_info[i + 0xC0].can_write = 1;
-        cpu->memory->pages_read[i + 0xC0] = cpu->main_io_4 + i * GS2_PAGE_SIZE;
-        cpu->memory->pages_write[i + 0xC0] = cpu->main_io_4 + i * GS2_PAGE_SIZE;
-    }
-    for (int i = 0; i < (ROM_KB / GS2_PAGE_SIZE); i++) {
-        cpu->memory->page_info[i + 0xD0].type = MEM_ROM;
-        cpu->memory->page_info[i + 0xD0].can_read = 1;
-        cpu->memory->page_info[i + 0xD0].can_write = 0;
-        cpu->memory->pages_read[i + 0xD0] = cpu->main_rom_D0 + i * GS2_PAGE_SIZE;
-        cpu->memory->pages_write[i + 0xD0] = cpu->main_rom_D0 + i * GS2_PAGE_SIZE;
-    }
-}
-void init_memory(cpu_state *cpu) {
-    cpu->memory = new memory_map();
-    
-    cpu->main_ram_64 = new uint8_t[RAM_KB];
-    cpu->main_io_4 = new uint8_t[IO_KB];
-    cpu->main_rom_D0 = new uint8_t[ROM_KB];
-
-    #ifdef APPLEIIGS
-    for (int i = 0; i < RAM_SIZE / GS2_PAGE_SIZE; i++) {
-        cpu->memory->page_info[i].type = MEM_RAM;
-        cpu->memory->pages[i] = new memory_page(); /* do we care if this is aligned */
-        if (!cpu->memory->pages[i]) {
-            std::cerr << "Failed to allocate memory page " << i << std::endl;
-            exit(1);
-        }
-    }
-    #else
-    init_default_memory_map(cpu);
-    #endif
-/*     for (int i = 0; i < 256; i++) {
-        printf("page %02X: %p\n", i, cpu->memory->pages[i]);
-    } */
-}
-
-uint64_t get_current_time_in_microseconds() {
-    return SDL_GetTicksNS() / 1000;
-}
-
+#if 0
+cpu_state *CPUs[MAX_CPUS];
 void init_cpus() { // this is the same as a power-on event.
     for (int i = 0; i < MAX_CPUS; i++) {
-        init_memory(&CPUs[i]);
-
-        CPUs[i].boot_time = get_current_time_in_microseconds();
-        CPUs[i].pc = 0x0400;
-        CPUs[i].sp = rand() & 0xFF; // simulate a random stack pointer
-        CPUs[i].a = 0;
-        CPUs[i].x = 0;
-        CPUs[i].y = 0;
-        CPUs[i].p = 0;
-        CPUs[i].cycles = 0;
-        CPUs[i].last_tick = 0;
-        CPUs[i].event_queue = new EventQueue();
-        if (!CPUs[i].event_queue) {
-            std::cerr << "Failed to allocate event queue for CPU " << i << std::endl;
-            exit(1);
-        }
-        //CPUs[i].execute_next = &execute_next_6502;
-        CPUs[i].trace = true;
-        CPUs[i].trace_buffer = new system_trace_buffer(100000);
-
-        set_clock_mode(&CPUs[i], CLOCK_1_024MHZ);
+        CPUs[i] = new cpu_state();
+        CPUs[i]->init();
     }
 }
-
-void set_cpu_processor(cpu_state *cpu, int processor_type) {
-    cpu->execute_next = processor_models[processor_type].execute_next;
-}
-
-#if 0
-#define INSTRUMENT(x) x
-#else
-#define INSTRUMENT(x) 
 #endif
 
-void run_cpus(void) {
-    cpu_state *cpu = &CPUs[0];
+void run_cpus(computer_t *computer) {
+    cpu_state *cpu = computer->cpu;
 
     /* initialize time tracker vars */
     uint64_t ct = SDL_GetTicksNS();
@@ -210,17 +129,9 @@ void run_cpus(void) {
     uint64_t last_time_window_start = 0;
     uint64_t last_cycle_window_start = 0;
 
-
     while (1) {
-
-        INSTRUMENT(std::cout << "last_cycle_count: " << last_cycle_count << " last_cycle_time: " << last_cycle_time << std::endl;)
-
-        //uint64_t time_window_start = SDL_GetTicksNS();
         uint64_t cycle_window_start = cpu->cycles;
-        //uint64_t time_window_delta = time_window_start - last_time_window_start;
         uint64_t cycle_window_delta = cycle_window_start - last_cycle_window_start;
-
-        //printf("slips | time_window_start : cycle_window_start: %4llu : %12llu : %12llu | %12llu : %12llu\n", cpu->clock_slip, time_window_start, time_window_delta,cycle_window_start, cycle_window_delta);
 
         uint64_t last_cycle_count = cpu->cycles;
         uint64_t last_cycle_time = SDL_GetTicksNS();
@@ -368,7 +279,6 @@ void run_cpus(void) {
             display_time = SDL_GetTicksNS() - current_time;
             last_display_update = current_time;
         }
-        INSTRUMENT(uint64_t display_time = SDL_GetTicksNS() - current_time;)
 
         /* Emit 5-second Stats */
         current_time = SDL_GetTicksNS();
@@ -426,8 +336,6 @@ gs2_app_t gs2_app_values;
 int main(int argc, char *argv[]) {
     std::cout << "Booting GSSquared!" << std::endl;
 
-//    printf("Size of trace_entry: %zu\n", sizeof(system_trace_entry_t));
-
     int platform_id = PLATFORM_APPLE_II_PLUS;  // default to Apple II Plus
     int opt;
     
@@ -452,21 +360,15 @@ int main(int argc, char *argv[]) {
                 case 'p':
                     platform_id = std::stoi(optarg);
                     break;
-                case 'a':
+                /* case 'a':
                     loader_set_file_info(optarg, 0x0801);
                     break;
                 case 'b':
                     loader_set_file_info(optarg, 0x7000);
-                    break;
+                    break; */
                 case 'd':
                     {
                         std::string filename;
-                        /* if (sscanf(optarg, "s%[0-9]d%[0-9]=%[^\n]", slot_str, drive_str, filename) != 3) {
-                            fprintf(stderr, "Invalid disk format. Expected sXdY=filename\n");
-                            exit(1);
-                        }
-                        slot = atoi(slot_str);
-                        drive = atoi(drive_str)-1; */
                         std::string arg_str(optarg);
                         // Using regex for better parsing
                         std::regex disk_pattern("s([0-9]+)d([0-9]+)=(.+)");
@@ -506,7 +408,9 @@ int main(int argc, char *argv[]) {
 
     /* system_diag((char *)gs2_app_values.base_path); */
 
-    init_cpus();
+    computer_t *computer = new computer_t();
+
+    //init_cpus();
 
 #if 0
         // this is the one test system.
@@ -533,14 +437,6 @@ int main(int argc, char *argv[]) {
             raw_memory_write(&CPUs[0], i, memory_chunk[i]);
         }
 #endif
-    
-#if 0
-    if (init_display_sdl(&CPUs[0])) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "A little test.", NULL);
-        fprintf(stderr, "Error initializing display\n");
-        exit(1);
-    }
-#endif
 
 #if 1
     // load platform roms   
@@ -556,17 +452,17 @@ int main(int argc, char *argv[]) {
         // Load into memory at correct address
         printf("Main Rom Data: %p base_addr: %04X size: %zu\n", rd->main_rom_data, rd->main_base_addr, rd->main_rom_file->size());
         for (uint64_t i = 0; i < rd->main_rom_file->size(); i++) {
-            raw_memory_write(&CPUs[0], rd->main_base_addr + i, (*rd->main_rom_data)[i]);
+            raw_memory_write(computer->cpu, rd->main_base_addr + i, (*rd->main_rom_data)[i]);
         }
         // we could dispose of this now if we wanted..
 #endif
 
-    set_cpu_processor(&CPUs[0], platform->processor_type);
-    CPUs[0].mounts = new Mounts(&CPUs[0]); // TODO: this should happen in a CPU constructor.
+    computer->cpu->set_processor(platform->processor_type);
+    computer->cpu->mounts = new Mounts(computer->cpu); // TODO: this should happen in a CPU constructor.
 
-    CPUs[0].video_system = new video_system_t();
-    CPUs[0].debug_window = new debug_window_t();
-    CPUs[0].debug_window->init(&CPUs[0]);
+    computer->cpu->video_system = new video_system_t();
+    computer->cpu->debug_window = new debug_window_t();
+    computer->cpu->debug_window->init(computer->cpu);
 
     init_display_font(rd);
 
@@ -578,29 +474,26 @@ int main(int argc, char *argv[]) {
         DeviceMap_t dm = system_config->device_map[i];
 
         Device_t *device = get_device(dm.id);
-        device->power_on(&CPUs[0], dm.slot);
+        device->power_on(computer->cpu, dm.slot);
         if (dm.slot != SLOT_NONE) {
             slot_manager->register_slot(device, dm.slot);
         }
     }
 
-    bool result = soundeffects_init(&CPUs[0]);
+    bool result = soundeffects_init(computer->cpu);
 
-    cpu_reset(&CPUs[0]);
-
-    //std::vector<media_descriptor *> mounted_media;
+    computer->cpu->reset();
 
     // mount disks - AFTER device init.
     while (!disks_to_mount.empty()) {
         disk_mount_t disk_mount = disks_to_mount.back();
         disks_to_mount.pop_back(); 
 
-        CPUs[0].mounts->mount_media(disk_mount);
+        computer->cpu->mounts->mount_media(disk_mount);
     }
 
-    //display_state_t *ds = (display_state_t *)get_module_state(&CPUs[0], MODULE_DISPLAY);
-    video_system_t *vs = CPUs[0].video_system;
-    osd = new OSD(&CPUs[0], vs->renderer, vs->window, slot_manager, 1120, 768);
+    video_system_t *vs = computer->cpu->video_system;
+    osd = new OSD(computer->cpu, vs->renderer, vs->window, slot_manager, 1120, 768);
     // TODO: this should be handled differently. have osd save/restore?
     int error = SDL_SetRenderTarget(vs->renderer, nullptr);
     if (!error) {
@@ -610,29 +503,25 @@ int main(int argc, char *argv[]) {
 
 // the first time through (maybe the first couple times?) these will take
 // considerable time. do them now before main loop.
-    update_display(&CPUs[0]); // check for events 60 times per second.
+    update_display(computer->cpu); // check for events 60 times per second.
     for (int i = 0; i < 10; i++) {
         SDL_Event event;
         while(SDL_PollEvent(&event)) {
-            event_poll(&CPUs[0], event); // call first time to get things started.
-            //osd->event(event);
+            event_poll(computer->cpu, event); // call first time to get things started.
         }
     }
 
-/*     CPUs[0].event_timer.scheduleEvent(3000000, test_timer_callback, 0x10101010, &CPUs[0]);
- */
-    run_cpus();
+    run_cpus(computer);
 
-    printf("CPU halted: %d\n", CPUs[0].halt);
-    if (CPUs[0].halt == HLT_INSTRUCTION) { // keep screen up and give user a chance to see the last state.
+    printf("CPU halted: %d\n", computer->cpu->halt);
+    if (computer->cpu->halt == HLT_INSTRUCTION) { // keep screen up and give user a chance to see the last state.
         printf("Press Enter to continue...");
         getchar();
     }
 
     //dump_full_speaker_event_log();
 
-    delete CPUs[0].video_system;
-    
-    //debug_dump_memory(&CPUs[0], 0x1230, 0x123F);
+    delete computer->cpu->video_system;
+    delete computer;
     return 0;
 }

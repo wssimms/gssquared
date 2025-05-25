@@ -11,7 +11,7 @@
 #include "memory.hpp"
 
 void run_test(Test& test) {
-    cpu_state *cpu = &CPUs[0];
+    cpu_state *cpu = CPUs[0];
     uint32_t addr = test.program_address;
 
     // Load the program into memory

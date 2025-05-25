@@ -499,11 +499,21 @@ void OSD::update() {
     if (activeModal) {
         activeModal->render();
     }
+}
 
+void OSD::set_heads_up_message(const std::string &text, int count) {
+    headsUpMessageText = text;
+    headsUpMessageCount = count;
 }
 
 /** Draw the control panel (if visible) */
 void OSD::render() {
+
+    if (headsUpMessageCount) {
+        SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, headsUpMessageCount);
+        text_render->render(headsUpMessageText, window_w - 200, window_h- 60 );
+        headsUpMessageCount--;
+    }
 
     /** if current Status is out, don't draw. If status is in transition or IN, draw. */
     if (currentSlideStatus == SLIDE_IN || (currentSlideStatus != slideStatus)) {

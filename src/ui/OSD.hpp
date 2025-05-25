@@ -84,6 +84,9 @@ protected:
     int window_h = 0;
     TextRenderer *text_render = nullptr;
 
+    std::string headsUpMessageText;
+    int headsUpMessageCount = 0;
+
 public:
     cpu_state *cpu = nullptr;
     
@@ -124,4 +127,6 @@ public:
 
     void show_diskii_modal(uint64_t key, uint64_t data);
     void close_diskii_modal(uint64_t key, uint64_t data);
+
+    void set_heads_up_message(const std::string &text, int count);
 };

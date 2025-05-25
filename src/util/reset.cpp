@@ -27,8 +27,8 @@
 // TODO: implement register_reset_handler so a device can register a reset handler.
 // and when system_reset is called, it will call all the registered reset handlers.
 
+// TODO: this is a higher level concept than just resetting the CPU.
 void system_reset(cpu_state *cpu, bool cold_start)  {
-    // TODO: this should be a callback from the CPU reset handler.
     if (cold_start) {
         // force a cold start reset
         raw_memory_write(cpu, 0x3f2, 0x00);
@@ -36,9 +36,9 @@ void system_reset(cpu_state *cpu, bool cold_start)  {
         raw_memory_write(cpu, 0x3f4, 0x00);
     }
 
-    cpu_reset(cpu);
+    cpu->reset();
     diskii_reset(cpu);
-    init_default_memory_map(cpu);
+    cpu->init_default_memory_map();
     reset_languagecard(cpu); // reset language card
     parallel_reset(cpu);
 #if MOCKINGBOARD_ENABLED

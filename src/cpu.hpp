@@ -113,7 +113,6 @@ typedef enum {
 } module_id_t;
 
 struct cpu_state {
-    uint64_t boot_time; 
     union {
         struct {
             #if SDL_BYTEORDER == SDL_LIL_ENDIAN
@@ -246,6 +245,12 @@ struct cpu_state {
     debug_window_t *debug_window;
     execution_modes_t execution_mode = EXEC_NORMAL;
     uint64_t instructions_left = 0;
+
+    void init();
+    void init_default_memory_map();
+    void init_memory();
+    void set_processor(int processor_type);
+    void reset();
 };
 
 #define HLT_INSTRUCTION 1
@@ -260,7 +265,7 @@ struct cpu_state {
 #define FLAG_V        0b01000000 /* 0x40 */
 #define FLAG_N        0b10000000 /* 0x80 */
 
-extern struct cpu_state CPUs[MAX_CPUS];
+extern struct cpu_state *CPUs[MAX_CPUS];
 
 //void reset_system(cpu_state *cpu);
 

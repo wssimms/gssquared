@@ -62,7 +62,7 @@ void loader_execute(cpu_state *cpu) {
 
     // Load into RAM at loader_address
     for (long i = 0; i < file_size; i++) {
-        raw_memory_write(&CPUs[0], loader_address + i, memory_chunk[i]);
+        raw_memory_write(CPUs[0], loader_address + i, memory_chunk[i]);
     }
 
     free(memory_chunk);

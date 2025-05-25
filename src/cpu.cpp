@@ -17,17 +17,11 @@
 
 #include <cstdio>
 #include <time.h>
-/* #include <mach/mach_time.h> */
+#include <cstdlib>
+#include <iostream>
 
 #include "cpu.hpp"
 #include "memory.hpp"
-
-struct cpu_state CPUs[MAX_CPUS];
-
-void cpu_reset(cpu_state *cpu) {
-    cpu->halt = 0; // if we were STPed etc.
-    cpu->pc = read_word(cpu, RESET_VECTOR);
-}
 
 clock_mode_info_t clock_mode_info[NUM_CLOCK_MODES] = {
     { 0, 0, 17008 },
@@ -144,4 +138,82 @@ void set_slot_irq(cpu_state *cpu, uint8_t slot, bool irq) {
     } else {
         cpu->irq_asserted &= ~(1 << slot);
     }
+}
+
+void cpu_state::init_default_memory_map() {
+
+    for (int i = 0; i < (RAM_KB / GS2_PAGE_SIZE); i++) {
+        memory->page_info[i + 0x00].type = MEM_RAM;
+        memory->page_info[i + 0x00].can_read = 1;
+        memory->page_info[i + 0x00].can_write = 1;
+        memory->pages_read[i + 0x00] = main_ram_64 + i * GS2_PAGE_SIZE;
+        memory->pages_write[i + 0x00] = main_ram_64 + i * GS2_PAGE_SIZE;
+    }
+    for (int i = 0; i < (IO_KB / GS2_PAGE_SIZE); i++) {
+        memory->page_info[i + 0xC0].type = MEM_IO;
+        memory->page_info[i + 0xC0].can_read = 1;
+        memory->page_info[i + 0xC0].can_write = 1;
+        memory->pages_read[i + 0xC0] = main_io_4 + i * GS2_PAGE_SIZE;
+        memory->pages_write[i + 0xC0] = main_io_4 + i * GS2_PAGE_SIZE;
+    }
+    for (int i = 0; i < (ROM_KB / GS2_PAGE_SIZE); i++) {
+        memory->page_info[i + 0xD0].type = MEM_ROM;
+        memory->page_info[i + 0xD0].can_read = 1;
+        memory->page_info[i + 0xD0].can_write = 0;
+        memory->pages_read[i + 0xD0] = main_rom_D0 + i * GS2_PAGE_SIZE;
+        memory->pages_write[i + 0xD0] = main_rom_D0 + i * GS2_PAGE_SIZE;
+    }
+}
+
+void cpu_state::init_memory() {
+    memory = new memory_map();
+    
+    main_ram_64 = new uint8_t[RAM_KB];
+    main_io_4 = new uint8_t[IO_KB];
+    main_rom_D0 = new uint8_t[ROM_KB];
+
+    #ifdef APPLEIIGS
+    for (int i = 0; i < RAM_SIZE / GS2_PAGE_SIZE; i++) {
+        cpu->memory->page_info[i].type = MEM_RAM;
+        cpu->memory->pages[i] = new memory_page(); /* do we care if this is aligned */
+        if (!cpu->memory->pages[i]) {
+            std::cerr << "Failed to allocate memory page " << i << std::endl;
+            exit(1);
+        }
+    }
+    #else
+    init_default_memory_map();
+    #endif
+}
+
+void cpu_state::init() {
+    init_memory();
+
+    pc = 0x0400;
+    sp = rand() & 0xFF; // simulate a random stack pointer
+    a = 0;
+    x = 0;
+    y = 0;
+    p = 0;
+    cycles = 0;
+    last_tick = 0;
+    event_queue = new EventQueue();
+    if (!event_queue) {
+        std::cerr << "Failed to allocate event queue for CPU " << std::endl;
+        exit(1);
+    }
+    
+    trace = true;
+    trace_buffer = new system_trace_buffer(100000);
+
+    set_clock_mode(this, CLOCK_1_024MHZ);
+}
+
+void cpu_state::set_processor(int processor_type) {
+    execute_next = processor_models[processor_type].execute_next;
+}
+
+void cpu_state::reset() {
+    halt = 0; // if we were STPed etc.
+    pc = read_word(this, RESET_VECTOR);
 }
