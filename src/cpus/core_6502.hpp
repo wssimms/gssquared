@@ -343,7 +343,7 @@ inline byte_t get_operand_zeropage_indirect_x(cpu_state *cpu) {
 inline void store_operand_zeropage_indirect_x(cpu_state *cpu, byte_t N) {
     absaddr_t taddr = get_operand_address_indirect_x(cpu);
     write_byte(cpu, taddr, N);
-    if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] <- $%04X", N, taddr);
+    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "   [#%02X] <- $%04X", N, taddr);
     TRACE( cpu->trace_entry.data = N;)
 }
 
