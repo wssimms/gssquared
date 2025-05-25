@@ -20,9 +20,9 @@
 // Values can be 0 - no debug, 1 - instruction decode, 2- detailed decode.
 extern uint64_t debug_level;
 
-#define DEBUG_OPCODE 0x0001
-#define DEBUG_OPERAND 0x0002
-#define DEBUG_REGISTERS 0x0004
+//#define DEBUG_OPCODE 0x0001
+//#define DEBUG_OPERAND 0x0002
+//#define DEBUG_REGISTERS 0x0004
 #define DEBUG_KEYBOARD 0x0010
 #define DEBUG_DISPLAY 0x0020
 #define DEBUG_CLOCK 0x0040
@@ -43,7 +43,7 @@ extern uint64_t debug_level;
 #define DEBUG_EVENT_TIMER 0x200000
 #define DEBUG_MOCKINGBOARD 0x400000
 #define DEBUG_ANY 0xFFFFFFFF
-#define DEBUG_BOOT_FLAG 0
+#define DEBUG_BOOT_FLAG DEBUG_KEYBOARD
 
 #define DEBUG(flag) (debug_level & flag)
 

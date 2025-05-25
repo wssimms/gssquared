@@ -81,7 +81,8 @@ void decode_key_mod(SDL_Keycode key, SDL_Keymod mod) {
     fprintf(stdout, "\n");
 }
 
-void handle_keydown_iiplus(cpu_state *cpu, SDL_Event event) {
+#if 0
+void handle_keydown_iiplus(cpu_state *cpu, const SDL_Event &event) {
 
     // Ignore if only shift is pressed
     /* uint16_t mod = event.key.keysym.mod;
@@ -134,6 +135,39 @@ void handle_keydown_iiplus(cpu_state *cpu, SDL_Event event) {
         }
     }
     /* if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "key pressed: %08X\n", key); */
+}
+#endif 
+
+void handle_keydown_iiplus(cpu_state *cpu, const SDL_Event &event) {
+
+    // Ignore if only shift is pressed
+    /* uint16_t mod = event.key.keysym.mod;
+    SDL_Keycode key = event.key.keysym.sym; */
+    SDL_Keymod mod = event.key.mod;
+    SDL_Keycode key = event.key.key;
+
+    if (DEBUG(DEBUG_KEYBOARD))  decode_key_mod(key, mod);
+
+    if (mod & SDL_KMOD_CTRL) { // still have to handle control this way..
+        // Convert lowercase to control code (0x01-0x1A)
+        if (key >= 'a' && key <= 'z') {
+            key = key - 'a' + 1;
+            kb_key_pressed(key);
+            /* if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "control key pressed: %08X\n", key); */
+        }
+    }  else {
+        // map the scancode + mods to a sensible keycode
+        SDL_Keycode mapped = SDL_GetKeyFromScancode(event.key.scancode, event.key.mod, false);
+        if (DEBUG(DEBUG_KEYBOARD)) printf("mapped key: %08X\n", mapped);
+
+        if (mapped == SDLK_LEFT) { kb_key_pressed(0x08); return; }
+        if (mapped == SDLK_RIGHT) { kb_key_pressed(0x15); return; }
+        if (mapped >= 'a' && mapped <= 'z') mapped = mapped - 'a' + 'A';
+        if (mapped < 128) { // TODO: create a keyboard map, and allow user to select keyboard map for different languages.
+            kb_key_pressed(mapped);
+        }
+    }
+
 }
 
 void init_mb_keyboard(cpu_state *cpu, SlotType_t slot) {
