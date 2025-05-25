@@ -234,11 +234,11 @@ void run_cpus(void) {
                             cpu->event_timer.processEvents(cpu->cycles); // TODO: implement a cache to speed up this check.
                             (cpu->execute_next)(cpu);
                             if (cpu->debug_window->window_open) {
-                                if (cpu->trace_entry.eaddr == 0x03FE) {
+                                /* if (cpu->trace_entry.eaddr == 0x03FE) {
                                     cpu->execution_mode = EXEC_STEP_INTO;
                                     cpu->instructions_left = 0;
                                     break;
-                                }
+                                } */
                                 if (cpu->trace_entry.opcode == 0x00) { // catch a BRK and stop execution.
                                     cpu->execution_mode = EXEC_STEP_INTO;
                                     cpu->instructions_left = 0;
