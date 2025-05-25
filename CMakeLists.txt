@@ -396,7 +396,7 @@ endif()
 
 # Non-Apple UNIX-specific configuration here
 if((UNIX OR MINGW) AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    if(GS2_PROGRAM_FILES AND LINUX)
+    if(GS2_PROGRAM_FILES)
         # TODO: Make this work for MSYS; no more hard-coded Linux stuff
         # PROGRAM FILES: Build bare executable, everything goes to build/ directory
         message(STATUS "Building as PROGRAM FILES: Bare executable and files in one directory")
