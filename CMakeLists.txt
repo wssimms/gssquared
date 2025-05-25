@@ -238,17 +238,18 @@ target_link_libraries(gs2_debugger SDL3_ttf::SDL3_ttf-shared)
 target_link_libraries(gs2_util SDL3_ttf::SDL3_ttf-shared)
 
 # Add the executable
-add_executable(GSSquared src/gs2.cpp src/bus.cpp src/clock.cpp src/debug.cpp src/cpu.cpp src/memory.cpp src/opcodes.cpp src/test.cpp 
+add_executable(GSSquared src/gs2.cpp src/bus.cpp src/clock.cpp src/debug.cpp src/cpu.cpp src/memory.cpp src/opcodes.cpp 
     src/display/text_40x24.cpp src/display/lores_40x48.cpp src/display/hgr_280x192.cpp src/display/display.cpp
     src/display/displayng.cpp src/display/ntsc.cpp src/display/font.cpp src/display/hgr.cpp src/display/Matrix3x3.cpp src/display/lgr.cpp
     src/display/OEVector.cpp src/display/filters.cpp
-    src/devices/loader.cpp 
     src/devices/diskii/diskii.cpp
     src/platforms.cpp
     src/event_poll.cpp
     src/devices.cpp src/slots.cpp src/systemconfig.cpp
     src/videosystem.cpp
+    src/computer.cpp
     src/paths.cpp
+    #src/test.cpp src/devices/loader.cpp
     ${CMAKE_SOURCE_DIR}/assets/img/gs2.icns
     )
 
