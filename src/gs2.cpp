@@ -191,7 +191,7 @@ void run_cpus(computer_t *computer) {
                     continue;
                 }
                 if (!osd->event(event)) { // if osd doesn't handle it..
-                    event_poll(cpu, event); // they say call "once per frame"
+                    event_poll(computer, event); // they say call "once per frame"
                 }
             }
 
@@ -275,7 +275,7 @@ void run_cpus(computer_t *computer) {
             osd->render();
             cpu->debug_window->render(cpu);
             /* display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY); */
-            cpu->video_system->present();
+            computer->video_system->present();
             display_time = SDL_GetTicksNS() - current_time;
             last_display_update = current_time;
         }
@@ -460,7 +460,8 @@ int main(int argc, char *argv[]) {
     computer->cpu->set_processor(platform->processor_type);
     computer->cpu->mounts = new Mounts(computer->cpu); // TODO: this should happen in a CPU constructor.
 
-    computer->cpu->video_system = new video_system_t();
+    computer->cpu->set_video_system(computer->video_system);
+    //computer->cpu->video_system = new video_system_t();
     computer->cpu->debug_window = new debug_window_t();
     computer->cpu->debug_window->init(computer->cpu);
 
@@ -492,7 +493,7 @@ int main(int argc, char *argv[]) {
         computer->cpu->mounts->mount_media(disk_mount);
     }
 
-    video_system_t *vs = computer->cpu->video_system;
+    video_system_t *vs = computer->video_system;
     osd = new OSD(computer->cpu, vs->renderer, vs->window, slot_manager, 1120, 768);
     // TODO: this should be handled differently. have osd save/restore?
     int error = SDL_SetRenderTarget(vs->renderer, nullptr);
@@ -507,7 +508,7 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < 10; i++) {
         SDL_Event event;
         while(SDL_PollEvent(&event)) {
-            event_poll(computer->cpu, event); // call first time to get things started.
+            event_poll(computer, event); // call first time to get things started.
         }
     }
 
@@ -521,7 +522,7 @@ int main(int argc, char *argv[]) {
 
     //dump_full_speaker_event_log();
 
-    delete computer->cpu->video_system;
+    //delete computer->cpu->video_system;
     delete computer;
     return 0;
 }

@@ -6,8 +6,6 @@
 #include "debugger/trace_opcodes.hpp"
 #include "opcodes.hpp"
 
-#define TRACE(SETTER) if (cpu->trace) { SETTER }
-
     system_trace_buffer::system_trace_buffer(size_t capacity) {
         entries = new system_trace_entry_t[capacity];
         size = capacity;

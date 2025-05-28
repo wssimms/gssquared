@@ -5,7 +5,8 @@
 
 #include "gs2.hpp"
 
-#define TRACE(SETTER) if (cpu->trace) { SETTER }
+#define TRACE(SETTER) { SETTER }
+//#define TRACE(SETTER) 
 
 // minimum of 8 byte chonkiness
 struct system_trace_entry_t {

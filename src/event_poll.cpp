@@ -19,6 +19,7 @@
 
 #include "debug.hpp"
 #include "cpu.hpp"
+#include "computer.hpp"
 #include "devices/keyboard/keyboard.hpp"
 #include "display/display.hpp"
 #include "devices/game/mousewheel.hpp"
@@ -121,7 +122,9 @@ bool handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
     return false;
 }
 
-void event_poll(cpu_state *cpu, SDL_Event &event) {
+void event_poll(computer_t *computer, SDL_Event &event) {
+    cpu_state *cpu = computer->cpu;
+
     switch (event.type) {
         case SDL_EVENT_QUIT:
             if (DEBUG(DEBUG_GUI)) fprintf(stdout, "quit received, shutting down\n");

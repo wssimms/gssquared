@@ -225,7 +225,9 @@ add_library(gs2_devices_annunciator     src/devices/annunciator/annunciator.cpp 
 
 add_library(gs2_debugger src/debugger/trace.cpp src/debugger/trace_opcodes.cpp src/debugger/debugwindow.cpp)
 
-add_library(gs2_cpu src/cpus/cpu_6502.cpp src/cpus/cpu_65c02.cpp )
+add_library(gs2_mmu src/mmus/mmu.cpp src/mmus/mmu_iiplus.cpp )
+
+add_library(gs2_cpu src/cpus/cpu_6502.cpp src/cpus/cpu_65c02.cpp src/cpu.cpp )
 
 add_library(gs2_util src/util/media.cpp src/util/ResourceFile.cpp src/util/dialog.cpp src/util/mount.cpp src/util/reset.cpp
     src/util/soundeffects.cpp src/util/EventQueue.cpp src/util/Event.cpp src/util/EventTimer.cpp src/util/TextRenderer.cpp)
@@ -233,12 +235,15 @@ add_library(gs2_util src/util/media.cpp src/util/ResourceFile.cpp src/util/dialo
 add_library(gs2_ui src/ui/AssetAtlas.cpp src/ui/Container.cpp src/ui/DiskII_Button.cpp src/ui/Unidisk_Button.cpp 
     src/ui/MousePositionTile.cpp src/ui/OSD.cpp src/ui/Tile.cpp src/ui/Button.cpp src/ui/MainAtlas.cpp src/ui/ModalContainer.cpp
 )
+
+add_library(gs2_oldmmu src/memory.cpp src/bus.cpp )
+
 target_link_libraries(gs2_ui SDL3_image::SDL3_image-shared SDL3_ttf::SDL3_ttf-shared)
 target_link_libraries(gs2_debugger SDL3_ttf::SDL3_ttf-shared)
 target_link_libraries(gs2_util SDL3_ttf::SDL3_ttf-shared)
 
 # Add the executable
-add_executable(GSSquared src/gs2.cpp src/bus.cpp src/clock.cpp src/debug.cpp src/cpu.cpp src/memory.cpp src/opcodes.cpp 
+add_executable(GSSquared src/gs2.cpp src/clock.cpp src/debug.cpp  src/opcodes.cpp 
     src/display/text_40x24.cpp src/display/lores_40x48.cpp src/display/hgr_280x192.cpp src/display/display.cpp
     src/display/displayng.cpp src/display/ntsc.cpp src/display/font.cpp src/display/hgr.cpp src/display/Matrix3x3.cpp src/display/lgr.cpp
     src/display/OEVector.cpp src/display/filters.cpp
@@ -250,6 +255,7 @@ add_executable(GSSquared src/gs2.cpp src/bus.cpp src/clock.cpp src/debug.cpp src
     src/computer.cpp
     src/paths.cpp
     #src/test.cpp src/devices/loader.cpp
+    #src/cpu.cpp
     ${CMAKE_SOURCE_DIR}/assets/img/gs2.icns
     )
 
@@ -262,6 +268,7 @@ target_link_libraries(GSSquared PRIVATE
 
 target_link_libraries(GSSquared 
     PUBLIC gs2_cpu 
+    gs2_oldmmu
     gs2_devices_tcp 
     gs2_devices_keyboard 
     gs2_devices_diskii_fmt 
@@ -289,6 +296,11 @@ add_subdirectory(apps/diskid)
 add_subdirectory(apps/speaker)
 
 add_subdirectory(apps/gstrace)
+
+add_subdirectory(apps/mmutest)
+
+add_subdirectory(apps/cputest)
+
 
 ################################################################################
 #### Packaging targets per platform

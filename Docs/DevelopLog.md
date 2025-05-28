@@ -3932,76 +3932,6 @@ Other than that, have just tweaked a few things.
 
 [ ] Still need to get Windows running with the new build system.  
 
-Tracing is working pretty well so far. Can trace on/off, can single-step and resume execution. Got a lot of great ideas on FB:
-```
-* Memory window(s). In particular I recently found myself debugging in an emulator that only let me watch one contiguous chunk of memory, but I wanted to watch two as the date being manipulated were in very different regions.
-* a disassembly window centered on the current line of code
-* text screen
-* lo res screen
-* hi res screen
-It would also be nice if the tabs you proposed were tear away tabs, so that you could look at multiple at the same time by moving each window around on your monitors as needed.
--Memory view. It’s nice to show different “formats”. Hex, Text (maybe ASCII and Apple II encoding).
-- Setting memory breakpoints. When someone reads (or writes) from $A0, stop.
-- View the current Text screens, GR, HGR, HGR2, DHGR, even if they are not active. Extra credit to render and arbitrary bit if memory (looking for sprite data, etc) as hgr/gr/etc.
-- Disassembly window that shows upcoming instructions. Lets you set breakpoints.
-- A panel that shows all soft-switches values.
-- Load symbols for code complied in CC65.
-- I like the idea of a little monitor too.
-- Load a blob of compiled code into memory and execute it. (bload from local machine). You could make a very smooth development workflow. Compile on the PC, load into mem and debug.
-- Save / Restore state of the whole system. No need to wait to boot something. Save your games, etc.
-```
-
-I had a UI idea: when the mouse is moving over the window, show some controls. One of them will be a triangle that opens the OSD. That same tab also closes the OSD. It will be on the upper right corner sticking out, so it will always be clear what's up with it.
-
-[ ] implement the "temporary message at bottom of screen" idea I had; use it for mouse capture.   
-[ ] use general mono_color_table for rendering videx too. Probably bring those variables out and centralize them somewhere.  
-
-Mike sugggested the "save machine state". We would need to save:
-* contents of memory
-* cycle counter
-* PC, registers, etc. of course
-* values of softswitches
-
-To restore machine state, seems like the copymaster etc cards had to have done this. Instead of trying to save all of the emulator's state, perhaps we can "play back" the soft switch settings in some cases, i.e. call the routines via the memory bus interface. The audio modules (speaker, mb) are going to be tricky.
-
-So multiple requests for "show upcoming instructions". That's probably straightforward to do. Draw those in a different color to indicate they're not executed yet. Show a highlight or arrow or other indicator. Kicks in when you enter step-wise mode. The trace is everything that -has- executed. The disassembly would be everything that -will- be executed, including whatever is at the current program counter.
-Definitely implement a check that doesn't require re-rendering the debug window if nothing has changed. (e.g., sitting and staring at stepwise).
-
-I'm liking the idea of maybe extending the width of the debug window to show:
-* breakpoints
-* monitored memory
-* softswitch values per Mike above
-* mike says maybe refer to compiler symbol table?
-* show labels for well-known addresses - based on the effective address. would be hard for forward-disassembler.
-
-I was thinking I like the idea of combining monitor and debugger interface. so you'd have the regular monitor interface commands: 
-XXXX.YYYY to display memory. 
-XXXX YYYY.ZZZZ M to move memory. XXXX:YY YY to set memory. etc.
-But also things like "1234 BP", "1234.123 BP" <- set a breakpoint. 
-how closely to make this mirror monitor? there aren't that many commands in the monitor. Well, a mini-assembler could be cool.
-so, items are:
-address
-address.range
-"string"
-:val [..val, val, val]
-commands are: M (move), BS,BC (breakpoint set / clear), L (list/disassemble), V (verify), R (from file specified in string), W ()
-R would be:
-2000 "filename" R
-3000.4000 "filename" W
-C000 BS
-3FE.3FF BS
-2000 L (disassemble)
-2000 MS (memory monitor set)
-2000.2010 MC (memory monitor cancel)
-
-you would enter commands in a SDL "textedit" thing I just read about. and we can keep a small history with arrow key to get to them.
-
-Step out of: run until next RTS;
-Step into: single step
-Step over: single step, but if a JSR, run until RTS;
-
-OK, so that's one approach. The other is more of a full GUI approach. That would be a lot of work. maybe there is a widget library I can lean on.
-RmlUI is pretty sophisticated. Might do most of the things we want? Looks pretty snazzy too. ImGui looks more like stuff from 20 years ago. Square and blocky.
 
 ## May 25, 2025
 
@@ -4048,3 +3978,119 @@ only ONE of those.
 Maybe things will become clearer if I start to refactor cpu_struct into an object. There are a couple low-hanging fruit I can do - init_cpus, and cpu_reset. Let's dip toe in water. OK, that's done. Didn't break anything.
 
 ok, I pulled a few things into cpu_state, like reset, init, etc.
+
+Now, let's pull videosystem out of CPU and into computer. This is likely to be somewhat involved. Yes, it needs access to a bunch of memory stuff. And of course, is interacted with via the bus/memory code. So, perhaps we need to first look at that..
+
+Currently memory.cpp/bus.cpp are a conglomeration and mishmash of stuff relating to memory (ram and rom), I/O, and routines that CPU uses to simulate a memory read or write (incl. incr_cycles). This needs to be split up into an MMU concept:
+
+```
+MMU -> MMU_IIPLUS
+         -> MMU_IIE
+         -> MMU_IIC
+         -> MMU_IIGS
+    -> MMU_III
+```
+etc. MMU is basic routines for managing a memory map and performing ram/rom read/write. The sub-classes add memory map handling for I/O, bank-switching, etc. Maybe MMU_IIE and MMU_GS are subclasses of the IIPLUS class, which defines critical Apple II concepts like the slot-related C8XX memory, the C0XX softswitches, the CNXX slot memory, etc. I think the MMU should also have to handle more than 64K of memory.
+
+```
+ADDRESS SPACE
+   PAGE
+      0400 - 07FF : monitor and flag video update when modified ("shadow")
+      0800 - 0BFF : can check and only do something if that video mode is active
+      2000 - 3FFF : no need to calculate hires stuff all over the place if hires mode isn't active
+      4000 - 5FFF : 
+
+      C0XX        : table of handlers for these
+      C1XX - C7XX : individual page handlers for these
+      C800 - CFFF : check page handlers, plus, CFFF access to "reset"
+
+      CC00 - CDFF : Videx 512 byte memory window, should set to RAM
+```
+if page type RAM, allow r/w. If page type ROM, allow read only. If page type I/O, call a handler.
+Handlers should all set and get a pointer for their callback, to a data object that holds all the state they need.
+
+In *addition* to the read and write pointer (language card has different read/write pointers for the same addresses), we need a shadow pointer.
+Shadow pointer is "tell me about writes".
+
+for an 8 bit apple the memory map is 256 pages. For a GS, it's 65536 pages. And very few of the GS pages need to point to anything except ROM or RAM. So I wonder about having two layers of memory map, because this is just a LOT OF ENTRIES. In a GS, Banks E0 and E1 are basically just an Apple II's RAM. So, it really does seem like we'd want a IIGS MMU that contained IIGS memory mappings with large pages (maybe even no pages, that). So that's what we'll do - we'll have a IIGS mmu that handles IIGS fast ram and rom; handles shadowing in banks 00/01 -> E0/E1. The IIGS MMU will break memory up into 64KB chunks, and that will be the "page" size. OR, for my GNO/ME ambitions, break it up into 4K page sizes. that's 4096 pages for 16M address space. That's reasonable. And then anything in E0/E1 (and maybe 00/01 if shadowing enabled) we then make a call down into the IIE MMU that we allocated internally, and THAT MMU is set up for 256 byte pages.
+
+So what are the key elements here? RAM, ROM, IO. RAM - option for shadowing writes to other RAM. Plus, I/O needs to be able to direct reads and writes to routines.
+
+For later GS/OS / gno virtual memory, the virtual memory page tables should be in main RAM, and are a layer -on top of- the physical memory map.
+
+Was just thinking about GS handling of speed shifting where sometimes specific cycles operate at 1MHz and some at 2.8MHz. Instead of tracking execution time per frame using just cycles, perhaps we do it by counting nanoseconds. e.g. 1MHz ~ 1000ns, and 2.8MHz ~ 350ns. The MMU has some control over the CPU clocking. It knows which cycles should be 1MHz and which 2.8MHz (or faster).
+
+I modified the TRACE() macro as follows: removed the conditional inside it. Put the conditional in the beginning and ending blocks only.
+If you define TRACE(SETTER) (to turn it off at compile time), you get about 650MHz sitting at basic prompt.
+if you re-enable trace at compile, BUT disable trace at runtime, you can get around 580-600MHz. This is because we removed a -lot- of conditionals from all over the CPU execute_next function. While we do write some values to memory (e.g. the operand, memory read/write value, effective address), it's apparently a lot faster to do that than to do conditionals everywhere. Makes sense. So if you want to go super hyper mega mega fast, open the debugger and disable tracing. Seems like maybe we could default to tracing off when we 'boot'.
+
+I have been hammering away at an MMU class. Two classes. One is barebones MMU, fairly generic, knows nothing about Apple II address space. A subclass of that is MMU_IIPlus, which does know about the Apple II address space more specifically, and handles: C000-C0FF softswitches, C100-C7FF slot card memory map, and C800-CFFF slot card additional memory map, and CFFF "disable slot card memory in C800-CFFF". That's all it knows. It acts as a broker for all the other functionality: RAM and ROM reading/writing; calling registered functions to handle C000-C0FF. 
+
+The MMU classes implement a number of new concepts.
+
+* Memory Shadowing - register a function that is called on write in any given page. This is -in addition- to for instance writing the value into RAM. This will be used to handle writes to the video pages to trigger video updates. This concept will also be used in the IIGS later with its bank0/1 shadowing to E0/E1.
+* read_p and write_p. with the Language Card, we can have reads and writes going to different chunks of memory. So for each page, reads and writes can be set separately. And, this will allow us to handle the Videx combo of RAM and ROM in its C800 space w/o special IF statements anywhere.
+* read_h and write_h. These are -handlers-, i.e., function pointers; what we do today on a more limited scale with register_C0XX_read_handler etc., is now applicable also to pages. This will be used to handle the weird Mockingboard C400-C4FF which is all softswitches and not memory at all.
+* We no longer rely on the value of type (ROM, RAM, IO) as this is not dispositive. It's used now just for diagnostic output.
+* There are useful dump methods for diagnostics.
+
+This is performance testing done with the "mmutest" app test harness.
+```
+Time taken: 1214654625 ns
+total bytes read/written: 983040000
+ns per byte read/written avg: 1.235611
+maximum simulated clock rate w/memory access every cycle: 809.316467 MHz
+```
+
+If we did nothing but NOP, one cycle is a memory read, the other cycle is nothing. So the maximum possible speed of that is 1.6GHz. However, of course, we do a ton of other processing around every instruction. So, uh, no. But, this should be no slower than the current routines and probably faster as I made some decoding optimizations that reduce the number of conditionals. I could make the same optimizations in the current code, but, that is limited utility if I'm going to replace that code shortly anyway.
+
+Now here's a fun thing - in theory, we could write special read_word routines that could then probably read twice as fast.
+
+Analyzing the Steve2 code. It uses global variables for the Apple2_64K_RAM, and the aux ram. It's saying that this can save on pointer lookups. I guess that makes sense.
+Another optimization is *potentially* the use of uint8_t (full bytes) instead of bit fields for the Processor status register. You'd have to create a P status value whenever you push or pop it from the stack. But that may save a bunch of load and bit test operations, and potentially a bunch of read-modify-write operations. We do hit these almost every instruction. 
+There is also a lot of hardcoding of various I/O switches. This means there is no flexibility in what hardware is included, or what slots it's in.
+One other trick they do is have a page that "throwaway" writes can go to
+They return a random number on a floating bus read, as opposed to one calculated from video memory. 
+on reset they set SP to 0xFF, and flags to 0x25. Hmmm. I need to check the data sheet on that.
+
+Giving thought to memory mapping in the IIe environment. There is the added complexity of Auxiliary memory; treatment of page 00/01 with bank-switching there; etc. The current setup will require us to modify a number of pointers whenever we bank-switch. You can set reading and writing independently, which we can handle with read_p and write_p. But it seems like a lot of setting pointers whenever we switch. I guess honestly it's not that much - the disk ii and video code do far more mangling. I was thinking that instead of storing whole pointers, I could store page indexes.. e.g. text display bank bank 004, and aux bank 104. Then we just shift left 8 bits to get the offset into a 128K memory bank, then use the page offset. I.e., we map the page to a new page, then keep the offset part. my thought was, what if I could just add that 0 or 1 (for main or aux) based on the soft switch settings as part of the address calculation and thereby not have to change 256 pointers every time we switch. i.e. trade a little math every read/write, versus changing pointers whenever the switch is hit. if programs generally sit in one bank, then setting the pointers is a win. If programs flip back and forth a lot, then the bit of extra math is a win. I guess we can only test it and find out. Let's just proceed with the current setup and see how it goes.
+
+Testing just the base MMU class, we get this performance:
+```
+Time taken: 514877875 ns
+total bytes read/written: 983040000
+ns per byte read/written avg: 0.523761
+maximum simulated clock rate w/memory access every cycle: 1909.268311 MHz
+```
+that implies we lose more than 50% of performance by adding the 2nd layer.
+
+Since I now have this separate MMU class, I should be able to construct a CPU test target that runs the 6502 test suite against this MMU, to allow testing of the CPU code independently of the rest of the emulator. (Full circle!)
+
+Learned about Apple Instruments - profiling visualizer - and how to use it to profile code. Seems like it would be much easier to use this than the other profiling I was using. And, use this to performance test various modules. What I learned about GS2 so far: it spends most of its time busy-waiting for timing. ha!
+
+## May 27, 2025
+
+Apple IIe memory management:
+
+* ALTZP: switches pages 00/01 between main and aux, independently of other settings.
+* 80STORE
+  * 80STORE ON AND HIRES OFF: PAGE2 switches 4-7, between main and aux, independently of other settings. 
+  * 80STORE ON AND HIRES ON: PAGE2 switches 4-7 and 20-3F between main and aux, independently of other settings.
+* RAMRD: ON means READ from Aux memory in 0200 - BFFF; OFF means READ from MAIN memory in 0200 - BFFF
+* RAMWRT: ON means WRITE to Aux memory in 0200 - BFFF; OFF means WRITE to MAIN memory in 0200 - BFFF
+
+Note: "When you switch in the auxiliary RAM in the bank-switched space, you also switch the first two pages, from O to 511 ($0000 through S01FF)." What does this mean?
+"The other large section of auxiliary memory is the language-card space, which is switched
+into the memory address space from 52K to 64K ($D000 through SFFFF). This memory
+space and the switches that control it are described earlier in this chapter in the section
+"Language-Card Memory Space." The language-card soft switches have the same effect on
+the auxiliary RAM that they do on the main RAM: The language-card bank switching is
+independent of the auxiliary RAM switching."
+ok asked the group.
+
+Short version: while there are cases where you can switch the entire 48K memory space, there are many situations where you don't. So we're going to be manipulating lots of "pointers" for each page no matter what. The only way to reduce the amount of work would be to change the page size. If we do that, then we have to have several layers in some cases to further decode accesses. Let's say we switched to 1K pages. We'd have to have special handling of 0-3ff (it's split half and half between stuff that can toggle in and out of AUX mem). And the I/O space would be chopped up awkwardly. 4K pages - 0-FFF is super awkward, but, the rest of the memory map less so. In short, a fair bit of complexity. I still think it's best to try using 256-byte pages, as we have it now.
+
+ok I've got the 6502 CPU test program working again, in its own app.
+
+Working on decoupling cpu & old mmu - see [MMU.md].
+

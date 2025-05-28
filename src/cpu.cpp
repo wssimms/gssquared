@@ -173,14 +173,7 @@ void cpu_state::init_memory() {
     main_rom_D0 = new uint8_t[ROM_KB];
 
     #ifdef APPLEIIGS
-    for (int i = 0; i < RAM_SIZE / GS2_PAGE_SIZE; i++) {
-        cpu->memory->page_info[i].type = MEM_RAM;
-        cpu->memory->pages[i] = new memory_page(); /* do we care if this is aligned */
-        if (!cpu->memory->pages[i]) {
-            std::cerr << "Failed to allocate memory page " << i << std::endl;
-            exit(1);
-        }
-    }
+    not_implemented();
     #else
     init_default_memory_map();
     #endif
@@ -215,5 +208,9 @@ void cpu_state::set_processor(int processor_type) {
 
 void cpu_state::reset() {
     halt = 0; // if we were STPed etc.
-    pc = read_word(this, RESET_VECTOR);
+    pc = read_word(RESET_VECTOR);
+}
+
+void cpu_state::set_video_system(video_system_t *video_system) {
+    this->video_system = video_system;
 }

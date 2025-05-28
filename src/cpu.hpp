@@ -18,6 +18,9 @@
 #pragma once
 
 #include <stdint.h>
+#include <stddef.h>
+#include <cstdint>
+
 //#include <SDL3/SDL.h>
 #include <SDL3/SDL.h>
 
@@ -29,6 +32,8 @@
 #include "SlotData.hpp"
 #include "videosystem.hpp"
 #include "debugger/trace.hpp"
+#include "memory.hpp"
+#include "mmus/mmu.hpp"
 
 #define MAX_CPUS 1
 
@@ -37,19 +42,17 @@
 #define NMI_VECTOR 0xFFFA
 #define RESET_VECTOR 0xFFFC
 
-struct memory_page {
+/* struct memory_page {
     uint8_t data[GS2_PAGE_SIZE];
-};
+}; */
 
-enum memory_type {
+/* enum memory_type {
     MEM_RAM,
     MEM_ROM,
     MEM_IO,
 };
 
 struct memory_page_info {
-    uint16_t start_address;
-    uint16_t end_address;
     uint8_t can_read;
     uint8_t can_write;
     memory_type type;
@@ -60,7 +63,7 @@ struct memory_map {
     uint8_t *pages_read[MEMORY_SIZE / GS2_PAGE_SIZE];
     uint8_t *pages_write[MEMORY_SIZE / GS2_PAGE_SIZE];
     //memory_page *pages[MEMORY_SIZE / GS2_PAGE_SIZE];
-};
+}; */
 
 enum processor_type {
     PROCESSOR_6502 = 0,
@@ -211,6 +214,7 @@ struct cpu_state {
     uint64_t irq_asserted = 0; /** bits 0-7 correspond to slot IRQ lines slots 0-7. */
 
     memory_map *memory;
+    MMU *mmu = nullptr;
 
     int8_t C8xx_slot;
     void (*C8xx_handlers[8])(cpu_state *cpu, SlotType_t slot) = {nullptr};
@@ -251,6 +255,41 @@ struct cpu_state {
     void init_memory();
     void set_processor(int processor_type);
     void reset();
+    void set_video_system(video_system_t *video_system);
+    void set_mmu(MMU *mmu) { this->mmu = mmu; }
+
+    inline uint8_t read_byte(uint16_t address) {
+        uint8_t value = read_memory(this, address);
+        incr_cycles(this);
+        return value;
+    }
+
+    inline uint16_t read_word(uint16_t address) {
+        return read_byte(address) | (read_byte(address + 1) << 8);
+    }
+
+    inline uint16_t read_word_from_pc() {
+        uint16_t value = read_byte(pc) | (read_byte(pc + 1) << 8);
+        pc += 2;
+        return value;
+    }
+
+    inline void write_byte( uint16_t address, uint8_t value) {
+        write_memory(this, address, value);
+        incr_cycles(this);
+    }
+
+    inline void write_word(uint16_t address, uint16_t value) {
+        write_byte(address, value & 0xFF);
+        write_byte(address + 1, value >> 8);
+    }
+
+    inline uint8_t read_byte_from_pc() {
+        uint8_t opcode = read_byte(pc);
+        pc++;
+        return opcode;
+    }
+
 };
 
 #define HLT_INSTRUCTION 1

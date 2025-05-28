@@ -9,6 +9,35 @@
             "args": ["-ds5d1=/Users/bazyar/src/gssquared/disk_images/AppleIISystem800k.hdv"],
             "cwd": "${workspaceFolder}",
             "preLaunchTask": "build-debug"
+        },
+        {
+            "name": "Debug mmutest",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/mmutest",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "build-debug"
+        },
+        {
+            "name": "Profile mmutest (Instruments)",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/mmutest",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "build-release-with-debug",
+            "postDebugTask": "profile-with-instruments"
+        },
+        {
+            "name": "Profile GSSquared (Instruments)",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/GSSquared",
+            "args": ["-ds5d1=/Users/bazyar/src/gssquared/disk_images/AppleIISystem800k.hdv"],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "build-release-with-debug",
+            "postDebugTask": "profile-gssquared-with-instruments"
         }
     ]
 } 

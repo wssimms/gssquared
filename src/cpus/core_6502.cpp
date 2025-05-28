@@ -52,6 +52,7 @@ int execute_next(cpu_state *cpu) {
 
     system_trace_entry_t *tb = &cpu->trace_entry;
     TRACE(
+    if (cpu->trace) {
     tb->cycle = cpu->cycles;
     tb->pc = cpu->pc;
     tb->a = cpu->a_lo;
@@ -62,6 +63,7 @@ int execute_next(cpu_state *cpu) {
     tb->p = cpu->p;
     tb->db = cpu->db;
     tb->pb = cpu->pb;
+    }
     )
 
 #if 0
@@ -93,14 +95,14 @@ int execute_next(cpu_state *cpu) {
         push_word(cpu, cpu->pc); // push current PC
         push_byte(cpu, cpu->p | FLAG_UNUSED); // break flag and Unused bit set to 1.
         cpu->p |= FLAG_I; // interrupt disable flag set to 1.
-        cpu->pc = read_word(cpu, IRQ_VECTOR);
+        cpu->pc = cpu->read_word(IRQ_VECTOR);
         //if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, " => $%04X", cpu->pc);
         incr_cycles(cpu);
         incr_cycles(cpu);
         return 0;
     }
 
-    opcode_t opcode = read_byte_from_pc(cpu);
+    opcode_t opcode = cpu->read_byte_from_pc();
     //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "%s", get_opcode_name(opcode));
     tb->opcode = opcode;
 
@@ -1101,7 +1103,7 @@ int execute_next(cpu_state *cpu) {
                 push_word(cpu, cpu->pc+1); // pc of BRK plus 1 - leaves room for BRK 'mark'
                 push_byte(cpu, cpu->p | FLAG_B | FLAG_UNUSED); // break flag and Unused bit set to 1.
                 cpu->p |= FLAG_I; // interrupt disable flag set to 1.
-                cpu->pc = read_word(cpu, BRK_VECTOR);
+                cpu->pc = cpu->read_word(BRK_VECTOR);
                 //if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, " => $%04X", cpu->pc);
             }
             break;
@@ -1259,7 +1261,7 @@ int execute_next(cpu_state *cpu) {
             break;
     }
     //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "\n");
-    TRACE(cpu->trace_buffer->add_entry(cpu->trace_entry);)
+    TRACE(if (cpu->trace) cpu->trace_buffer->add_entry(cpu->trace_entry);)
 
     return 0;
 }

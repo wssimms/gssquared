@@ -15,6 +15,6 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "cpu.hpp"
+#include "computer.hpp"
 
-void event_poll(cpu_state *cpu, SDL_Event &event);
+void event_poll(computer_t *computer, SDL_Event &event);

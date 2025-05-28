@@ -1,0 +1,108 @@
+/**
+ * cputest
+ * 
+ * perform the 6502_65c02 test suite.
+ */
+
+/**
+ * Combines: 
+ * CPU module (6502 or 65c02)
+ * MMU: Base MMU with no Apple-II specific features.
+ * 
+ * To use: 
+ * cd 6502_65c02_functional_tests/bin_files
+ * /path/to/cputest [trace_on]
+ * 
+ * if trace_on is present and is 1, it will print a debug trace of the CPU operation.
+ * Otherwise, it will execute the test and report the results. 
+ * 
+ * You may need to review the 6502_functional_test.lst file to understand the test suite, if it should fail.
+ * on a test failure, the suite will execute an instruction that jumps to itself. Our main loop tests for this
+ * condition and exits with the PC of the failed test.
+ */
+#include <SDL3/SDL.h>
+
+#include "gs2.hpp"
+#include "cpu.hpp"
+#include "mmus/mmu.hpp"
+#include "util/ResourceFile.hpp"
+
+gs2_app_t gs2_app_values;
+
+uint8_t memory[65536];
+
+uint64_t debug_level = 0;
+
+/**
+ * ------------------------------------------------------------------------------------
+ * Fake old-style MMU functions. They are only sort-of MMU. They are a a mix of MMU and CPU functions (that alter the program counter)
+ */
+
+uint8_t read_memory(cpu_state *cpu, uint16_t address) {
+    return memory[address];
+};
+void write_memory(cpu_state *cpu, uint16_t address, uint8_t value) {
+    memory[address] = value;
+};
+
+/**
+ * ------------------------------------------------------------------------------------
+ * Main
+ */
+
+int main(int argc, char **argv) {
+bool trace_on = false;
+
+    printf("Starting CPU test...\n");
+    if (argc > 1) {
+        trace_on = atoi(argv[1]);
+    }
+
+    gs2_app_values.base_path = "./";
+    gs2_app_values.pref_path = gs2_app_values.base_path;
+    gs2_app_values.console_mode = false;
+
+    ResourceFile *rom = new ResourceFile("6502_functional_test.bin", READ_ONLY);
+    rom->load();
+    uint8_t *rom_data = rom->get_data();
+    int rom_size = rom->size();
+    printf("ROM size: %d\n", rom_size);
+    for (int i = 0; i < rom_size; i++) {
+        memory[i] = rom_data[i];
+    }
+    
+    cpu_state *cpu = new cpu_state();
+    cpu->set_processor(PROCESSOR_6502);
+    cpu->init();
+    cpu->trace = trace_on;
+
+    uint64_t start_time = SDL_GetTicksNS();
+    
+    while (1) {
+        uint16_t opc = cpu->pc;
+        (cpu->execute_next)(cpu);
+
+        if (trace_on) {
+                char * trace_entry = cpu->trace_buffer->decode_trace_entry(&cpu->trace_entry);
+                printf("%s\n", trace_entry);
+        }
+
+        if (cpu->pc == opc) {
+            break;
+        }
+    }
+    uint64_t end_time = SDL_GetTicksNS();
+
+    uint64_t duration = end_time - start_time;
+    printf("Test took %llu ns\n", duration);
+    printf("Average 'cycle' time: %f ns\n", (double)duration / (double) cpu->cycles);
+    printf("Effective MHz: %f\n", 1'000'000'000 / ((double)duration / (double) cpu->cycles) / 1000000);
+
+    if (cpu->pc == 0x3469) {
+        printf("Test passed!\n");
+    } else {
+        printf("Test failed!\n");
+    }
+    
+    return 0;
+}
