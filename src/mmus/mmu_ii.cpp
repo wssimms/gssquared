@@ -1,9 +1,9 @@
-#include "mmu_iiplus.hpp"
+#include "mmu_ii.hpp"
 
 /**
  * Sets base memory map without any specificity for various devices.
  */
-void MMU_IIPlus::init_map() {
+void MMU_II::init_map() {
     // Apple II Plus - first 48K is RAM, 0000 - BFFF
      for (int i = 0; i < ram_pages; i++) {
         map_page_both(i, main_ram_64 + i * GS2_PAGE_SIZE, M_RAM, 1, 1);
@@ -17,22 +17,21 @@ void MMU_IIPlus::init_map() {
     // Then 12K of ROM. D000 - FFFF
     for (int i = 0; i < (ROM_KB / GS2_PAGE_SIZE); i++) {
         map_page_read_only(i + 0xD0, main_rom_D0 + i * GS2_PAGE_SIZE, M_ROM);
-
     }   
 }
 
-MMU_IIPlus::MMU_IIPlus(int ram_pages) : MMU(256) {
-    ram_pages = ram_pages;
-    main_ram_64 = new uint8_t[ram_pages * GS2_PAGE_SIZE];
-    main_io_4 = new uint8_t[IO_KB];
-    main_rom_D0 = new uint8_t[ROM_KB];
+MMU_II::MMU_II(int page_table_size, int ram_amount, uint8_t *rom_pointer) : MMU(256) {
+    ram_pages = ram_amount / GS2_PAGE_SIZE;
+    main_ram_64 = new uint8_t[ram_amount];
+    main_io_4 = new uint8_t[IO_KB]; // TODO: we're not using this..
+    main_rom_D0 = rom_pointer;
 
     // initialize memory map
     init_map();
     set_default_C8xx_map();
 }
 
-MMU_IIPlus::~MMU_IIPlus() {
+MMU_II::~MMU_II() {
     // free up memory areas.
     delete[] main_ram_64;
     delete[] main_io_4;
@@ -43,10 +42,11 @@ MMU_IIPlus::~MMU_IIPlus() {
  * sets default C800 - CFFF map.
  * Called with location CFFF hit, or, on reset.
  */
-void MMU_IIPlus::set_default_C8xx_map() {
+void MMU_II::set_default_C8xx_map() {
     C8xx_slot = 0xFF;
     for (uint8_t page = 0; page < 8; page++) {
-        map_page_read_only(page + 0xC8, main_io_4 + (page + 0x08) * 0x100, M_IO);
+        //map_page_read_only(page + 0xC8, main_io_4 + (page + 0x08) * 0x100, M_IO);
+        map_page_both(page + 0xC8, nullptr, M_IO, 1, 1); // 
     }
 }
 
@@ -57,7 +57,7 @@ void MMU_IIPlus::set_default_C8xx_map() {
  * C800 - CFFF.
  * CFFF to reset the C8xx map.
  */
-uint8_t MMU_IIPlus::read(uint32_t address) {
+uint8_t MMU_II::read(uint32_t address) {
     uint8_t bank = address >> 12;
     page_t page = address >> 8;
     if (bank == 0xC) {
@@ -80,11 +80,15 @@ uint8_t MMU_IIPlus::read(uint32_t address) {
         } else 
             if (address == 0xCFFF) set_default_C8xx_map(); // When CFFF is read, reset the C8xx map to default, then execute the underlying read of CFFF.
     }
-    return MMU::read(address);
+    page_table_entry_t *pte = &page_table[page];
+    if (pte->read_p != nullptr) return pte->read_p[address & 0xFF];
+    else if (pte->read_h.read != nullptr) return pte->read_h.read(pte->read_h.context, address);
+    else return floating_bus_read();
+    /* return MMU::read(address); */
 }
 
 
-void MMU_IIPlus::write(uint32_t address, uint8_t value) {
+void MMU_II::write(uint32_t address, uint8_t value) {
     uint8_t bank = address >> 12;
     page_t page = address >> 8;
 
@@ -103,47 +107,58 @@ void MMU_IIPlus::write(uint32_t address, uint8_t value) {
             if (C8xx_slot != slot) call_C8xx_handler((SlotType_t)slot);            
         } else if (address == 0xCFFF) set_default_C8xx_map();
     }
-    MMU::write(address, value);
+
+    // if there is a write handler, call it instead of writing directly.
+    page_table_entry_t *pte = &page_table[page];
+    if (pte->write_h.write != nullptr) pte->write_h.write(pte->write_h.context, address, value);
+    else if (pte->write_p) pte->write_p[address & 0xFF] = value;
+    if (pte->shadow_h.write != nullptr) pte->shadow_h.write(pte->shadow_h.context, address, value);
+
+    /* MMU::write(address, value); */
 }
 
-void MMU_IIPlus::set_C8xx_handler(SlotType_t slot, void (*handler)(void *context, SlotType_t slot), void *context) {
+void MMU_II::set_C8xx_handler(SlotType_t slot, void (*handler)(void *context, SlotType_t slot), void *context) {
     C8xx_handlers[slot].handler = handler;
     C8xx_handlers[slot].context = context;
 }
 
-void MMU_IIPlus::call_C8xx_handler(SlotType_t slot) {
+void MMU_II::call_C8xx_handler(SlotType_t slot) {
     if (C8xx_handlers[slot].handler != nullptr) {
         C8xx_handlers[slot].handler(C8xx_handlers[slot].context, slot);
     }
     C8xx_slot = slot;
 }
 
-void MMU_IIPlus::set_C0XX_read_handler(uint16_t address, read_handler_t handler) {
+void MMU_II::set_C0XX_read_handler(uint16_t address, read_handler_t handler) {
     if (address < C0X0_BASE || address >= C0X0_BASE + C0X0_SIZE) {
         return;
     }
     C0xx_memory_read_handlers[address - C0X0_BASE] = handler;
 }
 
-void MMU_IIPlus::set_C0XX_write_handler(uint16_t address, write_handler_t handler) {
+void MMU_II::set_C0XX_write_handler(uint16_t address, write_handler_t handler) {
     if (address < C0X0_BASE || address >= C0X0_BASE + C0X0_SIZE) {
         return;
     }
     C0xx_memory_write_handlers[address - C0X0_BASE] = handler;
 }
 
-void MMU_IIPlus::set_slot_rom(SlotType_t slot, uint8_t *rom) {
+uint8_t *MMU_II::get_rom_base() {
+    return main_rom_D0;
+}
+
+void MMU_II::set_slot_rom(SlotType_t slot, uint8_t *rom) {
     if (slot < 1 || slot >= 8) {
         return;
     }
     map_page_read_only(0xC0 + slot, rom, M_ROM);
 }
 
-void MMU_IIPlus::reset() {
+void MMU_II::reset() {
     set_default_C8xx_map();
 }
 
-void MMU_IIPlus::dump_C0XX_handlers() {
+void MMU_II::dump_C0XX_handlers() {
     printf("C0XX handlers:\n");
     for (int i = 0; i < C0X0_SIZE; i++) {
         if (C0xx_memory_read_handlers[i].read != nullptr) {

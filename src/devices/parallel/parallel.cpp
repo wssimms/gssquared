@@ -5,7 +5,8 @@
 #include "debug.hpp"
 #include "parallel.hpp"
 
-void parallel_write_C0x0(cpu_state *cpu, uint16_t addr, uint8_t data) {
+void parallel_write_C0x0(void *context, uint16_t addr, uint8_t data) {
+    cpu_state *cpu = (cpu_state *)context;
     uint8_t slot = (addr - 0xC080) >> 4;
     parallel_data * parallel_d = (parallel_data *)get_slot_state(cpu, (SlotType_t)slot);
     if (DEBUG(DEBUG_PARALLEL)) {
@@ -50,13 +51,15 @@ void init_slot_parallel(cpu_state *cpu, SlotType_t slot) {
 
     uint16_t slot_base = 0xC080 + (slot * 0x10);
 
-    register_C0xx_memory_write_handler(slot_base + PARALLEL_DEV, parallel_write_C0x0);
+    //register_C0xx_memory_write_handler(slot_base + PARALLEL_DEV, parallel_write_C0x0);
+    cpu->mmu->set_C0XX_write_handler(slot_base + PARALLEL_DEV, { parallel_write_C0x0, cpu });
     
     // memory-map the page. Refactor to have a method to get and set memory map.
     uint8_t *rom_data = parallel_d->rom->get_data();
+    cpu->mmu->set_slot_rom(slot, rom_data);
 
     // load the firmware into the slot memory -- refactor this
-    for (int i = 0; i < 256; i++) {
+    /* for (int i = 0; i < 256; i++) {
         raw_memory_write(cpu, 0xC000 + (slot * 0x0100) + i, rom_data[i]);
-    }
+    } */
 }

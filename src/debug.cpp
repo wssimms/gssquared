@@ -43,7 +43,7 @@ std::string int_to_hex(uint16_t value) {
 
 void debug_dump_memory(cpu_state *cpu, uint32_t start, uint32_t end) {
     for (uint32_t i = start; i <= end; i++) {
-        std::cout << int_to_hex((uint16_t)i) << ": " << int_to_hex(raw_memory_read(cpu, i)) << " ";
+        std::cout << int_to_hex((uint16_t)i) << ": " << int_to_hex(cpu->mmu->read(i)) << " ";
         if ((i % 16) == 0xF) std::cout << std::endl;
     }
     std::cout << std::endl;

@@ -111,7 +111,8 @@ JoystickValues convertJoystickValues(int32_t x, int32_t y) {
     };
 }
 
-uint8_t strobe_game_inputs(cpu_state *cpu, uint16_t address) {
+uint8_t strobe_game_inputs(void *context, uint16_t address) {
+    cpu_state *cpu = (cpu_state *)context;
     gamec_state_t *ds = (gamec_state_t *)get_module_state(cpu, MODULE_GAMECONTROLLER);
 
     if (ds->gps[0].game_type == GAME_INPUT_TYPE_MOUSE) {
@@ -164,7 +165,8 @@ uint8_t strobe_game_inputs(cpu_state *cpu, uint16_t address) {
     return 0x00;
 }
 
-uint8_t read_game_input_0(cpu_state *cpu, uint16_t address) {
+uint8_t read_game_input_0(void *context, uint16_t address) {
+    cpu_state *cpu = (cpu_state *)context;
     gamec_state_t *ds = (gamec_state_t *)get_module_state(cpu, MODULE_GAMECONTROLLER);
 
     if (ds->game_input_trigger_0 > cpu->cycles) {
@@ -173,7 +175,8 @@ uint8_t read_game_input_0(cpu_state *cpu, uint16_t address) {
     return 0x00;
 }
 
-uint8_t read_game_input_1(cpu_state *cpu, uint16_t address) {
+uint8_t read_game_input_1(void *context, uint16_t address) {
+    cpu_state *cpu = (cpu_state *)context;
     gamec_state_t *ds = (gamec_state_t *)get_module_state(cpu, MODULE_GAMECONTROLLER);
     if (ds->game_input_trigger_1 > cpu->cycles) {   
         return 0x80;
@@ -181,7 +184,8 @@ uint8_t read_game_input_1(cpu_state *cpu, uint16_t address) {
     return 0x00;
 }
 
-uint8_t read_game_input_2(cpu_state *cpu, uint16_t address) {
+uint8_t read_game_input_2(void *context, uint16_t address) {
+    cpu_state *cpu = (cpu_state *)context;
     gamec_state_t *ds = (gamec_state_t *)get_module_state(cpu, MODULE_GAMECONTROLLER);
 
     if (ds->game_input_trigger_2 > cpu->cycles) {
@@ -190,7 +194,8 @@ uint8_t read_game_input_2(cpu_state *cpu, uint16_t address) {
     return 0x00;
 }
 
-uint8_t read_game_input_3(cpu_state *cpu, uint16_t address) {
+uint8_t read_game_input_3(void *context, uint16_t address) {
+    cpu_state *cpu = (cpu_state *)context;
     gamec_state_t *ds = (gamec_state_t *)get_module_state(cpu, MODULE_GAMECONTROLLER);
     if (ds->game_input_trigger_3 > cpu->cycles) {
         return 0x80;
@@ -198,7 +203,8 @@ uint8_t read_game_input_3(cpu_state *cpu, uint16_t address) {
     return 0x00;
 }
 
-uint8_t read_game_switch_0(cpu_state *cpu, uint16_t address) {
+uint8_t read_game_switch_0(void *context, uint16_t address) {
+    cpu_state *cpu = (cpu_state *)context;
     gamec_state_t *ds = (gamec_state_t *)get_module_state(cpu, MODULE_GAMECONTROLLER);
     if (ds->gps[0].game_type == GAME_INPUT_TYPE_GAMEPAD) {
         if (SDL_GetGamepadButton(ds->gps[0].gamepad, SDL_GAMEPAD_BUTTON_EAST)) {
@@ -216,7 +222,8 @@ uint8_t read_game_switch_0(cpu_state *cpu, uint16_t address) {
     return ds->game_switch_0 ? 0x80 : 0x00;
 }
 
-uint8_t read_game_switch_1(cpu_state *cpu, uint16_t address) {
+uint8_t read_game_switch_1(void *context, uint16_t address) {
+    cpu_state *cpu = (cpu_state *)context;
     gamec_state_t *ds = (gamec_state_t *)get_module_state(cpu, MODULE_GAMECONTROLLER);
     if (ds->gps[0].game_type == GAME_INPUT_TYPE_GAMEPAD) {
         if (SDL_GetGamepadButton(ds->gps[0].gamepad, SDL_GAMEPAD_BUTTON_SOUTH)) {
@@ -234,7 +241,8 @@ uint8_t read_game_switch_1(cpu_state *cpu, uint16_t address) {
     return ds->game_switch_1 ? 0x80 : 0x00;
 }
 
-uint8_t read_game_switch_2(cpu_state *cpu, uint16_t address) {
+uint8_t read_game_switch_2(void *context, uint16_t address) {
+    cpu_state *cpu = (cpu_state *)context;
     gamec_state_t *ds = (gamec_state_t *)get_module_state(cpu, MODULE_GAMECONTROLLER);
     if (ds->gps[1].game_type == GAME_INPUT_TYPE_GAMEPAD) {
         if (SDL_GetGamepadButton(ds->gps[1].gamepad, SDL_GAMEPAD_BUTTON_EAST)) {
@@ -350,13 +358,22 @@ void init_mb_game_controller(cpu_state *cpu, SlotType_t slot) {
 
     if (DEBUG(DEBUG_GAME)) fprintf(stdout, "Initializing game controller\n");
 
+    cpu->mmu->set_C0XX_read_handler(GAME_ANALOG_0, { read_game_input_0, cpu });
+    cpu->mmu->set_C0XX_read_handler(GAME_ANALOG_1, { read_game_input_1, cpu });
+    cpu->mmu->set_C0XX_read_handler(GAME_ANALOG_2, { read_game_input_2, cpu });
+    cpu->mmu->set_C0XX_read_handler(GAME_ANALOG_3, { read_game_input_3, cpu });
+    cpu->mmu->set_C0XX_read_handler(GAME_ANALOG_RESET, { strobe_game_inputs, cpu });
+    cpu->mmu->set_C0XX_read_handler(GAME_SWITCH_0, { read_game_switch_0, cpu });
+    cpu->mmu->set_C0XX_read_handler(GAME_SWITCH_1, { read_game_switch_1, cpu });
+    cpu->mmu->set_C0XX_read_handler(GAME_SWITCH_2, { read_game_switch_2, cpu }); 
+
 // register the I/O ports
-    register_C0xx_memory_read_handler(GAME_ANALOG_0, read_game_input_0);
+/*     register_C0xx_memory_read_handler(GAME_ANALOG_0, read_game_input_0);
     register_C0xx_memory_read_handler(GAME_ANALOG_1, read_game_input_1);
     register_C0xx_memory_read_handler(GAME_ANALOG_2, read_game_input_2);
     register_C0xx_memory_read_handler(GAME_ANALOG_3, read_game_input_3);
     register_C0xx_memory_read_handler(GAME_ANALOG_RESET, strobe_game_inputs);
     register_C0xx_memory_read_handler(GAME_SWITCH_0, read_game_switch_0);
     register_C0xx_memory_read_handler(GAME_SWITCH_1, read_game_switch_1);
-    register_C0xx_memory_read_handler(GAME_SWITCH_2, read_game_switch_2);
+    register_C0xx_memory_read_handler(GAME_SWITCH_2, read_game_switch_2); */
 }

@@ -1,7 +1,7 @@
 #include <SDL3/SDL.h>
 
 #include "mmus/mmu.hpp"
-#include "mmus/mmu_iiplus.hpp"
+#include "mmus/mmu_ii.hpp"
 
 /* With optimizations on, this test takes about 1ns per byte read/written from emulated memory */
 
@@ -9,22 +9,22 @@
 #define PAGE_SIZE 256
 
 struct fake_slot_context_t {
-    MMU_IIPlus *mmu;
+    MMU_II *mmu;
     uint8_t *card_rom;
 };
 
 struct fake_io_context_t {
-    MMU_IIPlus *mmu;
+    MMU_II *mmu;
     uint8_t *io_ram;
 };
 
 struct fake_mb_context_t {
-    MMU_IIPlus *mmu;
+    MMU_II *mmu;
     uint8_t more_mb_config;  
 };
 
 struct text_page_context_t {
-    MMU_IIPlus *mmu;
+    MMU_II *mmu;
     uint8_t *text_page_ram;
 };
 
@@ -59,7 +59,7 @@ void fake_text_page_write_handler(void *context, uint16_t address, uint8_t value
 
 
 int main(int argc, char **argv) {
-    MMU_IIPlus mmu(MEM_SIZE / PAGE_SIZE);
+    MMU_II mmu(MEM_SIZE / PAGE_SIZE, MEM_SIZE, nullptr);
     
     uint8_t *ram = new uint8_t[MEM_SIZE];
     for (int page = 0; page < MEM_SIZE / PAGE_SIZE; page++) {

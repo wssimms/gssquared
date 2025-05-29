@@ -129,9 +129,11 @@ void render_hgrng_scanline(cpu_state *cpu, int y, uint8_t *pixels)
     uint8_t *hgrdata = NULL;
 
     if (ds->display_page_num == DISPLAY_PAGE_1) {
-        hgrdata = cpu->memory->pages_read[0x20];
+        //hgrdata = cpu->memory->pages_read[0x20];
+        hgrdata = cpu->mmu->get_page_base_address(0x20);
     } else if (ds->display_page_num == DISPLAY_PAGE_2) {
-        hgrdata = cpu->memory->pages_read[0x40];
+        //hgrdata = cpu->memory->pages_read[0x40];
+        hgrdata = cpu->mmu->get_page_base_address(0x40);
     } else {
         return;
     }

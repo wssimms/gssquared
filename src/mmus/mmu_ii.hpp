@@ -2,7 +2,7 @@
 
 #include "gs2.hpp"
 #include "mmu.hpp"
-#include "mmu_iiplus.hpp"
+#include "mmu_ii.hpp"
 
 
 struct C8XX_handler_t {
@@ -10,7 +10,7 @@ struct C8XX_handler_t {
     void *context;
 };
 
-class MMU_IIPlus : public MMU {
+class MMU_II : public MMU {
     private:
         int ram_pages;
         uint8_t *main_ram_64 = nullptr;
@@ -24,8 +24,8 @@ class MMU_IIPlus : public MMU {
         C8XX_handler_t C8xx_handlers[8] = {nullptr};
 
     public:
-        MMU_IIPlus(int ram_pages);
-        ~MMU_IIPlus();
+        MMU_II(int page_table_size, int ram_amount, uint8_t *rom_pointer);
+        ~MMU_II();
         uint8_t read(uint32_t address) override;
         void write(uint32_t address, uint8_t value) override;
         
@@ -33,6 +33,7 @@ class MMU_IIPlus : public MMU {
         void set_C0XX_read_handler(uint16_t address, read_handler_t handler);
         void set_C0XX_write_handler(uint16_t address, write_handler_t handler);
         void call_C8xx_handler(SlotType_t slot);
+        uint8_t *get_rom_base();
         void init_map();
         void set_default_C8xx_map();
         void set_slot_rom(SlotType_t slot, uint8_t *rom);

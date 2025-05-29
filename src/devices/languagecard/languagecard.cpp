@@ -66,53 +66,70 @@ static uint8_t _FF_WRITE_ENABLE = 0; // inverted sense */
 void set_memory_pages_based_on_flags(cpu_state *cpu) {
     languagecard_state_t *lc = (languagecard_state_t *)get_module_state(cpu, MODULE_LANGCARD);
 
-    uint8_t *bank = (lc->FF_BANK_1 == 1) ? cpu->main_ram_64 + 0xC000 : cpu->main_ram_64 + 0xD000;
+    //uint8_t *bank = (lc->FF_BANK_1 == 1) ? cpu->main_ram_64 + 0xC000 : cpu->main_ram_64 + 0xD000;
+    uint8_t *bank = (lc->FF_BANK_1 == 1) ? lc->ram_bank : lc->ram_bank + 0x1000;
     for (int i = 0; i < 16; i++) {
         if (lc->FF_READ_ENABLE) {
             // set pages_read[i] to bank[i*0x0100]
-            cpu->memory->pages_read[i + 0xD0] = bank + (i*GS2_PAGE_SIZE);
-            cpu->memory->page_info[i + 0xD0].type = MEM_RAM;
+            cpu->mmu->map_page_read(i + 0xD0, bank + (i*GS2_PAGE_SIZE), M_RAM);
+            
+            /* cpu->memory->pages_read[i + 0xD0] = bank + (i*GS2_PAGE_SIZE);
+            cpu->memory->page_info[i + 0xD0].type = MEM_RAM; */
         } else { // reads == READ_ROM
             // set pages_read[i] to bank[i*0x0100]
-            cpu->memory->pages_read[i + 0xD0] = cpu->main_rom_D0 + (i*GS2_PAGE_SIZE);
-            cpu->memory->page_info[i + 0xD0].type = MEM_ROM;
+
+            cpu->mmu->map_page_read(i + 0xD0, cpu->mmu->get_rom_base() + (i*GS2_PAGE_SIZE), M_ROM);
+
+            /* cpu->memory->pages_read[i + 0xD0] = cpu->main_rom_D0 + (i*GS2_PAGE_SIZE);
+            cpu->memory->page_info[i + 0xD0].type = MEM_ROM; */
         }
 
         if (!lc->_FF_WRITE_ENABLE) {
-            cpu->memory->pages_write[i + 0xD0] = bank + (i*GS2_PAGE_SIZE);
+            cpu->mmu->map_page_write(i+0xD0, bank + (i*GS2_PAGE_SIZE), M_RAM);
+
+            /* cpu->memory->pages_write[i + 0xD0] = bank + (i*GS2_PAGE_SIZE);
             cpu->memory->page_info[i + 0xD0].type = MEM_RAM;
-            cpu->memory->page_info[i + 0xD0].can_write = 1;
+            cpu->memory->page_info[i + 0xD0].can_write = 1; */
         } else { // writes == WRITE_NONE - set it to the ROM and can_write = 0
-            cpu->memory->pages_write[i + 0xD0] = cpu->main_rom_D0 + (i*GS2_PAGE_SIZE);
+            //cpu->mmu->map_page_write(i+0xD0, cpu->mmu->get_rom_base() + (i*GS2_PAGE_SIZE), M_ROM);
+            cpu->mmu->map_page_write(i+0xD0, nullptr, M_ROM); // much simpler actually.. no write enable means null write pointer.
+            /* cpu->memory->pages_write[i + 0xD0] = cpu->main_rom_D0 + (i*GS2_PAGE_SIZE);
             cpu->memory->page_info[i + 0xD0].type = MEM_ROM;
-            cpu->memory->page_info[i + 0xD0].can_write = 0;
+            cpu->memory->page_info[i + 0xD0].can_write = 0; */
         }
     }
 
     for (int i = 0; i < 32; i++) {
         if (lc->FF_READ_ENABLE) {
             // set pages_read[i] to bank[i*0x0100]
-            cpu->memory->pages_read[i + 0xE0] = cpu->main_ram_64 + ((i+0xE0)*GS2_PAGE_SIZE);
-            cpu->memory->page_info[i + 0xE0].type = MEM_RAM;
+            cpu->mmu->map_page_read(i+0xE0, lc->ram_bank + 0x2000 + (i * GS2_PAGE_SIZE), M_RAM);
+            /* cpu->memory->pages_read[i + 0xE0] = cpu->main_ram_64 + ((i+0xE0)*GS2_PAGE_SIZE);
+            cpu->memory->page_info[i + 0xE0].type = MEM_RAM; */
         } else { // reads == READ_ROM
             // set pages_read[i] to bank[i*0x0100]
-            cpu->memory->pages_read[i + 0xE0] = cpu->main_rom_D0 + ((i+0x10)*GS2_PAGE_SIZE);
-            cpu->memory->page_info[i + 0xE0].type = MEM_ROM;
+            cpu->mmu->map_page_read(i+0xE0, cpu->mmu->get_rom_base() + 0x1000 + (i * GS2_PAGE_SIZE), M_ROM);
+            /* cpu->memory->pages_read[i + 0xE0] = cpu->main_rom_D0 + 0x1000 + (i * GS2_PAGE_SIZE);
+            cpu->memory->page_info[i + 0xE0].type = MEM_ROM; */
         }
 
         if (!lc->_FF_WRITE_ENABLE) {
-            cpu->memory->pages_write[i + 0xE0] = cpu->main_ram_64 + ((i+0xE0)*GS2_PAGE_SIZE);
+            cpu->mmu->map_page_write(i+0xE0, lc->ram_bank + 0x2000 + (i * GS2_PAGE_SIZE), M_RAM);
+            /* cpu->memory->pages_write[i + 0xE0] = cpu->main_ram_64 + ((i+0xE0)*GS2_PAGE_SIZE);
             cpu->memory->page_info[i + 0xE0].type = MEM_RAM;
-            cpu->memory->page_info[i + 0xE0].can_write = 1;
+            cpu->memory->page_info[i + 0xE0].can_write = 1; */
         } else { // writes == WRITE_NONE - set it to the ROM and can_write = 0
-            cpu->memory->pages_write[i + 0xE0] = cpu->main_rom_D0 + ((i+0x10)*GS2_PAGE_SIZE);
+            cpu->mmu->map_page_write(i+0xE0, nullptr, M_ROM); // much simpler actually.. no write enable means null write pointer.
+
+/*             cpu->mmu->map_page_write(i+0xE0, cpu->mmu->get_rom_base() + 0x1000 + (i * GS2_PAGE_SIZE), M_ROM); */
+            /* cpu->memory->pages_write[i + 0xE0] = cpu->main_rom_D0 + 0x1000 + (i * GS2_PAGE_SIZE);
             cpu->memory->page_info[i + 0xE0].type = MEM_ROM;
-            cpu->memory->page_info[i + 0xE0].can_write = 0;
+            cpu->memory->page_info[i + 0xE0].can_write = 0; */
         }
     }
 
     if (DEBUG(DEBUG_LANGCARD)) {
-        for (int i = 0; i < 48; i+=16) {
+        cpu->mmu->dump_page_table(0xD0, 0xFF);
+        /* for (int i = 0; i < 48; i+=16) {
             printf("page: %02X read: %p write: %p canwrite: %d ", 0xD0 + i,
                 cpu->memory->pages_read[i + 0xD0], 
                 cpu->memory->pages_write[i + 0xD0],
@@ -121,11 +138,12 @@ void set_memory_pages_based_on_flags(cpu_state *cpu) {
             printf(" read "); debug_memory_pointer(cpu, cpu->memory->pages_read[i + 0xD0]);
             printf(" write "); debug_memory_pointer(cpu, cpu->memory->pages_write[i + 0xD0]);
             printf("\n");
-        }
+        } */
     }
 }
 
-uint8_t languagecard_read_C0xx(cpu_state *cpu, uint16_t address) {
+uint8_t languagecard_read_C0xx(void *context, uint16_t address) {
+    cpu_state *cpu = (cpu_state *)context;
     languagecard_state_t *lc = (languagecard_state_t *)get_module_state(cpu, MODULE_LANGCARD);
 
     if (DEBUG(DEBUG_LANGCARD)) printf("languagecard read %04X [%llu] ", address, cpu->cycles);
@@ -179,7 +197,8 @@ uint8_t languagecard_read_C0xx(cpu_state *cpu, uint16_t address) {
 }
 
 
-void languagecard_write_C0xx(cpu_state *cpu, uint16_t address, uint8_t value) {
+void languagecard_write_C0xx(void *context, uint16_t address, uint8_t value) {
+    cpu_state *cpu = (cpu_state *)context;
     languagecard_state_t *lc = (languagecard_state_t *)get_module_state(cpu, MODULE_LANGCARD);
 
     if (DEBUG(DEBUG_LANGCARD)) printf("languagecard write %04X value: %02X\n", address, value);
@@ -214,7 +233,8 @@ void languagecard_write_C0xx(cpu_state *cpu, uint16_t address, uint8_t value) {
     set_memory_pages_based_on_flags(cpu);
 }
 
-uint8_t languagecard_read_C011(cpu_state *cpu, uint16_t address) {
+uint8_t languagecard_read_C011(void *context, uint16_t address) {
+    cpu_state *cpu = (cpu_state *)context;
     languagecard_state_t *lc = (languagecard_state_t *)get_module_state(cpu, MODULE_LANGCARD);
 
     if (DEBUG(DEBUG_LANGCARD)) printf("languagecard_read_C011 %04X FF_BANK_1: %d\n", address, lc->FF_BANK_1);
@@ -222,7 +242,8 @@ uint8_t languagecard_read_C011(cpu_state *cpu, uint16_t address) {
    return (lc->FF_BANK_1 == 0) ? 0x80 : 0x00;
 }
 
-uint8_t languagecard_read_C012(cpu_state *cpu, uint16_t address) {
+uint8_t languagecard_read_C012(void *context, uint16_t address) {
+    cpu_state *cpu = (cpu_state *)context;
     languagecard_state_t *lc = (languagecard_state_t *)get_module_state(cpu, MODULE_LANGCARD);
 
     if (DEBUG(DEBUG_LANGCARD)) printf("languagecard_read_C012 %04X FF_READ_ENABLE: %d\n", address, lc->FF_READ_ENABLE);
@@ -247,15 +268,20 @@ void init_slot_languagecard(cpu_state *cpu, SlotType_t slot) {
     lc->FF_PRE_WRITE = 0;
     lc->FF_READ_ENABLE = 0;
     lc->_FF_WRITE_ENABLE = 0;
+    lc->ram_bank = new uint8_t[0x4000];
 
     set_module_state(cpu, MODULE_LANGCARD, lc);
 
-    register_C0xx_memory_read_handler(0xC011, languagecard_read_C011);
-    register_C0xx_memory_read_handler(0xC012, languagecard_read_C012);
+    cpu->mmu->set_C0XX_read_handler(0xC011, { languagecard_read_C011, cpu });
+    cpu->mmu->set_C0XX_read_handler(0xC012, { languagecard_read_C012, cpu });
+    /* register_C0xx_memory_read_handler(0xC011, languagecard_read_C011);
+    register_C0xx_memory_read_handler(0xC012, languagecard_read_C012); */
 
     for (uint16_t i = 0xC080; i <= 0xC08F; i++) {
-        register_C0xx_memory_read_handler(i, languagecard_read_C0xx);
-        register_C0xx_memory_write_handler(i, languagecard_write_C0xx);
+        cpu->mmu->set_C0XX_read_handler(i, { languagecard_read_C0xx, cpu });
+        cpu->mmu->set_C0XX_write_handler(i, { languagecard_write_C0xx, cpu });
+        /* register_C0xx_memory_read_handler(i, languagecard_read_C0xx);
+        register_C0xx_memory_write_handler(i, languagecard_write_C0xx); */
     }
 
     set_memory_pages_based_on_flags(cpu);

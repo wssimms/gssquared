@@ -122,7 +122,10 @@ void usage(const char *exe) {
 
 int main(int argc, char **argv) {
     debug_level = DEBUG_SPEAKER;
-    cpu_state cpu = {0};
+    cpu_state *cpu = new cpu_state();
+
+    MMU_II *mmu = new MMU_II(256, 48*1024, nullptr);
+    cpu->set_mmu(mmu);
 
     // Parse command line arguments
     if (argc < 2) {
@@ -146,9 +149,9 @@ int main(int argc, char **argv) {
     }
 
 
-    init_mb_speaker(&cpu, SLOT_NONE);
+    init_mb_speaker(cpu, SLOT_NONE);
     // load events into the event buffer that is allocated by the speaker module.
-    speaker_state_t *speaker_state = (speaker_state_t *)get_module_state(&cpu, MODULE_SPEAKER);
+    speaker_state_t *speaker_state = (speaker_state_t *)get_module_state(cpu, MODULE_SPEAKER);
     uint64_t event;
 
     // skip any long silence, start playback / reconstruction at first event.
@@ -164,9 +167,9 @@ int main(int argc, char **argv) {
     }
     fclose(recording);
 
-    speaker_start(&cpu);
+    speaker_start(cpu);
 
-    cpu.cycles = first_event;
+    cpu->cycles = first_event;
 
     if (write_output) {
         wav_file = create_wav_file("test.wav");
@@ -175,14 +178,14 @@ int main(int argc, char **argv) {
     uint64_t num_frames = ((last_event - first_event) / 17000);
 
     for (int i = 0; i < num_frames; i++) {
-        event_poll_local(&cpu);
+        event_poll_local(cpu);
         
-        uint64_t samps = audio_generate_frame(&cpu, cycle_window_last, cpu.cycles);
+        uint64_t samps = audio_generate_frame(cpu, cycle_window_last, cpu->cycles);
         if (write_output) {
             fwrite(speaker_state->working_buffer, sizeof(int16_t), samps, wav_file);
         }
-        cycle_window_last = cpu.cycles;
-        cpu.cycles += 17000;
+        cycle_window_last = cpu->cycles;
+        cpu->cycles += 17000;
         
         //SDL_Delay(17);
     }
@@ -190,7 +193,7 @@ int main(int argc, char **argv) {
     if (!write_output) {
         while ((queued = SDL_GetAudioStreamAvailable(speaker_state->stream)) > 0) {
             //printf("queued: %d\n", queued);
-            event_poll_local(&cpu);
+            event_poll_local(cpu);
         }
     }
     if (write_output) {

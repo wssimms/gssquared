@@ -84,11 +84,14 @@ void prodos_clock_getln_handler(cpu_state *cpu, char *buf) {
 
     snprintf(buf, 255, "%02d,%02d,%02d,%02d,%02d\r", tm->tm_mon + 1, tm->tm_wday, tm->tm_mday, tm->tm_hour, tm->tm_min);
     for (int i = 0; buf[i] != '\0'; i++) {
-        raw_memory_write(cpu, 0x200 + i, buf[i] | 0x80);
+        //raw_memory_write(cpu, 0x200 + i, buf[i] | 0x80);
+        cpu->mmu->write_raw(0x200 + i, buf[i] | 0x80);
     }
+    //printf("prodos_clock_getln_handler: %s\n", buf);
 }
 
-void prodos_clock_write_register(cpu_state *cpu, uint16_t address, uint8_t value) {
+void prodos_clock_write_register(void *context, uint16_t address, uint8_t value) {
+    cpu_state *cpu = (cpu_state *)context;
     uint8_t slot = (address - 0xC080) >> 4;
     prodos_clock_state * prodosclock_d = (prodos_clock_state *)get_slot_state(cpu, (SlotType_t)slot);
     fprintf(stderr, "prodos_clock_write_register: %04x %02x\n", address, value);
@@ -112,13 +115,18 @@ void init_slot_prodosclock(cpu_state *cpu, SlotType_t slot) {
         0x4C, 0x0E, sly,  0x60, 0x60, 0x60, 0x08, 0x48,
         0xA9, 0xAE, 0x8D, slx,  0xC0, 0x68, 0x28, 0x60
     };
+    // assemble the ROM data from our little hand-assembled code above.
+    uint8_t *rom_data = new uint8_t[256];
     for (int i = 0; i < 24; i++) {
-        raw_memory_write(cpu, 0xC000 + (slot * 0x0100) + i, pdfirm[i]);
+        rom_data[i] = pdfirm[i];
+        //raw_memory_write(cpu, 0xC000 + (slot * 0x0100) + i, pdfirm[i]);
     }
     for (int i = 24; i < 256; i++) {
-        raw_memory_write(cpu, 0xC000 + (slot * 0x0100) + i, 0x60);
+        rom_data[i] = 0x60;
+        //raw_memory_write(cpu, 0xC000 + (slot * 0x0100) + i, 0x60);
     }
-
-    register_C0xx_memory_write_handler(0xC000 + slx, prodos_clock_write_register);
+    cpu->mmu->set_slot_rom(slot, rom_data);
+    cpu->mmu->set_C0XX_write_handler(0xC000 + slx, { prodos_clock_write_register, cpu });
+    //register_C0xx_memory_write_handler(0xC000 + slx, prodos_clock_write_register);
 
 }

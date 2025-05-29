@@ -21,6 +21,12 @@
 
 DeviceMap_t DeviceMap_II[] = {
     {DEVICE_ID_KEYBOARD_IIPLUS, SLOT_NONE},
+    {DEVICE_ID_SPEAKER, SLOT_NONE},
+    {DEVICE_ID_DISPLAY, SLOT_NONE},
+    {DEVICE_ID_GAMECONTROLLER, SLOT_NONE},
+    {DEVICE_ID_ANNUNCIATOR, SLOT_NONE},
+    {DEVICE_ID_DISK_II, SLOT_6},
+    {DEVICE_ID_PARALLEL, SLOT_1},
     {DEVICE_ID_END, SLOT_NONE}
 };
 
@@ -38,7 +44,6 @@ DeviceMap_t DeviceMap_IIPLUS[] = {
     {DEVICE_ID_VIDEX, SLOT_3},
 #if MOCKINGBOARD_ENABLED
     {DEVICE_ID_MOCKINGBOARD, SLOT_4},
-    //{DEVICE_ID_MOCKINGBOARD, SLOT_7},
 #endif
     {DEVICE_ID_ANNUNCIATOR, SLOT_NONE},
     {DEVICE_ID_END, SLOT_NONE}
@@ -52,7 +57,7 @@ DeviceMap_t DeviceMap_IIE[] = {
 SystemConfig_t BuiltinSystemConfigs[] = {
     {
         "Apple ][", 
-        PLATFORM_APPLE_II_PLUS, 
+        PLATFORM_APPLE_II, 
         DeviceMap_II,
         true
     },

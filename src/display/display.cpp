@@ -422,7 +422,8 @@ void render_line_mono(cpu_state *cpu, int y) {
     SDL_UnlockTexture(ds->screenTexture);
 }
 
-uint8_t txt_bus_read_C050(cpu_state *cpu, uint16_t address) {
+uint8_t txt_bus_read_C050(void *context, uint16_t address) {
+    cpu_state *cpu = (cpu_state *)context;
     // set graphics mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Graphics Mode\n");
     //display_mode = GRAPHICS_MODE;
@@ -431,12 +432,13 @@ uint8_t txt_bus_read_C050(cpu_state *cpu, uint16_t address) {
     return 0;
 }
 
-void txt_bus_write_C050(cpu_state *cpu, uint16_t address, uint8_t value) {
-    txt_bus_read_C050(cpu, address);
+void txt_bus_write_C050(void *context, uint16_t address, uint8_t value) {
+    txt_bus_read_C050(context, address);
 }
 
 
-uint8_t txt_bus_read_C051(cpu_state *cpu, uint16_t address) {
+uint8_t txt_bus_read_C051(void *context, uint16_t address) {
+    cpu_state *cpu = (cpu_state *)context;
 // set text mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Text Mode\n");
     //display_mode = TEXT_MODE;
@@ -445,12 +447,13 @@ uint8_t txt_bus_read_C051(cpu_state *cpu, uint16_t address) {
     return 0;
 }
 
-void txt_bus_write_C051(cpu_state *cpu, uint16_t address, uint8_t value) {
-    txt_bus_read_C051(cpu, address);
+void txt_bus_write_C051(void *context, uint16_t address, uint8_t value) {
+    txt_bus_read_C051(context, address);
 }
 
 
-uint8_t txt_bus_read_C052(cpu_state *cpu, uint16_t address) {
+uint8_t txt_bus_read_C052(void *context, uint16_t address) {
+    cpu_state *cpu = (cpu_state *)context;
     // set full screen
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Full Screen\n");
     //display_split_mode = FULL_SCREEN;
@@ -459,12 +462,13 @@ uint8_t txt_bus_read_C052(cpu_state *cpu, uint16_t address) {
     return 0;
 }
 
-void txt_bus_write_C052(cpu_state *cpu, uint16_t address, uint8_t value) {
-    txt_bus_read_C052(cpu, address);
+void txt_bus_write_C052(void *context, uint16_t address, uint8_t value) {
+    txt_bus_read_C052(context, address);
 }
 
 
-uint8_t txt_bus_read_C053(cpu_state *cpu, uint16_t address) {
+uint8_t txt_bus_read_C053(void *context, uint16_t address) {
+    cpu_state *cpu = (cpu_state *)context;
     // set split screen
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Split Screen\n");
     //display_split_mode = SPLIT_SCREEN;
@@ -472,24 +476,26 @@ uint8_t txt_bus_read_C053(cpu_state *cpu, uint16_t address) {
     force_display_update(cpu);
     return 0;
 }
-void txt_bus_write_C053(cpu_state *cpu, uint16_t address, uint8_t value) {
-    txt_bus_read_C053(cpu, address);
+void txt_bus_write_C053(void *context, uint16_t address, uint8_t value) {
+    txt_bus_read_C053(context, address);
 }
 
 
-uint8_t txt_bus_read_C054(cpu_state *cpu, uint16_t address) {
+uint8_t txt_bus_read_C054(void *context, uint16_t address) {
+    cpu_state *cpu = (cpu_state *)context;
     // switch to screen 1
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Switching to screen 1\n");
     set_display_page1(cpu);
     force_display_update(cpu);
     return 0;
 }
-void txt_bus_write_C054(cpu_state *cpu, uint16_t address, uint8_t value) {
-    txt_bus_read_C054(cpu, address);
+void txt_bus_write_C054(void *context, uint16_t address, uint8_t value) {
+    txt_bus_read_C054(context, address);
 }
 
 
-uint8_t txt_bus_read_C055(cpu_state *cpu, uint16_t address) {
+uint8_t txt_bus_read_C055(void *context, uint16_t address) {
+    cpu_state *cpu = (cpu_state *)context;
     // switch to screen 2
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Switching to screen 2\n");
     set_display_page2(cpu);
@@ -497,12 +503,13 @@ uint8_t txt_bus_read_C055(cpu_state *cpu, uint16_t address) {
     return 0;
 }
 
-void txt_bus_write_C055(cpu_state *cpu, uint16_t address, uint8_t value) {
-    txt_bus_read_C055(cpu, address);
+void txt_bus_write_C055(void *context, uint16_t address, uint8_t value) {
+    txt_bus_read_C055(context, address);
 }
 
 
-uint8_t txt_bus_read_C056(cpu_state *cpu, uint16_t address) {
+uint8_t txt_bus_read_C056(void *context, uint16_t address) {
+    cpu_state *cpu = (cpu_state *)context;
     // set lo-res (graphics) mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Lo-Res Mode\n");
     //display_graphics_mode = LORES_MODE;
@@ -511,11 +518,12 @@ uint8_t txt_bus_read_C056(cpu_state *cpu, uint16_t address) {
     return 0;
 }
 
-void txt_bus_write_C056(cpu_state *cpu, uint16_t address, uint8_t value) {
-    txt_bus_read_C056(cpu, address);
+void txt_bus_write_C056(void *context, uint16_t address, uint8_t value) {
+    txt_bus_read_C056(context, address);
 }
 
-uint8_t txt_bus_read_C057(cpu_state *cpu, uint16_t address) {
+uint8_t txt_bus_read_C057(void *context, uint16_t address) {
+    cpu_state *cpu = (cpu_state *)context;
     // set hi-res (graphics) mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Hi-Res Mode\n");
     //display_graphics_mode = HIRES_MODE;
@@ -524,8 +532,8 @@ uint8_t txt_bus_read_C057(cpu_state *cpu, uint16_t address) {
     return 0;
 }
 
-void txt_bus_write_C057(cpu_state *cpu, uint16_t address, uint8_t value) {
-    txt_bus_read_C057(cpu, address);
+void txt_bus_write_C057(void *context, uint16_t address, uint8_t value) {
+    txt_bus_read_C057(context, address);
 }
 
 
@@ -588,7 +596,30 @@ void init_mb_device_display(cpu_state *cpu, SlotType_t slot) {
     // set in CPU so we can reference later
     set_module_state(cpu, MODULE_DISPLAY, ds);
     
-    register_C0xx_memory_read_handler(0xC050, txt_bus_read_C050);
+    cpu->mmu->set_C0XX_read_handler(0xC050, { txt_bus_read_C050, cpu });
+    cpu->mmu->set_C0XX_write_handler(0xC050, { txt_bus_write_C050, cpu });
+    cpu->mmu->set_C0XX_read_handler(0xC051, { txt_bus_read_C051, cpu });
+    cpu->mmu->set_C0XX_write_handler(0xC051, { txt_bus_write_C051, cpu });
+    cpu->mmu->set_C0XX_read_handler(0xC052, { txt_bus_read_C052, cpu });
+    cpu->mmu->set_C0XX_write_handler(0xC052, { txt_bus_write_C052, cpu });
+    cpu->mmu->set_C0XX_read_handler(0xC053, { txt_bus_read_C053, cpu });
+    cpu->mmu->set_C0XX_write_handler(0xC053, { txt_bus_write_C053, cpu });
+    cpu->mmu->set_C0XX_read_handler(0xC054, { txt_bus_read_C054, cpu });
+    cpu->mmu->set_C0XX_write_handler(0xC054, { txt_bus_write_C054, cpu });
+    cpu->mmu->set_C0XX_read_handler(0xC055, { txt_bus_read_C055, cpu });
+    cpu->mmu->set_C0XX_write_handler(0xC055, { txt_bus_write_C055, cpu });
+    cpu->mmu->set_C0XX_read_handler(0xC056, { txt_bus_read_C056, cpu });
+    cpu->mmu->set_C0XX_write_handler(0xC056, { txt_bus_write_C056, cpu });
+    cpu->mmu->set_C0XX_read_handler(0xC057, { txt_bus_read_C057, cpu });
+    cpu->mmu->set_C0XX_write_handler(0xC057, { txt_bus_write_C057, cpu });
+
+    for (int i = 0x04; i <= 0x0B; i++) {
+        cpu->mmu->set_page_shadow(i, { txt_memory_write, cpu });
+    }
+    for (int i = 0x20; i <= 0x5F; i++) {
+        cpu->mmu->set_page_shadow(i, { hgr_memory_write, cpu });
+    }
+    /* register_C0xx_memory_read_handler(0xC050, txt_bus_read_C050);
     register_C0xx_memory_read_handler(0xC051, txt_bus_read_C051);
     register_C0xx_memory_read_handler(0xC052, txt_bus_read_C052);
     register_C0xx_memory_read_handler(0xC053, txt_bus_read_C053);
@@ -604,7 +635,7 @@ void init_mb_device_display(cpu_state *cpu, SlotType_t slot) {
     register_C0xx_memory_write_handler(0xC054, txt_bus_write_C054);
     register_C0xx_memory_write_handler(0xC055, txt_bus_write_C055);
     register_C0xx_memory_write_handler(0xC056, txt_bus_write_C056);
-    register_C0xx_memory_write_handler(0xC057, txt_bus_write_C057);
+    register_C0xx_memory_write_handler(0xC057, txt_bus_write_C057); */
 
     //init_display_sdl(ds);
 }
@@ -636,7 +667,7 @@ void display_dump_file(cpu_state *cpu, const char *filename, uint16_t base_addr,
     }
     // Write 8192 bytes (0x2000) from memory starting at base_addr
     for (uint16_t offset = 0; offset < sizer; offset++) {
-        uint8_t byte = raw_memory_read(cpu, base_addr + offset);
+        uint8_t byte = cpu->mmu->read(base_addr + offset);
         fwrite(&byte, 1, 1, fp);
     }
     fclose(fp);

@@ -95,7 +95,8 @@ void pdblock2_read_block(cpu_state *cpu, pdblock2_data *pdblock_d, uint8_t slot,
         // the CPU would halt during a DMA and not tick cycles even though the rest of the bus
         // is following the system clock.
         // TODO: So we need a dma_write_memory and dma_read_memory set of routines that do that.
-        write_memory(cpu, addr + i, block_buffer[i]); 
+        //write_memory(cpu, addr + i, block_buffer[i]); 
+        cpu->mmu->write(addr + i, block_buffer[i]); 
     }
     pdblock_d->prodosblockdevices[slot][drive].last_block_accessed = block;
     pdblock_d->prodosblockdevices[slot][drive].last_block_access_time = SDL_GetTicksNS();
@@ -116,7 +117,8 @@ void pdblock2_write_block(cpu_state *cpu, pdblock2_data *pdblock_d, uint8_t slot
 
     for (int i = 0; i < media->block_size; i++) {
         // TODO: for dma we want to simulate the memory map but do not want to burn cycles.
-        block_buffer[i] = read_memory(cpu, addr + i); 
+        //block_buffer[i] = read_memory(cpu, addr + i); 
+        block_buffer[i] = cpu->mmu->read(addr + i); 
     }
     fseek(fp, media->data_offset + (block * media->block_size), SEEK_SET);
     fwrite(block_buffer, 1, media->block_size, fp);
@@ -216,7 +218,8 @@ void unmount_pdblock2(cpu_state *cpu, uint64_t key) {
     }
 }
 
-void pdblock2_write_C0x0(cpu_state *cpu, uint16_t addr, uint8_t data) {
+void pdblock2_write_C0x0(void *context, uint16_t addr, uint8_t data) {
+    cpu_state *cpu = (cpu_state *)context;
     SlotType_t slot = (SlotType_t)((addr - 0xC080) / 0x10);
     pdblock2_data * pdblock_d = (pdblock2_data *)get_slot_state(cpu, slot);
 
@@ -236,7 +239,8 @@ void pdblock2_write_C0x0(cpu_state *cpu, uint16_t addr, uint8_t data) {
     } 
 }
 
-uint8_t pdblock2_read_C0x0(cpu_state *cpu, uint16_t addr) {
+uint8_t pdblock2_read_C0x0(void *context, uint16_t addr) {
+    cpu_state *cpu = (cpu_state *)context;
     SlotType_t slot = (SlotType_t)((addr - 0xC080) / 0x10);
     pdblock2_data * pdblock_d = (pdblock2_data *)get_slot_state(cpu, slot);
     uint8_t val;
@@ -276,17 +280,26 @@ void init_pdblock2(cpu_state *cpu, SlotType_t slot)
     // memory-map the page. Refactor to have a method to get and set memory map.
     uint8_t *rom_data = (uint8_t *)(rom->get_data());
 
+    // TODO: use set_slot_rom instead?
+    cpu->mmu->map_page_read_only(0xC0+slot, rom_data, M_ROM);
+
     // load the firmware into the slot memory -- refactor this
-    for (int i = 0; i < 256; i++) {
+    /* for (int i = 0; i < 256; i++) {
         raw_memory_write(cpu, 0xC000 + (slot * 0x0100) + i, rom_data[i]);
-    }
+    } */
 
     // register.. uh, registers.
-    register_C0xx_memory_write_handler((slot * 0x10) + PD_CMD_RESET, pdblock2_write_C0x0);
+    cpu->mmu->set_C0XX_write_handler((slot * 0x10) + PD_CMD_RESET, { pdblock2_write_C0x0, cpu });
+    cpu->mmu->set_C0XX_write_handler((slot * 0x10) + PD_CMD_PUT, { pdblock2_write_C0x0, cpu });
+    cpu->mmu->set_C0XX_write_handler((slot * 0x10) + PD_CMD_EXECUTE, { pdblock2_write_C0x0, cpu });
+    cpu->mmu->set_C0XX_read_handler((slot * 0x10) + PD_ERROR_GET, { pdblock2_read_C0x0, cpu });
+    cpu->mmu->set_C0XX_read_handler((slot * 0x10) + PD_STATUS1_GET, { pdblock2_read_C0x0, cpu });
+    cpu->mmu->set_C0XX_read_handler((slot * 0x10) + PD_STATUS2_GET, { pdblock2_read_C0x0, cpu });
+
+/* register_C0xx_memory_write_handler((slot * 0x10) + PD_CMD_RESET, pdblock2_write_C0x0);
     register_C0xx_memory_write_handler((slot * 0x10) + PD_CMD_PUT, pdblock2_write_C0x0);
     register_C0xx_memory_write_handler((slot * 0x10) + PD_CMD_EXECUTE, pdblock2_write_C0x0);
     register_C0xx_memory_read_handler((slot * 0x10) + PD_ERROR_GET, pdblock2_read_C0x0);
     register_C0xx_memory_read_handler((slot * 0x10) + PD_STATUS1_GET, pdblock2_read_C0x0);
-    register_C0xx_memory_read_handler((slot * 0x10) + PD_STATUS2_GET, pdblock2_read_C0x0);
-
+    register_C0xx_memory_read_handler((slot * 0x10) + PD_STATUS2_GET, pdblock2_read_C0x0); */
 }

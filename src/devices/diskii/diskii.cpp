@@ -419,7 +419,8 @@ int diskii_tracknumber_on(cpu_state *cpu) {
  * (some images might be half tracked or even quarter tracked. I don't handle 1/4 track images yet.)
  */
 
-uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
+uint8_t diskII_read_C0xx(void *context, uint16_t address) {
+    cpu_state *cpu = (cpu_state *)context;
     //diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
 
     //uint16_t addr = address - 0xC080;
@@ -581,7 +582,8 @@ uint8_t diskII_read_C0xx(cpu_state *cpu, uint16_t address) {
     return 0xEE;
 }
 
-void diskII_write_C0xx(cpu_state *cpu, uint16_t address, uint8_t value) {
+void diskII_write_C0xx(void *context, uint16_t address, uint8_t value) {
+    cpu_state *cpu = (cpu_state *)context;
     //diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
 
     uint16_t addr = address - 0xC080;
@@ -679,7 +681,33 @@ void init_slot_diskII(cpu_state *cpu, SlotType_t slot) {
 
     uint16_t slot_base = 0xC080 + (slot * 0x10);
 
-    register_C0xx_memory_read_handler(slot_base + DiskII_Ph0_Off, diskII_read_C0xx);
+    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Ph0_Off, { diskII_read_C0xx, cpu });
+    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Ph0_On, { diskII_read_C0xx, cpu });
+    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Ph1_Off, { diskII_read_C0xx, cpu });
+    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Ph1_On, { diskII_read_C0xx, cpu });
+    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Ph2_Off, { diskII_read_C0xx, cpu });
+    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Ph2_On, { diskII_read_C0xx, cpu });
+    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Ph3_Off, { diskII_read_C0xx, cpu });
+    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Ph3_On, { diskII_read_C0xx, cpu });
+    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Motor_Off, { diskII_read_C0xx, cpu });
+    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Motor_On, { diskII_read_C0xx, cpu });
+    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Drive1_Select, { diskII_read_C0xx, cpu });
+    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Drive2_Select, { diskII_read_C0xx, cpu });
+    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Q6L, { diskII_read_C0xx, cpu });
+    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Q6H, { diskII_read_C0xx, cpu });
+    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Q7L, { diskII_read_C0xx, cpu });
+    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Q7H, { diskII_read_C0xx, cpu });
+
+    cpu->mmu->set_C0XX_write_handler(slot_base + DiskII_Motor_Off, { diskII_write_C0xx, cpu });
+    cpu->mmu->set_C0XX_write_handler(slot_base + DiskII_Motor_On, { diskII_write_C0xx, cpu });
+    cpu->mmu->set_C0XX_write_handler(slot_base + DiskII_Drive1_Select, { diskII_write_C0xx, cpu });
+    cpu->mmu->set_C0XX_write_handler(slot_base + DiskII_Drive2_Select, { diskII_write_C0xx, cpu });
+    cpu->mmu->set_C0XX_write_handler(slot_base + DiskII_Q6L, { diskII_write_C0xx, cpu });
+    cpu->mmu->set_C0XX_write_handler(slot_base + DiskII_Q6H, { diskII_write_C0xx, cpu });
+    cpu->mmu->set_C0XX_write_handler(slot_base + DiskII_Q7L, { diskII_write_C0xx, cpu });
+    cpu->mmu->set_C0XX_write_handler(slot_base + DiskII_Q7H, { diskII_write_C0xx, cpu });
+
+  /*   register_C0xx_memory_read_handler(slot_base + DiskII_Ph0_Off, diskII_read_C0xx);
     register_C0xx_memory_read_handler(slot_base + DiskII_Ph0_On, diskII_read_C0xx);
     register_C0xx_memory_read_handler(slot_base + DiskII_Ph1_Off, diskII_read_C0xx);
     register_C0xx_memory_read_handler(slot_base + DiskII_Ph1_On, diskII_read_C0xx);
@@ -703,12 +731,14 @@ void init_slot_diskII(cpu_state *cpu, SlotType_t slot) {
     register_C0xx_memory_write_handler(slot_base + DiskII_Q6L, diskII_write_C0xx);
     register_C0xx_memory_write_handler(slot_base + DiskII_Q6H, diskII_write_C0xx);
     register_C0xx_memory_write_handler(slot_base + DiskII_Q7L, diskII_write_C0xx);
-    register_C0xx_memory_write_handler(slot_base + DiskII_Q7H, diskII_write_C0xx);
+    register_C0xx_memory_write_handler(slot_base + DiskII_Q7H, diskII_write_C0xx); */
+
+    cpu->mmu->set_slot_rom(slot, rom_data);
 
     // load the firmware into the slot memory
-    for (int i = 0; i < 256; i++) {
+    /* for (int i = 0; i < 256; i++) {
         raw_memory_write(cpu, 0xC000 + (slot * 0x0100) + i, rom_data[i]);
-    }
+    } */
 
     // register drives with mounts for status reporting
     uint64_t key = (slot << 8) | 0;

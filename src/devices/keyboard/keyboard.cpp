@@ -27,34 +27,36 @@
 // Read keyboard from register at $C000.
 // Write to the keyboard clear latch at $C010.
 
-uint8_t kb_key_strobe = 0xC1;
-
-void kb_key_pressed(uint8_t key) {
-    kb_key_strobe = key | 0x80;
+inline void kb_key_pressed(keyboard_state_t *kb_state, uint8_t key) {
+    kb_state->kb_key_strobe = key | 0x80;
 }
 
-void kb_clear_strobe() {
-    kb_key_strobe = kb_key_strobe & 0x7F;
+inline void kb_clear_strobe(keyboard_state_t *kb_state) {
+    kb_state->kb_key_strobe = kb_state->kb_key_strobe & 0x7F;
 }
 
-uint8_t kb_memory_read(cpu_state *cpu, uint16_t address) {
+uint8_t kb_memory_read(void *context, uint16_t address) {
     //fprintf(stderr, "kb_memory_read %04X\n", address);
+    keyboard_state_t *kb_state = (keyboard_state_t *)context;
+
     if (address == 0xC000) {
-        uint8_t key = kb_key_strobe;
+        uint8_t key = kb_state->kb_key_strobe;
         return key;
     }
     if (address == 0xC010) {
         // Clear the keyboard latch
-        kb_clear_strobe();
+        kb_clear_strobe(kb_state);
         return 0xEE;
     }
     return 0xEE;
 }
 
-void kb_memory_write(cpu_state *cpu, uint16_t address, uint8_t value) {
+void kb_memory_write(void *context, uint16_t address, uint8_t value) {
+    keyboard_state_t *kb_state = (keyboard_state_t *)context;
+
     if (address == 0xC010) {
         // Clear the keyboard latch
-        kb_clear_strobe();
+        kb_clear_strobe(kb_state);
     }
 }
 
@@ -139,6 +141,7 @@ void handle_keydown_iiplus(cpu_state *cpu, const SDL_Event &event) {
 #endif 
 
 void handle_keydown_iiplus(cpu_state *cpu, const SDL_Event &event) {
+    keyboard_state_t *kb_state = (keyboard_state_t *)get_module_state(cpu, MODULE_KEYBOARD);
 
     // Ignore if only shift is pressed
     /* uint16_t mod = event.key.keysym.mod;
@@ -152,7 +155,7 @@ void handle_keydown_iiplus(cpu_state *cpu, const SDL_Event &event) {
         // Convert lowercase to control code (0x01-0x1A)
         if (key >= 'a' && key <= 'z') {
             key = key - 'a' + 1;
-            kb_key_pressed(key);
+            kb_key_pressed(kb_state, key);
             /* if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "control key pressed: %08X\n", key); */
         }
     }  else {
@@ -160,11 +163,11 @@ void handle_keydown_iiplus(cpu_state *cpu, const SDL_Event &event) {
         SDL_Keycode mapped = SDL_GetKeyFromScancode(event.key.scancode, event.key.mod, false);
         if (DEBUG(DEBUG_KEYBOARD)) printf("mapped key: %08X\n", mapped);
 
-        if (mapped == SDLK_LEFT) { kb_key_pressed(0x08); return; }
-        if (mapped == SDLK_RIGHT) { kb_key_pressed(0x15); return; }
+        if (mapped == SDLK_LEFT) { kb_key_pressed(kb_state, 0x08); return; }
+        if (mapped == SDLK_RIGHT) { kb_key_pressed(kb_state, 0x15); return; }
         if (mapped >= 'a' && mapped <= 'z') mapped = mapped - 'a' + 'A';
         if (mapped < 128) { // TODO: create a keyboard map, and allow user to select keyboard map for different languages.
-            kb_key_pressed(mapped);
+            kb_key_pressed(kb_state, mapped);
         }
     }
 
@@ -172,7 +175,10 @@ void handle_keydown_iiplus(cpu_state *cpu, const SDL_Event &event) {
 
 void init_mb_keyboard(cpu_state *cpu, SlotType_t slot) {
     if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "init_keyboard\n");
-    register_C0xx_memory_read_handler(0xC000, kb_memory_read);
-    register_C0xx_memory_read_handler(0xC010, kb_memory_read);
-    register_C0xx_memory_write_handler(0xC010, kb_memory_write);
+    keyboard_state_t *kb_state = new keyboard_state_t;
+    set_module_state(cpu, MODULE_KEYBOARD, kb_state);
+
+    cpu->mmu->set_C0XX_read_handler(0xC000, { kb_memory_read, kb_state });
+    cpu->mmu->set_C0XX_read_handler(0xC010, { kb_memory_read, kb_state });
+    cpu->mmu->set_C0XX_write_handler(0xC010, { kb_memory_write, kb_state });
 }

@@ -27,9 +27,9 @@ void computer_t::reset(bool cold_start) {
     // TODO: this is a higher level concept than just resetting the CPU.
     if (cold_start) {
         // force a cold start reset
-        raw_memory_write(cpu, 0x3f2, 0x00);
-        raw_memory_write(cpu, 0x3f3, 0x00);
-        raw_memory_write(cpu, 0x3f4, 0x00);
+        cpu->mmu->write(0x3f2, 0x00);
+        cpu->mmu->write(0x3f3, 0x00);
+        cpu->mmu->write(0x3f4, 0x00);
     }
 
     cpu->reset();

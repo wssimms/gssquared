@@ -63,7 +63,7 @@ uint8_t memory_bus_read(cpu_state *cpu, uint16_t address) {
             return (*funcptr)(cpu, address);
         } else return 0xEE;
     }
-#if MOCKINGBOARD_ENABLED
+#if 0   // MOCKINGBOARD_ENABLED
     if (address >= 0xC400 && address <= 0xC4FF) {
         return mb_read_Cx00(cpu, address);
     }
@@ -98,7 +98,7 @@ void memory_bus_write(cpu_state *cpu, uint16_t address, uint8_t value) {
     if (address >= 0x2000 && address <= 0x5FFF) {
         hgr_memory_write(cpu, address, value);
     }
-#if MOCKINGBOARD_ENABLED
+#if 0 // MOCKINGBOARD_ENABLED
     if (address >= 0xC400 && address <= 0xC4FF) {
         mb_write_Cx00(cpu, address, value);
         return;

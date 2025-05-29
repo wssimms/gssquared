@@ -37,13 +37,13 @@ uint64_t debug_level = 0;
  * ------------------------------------------------------------------------------------
  * Fake old-style MMU functions. They are only sort-of MMU. They are a a mix of MMU and CPU functions (that alter the program counter)
  */
-
+/* 
 uint8_t read_memory(cpu_state *cpu, uint16_t address) {
     return memory[address];
 };
 void write_memory(cpu_state *cpu, uint16_t address, uint8_t value) {
     memory[address] = value;
-};
+}; */
 
 /**
  * ------------------------------------------------------------------------------------
@@ -51,7 +51,7 @@ void write_memory(cpu_state *cpu, uint16_t address, uint8_t value) {
  */
 
 int main(int argc, char **argv) {
-bool trace_on = false;
+    bool trace_on = false;
 
     printf("Starting CPU test...\n");
     if (argc > 1) {
@@ -62,19 +62,27 @@ bool trace_on = false;
     gs2_app_values.pref_path = gs2_app_values.base_path;
     gs2_app_values.console_mode = false;
 
+
+// create MMU, map all pages to our "ram"
+    MMU *mmu = new MMU(256);
+    for (int i = 0; i < 256; i++) {
+        mmu->map_page_both(i, &memory[i*256], M_RAM, true, true);
+    }
+
     ResourceFile *rom = new ResourceFile("6502_functional_test.bin", READ_ONLY);
     rom->load();
     uint8_t *rom_data = rom->get_data();
     int rom_size = rom->size();
     printf("ROM size: %d\n", rom_size);
     for (int i = 0; i < rom_size; i++) {
-        memory[i] = rom_data[i];
+        mmu->write(i, rom_data[i]);
     }
-    
+
     cpu_state *cpu = new cpu_state();
     cpu->set_processor(PROCESSOR_6502);
     cpu->init();
     cpu->trace = trace_on;
+    cpu->set_mmu(mmu);
 
     uint64_t start_time = SDL_GetTicksNS();
     

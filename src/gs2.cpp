@@ -54,6 +54,7 @@
 #include "videosystem.hpp"
 #include "debugger/debugwindow.hpp"
 #include "computer.hpp"
+#include "mmus/mmu_ii.hpp"
 
 /**
  * References: 
@@ -262,7 +263,8 @@ void run_cpus(computer_t *computer) {
         if ((this_free_run) && (current_time - last_mockingboard_update > 16667000)
             || (!this_free_run)) {
             // TODO: need to iterate slots and call their "generate_frame" functions as appropriate.
-            generate_mockingboard_frame(cpu, SLOT_4);
+            mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, SLOT_4);
+            if (mb_d) generate_mockingboard_frame(cpu, SLOT_4);
             last_mockingboard_update = current_time;
         }
 #endif
@@ -412,50 +414,30 @@ int main(int argc, char *argv[]) {
 
     //init_cpus();
 
-#if 0
-        // this is the one test system.
-        demo_ram();
-#endif
+// load platform roms - this info should get stored in the 'computer'
+    platform_info* platform = get_platform(platform_id);
+    print_platform_info(platform);
 
-#if 0
-        // read file 6502_65C02_functional_tests/bin_files/6502_functional_test.bin into a 64k byte array
+    rom_data *rd = load_platform_roms(platform);
+    if (!rd) {
+        system_failure("Failed to load platform roms, exiting.");
+        exit(1);
+    }
 
-        uint8_t *memory_chunk = (uint8_t *)malloc(65536); // Allocate 64KB memory chunk
-        if (memory_chunk == NULL) {
-            fprintf(stderr, "Failed to allocate memory\n");
-            exit(1);
-        }
+    // we will ALWAYS have a 256 page map. because it's a 6502 and all is addressible in a II.
+    // II can have 4k, 8k, 12k; or 16k, 32k, 48k.
+    // II Plus can have 16k, 32K, or 48k RAM. 16K more BUT IN THE LANGUAGE CARD MODULE.
+    // always 12k rom, but not necessarily always the same ROM.
+    MMU_II *mmu = new MMU_II(256, 48*1024, (uint8_t *) rd->main_rom_data);
+    computer->cpu->set_mmu(mmu);
 
-        FILE* file = fopen("6502_65C02_functional_tests/bin_files/6502_functional_test.bin", "rb");
-        if (file == NULL) {
-            fprintf(stderr, "Failed to open file\n");
-            exit(1);
-        }
-        fread(memory_chunk, 1, 65536, file);
-        fclose(file);
-        for (uint64_t i = 0; i < 65536; i++) {
-            raw_memory_write(&CPUs[0], i, memory_chunk[i]);
-        }
-#endif
-
-#if 1
-    // load platform roms   
-        platform_info* platform = get_platform(platform_id);
-        print_platform_info(platform);
-
-        rom_data *rd = load_platform_roms(platform);
-
-        if (!rd) {
-            system_failure("Failed to load platform roms, exiting.");
-            exit(1);
-        }
-        // Load into memory at correct address
-        printf("Main Rom Data: %p base_addr: %04X size: %zu\n", rd->main_rom_data, rd->main_base_addr, rd->main_rom_file->size());
-        for (uint64_t i = 0; i < rd->main_rom_file->size(); i++) {
-            raw_memory_write(computer->cpu, rd->main_base_addr + i, (*rd->main_rom_data)[i]);
-        }
-        // we could dispose of this now if we wanted..
-#endif
+    // Load into memory at correct address
+    /* printf("Main Rom Data: %p base_addr: %04X size: %zu\n", rd->main_rom_data, rd->main_base_addr, rd->main_rom_file->size());
+    for (uint64_t i = 0; i < rd->main_rom_file->size(); i++) {
+        raw_memory_write(computer->cpu, rd->main_base_addr + i, (*rd->main_rom_data)[i]);
+    } */
+    // need to tell the MMU about our ROM somehow.
+    // need a function in MMU to "reset page to default".
 
     computer->cpu->set_processor(platform->processor_type);
     computer->cpu->mounts = new Mounts(computer->cpu); // TODO: this should happen in a CPU constructor.
@@ -467,7 +449,7 @@ int main(int argc, char *argv[]) {
 
     init_display_font(rd);
 
-    SystemConfig_t *system_config = get_system_config(1);
+    SystemConfig_t *system_config = get_system_config(platform_id);
 
     SlotManager_t *slot_manager = new SlotManager_t();
 

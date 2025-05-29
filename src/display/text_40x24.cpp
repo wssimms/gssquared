@@ -88,9 +88,7 @@ void render_text_scanline(cpu_state *cpu, int y, void *pixels, int pitch) {
     uint32_t color_value;  
     uint16_t *TEXT_PAGE_TABLE = ds->display_page_table->text_page_table;
 
-
-        color_value = 0xFFFFFFFF;
-
+    color_value = 0xFFFFFFFF;
     
     // Bounds checking
     if (y < 0 || y >= 24) {
@@ -99,7 +97,8 @@ void render_text_scanline(cpu_state *cpu, int y, void *pixels, int pitch) {
 
     for (int x = 0; x < 40; x++) {
 
-        uint8_t character = raw_memory_read(cpu, TEXT_PAGE_TABLE[y] + x);
+        //uint8_t character = raw_memory_read(cpu, TEXT_PAGE_TABLE[y] + x);
+        uint8_t character = cpu->mmu->read_raw(TEXT_PAGE_TABLE[y] + x);
 
         // Calculate font offset (8 bytes per character, starting at 0x20)
         const uint32_t* charPixels = &APPLE2_FONT_32[character * 56];
@@ -193,9 +192,11 @@ void render_text_scanline_ng(cpu_state *cpu, int y) {
     uint8_t *output = frameBuffer + (y * 8 * 560);
 
     if (ds->display_page_num == DISPLAY_PAGE_1) {
-        textdata = cpu->memory->pages_read[0x04];
+        //textdata = cpu->memory->pages_read[0x04];
+        textdata = cpu->mmu->get_page_base_address(0x04);
     } else if (ds->display_page_num == DISPLAY_PAGE_2) {
-        textdata = cpu->memory->pages_read[0x08];
+        //textdata = cpu->memory->pages_read[0x08];
+        textdata = cpu->mmu->get_page_base_address(0x08);
     } else {
         return;
     }
@@ -271,7 +272,8 @@ void update_flash_state(cpu_state *cpu) {
         // TODO: can change this to grab 64 bits at a time and check for flash chars by & 0xC0C0C0C0C0C0C0C0 and comparing to 0x4040... 
         for (int x = 0; x < 40; x++) {
             uint16_t addr = TEXT_PAGE_TABLE[y] + x;
-            uint8_t character = raw_memory_read(cpu, addr);
+            //uint8_t character = raw_memory_read(cpu, addr);
+            uint8_t character = cpu->mmu->read_raw(addr);
             if ((character & 0b11000000) == 0x40) {
                 ds->dirty_line[y] = 1;
                 break;                           // stop after we find any flash char on a line.
@@ -285,7 +287,8 @@ void update_flash_state(cpu_state *cpu) {
  * this function identifies the line of the update and marks that line as dirty.
  * Later, update_display() will be called and it will render the dirty lines.
  */
-void txt_memory_write(cpu_state *cpu, uint16_t address, uint8_t value) {
+void txt_memory_write(void *context, uint16_t address, uint8_t value) {
+    cpu_state *cpu = (cpu_state *)context;
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     uint16_t TEXT_PAGE_START = ds->display_page_table->text_page_start;
     uint16_t TEXT_PAGE_END = ds->display_page_table->text_page_end;

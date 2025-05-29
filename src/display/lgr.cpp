@@ -96,9 +96,11 @@ void render_lgrng_scanline(cpu_state *cpu, int y)
     uint8_t *lgrdata = NULL;
 
     if (ds->display_page_num == DISPLAY_PAGE_1) {
-        lgrdata = cpu->memory->pages_read[0x04];
+        //lgrdata = cpu->memory->pages_read[0x04];
+        lgrdata = cpu->mmu->get_page_base_address(0x04);
     } else if (ds->display_page_num == DISPLAY_PAGE_2) {
-        lgrdata = cpu->memory->pages_read[0x08];
+        //lgrdata = cpu->memory->pages_read[0x08];
+        lgrdata = cpu->mmu->get_page_base_address(0x08);
     } else {
         return;
     }

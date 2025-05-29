@@ -147,13 +147,13 @@ inline void log_speaker_blip(cpu_state *cpu) {
 #define SPEAKER_EVENT_LOG_SIZE 16384
 uint64_t speaker_event_log[SPEAKER_EVENT_LOG_SIZE];
 
-uint8_t speaker_memory_read(cpu_state *cpu, uint16_t address) {
-    log_speaker_blip(cpu);
+uint8_t speaker_memory_read(void *context, uint16_t address) {
+    log_speaker_blip((cpu_state *)context);
     return 0xA0; // what does speaker read return?
 }
 
-void speaker_memory_write(cpu_state *cpu, uint16_t address, uint8_t value) {
-    log_speaker_blip(cpu);
+void speaker_memory_write(void *context, uint16_t address, uint8_t value) {
+    log_speaker_blip((cpu_state *)context);
 }
 
 void init_mb_speaker(cpu_state *cpu, SlotType_t slot) {
@@ -196,8 +196,10 @@ void init_mb_speaker(cpu_state *cpu, SlotType_t slot) {
 
     if (DEBUG(DEBUG_SPEAKER)) fprintf(stdout, "init_speaker\n");
     for (uint16_t addr = 0xC030; addr <= 0xC03F; addr++) {
-        register_C0xx_memory_read_handler(addr, speaker_memory_read);
-        register_C0xx_memory_write_handler(addr, speaker_memory_write);
+        cpu->mmu->set_C0XX_read_handler(addr, { speaker_memory_read, cpu });
+        cpu->mmu->set_C0XX_write_handler(addr, { speaker_memory_write, cpu });
+        //register_C0xx_memory_read_handler(addr, speaker_memory_read);
+        //register_C0xx_memory_write_handler(addr, speaker_memory_write);
     }
     speaker_state->preFilter = new LowPassFilter();
     speaker_state->preFilter->setCoefficients(8000.0f, (double)1020500); // 1020500 is actual possible sample rate of input toggles.

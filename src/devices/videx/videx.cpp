@@ -22,7 +22,7 @@
 #include "memory.hpp"
 #include "debug.hpp"
 #include "display/display.hpp"
-
+#include "videx_80x24.hpp"
 
 void videx_set_line_dirty(videx_data * videx_d, int line) {
     if (line>=0 && line<24) {
@@ -42,7 +42,8 @@ void videx_set_line_dirty_by_addr(videx_data * videx_d, uint16_t addr) { /* addr
     }
 }
 
-void map_rom_videx(cpu_state *cpu, SlotType_t slot) {
+void map_rom_videx(void *context, SlotType_t slot) {
+    cpu_state *cpu = (cpu_state *)context;
     // CB00 - CBFF, Cs00 - CsFF: bytes $300-$3FF of ROM file
     // C800 - CAFF: bytes $000-$2FF of ROM file
     // CC00 - CDFF: 512 byte page N of screen memory
@@ -50,23 +51,44 @@ void map_rom_videx(cpu_state *cpu, SlotType_t slot) {
 
     videx_data * videx_d = (videx_data *)get_slot_state(cpu, slot);
     uint8_t *dp = videx_d->rom->get_data();
-    memory_map_page_both(cpu, 0xC8, dp + 0x000, MEM_IO);
+
+    cpu->mmu->map_page_read_only(0xC8, dp + 0x000, M_IO);
+    cpu->mmu->map_page_read_only(0xC9, dp + 0x100, M_IO);
+    cpu->mmu->map_page_read_only(0xCA, dp + 0x200, M_IO);
+    cpu->mmu->map_page_read_only(0xCB, dp + 0x300, M_IO);
+    cpu->mmu->map_page_both(0xCC, nullptr, M_IO, 1, 1);
+    cpu->mmu->map_page_both(0xCD, nullptr, M_IO, 1, 1);
+    cpu->mmu->map_page_both(0xCE, nullptr, M_IO, 1, 1);
+    cpu->mmu->map_page_both(0xCF, nullptr, M_IO, 1, 1);
+
+    /* memory_map_page_both(cpu, 0xC8, dp + 0x000, MEM_IO);
     memory_map_page_both(cpu, 0xC9, dp + 0x100, MEM_IO);
     memory_map_page_both(cpu, 0xCA, dp + 0x200, MEM_IO);
-    memory_map_page_both(cpu, 0xCB, dp + 0x300, MEM_IO);
+    memory_map_page_both(cpu, 0xCB, dp + 0x300, MEM_IO); */
     
-    memory_map_page_both(cpu, 0xCC, videx_d->screen_memory + (videx_d->selected_page * 2) * 0x100, MEM_IO);
-    memory_map_page_both(cpu, 0xCD, videx_d->screen_memory + (videx_d->selected_page * 2) * 0x100 + 0x100, MEM_IO);
+    //cpu->mmu->map_page_read_only(0xCC, videx_d->screen_memory + (videx_d->selected_page * 2) * 0x100, M_IO);
+    //cpu->mmu->map_page_read_only(0xCD, videx_d->screen_memory + (videx_d->selected_page * 2) * 0x100 + 0x100, M_IO);
+    cpu->mmu->set_page_write_h(0xCC, { videx_memory_write2, videx_d });
+    cpu->mmu->set_page_write_h(0xCD, { videx_memory_write2, videx_d });
+    cpu->mmu->set_page_read_h(0xCC, { videx_memory_read2, videx_d });
+    cpu->mmu->set_page_read_h(0xCD, { videx_memory_read2, videx_d });
+    cpu->mmu->dump_page_table(0xC8,0xCF);
+    /* memory_map_page_both(cpu, 0xCC, videx_d->screen_memory + (videx_d->selected_page * 2) * 0x100, MEM_IO);
+    memory_map_page_both(cpu, 0xCD, videx_d->screen_memory + (videx_d->selected_page * 2) * 0x100 + 0x100, MEM_IO); */
     
     //if (DEBUG(DEBUG_VIDEX)) fprintf(stdout, "mapped in videx $C800-$CFFF\n");
 }
 
 void update_videx_screen_memory(cpu_state *cpu, videx_data * videx_d) {
-    memory_map_page_both(cpu, 0xCC, videx_d->screen_memory + (videx_d->selected_page * 2) * 0x100, MEM_IO);
-    memory_map_page_both(cpu, 0xCD, videx_d->screen_memory + (videx_d->selected_page * 2) * 0x100 + 0x100, MEM_IO);
+    cpu->mmu->map_page_read_only(0xCC, videx_d->screen_memory + (videx_d->selected_page * 2) * 0x100, M_IO);
+    cpu->mmu->map_page_read_only(0xCD, videx_d->screen_memory + (videx_d->selected_page * 2) * 0x100 + 0x100, M_IO);
+
+/*     memory_map_page_both(cpu, 0xCC, videx_d->screen_memory + (videx_d->selected_page * 2) * 0x100, MEM_IO);
+    memory_map_page_both(cpu, 0xCD, videx_d->screen_memory + (videx_d->selected_page * 2) * 0x100 + 0x100, MEM_IO); */
 }
 
-uint8_t videx_read_C0xx(cpu_state *cpu, uint16_t addr) {
+uint8_t videx_read_C0xx(void *context, uint16_t addr) {
+    cpu_state *cpu = (cpu_state *)context;
     uint8_t slot = (addr - 0xC080) >> 4;
     videx_data * videx_d = (videx_data *)get_slot_state(cpu, (SlotType_t)slot);
     
@@ -83,7 +105,8 @@ uint8_t videx_read_C0xx(cpu_state *cpu, uint16_t addr) {
     return 0x00; // TODO: return floating bus - one emu says return 0? openemu returns floating for sure.
 }
 
-void videx_write_C0xx(cpu_state *cpu, uint16_t addr, uint8_t data) {
+void videx_write_C0xx(void *context, uint16_t addr, uint8_t data) {
+    cpu_state *cpu = (cpu_state *)context;
     uint8_t slot = (addr - 0xC080) >> 4;
     videx_data * videx_d = (videx_data *)get_slot_state(cpu, (SlotType_t)slot);
     uint8_t reg = addr & 0xF;
@@ -188,14 +211,27 @@ void init_slot_videx(cpu_state *cpu, SlotType_t slot) {
     /* memory_map_page_both(cpu, slot + 0xC0, rom_data + (slot*GS2_PAGE_SIZE), MEM_ROM); */
 
     // load the firmware into the slot memory -- refactor this
-    for (int i = 0; i < 256; i++) {
+    cpu->mmu->set_slot_rom(slot, rom_data+0x0300);
+    /* for (int i = 0; i < 256; i++) {
         raw_memory_write(cpu, 0xC000 + (slot * 0x0100) + i, rom_data[i + 0x0300]);
-    }
+    } */
 
     uint16_t slot_base = 0xC080 + (slot * 0x10);
 
+    cpu->mmu->set_C0XX_read_handler(slot_base + VIDEX_PAGE_SELECT_0, { videx_read_C0xx, cpu });
+    cpu->mmu->set_C0XX_read_handler(slot_base + VIDEX_PAGE_SELECT_1, { videx_read_C0xx, cpu });
+    cpu->mmu->set_C0XX_read_handler(slot_base + VIDEX_PAGE_SELECT_2, { videx_read_C0xx, cpu });
+    cpu->mmu->set_C0XX_read_handler(slot_base + VIDEX_PAGE_SELECT_3, { videx_read_C0xx, cpu });
+    cpu->mmu->set_C0XX_read_handler(slot_base + VIDEX_REG_VAL, { videx_read_C0xx, cpu });
+
+    // register the write handler for C0xx
+    cpu->mmu->set_C0XX_write_handler(slot_base + VIDEX_REG_ADDR, { videx_write_C0xx, cpu });
+    cpu->mmu->set_C0XX_write_handler(slot_base + VIDEX_REG_VAL, { videx_write_C0xx, cpu });
+
+    cpu->mmu->set_C8xx_handler(slot, map_rom_videx, cpu );
+
     // register the read handler for C0xx
-    register_C0xx_memory_read_handler(slot_base + VIDEX_PAGE_SELECT_0, videx_read_C0xx);
+ /*    register_C0xx_memory_read_handler(slot_base + VIDEX_PAGE_SELECT_0, videx_read_C0xx);
     register_C0xx_memory_read_handler(slot_base + VIDEX_PAGE_SELECT_1, videx_read_C0xx);
     register_C0xx_memory_read_handler(slot_base + VIDEX_PAGE_SELECT_2, videx_read_C0xx);
     register_C0xx_memory_read_handler(slot_base + VIDEX_PAGE_SELECT_3, videx_read_C0xx);
@@ -205,5 +241,5 @@ void init_slot_videx(cpu_state *cpu, SlotType_t slot) {
     register_C0xx_memory_write_handler(slot_base + VIDEX_REG_ADDR, videx_write_C0xx);
     register_C0xx_memory_write_handler(slot_base + VIDEX_REG_VAL, videx_write_C0xx);
 
-    register_C8xx_handler(cpu, slot, map_rom_videx);
+    register_C8xx_handler(cpu, slot, map_rom_videx); */
 }

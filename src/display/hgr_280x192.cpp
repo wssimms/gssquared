@@ -55,7 +55,8 @@ void render_hgr_scanline(cpu_state *cpu, int y, void *pixels, int pitch) {
             int charoff = x * 14;
 
             uint16_t address = HGR_PAGE_TABLE[y] + (row * 0x0400) + x;
-            uint8_t character = raw_memory_read(cpu, address);
+            //uint8_t character = raw_memory_read(cpu, address);
+            uint8_t character = cpu->mmu->read_raw(address);
             uint8_t ch_D7 = (character & 0x80) >> 7;
 
             // color choice is two variables: odd or even pixel column. And D7 bit.
@@ -100,7 +101,8 @@ void render_hgr_scanline(cpu_state *cpu, int y, void *pixels, int pitch) {
     }
 }
 
-void hgr_memory_write(cpu_state *cpu, uint16_t address, uint8_t value) {
+void hgr_memory_write(void *context, uint16_t address, uint8_t value) {
+    cpu_state *cpu = (cpu_state *)context;
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     display_page_t *display_page = ds->display_page_table;
     uint16_t *HGR_PAGE_TABLE = display_page->hgr_page_table;

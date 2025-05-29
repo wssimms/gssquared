@@ -8,4 +8,5 @@ target_link_libraries(speaker PRIVATE
 target_link_libraries(speaker PRIVATE
     gs2_devices_speaker
     gs2_util
+    gs2_mmu
 )

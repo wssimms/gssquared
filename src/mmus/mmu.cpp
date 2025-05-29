@@ -18,7 +18,8 @@ MMU::MMU(page_t num_pages) {
     for (int i = 0 ; i < num_pages ; i++) {
         page_table[i].readable = 0;
         page_table[i].writeable = 0;
-        page_table[i].type = M_NON;
+        page_table[i].type_r = M_NON;
+        page_table[i].type_w = M_NON;
         page_table[i].read_p = nullptr;
         page_table[i].write_p = nullptr;
         page_table[i].read_h = {nullptr, nullptr};
@@ -126,9 +127,12 @@ void MMU::map_page_both(page_t page, uint8_t *data, memory_type_t type, bool can
     page_table_entry_t *pte = &page_table[page];
     pte->readable = can_read;
     pte->writeable = can_write;
-    pte->type = type;
+    pte->type_r = type;
+    pte->type_w = type;
     pte->read_p = data;
     pte->write_p = data;
+    pte->read_h = {nullptr, nullptr};
+    pte->write_h = {nullptr, nullptr};
 }
 
 // map page to read only
@@ -139,9 +143,30 @@ void MMU::map_page_read_only(page_t page, uint8_t *data, memory_type_t type) {
     page_table_entry_t *pte = &page_table[page];
     pte->readable = 1;
     pte->writeable = 0;
-    pte->type = type;
+    pte->type_r = type;
+    pte->type_w = M_NON;
     pte->read_p = data;
     pte->write_p = nullptr;
+}
+
+void MMU::map_page_read(page_t page, uint8_t *data, memory_type_t type) {
+    if (page > num_pages) {
+        return;
+    }
+    page_table_entry_t *pte = &page_table[page];
+    pte->type_r = type;
+    pte->read_p = data;
+    //pte->write_p = nullptr;
+}
+
+void MMU::map_page_write(page_t page, uint8_t *data, memory_type_t type) {
+    if (page > num_pages) {
+        return;
+    }
+    page_table_entry_t *pte = &page_table[page];
+    pte->type_w = type;
+    //pte->read_p = data;
+    pte->write_p = data;
 }
 
 void MMU::map_page_read_write(page_t page, uint8_t *read_data, uint8_t *write_data, memory_type_t type) {
@@ -149,7 +174,8 @@ void MMU::map_page_read_write(page_t page, uint8_t *read_data, uint8_t *write_da
         return;
     }
     page_table_entry_t *pte = &page_table[page];
-    pte->type = type;
+    pte->type_r = type;
+    pte->type_w = type;
     pte->read_p = read_data;
     pte->write_p = write_data;
 }
@@ -177,9 +203,9 @@ void MMU::dump_page_table(page_t start_page, page_t end_page) {
     printf("Page                    R-Ptr            W-Ptr              read_h   (    context     )        write_h  (     context    )        S-Handler(     context    )\n");
     printf("-------------------------------------------------------------------------------------------------------------------------------------------------------------\n");
     for (int i = start_page ; i <= end_page ; i++) {
-        printf("Page %02X (%3s %1d %1d): %16p %16p %16p(%16p) %16p(%16p) %16p(%16p)\n", 
+        printf("Page %02X (%3s %3s): %16p %16p %16p(%16p) %16p(%16p) %16p(%16p)\n", 
             i, 
-            type_str[page_table[i].type], page_table[i].readable, page_table[i].writeable,
+            type_str[page_table[i].type_r], type_str[page_table[i].type_w], //page_table[i].readable, page_table[i].writeable,
             page_table[i].read_p,
             page_table[i].write_p, 
             page_table[i].read_h.read, page_table[i].read_h.context,

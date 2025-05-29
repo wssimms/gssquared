@@ -4094,3 +4094,50 @@ ok I've got the 6502 CPU test program working again, in its own app.
 
 Working on decoupling cpu & old mmu - see [MMU.md].
 
+## May 28, 2025
+
+next step is to disable all the devices, and start adding them back in one by one after modifying for the new MMU. This will typically involve them no longer being passed cpu_struct.
+
+OK, I did the IIPlus keyboard. Relatively easy! I say "Relatively". ha. I suppose I can do the speaker next. It has a super-simple I/O interface.
+Speaker is hooked back up. Muahaha.
+Display doesn't work. That will be some effort, lots of modules accessing memory. That needs some refactoring too, to use direct memory accesses instead of the MMU interface.
+
+With this MMU work, it might be feasible to go for an Apple III configuration right out of the gate as my next deal as opposed to a IIe. That could be fun.
+
+ok, the display code is updated! That wasn't bad at all. 
+Gamecontroller done.. 
+Language card. It's a definite maybe. ProDOS boots! Need to run the language card tester.. which means, DiskII is next.
+Disk II done. whoo!
+lang card test seems to work. Fixed a bug in the keyboard (AI changed the C010 to C000 on writes, boo, hiss).
+Fixed the prodos_clock.
+So, booting with -p 0 doesn't work because something important is missing. It must be the Videx it won't run without. Well we know what's next then, don't we..
+
+## May 29, 2025
+
+I still have a few cards left to refactor, but this is actually going swimmingly. I was very worried about the LangCard because of it's complexities, but the register interface didn't change, and that was the hardest part. (Still need to fix the double read in certain instructions). 
+mockingboard and parallel cards done. That might be it?? it might be. Do a day of testing, then clean up all the commented-out stuff, before doing a commit and push.
+
+So, when there is not a mockingboard in the systemconfig, we crash. Yah. Let's see.. ok, let's take bus.cpp and memory.cpp out of the build.
+
+Overall my Effective MHz is down about 15% to the 350 range. Ah of course that's with tracing going on in the background and stuff.
+
+There is an obvious optimization to be had in the device code: instead of passing cpu as the callback context, and then calling get_slot_state etc etc., just store the device record directly. A lot of these devices don't care about the cpu, only the mmu. So store mmu in the device state, and use device state as the callback. Then we have a number less indirections to do. Another optimization could be: move the mmu->read and write stuff up directly into MMU_II. 
+Hmm, Claude is suggesting my mmu->read *won't* be inlined because it's virtual. That's a concern I had. 
+
+Claude request ID: a6e8c069-3392-4714-8bde-77d0e9417dc0
+
+of course we're also: doing a function call, and, doubling up on 
+
+We can put the memory read first - need to make sure we never have both read_p and read_h, or write_p and write_h. (should be exclusive). Might also consider struct of arrays instead of array of structs for the page table arrays.
+
+Action items:
+[ ] the MMU should be cognizant of the starting address of the system ROM rd. Perhaps pass in the rd struct instead of the raw address, because then we can get the starting address to do the page map correctly on setup.
+
+manually putting the mmu:read stiuff into mmu_ii is good for about 30MHz improvement.
+of course in the keyboard loop there are a ton of calls to the keyboard C000 read routine. look at the context trick above.
+
+keyboard, had to create a state record. We were using a global before. We will of course have different keyboards in the future so need to be agnostic there.
+
+testing with trace turned off (not compiled out: in, but disabled)
+test 1: 520MHz
+test 2: 550MHz - 

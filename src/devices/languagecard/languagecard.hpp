@@ -71,6 +71,8 @@ struct languagecard_state_t {
     uint32_t FF_READ_ENABLE;
     uint32_t FF_PRE_WRITE;
     uint32_t _FF_WRITE_ENABLE;
+
+    uint8_t *ram_bank;
 };
 
 void init_slot_languagecard(cpu_state *cpu, SlotType_t slot);

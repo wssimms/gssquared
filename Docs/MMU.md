@@ -65,4 +65,6 @@ about the same as before. I think these matter, but, there may be additional bot
 
 I forgot to take out unneeded cpu_state argument to these functions, so in essence I was passing the cpu_state twice. let's see.. No difference. I suppose subroutines on the ARM are pretty efficient. (Or the stuff being called is inefficient..)
 
-Important part is, CPU and oldMMU are decoupled. Ready to start testing with new MMU. Woot! First, do the cputest.
+Important part is, CPU and oldMMU are decoupled. Ready to start testing with new MMU. Woot! First, do the cputest. OK, that's done.
+Now, of course, the whole rest of the Apple II will be quite a bit more involved. Have to modify all the devices etc. And test.
+One note: I did the test at 574MHz before. Now I run it at 500-515MHz. But it's working.

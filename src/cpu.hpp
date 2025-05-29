@@ -33,7 +33,8 @@
 #include "videosystem.hpp"
 #include "debugger/trace.hpp"
 #include "memory.hpp"
-#include "mmus/mmu.hpp"
+#include "mmus/mmu_ii.hpp"
+#include "Module_ID.hpp"
 
 #define MAX_CPUS 1
 
@@ -97,23 +98,6 @@ namespace cpu_6502 {
 namespace cpu_65c02 {
     extern int execute_next(cpu_state *cpu);
 }
-
-typedef enum {
-    MODULE_DISPLAY = 0,
-    MODULE_SPEAKER,
-    MODULE_GAMECONTROLLER,
-    MODULE_DISKII,
-    MODULE_MEMEXP,
-    MODULE_LANGCARD,
-    MODULE_THUNDERCLOCK,
-    MODULE_PRODOS_CLOCK,
-    //MODULE_PD_BLOCK2,
-    MODULE_PARALLEL,
-    MODULE_VIDEX,
-    //MODULE_MB,
-    MODULE_ANNUNCIATOR,
-    MODULE_NUM_MODULES
-} module_id_t;
 
 struct cpu_state {
     union {
@@ -214,7 +198,7 @@ struct cpu_state {
     uint64_t irq_asserted = 0; /** bits 0-7 correspond to slot IRQ lines slots 0-7. */
 
     memory_map *memory;
-    MMU *mmu = nullptr;
+    MMU_II *mmu = nullptr;
 
     int8_t C8xx_slot;
     void (*C8xx_handlers[8])(cpu_state *cpu, SlotType_t slot) = {nullptr};
@@ -256,10 +240,11 @@ struct cpu_state {
     void set_processor(int processor_type);
     void reset();
     void set_video_system(video_system_t *video_system);
-    void set_mmu(MMU *mmu) { this->mmu = mmu; }
+    void set_mmu(MMU *mmu) { this->mmu = (MMU_II *) mmu; }
 
     inline uint8_t read_byte(uint16_t address) {
-        uint8_t value = read_memory(this, address);
+        //uint8_t value = read_memory(this, address);
+        uint8_t value = mmu->read(address);
         incr_cycles(this);
         return value;
     }
@@ -275,7 +260,8 @@ struct cpu_state {
     }
 
     inline void write_byte( uint16_t address, uint8_t value) {
-        write_memory(this, address, value);
+        //write_memory(this, address, value);
+        mmu->write(address, value);
         incr_cycles(this);
     }
 
@@ -289,7 +275,6 @@ struct cpu_state {
         pc++;
         return opcode;
     }
-
 };
 
 #define HLT_INSTRUCTION 1
@@ -308,7 +293,7 @@ extern struct cpu_state *CPUs[MAX_CPUS];
 
 //void reset_system(cpu_state *cpu);
 
-void cpu_reset(cpu_state *cpu);
+//void cpu_reset(cpu_state *cpu);
 
 void run_cpus(void) ;
 
@@ -324,7 +309,5 @@ void set_module_state(cpu_state *cpu, module_id_t module_id, void *state);
 SlotData *get_slot_state(cpu_state *cpu, SlotType_t slot);
 SlotData *get_slot_state_by_id(cpu_state *cpu, device_id id);
 void set_slot_state(cpu_state *cpu, SlotType_t slot, SlotData *state);
-
-void init_default_memory_map(cpu_state *cpu);
 
 void set_slot_irq(cpu_state *cpu, uint8_t slot, bool irq);

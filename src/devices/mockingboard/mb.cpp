@@ -964,7 +964,8 @@ void mb_t2_timer_callback(uint64_t instanceID, void *user_data) {
     }
 }
 
-void mb_write_Cx00(cpu_state *cpu, uint16_t addr, uint8_t data) {
+void mb_write_Cx00(void *context, uint16_t addr, uint8_t data) {
+    cpu_state *cpu = (cpu_state *)context;
     uint8_t slot = (addr & 0x0F00) >> 8;
     uint8_t alow = addr & 0x7F;
     uint8_t chip = (addr & 0x80) ? 0 : 1;
@@ -1085,7 +1086,8 @@ uint64_t calc_cycle_diff(mb_6522_regs *tc, uint64_t cycles) {
     return latchval - ((cycles - tc->t1_triggered_cycles) % latchval);
 }
 
-uint8_t mb_read_Cx00(cpu_state *cpu, uint16_t addr) {
+uint8_t mb_read_Cx00(void *context, uint16_t addr) {
+    cpu_state *cpu = (cpu_state *)context;
     uint8_t slot = (addr & 0x0F00) >> 8;
     uint8_t alow = addr & 0x7F;
     uint8_t chip = (addr & 0x80) ? 0 : 1;
@@ -1262,6 +1264,8 @@ void init_slot_mockingboard(cpu_state *cpu, SlotType_t slot) {
     mb_d->stream = stream;
 
     set_slot_state(cpu, slot, mb_d);
+    cpu->mmu->set_page_write_h(0xC0 + slot, { mb_write_Cx00, cpu });
+    cpu->mmu->set_page_read_h(0xC0 + slot, { mb_read_Cx00, cpu });
 
     insert_empty_mockingboard_frame(mb_d);
 
@@ -1273,6 +1277,7 @@ void init_slot_mockingboard(cpu_state *cpu, SlotType_t slot) {
 
 void mb_reset(cpu_state *cpu) {
     mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, SLOT_4);
+    if (mb_d == nullptr) return;
     mb_d->mockingboard->reset();
     for (int i = 0; i < 2; i++) {
         // counters keep going as-is on reset, but no interrupts

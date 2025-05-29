@@ -35,7 +35,8 @@ struct write_handler_t {
 struct page_table_entry_t {
     uint8_t readable : 1;
     uint8_t writeable : 1;
-    memory_type_t type;
+    memory_type_t type_r;
+    memory_type_t type_w;
     page_ref read_p; // pointer to uint8_t pointers
     page_ref write_p;
     read_handler_t read_h;
@@ -46,7 +47,7 @@ struct page_table_entry_t {
 class MMU {
     public:
         MMU(page_t num_pages);
-        ~MMU();
+        virtual ~MMU();
         //void set_cpu(cpu_state *cpu);
 
         void reset();
@@ -55,8 +56,6 @@ class MMU {
         void write_raw_word(uint32_t address, uint16_t value);
 
         inline virtual uint8_t read(uint32_t address) {
-            // TODO: incr_cycles(cpu); make sure there is a CPU method that incr_cycles whenever it calls this
-
             uint16_t page = address / GS2_PAGE_SIZE;
             uint16_t offset = address % GS2_PAGE_SIZE;
             assert(page < num_pages);
@@ -84,9 +83,6 @@ class MMU {
 
             assert(page < num_pages);
             page_table_entry_t *pte = &page_table[page];
-
-            // TODO: incr_cycles(cpu); make sure there is a CPU method that incr_cycles whenever it calls this
-            //incr_cycles(cpu);
             
             // if there is a write handler, call it instead of writing directly.
             if (pte->write_h.write != nullptr) pte->write_h.write(pte->write_h.context, address, value);
@@ -101,6 +97,8 @@ class MMU {
         void map_page_both(page_t page, uint8_t *data, memory_type_t type, bool can_read, bool can_write); // map page to same memory with no read or write handler.
         void map_page_read_only(page_t page, uint8_t *data, memory_type_t type);
         void map_page_read_write(page_t page, uint8_t *read_data, uint8_t *write_data, memory_type_t type);
+        void map_page_read(page_t page, uint8_t *data, memory_type_t type);
+        void map_page_write(page_t page, uint8_t *data, memory_type_t type);
         void set_page_shadow(page_t page, write_handler_t handler );
         void set_page_read_h(page_t page, read_handler_t handler); // set just the read handler routine
         void set_page_write_h(page_t page, write_handler_t handler); // set just a write handler routine

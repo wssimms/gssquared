@@ -225,7 +225,7 @@ add_library(gs2_devices_annunciator     src/devices/annunciator/annunciator.cpp 
 
 add_library(gs2_debugger src/debugger/trace.cpp src/debugger/trace_opcodes.cpp src/debugger/debugwindow.cpp)
 
-add_library(gs2_mmu src/mmus/mmu.cpp src/mmus/mmu_iiplus.cpp )
+add_library(gs2_mmu src/mmus/mmu.cpp src/mmus/mmu_ii.cpp )
 
 add_library(gs2_cpu src/cpus/cpu_6502.cpp src/cpus/cpu_65c02.cpp src/cpu.cpp )
 
@@ -236,7 +236,7 @@ add_library(gs2_ui src/ui/AssetAtlas.cpp src/ui/Container.cpp src/ui/DiskII_Butt
     src/ui/MousePositionTile.cpp src/ui/OSD.cpp src/ui/Tile.cpp src/ui/Button.cpp src/ui/MainAtlas.cpp src/ui/ModalContainer.cpp
 )
 
-add_library(gs2_oldmmu src/memory.cpp src/bus.cpp )
+#add_library(gs2_oldmmu src/memory.cpp src/bus.cpp )
 
 target_link_libraries(gs2_ui SDL3_image::SDL3_image-shared SDL3_ttf::SDL3_ttf-shared)
 target_link_libraries(gs2_debugger SDL3_ttf::SDL3_ttf-shared)
@@ -268,7 +268,8 @@ target_link_libraries(GSSquared PRIVATE
 
 target_link_libraries(GSSquared 
     PUBLIC gs2_cpu 
-    gs2_oldmmu
+    gs2_mmu
+    #gs2_oldmmu
     gs2_devices_tcp 
     gs2_devices_keyboard 
     gs2_devices_diskii_fmt 

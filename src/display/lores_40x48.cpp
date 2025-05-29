@@ -53,7 +53,8 @@ void render_lores_scanline(cpu_state *cpu, int y, void *pixels, int pitch) {
     }
 
     for (int x = 0; x < 40; x++) {
-        uint8_t character = raw_memory_read(cpu, TEXT_PAGE_TABLE[y] + x);
+        //uint8_t character = raw_memory_read(cpu, TEXT_PAGE_TABLE[y] + x);
+        uint8_t character = cpu->mmu->read_raw(TEXT_PAGE_TABLE[y] + x);
 
         // look up color key for top and bottom block
         uint32_t color_top = lores_color_table[character & 0x0F];
