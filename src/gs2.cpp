@@ -357,17 +357,11 @@ int main(int argc, char *argv[]) {
 
     if (gs2_app_values.console_mode) {
         // parse command line optionss
-        while ((opt = getopt(argc, argv, "sxp:a:b:d:")) != -1) {
+        while ((opt = getopt(argc, argv, "sxp:d:")) != -1) {
             switch (opt) {
                 case 'p':
                     platform_id = std::stoi(optarg);
                     break;
-                /* case 'a':
-                    loader_set_file_info(optarg, 0x0801);
-                    break;
-                case 'b':
-                    loader_set_file_info(optarg, 0x7000);
-                    break; */
                 case 'd':
                     {
                         std::string filename;
