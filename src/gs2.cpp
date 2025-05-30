@@ -387,10 +387,9 @@ int main(int argc, char *argv[]) {
                     gs2_app_values.sleep_mode = true;
                     break;
                 default:
-                    std::cerr << "Usage: " << argv[0] << " [-p platform] [-a program.bin] [-b loader.bin] [-dsXdX=filename] [-x] [-s] \n";
+                    std::cerr << "Usage: " << argv[0] << " [-p platform] [-dsXdX=filename] [-x] [-s] \n";
                     std::cerr << "  -s: sleep mode (don't busy-wait, sleep)\n";
                     std::cerr << "  -x: disk accelerator (speed up CPU when disk II drive is active)\n";
-                    //fprintf(stderr, "Usage: %s [-p platform] [-a program.bin] [-b loader.bin] [-dsXdX=filename]\n", argv[0]);
                     exit(1);
             }
         }
