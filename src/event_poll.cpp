@@ -39,48 +39,29 @@ bool handle_sdl_keydown(computer_t *computer, cpu_state *cpu, SDL_Event event) {
     SDL_Keymod mod = event.key.mod;
     SDL_Keycode key = event.key.key;
 
-    if ((mod & SDL_KMOD_CTRL) && (key == SDLK_F10)) {
+ /*    if ((mod & SDL_KMOD_CTRL) && (key == SDLK_F10)) {
         if (mod & SDL_KMOD_ALT) {
             computer->reset(true); 
         } else {
             computer->reset(false); 
         }
         return true;
-    }
+    } */
 
-    if (key == SDLK_F12) { 
+  /*   if (key == SDLK_F12) { 
         cpu->halt = HLT_USER; 
         return true;
-    }
-    if (key == SDLK_F9) { 
+    } */
+/*     if (key == SDLK_F9) { 
         toggle_clock_mode(cpu);
         return true; 
-    }
+    } */
     if (key == SDLK_F8) {
         toggle_speaker_recording(cpu);
         //debug_dump_disk_images(cpu);
         return true;
     }
-    if (key == SDLK_F5) {
-        flip_display_scale_mode(cpu);
-        return true;
-    }
-    if ((key == SDLK_KP_PLUS || key == SDLK_KP_MINUS)) {
-        printf("key: %x, mod: %x\n", key, mod);
-        if (mod & SDL_KMOD_ALT) { // ALT == hue (windows key on my mac)
-            config.videoHue += ((key == SDLK_KP_PLUS) ? 0.025f : -0.025f);
-        } else if (mod & SDL_KMOD_SHIFT) { // WINDOWS == brightness
-            config.videoSaturation += ((key == SDLK_KP_PLUS) ? 0.1f : -0.1f);
-        }
-        init_hgr_LUT();
-        force_display_update(cpu);
-        printf("video hue: %f, saturation: %f\n", config.videoHue, config.videoSaturation);
-        return true;
-    }
-    /* if (key == SDLK_F7) {
-        loader_execute(cpu);
-        return true;
-    } */
+
     if (key == SDLK_F6) {
         if (mod & SDL_KMOD_CTRL) {
             // dump hires image page 1
@@ -105,54 +86,6 @@ bool handle_sdl_keydown(computer_t *computer, cpu_state *cpu, SDL_Event event) {
             return true;
         }
     }
-    if (key == SDLK_F3) {
-        cpu->video_system->toggle_fullscreen();
-        return true;
-    }
-    if (key == SDLK_F2) {
-        toggle_display_engine(cpu);
-        force_display_update(cpu);
-        return true;
-    }
-    if (key == SDLK_F1) {
-        display_capture_mouse(cpu, false);
-        return true;
-    }
+
     return false;
-}
-
-void event_poll(computer_t *computer, SDL_Event &event) {
-    cpu_state *cpu = computer->cpu;
-
-    switch (event.type) {
-        case SDL_EVENT_QUIT:
-            if (DEBUG(DEBUG_GUI)) fprintf(stdout, "quit received, shutting down\n");
-            cpu->halt = HLT_USER;
-            break;
-
-        case SDL_EVENT_WINDOW_RESIZED: {
-            cpu->video_system->window_resize(event.window.data1, event.window.data2);
-            break;
-        }
-
-        case SDL_EVENT_KEY_DOWN:
-            if (handle_sdl_keydown(computer, cpu, event)) break;
-            handle_keydown_iiplus(cpu, event);
-            break;
-
-        case SDL_EVENT_MOUSE_BUTTON_DOWN:
-            display_capture_mouse(cpu, true);
-            //osd->set_heads_up_message("Mouse Captured: Press F1 to release", 255);
-            break;
-
-        case SDL_EVENT_MOUSE_WHEEL:
-            handle_mouse_wheel(cpu, event.wheel.y);
-            break;
-        case SDL_EVENT_GAMEPAD_ADDED:
-            add_gamepad(cpu, event);
-            break;
-        case SDL_EVENT_GAMEPAD_REMOVED:
-            remove_gamepad(cpu, event);
-            break;
-    }
 }

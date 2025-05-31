@@ -17,4 +17,4 @@
 
 #include "computer.hpp"
 
-void event_poll(computer_t *computer, SDL_Event &event);
+bool handle_sdl_keydown(computer_t *computer, cpu_state *cpu, SDL_Event event);

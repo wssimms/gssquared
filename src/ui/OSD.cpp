@@ -140,35 +140,35 @@ void unidisk_button_click(void *userdata) {
 
 void set_color_display_ntsc(void *data) {
     printf("set_color_display_ntsc %p\n", data);
-    cpu_state *cpu = (cpu_state *)data;
-    set_display_engine(cpu, DM_ENGINE_NTSC);
+    display_state_t *ds = (display_state_t *)data;
+    set_display_engine(ds, DM_ENGINE_NTSC);
 }
 
 void set_color_display_rgb(void *data) {
     printf("set_color_display_rgb %p\n", data);
-    cpu_state *cpu = (cpu_state *)data;
-    set_display_engine(cpu, DM_ENGINE_RGB);
+    display_state_t *ds = (display_state_t *)data;
+    set_display_engine(ds, DM_ENGINE_RGB);
 }
 
 void set_green_display(void *data) {
     printf("set_green_display %p\n", data);
-    cpu_state *cpu = (cpu_state *)data;
-    set_display_mono_color(cpu, DM_MONO_GREEN);
-    set_display_engine(cpu, DM_ENGINE_MONO);
+    display_state_t *ds = (display_state_t *)data;
+    set_display_mono_color(ds, DM_MONO_GREEN);
+    set_display_engine(ds, DM_ENGINE_MONO);
 }
 
 void set_amber_display(void *data) {
     printf("set_amber_display %p\n", data);
-    cpu_state *cpu = (cpu_state *)data;
-    set_display_mono_color(cpu, DM_MONO_AMBER);
-    set_display_engine(cpu, DM_ENGINE_MONO);
+    display_state_t *ds = (display_state_t *)data;
+    set_display_mono_color(ds, DM_MONO_AMBER);
+    set_display_engine(ds, DM_ENGINE_MONO);
 }
 
 void set_white_display(void *data) {
     printf("set_white_display %p\n", data);
-    cpu_state *cpu = (cpu_state *)data;
-    set_display_mono_color(cpu, DM_MONO_WHITE);
-    set_display_engine(cpu, DM_ENGINE_MONO);
+    display_state_t *ds = (display_state_t *)data;
+    set_display_mono_color(ds, DM_MONO_WHITE);
+    set_display_engine(ds, DM_ENGINE_MONO);
 }
 
 void set_mhz_1_0(void *data) {
@@ -354,11 +354,12 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManag
     Button_t *mc3 = new Button_t(aa, GreenDisplayButton, CB);
     Button_t *mc4 = new Button_t(aa, AmberDisplayButton, CB);
     Button_t *mc5 = new Button_t(aa, WhiteDisplayButton, CB);
-    mc1->set_click_callback(set_color_display_ntsc, cpu);
-    mc2->set_click_callback(set_color_display_rgb, cpu);
-    mc3->set_click_callback(set_green_display, cpu);
-    mc4->set_click_callback(set_amber_display, cpu);
-    mc5->set_click_callback(set_white_display, cpu);
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    mc1->set_click_callback(set_color_display_ntsc, ds);
+    mc2->set_click_callback(set_color_display_rgb, ds);
+    mc3->set_click_callback(set_green_display, ds);
+    mc4->set_click_callback(set_amber_display, ds);
+    mc5->set_click_callback(set_white_display, ds);
     mon_color_con->add_tile(mc1, 0);
     mon_color_con->add_tile(mc2, 1);
     mon_color_con->add_tile(mc3, 2);

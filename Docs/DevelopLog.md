@@ -4174,3 +4174,19 @@ All the slot cards and modules now get passed computer_t to their init_ function
 
 So this "register reest routine" stuff is a good idea. I removed a bunch of module dependencies. However, I have new dependencies in computer_t - video_system. The main body of code is fine with this, but the standalone speaker app uses speaker.cpp which uses computer which wants video_system etc. So, the speaker test app is more about testing the reproduction logic. Separate speaker into core speaker logic, and the speaker module. Then speaker app will use core speaker, not slot card. The "core" knows how to play back from the speaker event buffer. The slot module knows how to add events to the buffer. 
 
+OK, have the start of the event queue. I think we need a "System queue" that has a chance to process events before, particularly, the emulated machine keyboard routine gets them. Things like the F keys. I'm finding I can rip lots out of the old event_poll this way. It will soon be history.
+
+## May 31, 2025
+
+Keyboard is now free of needed get/set module state, because it's context is now set whenever callbacks are made. It's possible none of the devices will need this at the end of the day, which would be swank.
+Finish up the event poll refactor. Coming along. set up a "system" event queue, events that get handled as a priority before the regular event handlers.
+
+OK, the event loop has been re-done, replaced with EventDispatcher. This use of the lambdas was a good idea, it definitely is helping to decouple stuff. The code modules that register event handlers are, right now: computer, videosystem, gamecontroller, keyboard, display.
+
+Right now have two separate queues - system and normal. system basically just gets first grab at an event. Instead of this, I could queue with a priority.
+
+i did -not- wire back in keypresses that generate screen captures, or enable audio recording. I could have debugger commands for these functions instead.
+
+Now I'm wonder if the reset() queue should just be an instance of EventDispatcher to benefit from the lambda fun. Hmm. YES. NO. That is set up for SDL events. Put that on ice while we think about it.
+
+I need to pass computer-> into OSD so OSD can call reset.

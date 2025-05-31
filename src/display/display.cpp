@@ -164,18 +164,18 @@ display_page_t display_pages[NUM_DISPLAY_PAGES] = {
 };
 
 // TODO: These should be set from an array of parameters.
-void set_display_page(cpu_state *cpu, display_page_number_t page) {
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+void set_display_page(display_state_t *ds, display_page_number_t page) {
+    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     ds->display_page_table = &display_pages[page];
     ds->display_page_num = page;
 }
 
-void set_display_page1(cpu_state *cpu) {
-    set_display_page(cpu, DISPLAY_PAGE_1);
+void set_display_page1(display_state_t *ds) {
+    set_display_page(ds, DISPLAY_PAGE_1);
 }
 
-void set_display_page2(cpu_state *cpu) {
-    set_display_page(cpu, DISPLAY_PAGE_2);
+void set_display_page2(display_state_t *ds) {
+    set_display_page(ds, DISPLAY_PAGE_2);
 }
 
 void init_display_font(rom_data *rd) {
@@ -233,15 +233,15 @@ void update_display(cpu_state *cpu) {
     // TODO: IIgs will need a hook here too - do same video update callback function.
 }
 
-void force_display_update(cpu_state *cpu) {
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+void force_display_update(display_state_t *ds) {
+    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     for (int y = 0; y < 24; y++) {
         ds->dirty_line[y] = 1;
     }
 }
 
-void update_line_mode(cpu_state *cpu) {
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+void update_line_mode(display_state_t *ds) {
+    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
 
     line_mode_t top_mode;
     line_mode_t bottom_mode;
@@ -270,25 +270,25 @@ void update_line_mode(cpu_state *cpu) {
     }
 }
 
-void set_display_mode(cpu_state *cpu, display_mode_t mode) {
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+void set_display_mode(display_state_t *ds, display_mode_t mode) {
+    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
 
     ds->display_mode = mode;
-    update_line_mode(cpu);
+    update_line_mode(ds);
 }
 
-void set_split_mode(cpu_state *cpu, display_split_mode_t mode) {
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+void set_split_mode(display_state_t *ds, display_split_mode_t mode) {
+    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
 
     ds->display_split_mode = mode;
-    update_line_mode(cpu);
+    update_line_mode(ds);
 }
 
-void set_graphics_mode(cpu_state *cpu, display_graphics_mode_t mode) {
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+void set_graphics_mode(display_state_t *ds, display_graphics_mode_t mode) {
+    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
 
     ds->display_graphics_mode = mode;
-    update_line_mode(cpu);
+    update_line_mode(ds);
 }
 
 #if 0
@@ -303,9 +303,9 @@ void flip_display_color_engine(cpu_state *cpu) {
 }
 #endif
 
-void flip_display_scale_mode(cpu_state *cpu) {
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    video_system_t *vs = cpu->video_system;
+void flip_display_scale_mode(display_state_t *ds) {
+    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    //video_system_t *vs = cpu->video_system;
     SDL_ScaleMode scale_mode;
 
     if (ds->display_pixel_mode == DM_PIXEL_FUZZ) {
@@ -316,7 +316,7 @@ void flip_display_scale_mode(cpu_state *cpu) {
         scale_mode = SDL_SCALEMODE_LINEAR;
     }
     SDL_SetTextureScaleMode(ds->screenTexture, scale_mode);
-    force_display_update(cpu);
+    force_display_update(ds);
 }
 
 // anything we lock we have to completely replace.
@@ -421,12 +421,12 @@ void render_line_mono(cpu_state *cpu, int y) {
 }
 
 uint8_t txt_bus_read_C050(void *context, uint16_t address) {
-    cpu_state *cpu = (cpu_state *)context;
+    display_state_t *ds = (display_state_t *)context;
     // set graphics mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Graphics Mode\n");
     //display_mode = GRAPHICS_MODE;
-    set_display_mode(cpu, GRAPHICS_MODE);
-    force_display_update(cpu);
+    set_display_mode(ds, GRAPHICS_MODE);
+    force_display_update(ds);
     return 0;
 }
 
@@ -436,12 +436,12 @@ void txt_bus_write_C050(void *context, uint16_t address, uint8_t value) {
 
 
 uint8_t txt_bus_read_C051(void *context, uint16_t address) {
-    cpu_state *cpu = (cpu_state *)context;
+    display_state_t *ds = (display_state_t *)context;
 // set text mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Text Mode\n");
     //display_mode = TEXT_MODE;
-    set_display_mode(cpu, TEXT_MODE);
-    force_display_update(cpu);
+    set_display_mode(ds, TEXT_MODE);
+    force_display_update(ds);
     return 0;
 }
 
@@ -451,12 +451,12 @@ void txt_bus_write_C051(void *context, uint16_t address, uint8_t value) {
 
 
 uint8_t txt_bus_read_C052(void *context, uint16_t address) {
-    cpu_state *cpu = (cpu_state *)context;
+    display_state_t *ds = (display_state_t *)context;
     // set full screen
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Full Screen\n");
     //display_split_mode = FULL_SCREEN;
-    set_split_mode(cpu, FULL_SCREEN);
-    force_display_update(cpu);
+    set_split_mode(ds, FULL_SCREEN);
+    force_display_update(ds);
     return 0;
 }
 
@@ -466,12 +466,12 @@ void txt_bus_write_C052(void *context, uint16_t address, uint8_t value) {
 
 
 uint8_t txt_bus_read_C053(void *context, uint16_t address) {
-    cpu_state *cpu = (cpu_state *)context;
+    display_state_t *ds = (display_state_t *)context;
     // set split screen
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Split Screen\n");
     //display_split_mode = SPLIT_SCREEN;
-    set_split_mode(cpu, SPLIT_SCREEN);
-    force_display_update(cpu);
+    set_split_mode(ds, SPLIT_SCREEN);
+    force_display_update(ds);
     return 0;
 }
 void txt_bus_write_C053(void *context, uint16_t address, uint8_t value) {
@@ -480,11 +480,11 @@ void txt_bus_write_C053(void *context, uint16_t address, uint8_t value) {
 
 
 uint8_t txt_bus_read_C054(void *context, uint16_t address) {
-    cpu_state *cpu = (cpu_state *)context;
+    display_state_t *ds = (display_state_t *)context;
     // switch to screen 1
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Switching to screen 1\n");
-    set_display_page1(cpu);
-    force_display_update(cpu);
+    set_display_page1(ds);
+    force_display_update(ds);
     return 0;
 }
 void txt_bus_write_C054(void *context, uint16_t address, uint8_t value) {
@@ -493,11 +493,11 @@ void txt_bus_write_C054(void *context, uint16_t address, uint8_t value) {
 
 
 uint8_t txt_bus_read_C055(void *context, uint16_t address) {
-    cpu_state *cpu = (cpu_state *)context;
+    display_state_t *ds = (display_state_t *)context;
     // switch to screen 2
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Switching to screen 2\n");
-    set_display_page2(cpu);
-    force_display_update(cpu);
+    set_display_page2(ds);
+    force_display_update(ds);
     return 0;
 }
 
@@ -507,12 +507,12 @@ void txt_bus_write_C055(void *context, uint16_t address, uint8_t value) {
 
 
 uint8_t txt_bus_read_C056(void *context, uint16_t address) {
-    cpu_state *cpu = (cpu_state *)context;
+    display_state_t *ds = (display_state_t *)context;
     // set lo-res (graphics) mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Lo-Res Mode\n");
     //display_graphics_mode = LORES_MODE;
-    set_graphics_mode(cpu, LORES_MODE);
-    force_display_update(cpu);
+    set_graphics_mode(ds, LORES_MODE);
+    force_display_update(ds);
     return 0;
 }
 
@@ -521,24 +521,17 @@ void txt_bus_write_C056(void *context, uint16_t address, uint8_t value) {
 }
 
 uint8_t txt_bus_read_C057(void *context, uint16_t address) {
-    cpu_state *cpu = (cpu_state *)context;
+    display_state_t *ds = (display_state_t *)context;
     // set hi-res (graphics) mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Hi-Res Mode\n");
     //display_graphics_mode = HIRES_MODE;
-    set_graphics_mode(cpu, HIRES_MODE);
-    force_display_update(cpu);
+    set_graphics_mode(ds, HIRES_MODE);
+    force_display_update(ds);
     return 0;
 }
 
 void txt_bus_write_C057(void *context, uint16_t address, uint8_t value) {
     txt_bus_read_C057(context, address);
-}
-
-
-void display_capture_mouse(cpu_state *cpu, bool capture) {
-    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    video_system_t *vs = cpu->video_system;
-    SDL_SetWindowRelativeMouseMode(vs->window, capture);
 }
 
 /**
@@ -569,6 +562,35 @@ display_state_t::display_state_t() {
     //display_scale_mode = SDL_SCALEMODE_LINEAR;
 }
 
+
+bool handle_display_event(display_state_t *ds, const SDL_Event &event) {
+    SDL_Keymod mod = event.key.mod;
+    SDL_Keycode key = event.key.key;
+
+    if (key == SDLK_F5) {
+        flip_display_scale_mode(ds);
+        return true;
+    }
+    if (key == SDLK_F2) {
+        toggle_display_engine(ds);
+        force_display_update(ds);
+        return true;
+    }
+    if ((key == SDLK_KP_PLUS || key == SDLK_KP_MINUS)) {
+        printf("key: %x, mod: %x\n", key, mod);
+        if (mod & SDL_KMOD_ALT) { // ALT == hue (windows key on my mac)
+            config.videoHue += ((key == SDLK_KP_PLUS) ? 0.025f : -0.025f);
+        } else if (mod & SDL_KMOD_SHIFT) { // WINDOWS == brightness
+            config.videoSaturation += ((key == SDLK_KP_PLUS) ? 0.1f : -0.1f);
+        }
+        init_hgr_LUT();
+        force_display_update(ds);
+        printf("video hue: %f, saturation: %f\n", config.videoHue, config.videoSaturation);
+        return true;
+    }
+    return false;
+}
+
 void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     cpu_state *cpu = computer->cpu;
     
@@ -596,22 +618,22 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     // set in CPU so we can reference later
     set_module_state(cpu, MODULE_DISPLAY, ds);
     
-    cpu->mmu->set_C0XX_read_handler(0xC050, { txt_bus_read_C050, cpu });
-    cpu->mmu->set_C0XX_write_handler(0xC050, { txt_bus_write_C050, cpu });
-    cpu->mmu->set_C0XX_read_handler(0xC051, { txt_bus_read_C051, cpu });
-    cpu->mmu->set_C0XX_write_handler(0xC051, { txt_bus_write_C051, cpu });
-    cpu->mmu->set_C0XX_read_handler(0xC052, { txt_bus_read_C052, cpu });
-    cpu->mmu->set_C0XX_write_handler(0xC052, { txt_bus_write_C052, cpu });
-    cpu->mmu->set_C0XX_read_handler(0xC053, { txt_bus_read_C053, cpu });
-    cpu->mmu->set_C0XX_write_handler(0xC053, { txt_bus_write_C053, cpu });
-    cpu->mmu->set_C0XX_read_handler(0xC054, { txt_bus_read_C054, cpu });
-    cpu->mmu->set_C0XX_write_handler(0xC054, { txt_bus_write_C054, cpu });
-    cpu->mmu->set_C0XX_read_handler(0xC055, { txt_bus_read_C055, cpu });
-    cpu->mmu->set_C0XX_write_handler(0xC055, { txt_bus_write_C055, cpu });
-    cpu->mmu->set_C0XX_read_handler(0xC056, { txt_bus_read_C056, cpu });
-    cpu->mmu->set_C0XX_write_handler(0xC056, { txt_bus_write_C056, cpu });
-    cpu->mmu->set_C0XX_read_handler(0xC057, { txt_bus_read_C057, cpu });
-    cpu->mmu->set_C0XX_write_handler(0xC057, { txt_bus_write_C057, cpu });
+    cpu->mmu->set_C0XX_read_handler(0xC050, { txt_bus_read_C050, ds });
+    cpu->mmu->set_C0XX_write_handler(0xC050, { txt_bus_write_C050, ds });
+    cpu->mmu->set_C0XX_read_handler(0xC051, { txt_bus_read_C051, ds });
+    cpu->mmu->set_C0XX_write_handler(0xC051, { txt_bus_write_C051, ds });
+    cpu->mmu->set_C0XX_read_handler(0xC052, { txt_bus_read_C052, ds });
+    cpu->mmu->set_C0XX_write_handler(0xC052, { txt_bus_write_C052, ds });
+    cpu->mmu->set_C0XX_read_handler(0xC053, { txt_bus_read_C053, ds });
+    cpu->mmu->set_C0XX_write_handler(0xC053, { txt_bus_write_C053, ds });
+    cpu->mmu->set_C0XX_read_handler(0xC054, { txt_bus_read_C054, ds });
+    cpu->mmu->set_C0XX_write_handler(0xC054, { txt_bus_write_C054, ds });
+    cpu->mmu->set_C0XX_read_handler(0xC055, { txt_bus_read_C055, ds });
+    cpu->mmu->set_C0XX_write_handler(0xC055, { txt_bus_write_C055, ds });
+    cpu->mmu->set_C0XX_read_handler(0xC056, { txt_bus_read_C056, ds });
+    cpu->mmu->set_C0XX_write_handler(0xC056, { txt_bus_write_C056, ds });
+    cpu->mmu->set_C0XX_read_handler(0xC057, { txt_bus_read_C057, ds });
+    cpu->mmu->set_C0XX_write_handler(0xC057, { txt_bus_write_C057, ds });
 
     for (int i = 0x04; i <= 0x0B; i++) {
         cpu->mmu->set_page_shadow(i, { txt_memory_write, cpu });
@@ -638,25 +660,30 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     register_C0xx_memory_write_handler(0xC057, txt_bus_write_C057); */
 
     //init_display_sdl(ds);
+
+    computer->sys_event->registerHandler(SDL_EVENT_KEY_DOWN, [ds](const SDL_Event &event) {
+        return handle_display_event(ds, event);
+    });
+
 }
 
 
-void toggle_display_engine(cpu_state *cpu) {
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+void toggle_display_engine(display_state_t *ds) {
+    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     ds->display_color_engine = (display_color_engine_t)((ds->display_color_engine + 1) % DM_NUM_COLOR_ENGINES);
-    force_display_update(cpu);
+    force_display_update(ds);
 }
 
-void set_display_engine(cpu_state *cpu, display_color_engine_t mode) {
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+void set_display_engine(display_state_t *ds, display_color_engine_t mode) {
+    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     ds->display_color_engine = mode;
-    force_display_update(cpu);
+    force_display_update(ds);
 }
 
-void set_display_mono_color(cpu_state *cpu, display_mono_color_t mode) {
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+void set_display_mono_color(display_state_t *ds, display_mono_color_t mode) {
+    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     ds->display_mono_color = mode;
-    force_display_update(cpu);
+    force_display_update(ds);
 }
 
 void display_dump_file(cpu_state *cpu, const char *filename, uint16_t base_addr, uint16_t sizer) {

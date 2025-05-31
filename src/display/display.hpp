@@ -121,7 +121,7 @@ public:
 
 extern uint32_t lores_color_table[16]; 
 
-void force_display_update(cpu_state *cpu);
+void force_display_update(display_state_t *ds);
 void update_display(cpu_state *cpu);
 
 void txt_memory_write(uint16_t , uint8_t );
@@ -132,17 +132,17 @@ void render_line_rgb(cpu_state *cpu, int y);
 void render_line_mono(cpu_state *cpu, int y);
 void pre_calculate_font(rom_data *rd);
 void init_display_font(rom_data *rd);
-void toggle_display_engine(cpu_state *cpu);
-void set_display_engine(cpu_state *cpu, display_color_engine_t mode);
+void toggle_display_engine(display_state_t *ds);
+void set_display_engine(display_state_t *ds, display_color_engine_t mode);
 
 void update_line_mode(cpu_state *cpu);
 void set_display_mode(cpu_state *cpu, display_mode_t mode);
 void set_split_mode(cpu_state *cpu, display_split_mode_t mode);
 void set_graphics_mode(cpu_state *cpu, display_graphics_mode_t mode);
-void display_capture_mouse(cpu_state *cpu, bool capture);
+//void display_capture_mouse(cpu_state *cpu, bool capture);
 void display_dump_hires_page(cpu_state *cpu, int page);
 void display_dump_text_page(cpu_state *cpu, int page);
 
-void flip_display_scale_mode(cpu_state *cpu);
+void flip_display_scale_mode(display_state_t *ds);
 void raise_window(cpu_state *cpu);
-void set_display_mono_color(cpu_state *cpu, display_mono_color_t mode);
+void set_display_mono_color(display_state_t *ds, display_mono_color_t mode);

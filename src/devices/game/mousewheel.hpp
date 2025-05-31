@@ -18,5 +18,6 @@
 #pragma once
 
 #include "cpu.hpp"
+#include "devices/game/gamecontroller.hpp"
 
-void handle_mouse_wheel(cpu_state *cpu, int wheel_y);
+void handle_mouse_wheel(gamec_state_t *ds, const SDL_Event &event);

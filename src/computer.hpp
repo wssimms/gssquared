@@ -4,6 +4,7 @@
 #include "mmus/mmu_ii.hpp"
 #include "Module_ID.hpp"
 #include "SlotData.hpp"
+#include "util/EventDispatcher.hpp"
 #include <vector>
 
 struct cpu_state;
@@ -21,6 +22,10 @@ struct reset_handler_rec {
 struct computer_t {
     cpu_state *cpu = nullptr;
     MMU_II *mmu = nullptr;
+
+    EventDispatcher *sys_event;
+    EventDispatcher *dispatch;
+
     video_system_t *video_system;
     debug_window_t *debug_window;
 

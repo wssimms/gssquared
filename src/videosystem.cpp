@@ -1,9 +1,10 @@
 
 #include "gs2.hpp"
+#include "computer.hpp"
 #include "videosystem.hpp"
 #include "display/display.hpp"
 
-video_system_t::video_system_t() {
+video_system_t::video_system_t(computer_t *computer) {
 
     //SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
     //SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
@@ -60,6 +61,28 @@ video_system_t::video_system_t() {
     present();
 
     SDL_RaiseWindow(window);
+
+    computer->dispatch->registerHandler(SDL_EVENT_WINDOW_RESIZED, [this](const SDL_Event &event) {
+        window_resize(event);
+        return true;
+    });
+    computer->dispatch->registerHandler(SDL_EVENT_MOUSE_BUTTON_DOWN, [this](const SDL_Event &event) {
+        display_capture_mouse(true);
+        return true;
+    });
+    computer->sys_event->registerHandler(SDL_EVENT_KEY_DOWN, [this](const SDL_Event &event) {
+        int key = event.key.key;
+        if (key == SDLK_F3) {
+            toggle_fullscreen();
+            return true;
+        }
+        if (key == SDLK_F1) {
+            //display_capture_mouse(cpu, false);
+            display_capture_mouse(false);
+            return true;
+        }
+        return false;
+    });
 }
 
 video_system_t::~video_system_t() {
@@ -94,7 +117,11 @@ void video_system_t::clear() {
     SDL_RenderClear(renderer);
 }
 
-void video_system_t::window_resize(int new_w, int new_h) {
+//void video_system_t::window_resize(int new_w, int new_h) {
+void video_system_t::window_resize(const SDL_Event &event) {
+    int new_w = event.window.data1;
+    int new_h = event.window.data2;
+
     // Calculate new scale factors based on window size ratio
     float new_scale_x = (float)new_w / BASE_WIDTH;
     float new_scale_y = (float)new_h / (BASE_HEIGHT + border_height*2);
@@ -115,4 +142,11 @@ void video_system_t::window_resize(int new_w, int new_h) {
 void video_system_t::toggle_fullscreen() {
     display_fullscreen_mode = (display_fullscreen_mode_t)((display_fullscreen_mode + 1) % NUM_FULLSCREEN_MODES);
     SDL_SetWindowFullscreen(window, display_fullscreen_mode);
+}
+
+
+void video_system_t::display_capture_mouse(bool capture) {
+    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    //video_system_t *vs = cpu->video_system;
+    SDL_SetWindowRelativeMouseMode(window, capture);
 }

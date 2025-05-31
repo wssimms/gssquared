@@ -8,12 +8,43 @@
 
 #include "computer.hpp"
 #include "debugger/debugwindow.hpp"
+#include "util/EventDispatcher.hpp"
+
 
 computer_t::computer_t() {
+    sys_event = new EventDispatcher(); // different queue for "system" events that get processed first.
+    dispatch = new EventDispatcher(); // has to be very first thing, devices etc are going to immediately register handlers.
     cpu = new cpu_state();
     cpu->init();
-    video_system = new video_system_t();
+    video_system = new video_system_t(this);
     debug_window = new debug_window_t(this);
+
+    sys_event->registerHandler(SDL_EVENT_KEY_DOWN, [this](const SDL_Event &event) {
+        int key = event.key.key;
+        SDL_Keymod mod = event.key.mod;
+        if ((mod & SDL_KMOD_CTRL) && (key == SDLK_F10)) {
+            if (mod & SDL_KMOD_ALT) {
+                reset(true); 
+            } else {
+                reset(false); 
+            }
+            return true;
+        }
+        if (key == SDLK_F12) { 
+            cpu->halt = HLT_USER; 
+            return true;
+        }
+        if (key == SDLK_F9) { 
+            toggle_clock_mode(cpu);
+            return true; 
+        }
+        return false;
+    });
+    sys_event->registerHandler(SDL_EVENT_QUIT, [this](const SDL_Event &event) {
+        cpu->halt = HLT_USER;
+        return true;
+    });
+
 }
 
 computer_t::~computer_t() {

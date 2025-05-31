@@ -182,13 +182,20 @@ void run_cpus(computer_t *computer) {
         if ((this_free_run) && (current_time - last_event_update > 16667000)
             || (!this_free_run)) {
             current_time = SDL_GetTicksNS();
+
+            //computer->dispatch->processEvents();
+
             SDL_Event event;
             while(SDL_PollEvent(&event)) {
+                // check for system "pre" events
+                if (computer->sys_event->dispatch(event)) {
+                    continue;
+                }
                 if (computer->debug_window->handle_event(event)) { // ignores event if not for debug window
                     continue;
                 }
                 if (!osd->event(event)) { // if osd doesn't handle it..
-                    event_poll(computer, event); // they say call "once per frame"
+                    computer->dispatch->dispatch(event); // they say call "once per frame"
                 }
             }
 
@@ -478,7 +485,8 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < 10; i++) {
         SDL_Event event;
         while(SDL_PollEvent(&event)) {
-            event_poll(computer, event); // call first time to get things started.
+            //event_poll(computer, event); // call first time to get things started.
+            computer->dispatch->dispatch(event);
         }
     }
 

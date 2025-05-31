@@ -81,7 +81,6 @@ void prodos_clock_getln_handler(cpu_state *cpu, char *buf) {
 
     snprintf(buf, 255, "%02d,%02d,%02d,%02d,%02d\r", tm->tm_mon + 1, tm->tm_wday, tm->tm_mday, tm->tm_hour, tm->tm_min);
     for (int i = 0; buf[i] != '\0'; i++) {
-        //raw_memory_write(cpu, 0x200 + i, buf[i] | 0x80);
         cpu->mmu->write_raw(0x200 + i, buf[i] | 0x80);
     }
     //printf("prodos_clock_getln_handler: %s\n", buf);
@@ -126,6 +125,5 @@ void init_slot_prodosclock(computer_t *computer, SlotType_t slot) {
     }
     cpu->mmu->set_slot_rom(slot, rom_data);
     cpu->mmu->set_C0XX_write_handler(0xC000 + slx, { prodos_clock_write_register, cpu });
-    //register_C0xx_memory_write_handler(0xC000 + slx, prodos_clock_write_register);
 
 }

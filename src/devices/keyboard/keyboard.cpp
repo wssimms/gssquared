@@ -140,12 +140,11 @@ void handle_keydown_iiplus(cpu_state *cpu, const SDL_Event &event) {
 }
 #endif 
 
-void handle_keydown_iiplus(cpu_state *cpu, const SDL_Event &event) {
-    keyboard_state_t *kb_state = (keyboard_state_t *)get_module_state(cpu, MODULE_KEYBOARD);
+//void handle_keydown_iiplus(cpu_state *cpu, const SDL_Event &event) {
+void handle_keydown_iiplus(const SDL_Event &event, keyboard_state_t *kb_state) {
+    //keyboard_state_t *kb_state = (keyboard_state_t *)get_module_state(cpu, MODULE_KEYBOARD);
 
     // Ignore if only shift is pressed
-    /* uint16_t mod = event.key.keysym.mod;
-    SDL_Keycode key = event.key.keysym.sym; */
     SDL_Keymod mod = event.key.mod;
     SDL_Keycode key = event.key.key;
 
@@ -166,7 +165,7 @@ void handle_keydown_iiplus(cpu_state *cpu, const SDL_Event &event) {
         if (mapped == SDLK_LEFT) { kb_key_pressed(kb_state, 0x08); return; }
         if (mapped == SDLK_RIGHT) { kb_key_pressed(kb_state, 0x15); return; }
         if (mapped >= 'a' && mapped <= 'z') mapped = mapped - 'a' + 'A';
-        if (mapped < 128) { // TODO: create a keyboard map, and allow user to select keyboard map for different languages.
+        if (mapped < 128) {
             kb_key_pressed(kb_state, mapped);
         }
     }
@@ -181,4 +180,9 @@ void init_mb_keyboard(computer_t *computer, SlotType_t slot) {
     computer->mmu->set_C0XX_read_handler(0xC000, { kb_memory_read, kb_state });
     computer->mmu->set_C0XX_read_handler(0xC010, { kb_memory_read, kb_state });
     computer->mmu->set_C0XX_write_handler(0xC010, { kb_memory_write, kb_state });
+
+    computer->dispatch->registerHandler(SDL_EVENT_KEY_DOWN, [kb_state](const SDL_Event &event) {
+        handle_keydown_iiplus(event, kb_state);
+        return true;
+    });
 }

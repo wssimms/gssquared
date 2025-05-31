@@ -231,6 +231,8 @@ add_library(gs2_cpu src/cpus/cpu_6502.cpp src/cpus/cpu_65c02.cpp src/cpu.cpp )
 
 add_library(gs2_computer src/computer.cpp )
 
+add_library(gs2_event_dispatcher src/util/EventDispatcher.cpp )
+
 add_library(gs2_util src/util/media.cpp src/util/ResourceFile.cpp src/util/dialog.cpp src/util/mount.cpp 
     src/util/soundeffects.cpp src/util/EventQueue.cpp src/util/Event.cpp src/util/EventTimer.cpp src/util/TextRenderer.cpp)
 
@@ -287,6 +289,7 @@ target_link_libraries(GSSquared
     gs2_debugger
     gs2_util
     gs2_ui
+    gs2_event_dispatcher
 )
 
 add_subdirectory(apps/nibblizer)

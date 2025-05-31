@@ -78,5 +78,5 @@ typedef struct gamec_state_t {
 } gamec_state_t;
 
 void init_mb_game_controller(computer_t *computer, SlotType_t slot);
-bool add_gamepad(cpu_state *cpu, SDL_Event &event);
-bool remove_gamepad(cpu_state *cpu, SDL_Event &event);
+bool add_gamepad(cpu_state *cpu, const SDL_Event &event);
+bool remove_gamepad(cpu_state *cpu, const SDL_Event &event);

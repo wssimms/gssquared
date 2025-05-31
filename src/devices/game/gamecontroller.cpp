@@ -27,6 +27,7 @@
 #include "cpu.hpp"
 #include "debug.hpp"
 #include "devices/game/gamecontroller.hpp"
+#include "devices/game/mousewheel.hpp"
 
 /**
  * this is a relatively naive implementation of game controller,
@@ -134,26 +135,11 @@ uint8_t strobe_game_inputs(void *context, uint16_t address) {
     } else if (ds->gps[0].game_type == GAME_INPUT_TYPE_MOUSEWHEEL) {
         ds->game_input_trigger_0 = cpu->cycles + (GAME_INPUT_DECAY_TIME / 255) * ds->mouse_wheel_pos_0;
     } else if (ds->gps[0].game_type == GAME_INPUT_TYPE_GAMEPAD) {
-        // TODO: this gamepad joystick can go horizontally to the full extent, but diagnoally not. can scale
-        // the axes larger, to get the corners to full extent if we want.
+        // Scale the axes larger, to get the corners to full extent
         
         int32_t axis0 = SDL_GetGamepadAxis(ds->gps[0].gamepad, SDL_GAMEPAD_AXIS_LEFTX);
         int32_t axis1 = SDL_GetGamepadAxis(ds->gps[0].gamepad, SDL_GAMEPAD_AXIS_LEFTY);
 
-#if 0
-        if (std::abs(axis0) < 1000) {
-            axis0 = 0;
-        }
-        if (std::abs(axis1) < 1000) {
-            axis1 = 0;
-        }
-        axis0 += 32768;
-        axis1 += 32768;
-        axis0 >>= 8;
-        axis1 >>= 8;
-        uint64_t x_trigger =  cpu->cycles + ((GAME_INPUT_DECAY_TIME * axis0) / 255);
-        uint64_t y_trigger = cpu->cycles + ((GAME_INPUT_DECAY_TIME * axis1) / 255);
-#endif
         JoystickValues jv = convertJoystickValues(axis0, axis1);
         uint64_t x_trigger =  cpu->cycles + ((GAME_INPUT_DECAY_TIME * jv.x) / 255);
         uint64_t y_trigger = cpu->cycles + ((GAME_INPUT_DECAY_TIME * jv.y) / 255);
@@ -318,15 +304,31 @@ bool recompute_gamepads(gamec_state_t *gp_d) {
     return true;
 }
 
-bool add_gamepad(cpu_state *cpu, SDL_Event &event) {
+#if 0
+bool add_gamepad(cpu_state *cpu, const SDL_Event &event) {
     gamec_state_t *gp_d = (gamec_state_t *)get_module_state(cpu, MODULE_GAMECONTROLLER);
     printf("add_gamepad: %d\n", event.type);
 
     return recompute_gamepads(gp_d);
 }
 
-bool remove_gamepad(cpu_state *cpu, SDL_Event &event) {
+bool remove_gamepad(cpu_state *cpu, const SDL_Event &event) {
     gamec_state_t *gp_d = (gamec_state_t *)get_module_state(cpu, MODULE_GAMECONTROLLER);
+    printf("remove_gamepad: %d\n", event.type);
+
+    return recompute_gamepads(gp_d);
+}
+#endif
+
+bool add_gamepad(gamec_state_t *gp_d, const SDL_Event &event) {
+    //gamec_state_t *gp_d = (gamec_state_t *)get_module_state(cpu, MODULE_GAMECONTROLLER);
+    printf("add_gamepad: %d\n", event.type);
+
+    return recompute_gamepads(gp_d);
+}
+
+bool remove_gamepad(gamec_state_t *gp_d, const SDL_Event &event) {
+    //gamec_state_t *gp_d = (gamec_state_t *)get_module_state(cpu, MODULE_GAMECONTROLLER);
     printf("remove_gamepad: %d\n", event.type);
 
     return recompute_gamepads(gp_d);
@@ -368,6 +370,9 @@ void init_mb_game_controller(computer_t *computer, SlotType_t slot) {
     cpu->mmu->set_C0XX_read_handler(GAME_SWITCH_1, { read_game_switch_1, cpu });
     cpu->mmu->set_C0XX_read_handler(GAME_SWITCH_2, { read_game_switch_2, cpu }); 
 
+    // we need to compute on init! Otherwise we will only catch changes after boot.
+    recompute_gamepads(ds);
+
 // register the I/O ports
 /*     register_C0xx_memory_read_handler(GAME_ANALOG_0, read_game_input_0);
     register_C0xx_memory_read_handler(GAME_ANALOG_1, read_game_input_1);
@@ -377,4 +382,17 @@ void init_mb_game_controller(computer_t *computer, SlotType_t slot) {
     register_C0xx_memory_read_handler(GAME_SWITCH_0, read_game_switch_0);
     register_C0xx_memory_read_handler(GAME_SWITCH_1, read_game_switch_1);
     register_C0xx_memory_read_handler(GAME_SWITCH_2, read_game_switch_2); */
+
+    computer->dispatch->registerHandler(SDL_EVENT_GAMEPAD_REMOVED, [ds](const SDL_Event &event) {
+        remove_gamepad(ds, event);
+        return true;
+    });
+    computer->dispatch->registerHandler(SDL_EVENT_GAMEPAD_ADDED, [ds](const SDL_Event &event) {
+        add_gamepad(ds, event);
+        return true;
+    });
+    computer->dispatch->registerHandler(SDL_EVENT_MOUSE_WHEEL, [ds](const SDL_Event &event) {
+        handle_mouse_wheel(ds, event);
+        return true;
+    });
 }
