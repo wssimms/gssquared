@@ -3,7 +3,6 @@
 #include <iostream>
 
 #include "cpu.hpp"
-#include "bus.hpp"
 #include "debug.hpp"
 #include "devices/speaker/speaker.hpp"
 #include "event_poll.hpp"
@@ -109,11 +108,11 @@ void set_module_state(cpu_state *cpu, module_id_t module_id, void *state) {
     cpu->module_store[module_id] = state;
 }
 
-void register_C0xx_memory_read_handler(unsigned short address, unsigned char (*read_handler)(cpu_state*, unsigned short)) {
+/* void register_C0xx_memory_read_handler(unsigned short address, unsigned char (*read_handler)(cpu_state*, unsigned short)) {
 }
 
 void register_C0xx_memory_write_handler(uint16_t address, memory_write_handler handler) {
-}
+} */
 
 void usage(const char *exe) {
     std::cerr << "Usage: " << exe << " [-w] <recording file>\n";
@@ -122,7 +121,10 @@ void usage(const char *exe) {
 
 int main(int argc, char **argv) {
     debug_level = DEBUG_SPEAKER;
+
+    computer_t *computer = new computer_t();
     cpu_state *cpu = new cpu_state();
+    computer->cpu = cpu;
 
     MMU_II *mmu = new MMU_II(256, 48*1024, nullptr);
     cpu->set_mmu(mmu);
@@ -149,7 +151,7 @@ int main(int argc, char **argv) {
     }
 
 
-    init_mb_speaker(cpu, SLOT_NONE);
+    init_mb_speaker(computer, SLOT_NONE);
     // load events into the event buffer that is allocated by the speaker module.
     speaker_state_t *speaker_state = (speaker_state_t *)get_module_state(cpu, MODULE_SPEAKER);
     uint64_t event;

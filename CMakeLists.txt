@@ -229,7 +229,9 @@ add_library(gs2_mmu src/mmus/mmu.cpp src/mmus/mmu_ii.cpp )
 
 add_library(gs2_cpu src/cpus/cpu_6502.cpp src/cpus/cpu_65c02.cpp src/cpu.cpp )
 
-add_library(gs2_util src/util/media.cpp src/util/ResourceFile.cpp src/util/dialog.cpp src/util/mount.cpp src/util/reset.cpp
+add_library(gs2_computer src/computer.cpp )
+
+add_library(gs2_util src/util/media.cpp src/util/ResourceFile.cpp src/util/dialog.cpp src/util/mount.cpp 
     src/util/soundeffects.cpp src/util/EventQueue.cpp src/util/Event.cpp src/util/EventTimer.cpp src/util/TextRenderer.cpp)
 
 add_library(gs2_ui src/ui/AssetAtlas.cpp src/ui/Container.cpp src/ui/DiskII_Button.cpp src/ui/Unidisk_Button.cpp 
@@ -241,6 +243,7 @@ add_library(gs2_ui src/ui/AssetAtlas.cpp src/ui/Container.cpp src/ui/DiskII_Butt
 target_link_libraries(gs2_ui SDL3_image::SDL3_image-shared SDL3_ttf::SDL3_ttf-shared)
 target_link_libraries(gs2_debugger SDL3_ttf::SDL3_ttf-shared)
 target_link_libraries(gs2_util SDL3_ttf::SDL3_ttf-shared)
+target_link_libraries(gs2_computer SDL3_ttf::SDL3_ttf-shared)
 
 # Add the executable
 add_executable(GSSquared src/gs2.cpp src/clock.cpp src/debug.cpp  src/opcodes.cpp 
@@ -252,10 +255,7 @@ add_executable(GSSquared src/gs2.cpp src/clock.cpp src/debug.cpp  src/opcodes.cp
     src/event_poll.cpp
     src/devices.cpp src/slots.cpp src/systemconfig.cpp
     src/videosystem.cpp
-    src/computer.cpp
     src/paths.cpp
-    #src/test.cpp src/devices/loader.cpp
-    #src/cpu.cpp
     ${CMAKE_SOURCE_DIR}/assets/img/gs2.icns
     )
 
@@ -268,6 +268,7 @@ target_link_libraries(GSSquared PRIVATE
 
 target_link_libraries(GSSquared 
     PUBLIC gs2_cpu 
+    gs2_computer
     gs2_mmu
     #gs2_oldmmu
     gs2_devices_tcp 
@@ -294,7 +295,7 @@ add_subdirectory(apps/denibblizer)
 
 add_subdirectory(apps/diskid)
 
-add_subdirectory(apps/speaker)
+#add_subdirectory(apps/speaker) # Temporarily remove until I make a "fake computer" interface.
 
 add_subdirectory(apps/gstrace)
 

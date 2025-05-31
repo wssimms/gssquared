@@ -23,7 +23,6 @@
 
 #include "gs2.hpp"
 #include "debug.hpp"
-#include "bus.hpp"
 #include "devices/speaker/speaker.hpp"
 #include "devices/speaker/LowPass.hpp"
 
@@ -156,7 +155,8 @@ void speaker_memory_write(void *context, uint16_t address, uint8_t value) {
     log_speaker_blip((cpu_state *)context);
 }
 
-void init_mb_speaker(cpu_state *cpu, SlotType_t slot) {
+void init_mb_speaker(computer_t *computer,  SlotType_t slot) {
+    cpu_state *cpu = computer->cpu;
 
     speaker_state_t *speaker_state = new speaker_state_t;
 

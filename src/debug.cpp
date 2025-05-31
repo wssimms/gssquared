@@ -20,7 +20,6 @@
 #include <iomanip>
 
 #include "gs2.hpp"
-#include "memory.hpp"
 #include "debug.hpp"
 
 uint64_t debug_level = DEBUG_BOOT_FLAG ;

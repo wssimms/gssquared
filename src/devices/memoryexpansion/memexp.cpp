@@ -17,9 +17,7 @@
 
 #include "gs2.hpp"
 #include "cpu.hpp"
-#include "bus.hpp"
 #include "memexp.hpp"
-#include "memory.hpp"
 #include "debug.hpp"
 
 void memexp_write_C0x0(void *context, uint16_t addr, uint8_t data) {
@@ -124,7 +122,9 @@ void map_rom_memexp(void *context, SlotType_t slot) {
     }
 }
 
-void init_slot_memexp(cpu_state *cpu, SlotType_t slot) {
+void init_slot_memexp(computer_t *computer, SlotType_t slot) {
+    cpu_state *cpu = computer->cpu;
+    
     memexp_data * memexp_d = new memexp_data;
     // set in CPU so we can reference later
     memexp_d->id = DEVICE_ID_MEM_EXPANSION;

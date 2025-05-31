@@ -126,7 +126,7 @@ void update_display(cpu_state *cpu);
 
 void txt_memory_write(uint16_t , uint8_t );
 void update_flash_state(cpu_state *cpu);
-void init_mb_device_display(cpu_state *cpu, SlotType_t slot);
+void init_mb_device_display(computer_t *computer, SlotType_t slot);
 void render_line_ntsc(cpu_state *cpu, int y);
 void render_line_rgb(cpu_state *cpu, int y);
 void render_line_mono(cpu_state *cpu, int y);

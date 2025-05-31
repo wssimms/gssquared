@@ -19,8 +19,6 @@
 #include <iostream>
 #include "gs2.hpp"
 #include "cpu.hpp"
-#include "bus.hpp"
-#include "memory.hpp"
 #include "debug.hpp"
 #include "devices/pdblock2/pdblock2.hpp"
 #include "util/media.hpp"
@@ -260,8 +258,10 @@ uint8_t pdblock2_read_C0x0(void *context, uint16_t addr) {
     } else return 0xE0;
 }
 
-void init_pdblock2(cpu_state *cpu, SlotType_t slot)
+void init_pdblock2(computer_t *computer, SlotType_t slot)
 {
+    cpu_state *cpu = computer->cpu;
+    
     if (DEBUG(DEBUG_PD_BLOCK)) std::cout << "Initializing ProDOS Block2 slot " << slot << std::endl;
     pdblock2_data * pdblock_d = new pdblock2_data;
     pdblock_d->id = DEVICE_ID_PD_BLOCK2;

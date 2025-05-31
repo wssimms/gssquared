@@ -27,7 +27,6 @@
 #include "gs2.hpp"
 #include "cpu.hpp"
 #include "clock.hpp"
-#include "memory.hpp"
 #include "opcodes.hpp"
 #include "debug.hpp"
 

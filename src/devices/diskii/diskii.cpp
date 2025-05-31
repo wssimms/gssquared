@@ -160,8 +160,6 @@ In DOS at $B800 lives the "prenibble routine" . I could perhaps steal that. hehe
 #include <cstring>
 
 #include "cpu.hpp"
-#include "memory.hpp"
-#include "bus.hpp"
 #include "diskii.hpp"
 #include "util/media.hpp"
 #include "util/ResourceFile.hpp"
@@ -655,7 +653,27 @@ void diskII_init(cpu_state *cpu, SlotType_t slot) {
     //}
 }
 
-void init_slot_diskII(cpu_state *cpu, SlotType_t slot) {
+
+void diskii_reset(void *context) {
+    cpu_state *cpu = (cpu_state *)context;
+    //diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
+    //diskII_controller * diskII_d = (diskII_controller *)get_slot_state(cpu, slot);
+    printf("diskii_reset\n");
+    // TODO: this should be a callback from the CPU reset handler.
+    for (int i = 0; i < 8; i++) {
+        SlotData *slot_data = get_slot_state(cpu, (SlotType_t)i);
+        
+        if ((slot_data != nullptr) && (slot_data->id == DEVICE_ID_DISK_II)) {
+            diskII_controller *diskII_d = (diskII_controller *)slot_data;
+            diskII_d->motor = 0;
+            diskII_d->mark_cycles_turnoff = 0;
+        }
+    }
+}
+
+void init_slot_diskII(computer_t *computer, SlotType_t slot) {
+    cpu_state *cpu = computer->cpu;
+    
     //diskII_controller * diskII_slot = new diskII_controller[8];
     diskII_controller *diskII_d = new diskII_controller();
 
@@ -745,22 +763,8 @@ void init_slot_diskII(cpu_state *cpu, SlotType_t slot) {
     cpu->mounts->register_drive(DRIVE_TYPE_DISKII, key);
     cpu->mounts->register_drive(DRIVE_TYPE_DISKII, key + 1);
 
-}
+    computer->register_reset_handler({diskii_reset, cpu});
 
-void diskii_reset(cpu_state *cpu) {
-    //diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
-    //diskII_controller * diskII_d = (diskII_controller *)get_slot_state(cpu, slot);
-    printf("diskii_reset\n");
-    // TODO: this should be a callback from the CPU reset handler.
-    for (int i = 0; i < 8; i++) {
-        SlotData *slot_data = get_slot_state(cpu, (SlotType_t)i);
-        
-        if ((slot_data != nullptr) && (slot_data->id == DEVICE_ID_DISK_II)) {
-            diskII_controller *diskII_d = (diskII_controller *)slot_data;
-            diskII_d->motor = 0;
-            diskII_d->mark_cycles_turnoff = 0;
-        }
-    }
 }
 
 void debug_dump_disk_images(cpu_state *cpu) { // only dump slot 6.

@@ -22,6 +22,7 @@
 #include "util/mount.hpp"
 #include "devices.hpp"
 #include "slots.hpp"
+#include "computer.hpp"
 
 #define DiskII_Ph0_Off 0x00
 #define DiskII_Ph0_On 0x01
@@ -72,7 +73,7 @@ struct diskII_controller : public SlotData {
 };
 
 
-void init_slot_diskII(cpu_state *cpu, SlotType_t slot);
+void init_slot_diskII(computer_t *computer, SlotType_t slot);
 void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor *media);
 void unmount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive);
 void writeback_diskII_image(cpu_state *cpu, uint8_t slot, uint8_t drive);

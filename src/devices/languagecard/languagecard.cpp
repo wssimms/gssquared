@@ -17,18 +17,11 @@
 
 #include <stdio.h>
 #include "cpu.hpp"
-#include "bus.hpp"
-#include "memory.hpp"
 #include "debug.hpp"
 
 #include "devices/languagecard/languagecard.hpp"
 
-
-/* uint8_t bank_selected = 0; */
-/* uint8_t reading_ram_rom = 0; */
-
-
-void debug_memory_pointer(cpu_state *cpu, uint8_t *pointer) {
+/* void debug_memory_pointer(cpu_state *cpu, uint8_t *pointer) {
     if (pointer >= cpu->main_ram_64 && pointer < (cpu->main_ram_64 + 0xC000)) {
         uint16_t page = (pointer - cpu->main_ram_64) / GS2_PAGE_SIZE;
         printf("main_ram_64 [page]: %02X ", page);
@@ -56,12 +49,7 @@ void debug_memory_pointer(cpu_state *cpu, uint8_t *pointer) {
         return;
     }
     printf("unknown pointer: %p ", pointer);
-}
-
-/* static uint8_t FF_BANK_1 = 0;
-static uint8_t FF_PRE_WRITE = 0;
-static uint8_t FF_READ_ENABLE = 0;
-static uint8_t _FF_WRITE_ENABLE = 0; // inverted sense */
+} */
 
 void set_memory_pages_based_on_flags(cpu_state *cpu) {
     languagecard_state_t *lc = (languagecard_state_t *)get_module_state(cpu, MODULE_LANGCARD);
@@ -250,7 +238,14 @@ uint8_t languagecard_read_C012(void *context, uint16_t address) {
     return (lc->FF_READ_ENABLE != 0) ? 0x80 : 0x00; /* << 7; */
 }
 
-void init_slot_languagecard(cpu_state *cpu, SlotType_t slot) {
+
+void reset_languagecard(void *context) {
+    cpu_state *cpu = (cpu_state *)context;
+
+}
+
+void init_slot_languagecard(computer_t *computer, SlotType_t slot) {
+    cpu_state *cpu = computer->cpu;
 
     fprintf(stdout, "languagecard_register_slot %d\n", slot);
     if (slot != 0) {
@@ -285,8 +280,6 @@ void init_slot_languagecard(cpu_state *cpu, SlotType_t slot) {
     }
 
     set_memory_pages_based_on_flags(cpu);
-}
 
-void reset_languagecard(cpu_state *cpu) {
-
+    computer->register_reset_handler({reset_languagecard, cpu});
 }

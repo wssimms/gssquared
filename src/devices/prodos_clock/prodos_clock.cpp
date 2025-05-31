@@ -23,9 +23,6 @@
 
 #include "cpu.hpp"
 
-#include "bus.hpp"
-#include "memory.hpp"
-
 #include "prodos_clock.hpp"
 
 #include "util/ResourceFile.hpp"
@@ -100,7 +97,9 @@ void prodos_clock_write_register(void *context, uint16_t address, uint8_t value)
     }
 }
 
-void init_slot_prodosclock(cpu_state *cpu, SlotType_t slot) {
+void init_slot_prodosclock(computer_t *computer, SlotType_t slot) {
+    cpu_state *cpu = computer->cpu;
+    
     fprintf(stderr, "ProDOS_Clock init at SLOT %d\n", slot);
 
     prodos_clock_state * prodosclock_d = new prodos_clock_state;

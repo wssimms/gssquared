@@ -49,8 +49,7 @@
 
 #include "gs2.hpp"
 #include "cpu.hpp"
-#include "memory.hpp"
-#include "bus.hpp"
+#include "computer.hpp"
 
 #define LANG_A3             0b00001000
 #define LANG_A0A1           0b00000011
@@ -75,5 +74,5 @@ struct languagecard_state_t {
     uint8_t *ram_bank;
 };
 
-void init_slot_languagecard(cpu_state *cpu, SlotType_t slot);
+void init_slot_languagecard(computer_t *computer, SlotType_t slot);
 void reset_languagecard(cpu_state *cpu);

@@ -29,7 +29,6 @@
 #include "gs2.hpp"
 #include "cpu.hpp"
 #include "mb.hpp"
-#include "bus.hpp"
 #include "devices/speaker/speaker.hpp"
 #include "debug.hpp"
 
@@ -1218,7 +1217,31 @@ void insert_empty_mockingboard_frame(mb_cpu_data *mb_d) {
     SDL_PutAudioStreamData(mb_d->stream, empty_frame, 736 * 2 * sizeof(float));
 }
 
-void init_slot_mockingboard(cpu_state *cpu, SlotType_t slot) {
+
+void mb_reset(void *context) {
+    cpu_state *cpu = (cpu_state *)context;
+    mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, SLOT_4);
+    if (mb_d == nullptr) return;
+    mb_d->mockingboard->reset();
+    for (int i = 0; i < 2; i++) {
+        // counters keep going as-is on reset, but no interrupts
+        //mb_d->d_6522[i].t1_counter = 0;
+        //mb_d->d_6522[i].t2_counter = 0;
+        //mb_d->d_6522[i].t1_triggered_cycles = 0;
+        //mb_d->d_6522[i].t2_triggered_cycles = 0;
+        //mb_d->d_6522[i].t1_latch = 0;
+        //mb_d->d_6522[i].t2_latch = 0;
+        mb_d->d_6522[i].acr = 0;
+        mb_d->d_6522[i].ifr.value = 0;
+        mb_d->d_6522[i].ier.value = 0;
+    }   
+    mb_6522_propagate_interrupt(cpu, mb_d);
+    //set_slot_irq(cpu, mb_d->slot, 0); // TODO: need to use actual slot. the reset routines need the slot number as argument.
+}
+
+void init_slot_mockingboard(computer_t *computer, SlotType_t slot) {
+    cpu_state *cpu = computer->cpu;
+    
     uint16_t slot_base = 0xC080 + (slot * 0x10);
     printf("init_slot_mockingboard: %d\n", slot);
 
@@ -1269,28 +1292,6 @@ void init_slot_mockingboard(cpu_state *cpu, SlotType_t slot) {
 
     insert_empty_mockingboard_frame(mb_d);
 
-    // regular c0xx_register won't work because we need to set up registers in CS00 and CS80. So weird.
-    // for now, just tie this in inside bus.cpp which is ugly. But we need a more generalized
-    // mechanism for all these different ways we can read/write to I/O memory. Maybe a function 
-    // pointer in the memory map alongside the memory type flag?
-}
-
-void mb_reset(cpu_state *cpu) {
-    mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, SLOT_4);
-    if (mb_d == nullptr) return;
-    mb_d->mockingboard->reset();
-    for (int i = 0; i < 2; i++) {
-        // counters keep going as-is on reset, but no interrupts
-        //mb_d->d_6522[i].t1_counter = 0;
-        //mb_d->d_6522[i].t2_counter = 0;
-        //mb_d->d_6522[i].t1_triggered_cycles = 0;
-        //mb_d->d_6522[i].t2_triggered_cycles = 0;
-        //mb_d->d_6522[i].t1_latch = 0;
-        //mb_d->d_6522[i].t2_latch = 0;
-        mb_d->d_6522[i].acr = 0;
-        mb_d->d_6522[i].ifr.value = 0;
-        mb_d->d_6522[i].ier.value = 0;
-    }   
-    mb_6522_propagate_interrupt(cpu, mb_d);
-    //set_slot_irq(cpu, mb_d->slot, 0); // TODO: need to use actual slot. the reset routines need the slot number as argument.
+    // set up a reset handler to reset the chips on mockingboard
+    computer->register_reset_handler({mb_reset, cpu});
 }

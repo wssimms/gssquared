@@ -20,7 +20,6 @@
 
 #include "gs2.hpp"
 #include "cpu.hpp"
-#include "memory.hpp"
 #include "loader.hpp"
 
 char *loader_filename = NULL;
@@ -31,7 +30,7 @@ void loader_set_file_info(char *filename, uint16_t address) {
     loader_address = address;
 }
 
-void loader_execute(cpu_state *cpu) {
+void loader_execute(computer_t *computer) {
 
     if (loader_filename == NULL) {
         fprintf(stderr, "Loader filename not set\n");
@@ -62,7 +61,7 @@ void loader_execute(cpu_state *cpu) {
 
     // Load into RAM at loader_address
     for (long i = 0; i < file_size; i++) {
-        raw_memory_write(CPUs[0], loader_address + i, memory_chunk[i]);
+        computer->cpu->mmu->write(loader_address + i, memory_chunk[i]);
     }
 
     free(memory_chunk);

@@ -23,9 +23,6 @@
 
 #include "cpu.hpp"
 
-#include "bus.hpp"
-#include "memory.hpp"
-
 #include "thunderclockplus.hpp"
 
 #include "util/ResourceFile.hpp"
@@ -140,7 +137,9 @@ void map_rom_thunderclock(void *context, SlotType_t slot) {
     }
 }
 
-void init_slot_thunderclock(cpu_state *cpu, SlotType_t slot) {
+void init_slot_thunderclock(computer_t *computer, SlotType_t slot) {
+    cpu_state *cpu = computer->cpu;
+    
     uint16_t thunderclock_cmd_reg = THUNDERCLOCK_CMD_REG_BASE + (slot << 4);
     fprintf(stderr, "Thunderclock Plus init at SLOT %d address %X\n", slot, thunderclock_cmd_reg);
 

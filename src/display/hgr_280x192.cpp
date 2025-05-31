@@ -18,7 +18,6 @@
 
 #include "gs2.hpp"
 #include "hgr_280x192.hpp"
-#include "memory.hpp"
 #include "debug.hpp"
 #include "display.hpp"
 

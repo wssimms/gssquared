@@ -19,6 +19,7 @@
 
 #include "gs2.hpp"
 #include "cpu.hpp"
+#include "computer.hpp"
 
 #define MB_6522_DDRA 0x03
 #define MB_6522_DDRB 0x02
@@ -106,7 +107,7 @@ struct mb_cpu_data: public SlotData {
     uint8_t slot;
 };
 
-void init_slot_mockingboard(cpu_state *cpu, SlotType_t slot);
+void init_slot_mockingboard(computer_t *computer, SlotType_t slot);
 void mb_write_Cx00(cpu_state *cpu, uint16_t addr, uint8_t data);
 uint8_t mb_read_Cx00(cpu_state *cpu, uint16_t addr);
 void generate_mockingboard_frame(cpu_state *cpu, SlotType_t slot);

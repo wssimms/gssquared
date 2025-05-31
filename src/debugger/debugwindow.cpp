@@ -4,9 +4,12 @@
 #include "gs2.hpp"
 #include "cpu.hpp"
 #include "util/TextRenderer.hpp"
+#include "computer.hpp"
 
-void debug_window_t::init(cpu_state *cpu) {
-    this->cpu = cpu;
+debug_window_t::debug_window_t(computer_t *computer) {
+    this->computer = computer;
+    this->cpu = computer->cpu;
+
     // create a new window
     window = SDL_CreateWindow("Debug Window", window_width, window_height, SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIDDEN);
     // create a new renderer
@@ -28,7 +31,7 @@ void debug_window_t::draw_text(int y, const char *textToShow) {
     text_renderer->render(textToShow, window_margin, y*font_line_height);
 }
 
-void debug_window_t::render(cpu_state *cpu) {
+void debug_window_t::render() {
     char buffer[256];
 
     if (!window_open) {

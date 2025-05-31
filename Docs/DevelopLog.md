@@ -4141,3 +4141,36 @@ keyboard, had to create a state record. We were using a global before. We will o
 testing with trace turned off (not compiled out: in, but disabled)
 test 1: 520MHz
 test 2: 550MHz - 
+
+test with trace compiled out: 
+
+[ ] There is a slight issue here which is that the cpu has a member for MMU_II. This should be MMU. And then all the things that need to use it need to cast it to MMU_II. Or, provide some sort of middleware that converts to a minimal interface for the CPU that only provides read and write (and context to use).
+
+[ ] I had a thought about speed-shifting. Which is, changing speeds in the middle of a frame. Instead of only counting cycles, we will count virtual nanoseconds. We know how many nanoseconds per cycle there are. We can do it in the main loop. And then, instead of the main run loop waiting for about 17,000 cycles, it checks to see if exactly 16.6666667 milliseconds have elapsed, regardless of speed (60fps). We could also count the ns elapsed based on feedback from the MMU - this would be for the GS and other "accelerated" platforms where inside a single instruction the clock could be numerous different speeds.
+
+OK, next step is to start going through devices and seeing if I can reduce the codependencies on the CPU some more. Some things go into Computer. Like VideoSystem. 
+
+Some terminology:
+* a "slot" is a device that you could have multiple of in a system.
+* a "module" is a motherboard device that you will only have one of in a system.
+
+First thing: implement a "event delivery registry". Keyboard, and game controller, need to receive events. Display should too - to handle F2, F3, F5, etc. Keyboard would check for key down events. Game controller for gamepad add and delete. Just like they do now, except, not hardcoded into a loop. But placed in a list. When an event is accepted and handled, return a true and stop processing other handlers. Will this be part of "computer"? Perhaps its own thing, but an instance lives in Computer.
+
+Then we also need a "process frame" for cards / modules. Now, you think this is only for mockingboard and videx - and you would be wrong! The Disk II "frame handler" can update the disk drives status for the OSD. We can do for other devices too that need to present status. Then OSD isn't tightly coupled to Disk II. Annunciator can publish its status too for the display subsystems. So for this we have:
+* mockingboard
+* speaker
+* display (update flash state; update display;)
+* videx (update display)
+* diskii / smartport - post drive status for osd
+So we have these categories of "frames": cpu frame; audio frame(s); video frame(s); OSD frame; Debugger frame; event frame(s).
+
+It makes sense to have each type of "frame" in its own queue, in its own loop. Easily done.
+
+## May 30, 2025
+
+[x] need to hook "init default memory map" to the reset routine.. ? Was in reset.cpp.
+
+All the slot cards and modules now get passed computer_t to their init_ functions.
+
+So this "register reest routine" stuff is a good idea. I removed a bunch of module dependencies. However, I have new dependencies in computer_t - video_system. The main body of code is fine with this, but the standalone speaker app uses speaker.cpp which uses computer which wants video_system etc. So, the speaker test app is more about testing the reproduction logic. Separate speaker into core speaker logic, and the speaker module. Then speaker app will use core speaker, not slot card. The "core" knows how to play back from the speaker event buffer. The slot module knows how to add events to the buffer. 
+

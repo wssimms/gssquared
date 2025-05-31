@@ -19,10 +19,8 @@
 
 #include "cpu.hpp"
 #include "gs2.hpp"
-#include "memory.hpp"
 #include "debug.hpp"
 
-#include "bus.hpp"
 #include "display.hpp"
 #include "text_40x24.hpp"
 #include "lores_40x48.hpp"
@@ -571,7 +569,9 @@ display_state_t::display_state_t() {
     //display_scale_mode = SDL_SCALEMODE_LINEAR;
 }
 
-void init_mb_device_display(cpu_state *cpu, SlotType_t slot) {
+void init_mb_device_display(computer_t *computer, SlotType_t slot) {
+    cpu_state *cpu = computer->cpu;
+    
     // alloc and init display state
     display_state_t *ds = new display_state_t;
     video_system_t *vs = cpu->video_system;

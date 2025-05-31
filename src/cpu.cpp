@@ -21,7 +21,6 @@
 #include <iostream>
 
 #include "cpu.hpp"
-#include "memory.hpp"
 
 clock_mode_info_t clock_mode_info[NUM_CLOCK_MODES] = {
     { 0, 0, 17008 },
@@ -30,29 +29,7 @@ clock_mode_info_t clock_mode_info[NUM_CLOCK_MODES] = {
     { 4000000, (1000000000 / 4000000), 66665 }
 };
 
-/* uint64_t HZ_RATES[] = {
-    0,
-    4000000,
-    2800000,
-    1020500
-};
-
-// 1000000000 / cpu->HZ_RATE
-uint64_t cycle_durations_ns[] = {
-    0, // free run
-    1000000000 / 4000000, // Apple //c+
-    1000000000 / 2800000, // 2.8MHz IIGS,
-    (1000000000 / 1020500)+1, // 1020500, Apple II+/IIe - +1 for rounding error, it's actually 979.9
-};
-
-uint64_t cycles_per_burst[] = { 17008, 66665, 46666, 17008 };
- */
-
 void set_clock_mode(cpu_state *cpu, clock_mode_t mode) {
-    // Get the conversion factor for mach_absolute_time to nanoseconds
-/*     mach_timebase_info_data_t info;
-    mach_timebase_info(&info);
- */
     // TODO: if this is ever called from inside a CPU loop, we need to exit that loop
     // immediately in order to avoid weird calculations around.
     // So add a "speedshift" cpu flag.
@@ -64,23 +41,6 @@ void set_clock_mode(cpu_state *cpu, clock_mode_t mode) {
     cpu->clock_mode = mode;
     fprintf(stdout, "Clock mode: %d HZ_RATE: %llu cycle_duration_ns: %llu \n", cpu->clock_mode, cpu->HZ_RATE, cpu->cycle_duration_ns);
 }
-
-/* void set_clock_mode(cpu_state *cpu, clock_mode mode) {
-    // Get the conversion factor for mach_absolute_time to nanoseconds
-    mach_timebase_info_data_t info;
-    mach_timebase_info(&info);
-
-    cpu->HZ_RATE = HZ_RATES[mode];
-    // Calculate time per cycle at emulated rate
-    cpu->cycle_duration_ns = cycle_durations_ns[mode];
-    cpu->cycle_duration_ticks = cycle_durations_ticks[mode];
-
-    // Convert the cycle duration to mach_absolute_time() units
-    //cpu->cycle_duration_ticks = (cpu->cycle_duration_ns * info.denom / info.numer); // fudge
-
-    cpu->clock_mode = mode;
-    fprintf(stdout, "Clock mode: %d HZ_RATE: %llu cycle_duration_ns: %llu cycle_duration_ticks: %llu\n", cpu->clock_mode, cpu->HZ_RATE, cpu->cycle_duration_ns, cpu->cycle_duration_ticks);
-} */
 
 void toggle_clock_mode(cpu_state *cpu) {
     set_clock_mode(cpu, (clock_mode_t)((cpu->clock_mode + 1) % NUM_CLOCK_MODES));
@@ -140,6 +100,7 @@ void set_slot_irq(cpu_state *cpu, uint8_t slot, bool irq) {
     }
 }
 
+/* 
 void cpu_state::init_default_memory_map() {
 
     for (int i = 0; i < (RAM_KB / GS2_PAGE_SIZE); i++) {
@@ -163,9 +124,9 @@ void cpu_state::init_default_memory_map() {
         memory->pages_read[i + 0xD0] = main_rom_D0 + i * GS2_PAGE_SIZE;
         memory->pages_write[i + 0xD0] = main_rom_D0 + i * GS2_PAGE_SIZE;
     }
-}
+} */
 
-void cpu_state::init_memory() {
+/* void cpu_state::init_memory() {
     memory = new memory_map();
     
     main_ram_64 = new uint8_t[RAM_KB];
@@ -177,10 +138,10 @@ void cpu_state::init_memory() {
     #else
     init_default_memory_map();
     #endif
-}
+} */
 
 void cpu_state::init() {
-    init_memory();
+    //init_memory();
 
     pc = 0x0400;
     sp = rand() & 0xFF; // simulate a random stack pointer

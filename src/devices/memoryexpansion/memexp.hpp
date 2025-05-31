@@ -19,6 +19,7 @@
 #include "cpu.hpp"
 #include "util/ResourceFile.hpp"
 #include "SlotData.hpp"
+#include "computer.hpp"
 
 #define MEMEXP_ADDR_LOW 0x0000
 #define MEMEXP_ADDR_MED 0x0001
@@ -42,4 +43,4 @@ typedef struct memexp_data: public SlotData {
     ResourceFile *rom;
 } memexp_data;
 
-void init_slot_memexp(cpu_state *cpu, SlotType_t slot);
+void init_slot_memexp(computer_t *computer, SlotType_t slot);

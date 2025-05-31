@@ -32,7 +32,7 @@
 #include "OSD.hpp"
 #include "display/display.hpp"
 #include "util/mount.hpp"
-#include "util/reset.hpp"
+// #include "util/reset.hpp" // TODO: needs to hook into computer->reset() now.
 #include "util/soundeffects.hpp"
 #include "ModalContainer.hpp"
 #include "util/strndup.h"
@@ -197,8 +197,9 @@ void set_mhz_infinity(void *data) {
 
 void click_reset_cpu(void *data) {
     printf("click_reset_cpu %p\n", data);
-    cpu_state *cpu = (cpu_state *)data;
-    system_reset(cpu, false);
+    // TODO: fix this. OSD should tell computer() to reset. Or, pass an event to main loop.
+    /* cpu_state *cpu = (cpu_state *)data;
+    system_reset(cpu, false); */
 }
 
 void modal_diskii_click(void *data) {

@@ -1,7 +1,5 @@
 #include "gs2.hpp"
 #include "cpu.hpp"
-#include "bus.hpp"
-#include "memory.hpp"
 #include "debug.hpp"
 #include "parallel.hpp"
 
@@ -19,7 +17,8 @@ void parallel_write_C0x0(void *context, uint16_t addr, uint8_t data) {
     fputc(data, parallel_d->output);
 }
 
-void parallel_reset(cpu_state *cpu) {
+void parallel_reset(void *context) {
+    cpu_state *cpu = (cpu_state *)context;
     for (int i = 0; i < 8; i++) {
         parallel_data *parallel_d = (parallel_data *)get_slot_state(cpu, (SlotType_t)i);
 
@@ -32,7 +31,9 @@ void parallel_reset(cpu_state *cpu) {
     }
 }
 
-void init_slot_parallel(cpu_state *cpu, SlotType_t slot) {
+void init_slot_parallel(computer_t *computer, SlotType_t slot) {
+    cpu_state *cpu = computer->cpu;
+    
     parallel_data * parallel_d = new parallel_data;
     parallel_d->id = DEVICE_ID_PARALLEL;
     // set in CPU so we can reference later
@@ -62,4 +63,5 @@ void init_slot_parallel(cpu_state *cpu, SlotType_t slot) {
     /* for (int i = 0; i < 256; i++) {
         raw_memory_write(cpu, 0xC000 + (slot * 0x0100) + i, rom_data[i]);
     } */
+    computer->register_reset_handler({parallel_reset, cpu});
 }

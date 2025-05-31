@@ -22,7 +22,6 @@
 #include "display/display.hpp"
 #include "devices/game/gamecontroller.hpp"
 #include "devices/languagecard/languagecard.hpp"
-#include "devices/prodos_block/prodos_block.hpp"
 #include "devices/prodos_clock/prodos_clock.hpp"
 #include "devices/diskii/diskii.hpp"
 #include "devices/memoryexpansion/memexp.hpp"

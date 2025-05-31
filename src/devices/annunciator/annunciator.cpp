@@ -19,7 +19,6 @@
 #include <SDL3/SDL.h>
 #include "gs2.hpp"
 #include "cpu.hpp"
-#include "bus.hpp"
 #include "debug.hpp"
 #include "devices/annunciator/annunciator.hpp"
 
@@ -47,7 +46,9 @@ void annunciator_write_C0xx_anc0(void *context, uint16_t addr, uint8_t data) {
     if (DEBUG(DEBUG_VIDEX)) fprintf(stdout, "videx_write_C0xx_anc0: %04X %d\n", addr, anc_d->annunciators[anc_id]);
 }
 
-void init_annunciator(cpu_state *cpu, SlotType_t slot) {
+void init_annunciator(computer_t *computer, SlotType_t slot) {
+    cpu_state *cpu = computer->cpu;
+    
     SDL_InitSubSystem(SDL_INIT_JOYSTICK);
     // alloc and init display state
     annunciator_state_t *anc_d = new annunciator_state_t;

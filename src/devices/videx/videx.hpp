@@ -19,6 +19,7 @@
 
 #include "gs2.hpp"
 #include "cpu.hpp"
+#include "computer.hpp"
 #include "util/ResourceFile.hpp"
 
 // Parameters
@@ -111,7 +112,7 @@ typedef struct videx_data: public SlotData {
     uint8_t *alt_char_set = nullptr;
 } videx_data;
 
-void init_slot_videx(cpu_state *cpu, SlotType_t slot);
+void init_slot_videx(computer_t *computer, SlotType_t slot);
 void videx_set_line_dirty_by_addr(videx_data * videx_d, uint16_t addr);
 void videx_set_line_dirty(videx_data * videx_d, int line);
 void update_videx_screen_memory(cpu_state *cpu, videx_data * videx_d);

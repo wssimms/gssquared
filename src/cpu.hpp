@@ -21,7 +21,6 @@
 #include <stddef.h>
 #include <cstdint>
 
-//#include <SDL3/SDL.h>
 #include <SDL3/SDL.h>
 
 #include "memoryspecs.hpp"
@@ -32,7 +31,6 @@
 #include "SlotData.hpp"
 #include "videosystem.hpp"
 #include "debugger/trace.hpp"
-#include "memory.hpp"
 #include "mmus/mmu_ii.hpp"
 #include "Module_ID.hpp"
 
@@ -42,29 +40,6 @@
 #define IRQ_VECTOR 0xFFFE
 #define NMI_VECTOR 0xFFFA
 #define RESET_VECTOR 0xFFFC
-
-/* struct memory_page {
-    uint8_t data[GS2_PAGE_SIZE];
-}; */
-
-/* enum memory_type {
-    MEM_RAM,
-    MEM_ROM,
-    MEM_IO,
-};
-
-struct memory_page_info {
-    uint8_t can_read;
-    uint8_t can_write;
-    memory_type type;
-};
-
-struct memory_map {
-    memory_page_info page_info[MEMORY_SIZE / GS2_PAGE_SIZE];
-    uint8_t *pages_read[MEMORY_SIZE / GS2_PAGE_SIZE];
-    uint8_t *pages_write[MEMORY_SIZE / GS2_PAGE_SIZE];
-    //memory_page *pages[MEMORY_SIZE / GS2_PAGE_SIZE];
-}; */
 
 enum processor_type {
     PROCESSOR_6502 = 0,
@@ -191,17 +166,9 @@ struct cpu_state {
     uint8_t halt = 0; /* == 1 is HLT instruction halt; == 2 is user halt */
     uint64_t cycles; /* Number of cycles since reset */
 
-    uint8_t *main_ram_64 = nullptr;
-    uint8_t *main_io_4 = nullptr;
-    uint8_t *main_rom_D0 = nullptr;
-
     uint64_t irq_asserted = 0; /** bits 0-7 correspond to slot IRQ lines slots 0-7. */
 
-    memory_map *memory;
     MMU_II *mmu = nullptr;
-
-    int8_t C8xx_slot;
-    void (*C8xx_handlers[8])(cpu_state *cpu, SlotType_t slot) = {nullptr};
 
     uint64_t last_tick;
     uint64_t next_tick;
@@ -209,7 +176,6 @@ struct cpu_state {
     uint64_t clock_busy = 0;
     uint64_t clock_sleep = 0;
     uint64_t cycle_duration_ns;
-    //uint64_t cycle_duration_ticks;
     uint64_t HZ_RATE;
     clock_mode_t clock_mode = CLOCK_FREE_RUN;
     float e_mhz = 0;
@@ -222,21 +188,21 @@ struct cpu_state {
     EventQueue *event_queue = nullptr;
 
     void *module_store[MODULE_NUM_MODULES];
-    /*void */ SlotData *slot_store[NUM_SLOTS];
+    SlotData *slot_store[NUM_SLOTS];
 
     EventTimer event_timer;
 
     /* Tracing & Debug */
+    /* These are CPU controls, leave them here */
     bool trace = false;
     system_trace_buffer *trace_buffer;
     system_trace_entry_t trace_entry;
-    debug_window_t *debug_window;
     execution_modes_t execution_mode = EXEC_NORMAL;
     uint64_t instructions_left = 0;
 
     void init();
-    void init_default_memory_map();
-    void init_memory();
+    /* void init_default_memory_map();
+    void init_memory(); */
     void set_processor(int processor_type);
     void reset();
     void set_video_system(video_system_t *video_system);
@@ -291,11 +257,7 @@ struct cpu_state {
 
 extern struct cpu_state *CPUs[MAX_CPUS];
 
-//void reset_system(cpu_state *cpu);
-
-//void cpu_reset(cpu_state *cpu);
-
-void run_cpus(void) ;
+//void run_cpus(void) ;
 
 void toggle_clock_mode(cpu_state *cpu);
 

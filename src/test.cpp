@@ -8,7 +8,6 @@
 #include "cpu.hpp"
 #include "opcodes.hpp"
 #include "test.hpp"
-#include "memory.hpp"
 
 void run_test(Test& test) {
     cpu_state *cpu = CPUs[0];

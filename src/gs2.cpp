@@ -21,7 +21,6 @@
 #include <sstream>
 #include <iomanip>
 #include <time.h>
-/* #include <mach/mach_time.h> */
 #include <getopt.h>
 #include <regex>
 #include <SDL3/SDL_main.h>
@@ -30,7 +29,6 @@
 #include "paths.hpp"
 #include "cpu.hpp"
 #include "clock.hpp"
-#include "memory.hpp"
 #include "display/display.hpp"
 #include "opcodes.hpp"
 #include "debug.hpp"
@@ -39,12 +37,10 @@
 #include "event_poll.hpp"
 #include "devices/speaker/speaker.hpp"
 #include "devices/loader.hpp"
-#include "devices/prodos_block/prodos_block.hpp"
 #include "platforms.hpp"
 #include "util/media.hpp"
 #include "util/dialog.hpp"
 #include "util/mount.hpp"
-#include "util/reset.hpp"
 #include "ui/OSD.hpp"
 #include "systemconfig.hpp"
 #include "slots.hpp"
@@ -145,7 +141,7 @@ void run_cpus(computer_t *computer) {
                         while (cpu->cycles - last_cycle_count < cycles_for_this_burst) { // 1/60th second.
                             cpu->event_timer.processEvents(cpu->cycles); // TODO: implement a cache to speed up this check.
                             (cpu->execute_next)(cpu);
-                            if (cpu->debug_window->window_open) {
+                            if (computer->debug_window->window_open) {
                                 /* if (cpu->trace_entry.eaddr == 0x03FE) {
                                     cpu->execution_mode = EXEC_STEP_INTO;
                                     cpu->instructions_left = 0;
@@ -188,7 +184,7 @@ void run_cpus(computer_t *computer) {
             current_time = SDL_GetTicksNS();
             SDL_Event event;
             while(SDL_PollEvent(&event)) {
-                if (cpu->debug_window->handle_event(event)) { // ignores event if not for debug window
+                if (computer->debug_window->handle_event(event)) { // ignores event if not for debug window
                     continue;
                 }
                 if (!osd->event(event)) { // if osd doesn't handle it..
@@ -275,7 +271,7 @@ void run_cpus(computer_t *computer) {
             update_flash_state(cpu);
             update_display(cpu);    
             osd->render();
-            cpu->debug_window->render(cpu);
+            computer->debug_window->render();
             /* display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY); */
             computer->video_system->present();
             display_time = SDL_GetTicksNS() - current_time;
@@ -437,8 +433,6 @@ int main(int argc, char *argv[]) {
 
     computer->cpu->set_video_system(computer->video_system);
     //computer->cpu->video_system = new video_system_t();
-    computer->cpu->debug_window = new debug_window_t();
-    computer->cpu->debug_window->init(computer->cpu);
 
     init_display_font(rd);
 
@@ -450,7 +444,7 @@ int main(int argc, char *argv[]) {
         DeviceMap_t dm = system_config->device_map[i];
 
         Device_t *device = get_device(dm.id);
-        device->power_on(computer->cpu, dm.slot);
+        device->power_on(computer, dm.slot);
         if (dm.slot != SLOT_NONE) {
             slot_manager->register_slot(device, dm.slot);
         }

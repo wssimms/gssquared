@@ -21,6 +21,8 @@
 #include "cpu.hpp"
 #include "util/ResourceFile.hpp"
 #include "SlotData.hpp"
+#include "computer.hpp"
+
 #define PRODOS_CLOCK_PV_TRIGGER 0x00
 
 #define PRODOS_CLOCK_GETLN_TRIGGER 0xAE
@@ -29,4 +31,4 @@ struct prodos_clock_state: public SlotData {
     char buf[64];    
 };
 
-void init_slot_prodosclock(cpu_state *cpu, SlotType_t slot);
+void init_slot_prodosclock(computer_t *computer, SlotType_t slot);

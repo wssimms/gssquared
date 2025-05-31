@@ -26,13 +26,12 @@
 #include "devices/game/gamecontroller.hpp"
 #include "devices/speaker/speaker.hpp"
 #include "devices/loader.hpp"
-#include "util/reset.hpp"
 #include "devices/diskii/diskii.hpp"
 #include "display/ntsc.hpp"
 
 // Loops until there are no events in queue waiting to be read.
 
-bool handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
+bool handle_sdl_keydown(computer_t *computer, cpu_state *cpu, SDL_Event event) {
 
     // Ignore if only shift is pressed
     /* uint16_t mod = event.key.keysym.mod;
@@ -42,9 +41,9 @@ bool handle_sdl_keydown(cpu_state *cpu, SDL_Event event) {
 
     if ((mod & SDL_KMOD_CTRL) && (key == SDLK_F10)) {
         if (mod & SDL_KMOD_ALT) {
-            system_reset(cpu, true); 
+            computer->reset(true); 
         } else {
-            system_reset(cpu, false); 
+            computer->reset(false); 
         }
         return true;
     }
@@ -137,7 +136,7 @@ void event_poll(computer_t *computer, SDL_Event &event) {
         }
 
         case SDL_EVENT_KEY_DOWN:
-            if (handle_sdl_keydown(cpu, event)) break;
+            if (handle_sdl_keydown(computer, cpu, event)) break;
             handle_keydown_iiplus(cpu, event);
             break;
 

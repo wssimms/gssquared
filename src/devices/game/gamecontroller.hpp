@@ -19,6 +19,7 @@
 
 #include "gs2.hpp"
 #include "cpu.hpp"
+#include "computer.hpp"
 
 // TODO: get these from the display subsystem. Maybe even query the window.
 #define WINDOW_WIDTH 1120
@@ -76,6 +77,6 @@ typedef struct gamec_state_t {
     gamepad_state gps[MAX_GAMEPAD_COUNT];   
 } gamec_state_t;
 
-void init_mb_game_controller(cpu_state *cpu, SlotType_t slot);
+void init_mb_game_controller(computer_t *computer, SlotType_t slot);
 bool add_gamepad(cpu_state *cpu, SDL_Event &event);
 bool remove_gamepad(cpu_state *cpu, SDL_Event &event);

@@ -20,6 +20,7 @@
 #include "cpu.hpp"
 #include "slots.hpp"
 #include "LowPass.hpp"
+#include "computer.hpp"
 
 #define AMPLITUDE_DECAY_RATE (0x20)
 #define AMPLITUDE_PEAK (0x2000)
@@ -86,7 +87,7 @@ typedef struct speaker_state_t {
     EventBuffer event_buffer;
 } speaker_state_t;
 
-void init_mb_speaker(cpu_state *cpu, SlotType_t slot);
+void init_mb_speaker(computer_t *computer, SlotType_t slot);
 void toggle_speaker_recording(cpu_state *cpu);
 void dump_full_speaker_event_log();
 void dump_partial_speaker_event_log(uint64_t cycles_now);

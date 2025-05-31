@@ -6,7 +6,10 @@
 #include "cpu.hpp"
 #include "util/TextRenderer.hpp"
 
+struct computer_t;
+
 struct debug_window_t {
+    computer_t *computer;
     cpu_state *cpu;
     SDL_Window *window;
     SDL_Renderer *renderer;
@@ -22,8 +25,9 @@ struct debug_window_t {
     TextRenderer *text_renderer;
     int font_line_height = 14;
 
-    void init(cpu_state *cpu);
-    void render(cpu_state *cpu);
+    debug_window_t(computer_t *computer);
+    //void init(cpu_state *cpu);
+    void render();
     bool handle_event(SDL_Event &event);
     bool is_open();
     void set_open();

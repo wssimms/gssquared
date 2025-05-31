@@ -14,16 +14,16 @@
 
 [ ] Implement new optimized audio code  
 [ ] implement floating-bus read based on calculated video scan position.  
-[ ] refactor the hinky code we have in bus for handling mockingboard, I/O space memory switching, etc.  
+[x] refactor the hinky code we have in bus for handling mockingboard, I/O space memory switching, etc.  
 [ ] Tracing  
 [ ] Debugger  
-[ ] Bring in a decent readable font for the OSD elements  
+[x] Bring in a decent readable font for the OSD elements  
 
 ## Release 0.4
 
 [ ] provide a mode for Atari Joyport - use the dpad. https://lukazi.blogspot.com/2009/04/game-controller-atari-joysticks.html  
 
-[ ] GS2 starts in powered-off mode.  
+[ ] GS2 starts in powered-off mode. have snazzy tiles showing each platform that can be booted.  
 [ ] can power on and power off.  
 [ ] can edit slots / hw config when powered off.  
 [ ] "powered off" means everything is shut down and deallocated, only running event loop and OSD.  

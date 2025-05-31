@@ -19,6 +19,7 @@
 
 #include "gs2.hpp"
 #include "cpu.hpp"
+#include "computer.hpp"
 
 #include "Device_ID.hpp"
 
@@ -30,8 +31,8 @@ struct DeviceMap_t {
 struct Device_t {
     device_id id;
     const char *name;
-    void (*power_on)(cpu_state *cpu, SlotType_t slot_number);
-    void (*power_off)(cpu_state *cpu, SlotType_t slot_number);
+    void (*power_on)(computer_t *computer, SlotType_t slot_number);
+    void (*power_off)(computer_t *computer, SlotType_t slot_number);
 };
 
 Device_t *get_device(device_id id);

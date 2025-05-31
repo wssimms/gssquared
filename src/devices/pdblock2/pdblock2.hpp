@@ -22,6 +22,7 @@
 #include "util/media.hpp"
 #include "util/mount.hpp"
 #include "slots.hpp"
+#include "computer.hpp"
 
 #define MAX_PD_BUFFER_SIZE 16
 #define PD_CMD_RESET 0xC080
@@ -84,7 +85,7 @@ enum pdblock_cmd {
 #define PD_ERROR_WRITE_PROTECTED 0x2B
 
 void pdblock2_execute(cpu_state *cpu, pdblock2_data *pdblock_d);
-void init_pdblock2(cpu_state *cpu, SlotType_t slot);
+void init_pdblock2(computer_t *computer, SlotType_t slot);
 bool mount_pdblock2(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor *media);
 void unmount_pdblock2(cpu_state *cpu, uint64_t key);
 drive_status_t pdblock2_osd_status(cpu_state *cpu, uint64_t key);

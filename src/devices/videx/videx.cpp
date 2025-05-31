@@ -17,9 +17,7 @@
 
 #include "gs2.hpp"
 #include "cpu.hpp"
-#include "bus.hpp"
 #include "videx.hpp"
-#include "memory.hpp"
 #include "debug.hpp"
 #include "display/display.hpp"
 #include "videx_80x24.hpp"
@@ -142,7 +140,9 @@ void videx_write_C0xx(void *context, uint16_t addr, uint8_t data) {
     }
 }
 
-void init_slot_videx(cpu_state *cpu, SlotType_t slot) {
+void init_slot_videx(computer_t *computer, SlotType_t slot) {
+    cpu_state *cpu = computer->cpu;
+    
     videx_data * videx_d = new videx_data;
     video_system_t *vs = cpu->video_system;
 

@@ -22,7 +22,6 @@
 #include "media.hpp"
 #include "mount.hpp"
 #include "devices/diskii/diskii.hpp"
-#include "devices/prodos_block/prodos_block.hpp"
 #include "devices/pdblock2/pdblock2.hpp"
 
 /**
@@ -57,7 +56,6 @@ int Mounts::mount_media(disk_mount_t disk_mount) {
         mount_diskII(cpu, disk_mount.slot, disk_mount.drive, media);
         mounted_media[key].drive_type = DRIVE_TYPE_DISKII;
     } else if (disk_mount.slot == 5) {
-        //mount_prodos_block(cpu, disk_mount.slot, disk_mount.drive, media);
         bool status = mount_pdblock2(cpu, disk_mount.slot, disk_mount.drive, media);
         mounted_media[key].drive_type = DRIVE_TYPE_PRODOS_BLOCK;
         if (!status) {

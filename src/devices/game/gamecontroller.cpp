@@ -25,7 +25,6 @@
 #include <SDL3/SDL.h>
 #include "gs2.hpp"
 #include "cpu.hpp"
-#include "bus.hpp"
 #include "debug.hpp"
 #include "devices/game/gamecontroller.hpp"
 
@@ -333,7 +332,9 @@ bool remove_gamepad(cpu_state *cpu, SDL_Event &event) {
     return recompute_gamepads(gp_d);
 }
 
-void init_mb_game_controller(cpu_state *cpu, SlotType_t slot) {
+void init_mb_game_controller(computer_t *computer, SlotType_t slot) {
+    cpu_state *cpu = computer->cpu;
+    
     SDL_InitSubSystem(SDL_INIT_GAMEPAD);
     // alloc and init display state
     gamec_state_t *ds = new gamec_state_t;

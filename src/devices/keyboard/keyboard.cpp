@@ -18,10 +18,10 @@
 #include <cstdio>
 #include <SDL3/SDL.h>
 #include "gs2.hpp"
+#include "computer.hpp"
 #include "cpu.hpp"
 #include "debug.hpp"
 #include "keyboard.hpp"
-#include "bus.hpp"
 
 // Software should be able to:
 // Read keyboard from register at $C000.
@@ -173,12 +173,12 @@ void handle_keydown_iiplus(cpu_state *cpu, const SDL_Event &event) {
 
 }
 
-void init_mb_keyboard(cpu_state *cpu, SlotType_t slot) {
+void init_mb_keyboard(computer_t *computer, SlotType_t slot) {
     if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "init_keyboard\n");
     keyboard_state_t *kb_state = new keyboard_state_t;
-    set_module_state(cpu, MODULE_KEYBOARD, kb_state);
+    computer->set_module_state(MODULE_KEYBOARD, kb_state);
 
-    cpu->mmu->set_C0XX_read_handler(0xC000, { kb_memory_read, kb_state });
-    cpu->mmu->set_C0XX_read_handler(0xC010, { kb_memory_read, kb_state });
-    cpu->mmu->set_C0XX_write_handler(0xC010, { kb_memory_write, kb_state });
+    computer->mmu->set_C0XX_read_handler(0xC000, { kb_memory_read, kb_state });
+    computer->mmu->set_C0XX_read_handler(0xC010, { kb_memory_read, kb_state });
+    computer->mmu->set_C0XX_write_handler(0xC010, { kb_memory_write, kb_state });
 }

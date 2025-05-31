@@ -19,10 +19,11 @@
 
 #include "gs2.hpp"
 #include "cpu.hpp"
+#include "computer.hpp"
 #include "util/ResourceFile.hpp"
 
 struct thunderclock_state: public SlotData {
     ResourceFile *rom;
 };
 
-void init_slot_thunderclock(cpu_state *cpu, SlotType_t slot);
+void init_slot_thunderclock(computer_t *computer, SlotType_t slot);

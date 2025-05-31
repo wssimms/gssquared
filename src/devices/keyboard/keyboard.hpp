@@ -20,6 +20,7 @@
 #include <SDL3/SDL.h>
 #include "gs2.hpp"
 #include "cpu.hpp"
+#include "computer.hpp"
 
 #define KB_LATCH_ADDRESS 0xC000
 #define KB_CLEAR_LATCH_ADDRESS 0xC010
@@ -30,6 +31,6 @@ struct keyboard_state_t {
 
 /* uint8_t kb_memory_read(uint16_t address);
 void kb_memory_write(uint16_t address, uint8_t value); */
-void kb_key_pressed(cpu_state *cpu, uint8_t key);
+void kb_key_pressed(keyboard_state_t *kb_state, uint8_t key);
 void handle_keydown_iiplus(cpu_state *cpu, const SDL_Event &event);
-void init_mb_keyboard(cpu_state *cpu, SlotType_t slot);
+void init_mb_keyboard(computer_t *computer, SlotType_t slot);
