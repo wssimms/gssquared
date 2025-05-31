@@ -117,6 +117,18 @@ void video_system_t::clear() {
     SDL_RenderClear(renderer);
 }
 
+void video_system_t::raise(SDL_Window *window) {
+    SDL_RaiseWindow(window);
+}
+
+void video_system_t::hide(SDL_Window *window) {
+    SDL_HideWindow(window);
+}
+
+void video_system_t::show(SDL_Window *window) {
+    SDL_ShowWindow(window);
+}
+
 //void video_system_t::window_resize(int new_w, int new_h) {
 void video_system_t::window_resize(const SDL_Event &event) {
     int new_w = event.window.data1;

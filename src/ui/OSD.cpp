@@ -22,6 +22,7 @@
 #include <SDL3_image/SDL_image.h>
 
 #include "cpu.hpp"
+#include "computer.hpp"
 #include "DiskII_Button.hpp"
 #include "Unidisk_Button.hpp"
 #include "MousePositionTile.hpp"
@@ -198,8 +199,8 @@ void set_mhz_infinity(void *data) {
 void click_reset_cpu(void *data) {
     printf("click_reset_cpu %p\n", data);
     // TODO: fix this. OSD should tell computer() to reset. Or, pass an event to main loop.
-    /* cpu_state *cpu = (cpu_state *)data;
-    system_reset(cpu, false); */
+    computer_t *computer = (computer_t *)data;
+    computer->reset(false);
 }
 
 void modal_diskii_click(void *data) {
@@ -223,7 +224,7 @@ void OSD::set_raise_window() {
     cpu->event_queue->addEvent(new Event(EVENT_REFOCUS, 0, 0));
 }
 
-OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManager_t *slot_manager, int window_width, int window_height) 
+OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManager_t *slot_manager, int window_width, int window_height) 
     : renderer(rendererp), window(windowp), window_w(window_width), window_h(window_height), cpu(cpu), slot_manager(slot_manager) {
 
     cpTexture = SDL_CreateTexture(renderer,
@@ -394,7 +395,7 @@ OSD::OSD(cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManag
     gen_con->set_position(5, 100);
     gen_con->set_size(65, 300);
     Button_t *b1 = new Button_t(aa, ResetButton, CB);
-    b1->set_click_callback(click_reset_cpu, cpu);
+    b1->set_click_callback(click_reset_cpu, computer);
     gen_con->add_tile(b1, 0);
     gen_con->layout();
     containers.push_back(gen_con);

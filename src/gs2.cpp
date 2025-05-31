@@ -471,7 +471,7 @@ int main(int argc, char *argv[]) {
     }
 
     video_system_t *vs = computer->video_system;
-    osd = new OSD(computer->cpu, vs->renderer, vs->window, slot_manager, 1120, 768);
+    osd = new OSD(computer, computer->cpu, vs->renderer, vs->window, slot_manager, 1120, 768);
     // TODO: this should be handled differently. have osd save/restore?
     int error = SDL_SetRenderTarget(vs->renderer, nullptr);
     if (!error) {

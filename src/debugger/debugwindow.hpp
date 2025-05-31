@@ -7,6 +7,7 @@
 #include "util/TextRenderer.hpp"
 
 struct computer_t;
+struct video_system_t;
 
 struct debug_window_t {
     computer_t *computer;

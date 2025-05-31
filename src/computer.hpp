@@ -18,7 +18,6 @@ struct reset_handler_rec {
     void *context;
 };
 
-
 struct computer_t {
     cpu_state *cpu = nullptr;
     MMU_II *mmu = nullptr;

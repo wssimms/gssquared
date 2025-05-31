@@ -25,7 +25,10 @@ struct video_system_t {
     void clear();
     void present();
     void display_capture_mouse(bool capture);
-    
+    void raise(SDL_Window *window);
+    void hide(SDL_Window *window);
+    void show(SDL_Window *window);
+
     SDL_Window *window;
     SDL_Renderer* renderer ;
     display_fullscreen_mode_t display_fullscreen_mode;

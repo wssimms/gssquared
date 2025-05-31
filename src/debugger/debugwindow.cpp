@@ -173,12 +173,18 @@ bool debug_window_t::is_open() {
 
 void debug_window_t::set_open() {
     window_open = true;
-    SDL_ShowWindow(window);
-    SDL_RaiseWindow(window);
+    computer->video_system->show(window);
+    computer->video_system->raise(window);
+    //SDL_ShowWindow(window);
+    //SDL_RaiseWindow(window);
 }
 
 void debug_window_t::set_closed() {
     window_open = false;
-    SDL_HideWindow(window);
-    SDL_RaiseWindow(cpu->video_system->window);
+
+    computer->video_system->hide(window);
+    computer->video_system->raise(computer->video_system->window); // TODO: awkward.
+
+    // SDL_HideWindow(window);
+    // SDL_RaiseWindow(video_system->window);
 }

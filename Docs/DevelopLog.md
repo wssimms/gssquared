@@ -4190,3 +4190,7 @@ i did -not- wire back in keypresses that generate screen captures, or enable aud
 Now I'm wonder if the reset() queue should just be an instance of EventDispatcher to benefit from the lambda fun. Hmm. YES. NO. That is set up for SDL events. Put that on ice while we think about it.
 
 I need to pass computer-> into OSD so OSD can call reset.
+    osd = new OSD(computer, computer->cpu, vs->renderer, vs->window, slot_manager, 1120, 768);
+So a lot of the other stuff I'm passing in, is available under computer. cpu, videosystem (and then to renderer and window).
+slot_manager should probably be in computer then, too.
+
