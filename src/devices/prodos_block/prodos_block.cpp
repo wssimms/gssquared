@@ -19,7 +19,6 @@
 
 #include "gs2.hpp"
 #include "cpu.hpp"
-#include "memory.hpp"
 #include "debug.hpp"
 #include "devices/prodos_block/prodos_block.hpp"
 #include "util/media.hpp"
