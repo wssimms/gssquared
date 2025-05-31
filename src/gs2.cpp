@@ -419,6 +419,7 @@ int main(int argc, char *argv[]) {
     // always 12k rom, but not necessarily always the same ROM.
     MMU_II *mmu = new MMU_II(256, 48*1024, (uint8_t *) rd->main_rom_data);
     computer->cpu->set_mmu(mmu);
+    computer->set_mmu(mmu);
 
     // Load into memory at correct address
     /* printf("Main Rom Data: %p base_addr: %04X size: %zu\n", rd->main_rom_data, rd->main_base_addr, rd->main_rom_file->size());
