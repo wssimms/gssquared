@@ -135,11 +135,6 @@ void init_display_font(rom_data *rd);
 void toggle_display_engine(display_state_t *ds);
 void set_display_engine(display_state_t *ds, display_color_engine_t mode);
 
-void update_line_mode(cpu_state *cpu);
-void set_display_mode(cpu_state *cpu, display_mode_t mode);
-void set_split_mode(cpu_state *cpu, display_split_mode_t mode);
-void set_graphics_mode(cpu_state *cpu, display_graphics_mode_t mode);
-//void display_capture_mouse(cpu_state *cpu, bool capture);
 void display_dump_hires_page(cpu_state *cpu, int page);
 void display_dump_text_page(cpu_state *cpu, int page);
 

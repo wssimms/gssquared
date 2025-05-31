@@ -165,7 +165,6 @@ display_page_t display_pages[NUM_DISPLAY_PAGES] = {
 
 // TODO: These should be set from an array of parameters.
 void set_display_page(display_state_t *ds, display_page_number_t page) {
-    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     ds->display_page_table = &display_pages[page];
     ds->display_page_num = page;
 }
@@ -234,14 +233,12 @@ void update_display(cpu_state *cpu) {
 }
 
 void force_display_update(display_state_t *ds) {
-    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     for (int y = 0; y < 24; y++) {
         ds->dirty_line[y] = 1;
     }
 }
 
 void update_line_mode(display_state_t *ds) {
-    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
 
     line_mode_t top_mode;
     line_mode_t bottom_mode;
@@ -271,21 +268,18 @@ void update_line_mode(display_state_t *ds) {
 }
 
 void set_display_mode(display_state_t *ds, display_mode_t mode) {
-    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
 
     ds->display_mode = mode;
     update_line_mode(ds);
 }
 
 void set_split_mode(display_state_t *ds, display_split_mode_t mode) {
-    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
 
     ds->display_split_mode = mode;
     update_line_mode(ds);
 }
 
 void set_graphics_mode(display_state_t *ds, display_graphics_mode_t mode) {
-    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
 
     ds->display_graphics_mode = mode;
     update_line_mode(ds);
@@ -304,8 +298,6 @@ void flip_display_color_engine(cpu_state *cpu) {
 #endif
 
 void flip_display_scale_mode(display_state_t *ds) {
-    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    //video_system_t *vs = cpu->video_system;
     SDL_ScaleMode scale_mode;
 
     if (ds->display_pixel_mode == DM_PIXEL_FUZZ) {
@@ -424,7 +416,6 @@ uint8_t txt_bus_read_C050(void *context, uint16_t address) {
     display_state_t *ds = (display_state_t *)context;
     // set graphics mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Graphics Mode\n");
-    //display_mode = GRAPHICS_MODE;
     set_display_mode(ds, GRAPHICS_MODE);
     force_display_update(ds);
     return 0;
@@ -439,7 +430,6 @@ uint8_t txt_bus_read_C051(void *context, uint16_t address) {
     display_state_t *ds = (display_state_t *)context;
 // set text mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Text Mode\n");
-    //display_mode = TEXT_MODE;
     set_display_mode(ds, TEXT_MODE);
     force_display_update(ds);
     return 0;
@@ -454,7 +444,6 @@ uint8_t txt_bus_read_C052(void *context, uint16_t address) {
     display_state_t *ds = (display_state_t *)context;
     // set full screen
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Full Screen\n");
-    //display_split_mode = FULL_SCREEN;
     set_split_mode(ds, FULL_SCREEN);
     force_display_update(ds);
     return 0;
@@ -469,7 +458,6 @@ uint8_t txt_bus_read_C053(void *context, uint16_t address) {
     display_state_t *ds = (display_state_t *)context;
     // set split screen
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Split Screen\n");
-    //display_split_mode = SPLIT_SCREEN;
     set_split_mode(ds, SPLIT_SCREEN);
     force_display_update(ds);
     return 0;
@@ -510,7 +498,6 @@ uint8_t txt_bus_read_C056(void *context, uint16_t address) {
     display_state_t *ds = (display_state_t *)context;
     // set lo-res (graphics) mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Lo-Res Mode\n");
-    //display_graphics_mode = LORES_MODE;
     set_graphics_mode(ds, LORES_MODE);
     force_display_update(ds);
     return 0;
@@ -524,7 +511,6 @@ uint8_t txt_bus_read_C057(void *context, uint16_t address) {
     display_state_t *ds = (display_state_t *)context;
     // set hi-res (graphics) mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Hi-Res Mode\n");
-    //display_graphics_mode = HIRES_MODE;
     set_graphics_mode(ds, HIRES_MODE);
     force_display_update(ds);
     return 0;
@@ -538,12 +524,10 @@ void txt_bus_write_C057(void *context, uint16_t address, uint8_t value) {
  * display_state_t Class Implementation
  */
 display_state_t::display_state_t() {
-    //color_mode = DM_COLOR_MODE;
     /* Display Rendering Engine Modes */
     display_color_engine = DM_ENGINE_NTSC;
     display_mono_color = DM_MONO_GREEN;
     display_pixel_mode = DM_PIXEL_FUZZ;
-    //display_color_mode = DM_RENDER_COLOR;
 
     for (int i = 0; i < 24; i++) {
         dirty_line[i] = 0;
@@ -551,15 +535,10 @@ display_state_t::display_state_t() {
     display_mode = TEXT_MODE;
     display_split_mode = FULL_SCREEN;
     display_graphics_mode = LORES_MODE;
-/*     window = nullptr;
-    renderer = nullptr;
-    screenTexture = nullptr; */
     display_page_num = DISPLAY_PAGE_1;
     display_page_table = &display_pages[display_page_num];
     flash_state = false;
     flash_counter = 0;
-    //display_hgr_model = DISPLAY_MODEL_COMP;
-    //display_scale_mode = SDL_SCALEMODE_LINEAR;
 }
 
 
@@ -610,7 +589,6 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     SDL_SetTextureBlendMode(ds->screenTexture, SDL_BLENDMODE_NONE); /* GRRRRRRR. This was defaulting to SDL_BLENDMODE_BLEND. */
     // LINEAR gets us appropriately blurred pixels.
     // NEAREST gets us sharp pixels.
-    // TODO: provide a UI toggle for this.
     SDL_SetTextureScaleMode(ds->screenTexture, SDL_SCALEMODE_LINEAR);
 
     init_displayng();
@@ -641,25 +619,6 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     for (int i = 0x20; i <= 0x5F; i++) {
         cpu->mmu->set_page_shadow(i, { hgr_memory_write, cpu });
     }
-    /* register_C0xx_memory_read_handler(0xC050, txt_bus_read_C050);
-    register_C0xx_memory_read_handler(0xC051, txt_bus_read_C051);
-    register_C0xx_memory_read_handler(0xC052, txt_bus_read_C052);
-    register_C0xx_memory_read_handler(0xC053, txt_bus_read_C053);
-    register_C0xx_memory_read_handler(0xC054, txt_bus_read_C054);
-    register_C0xx_memory_read_handler(0xC055, txt_bus_read_C055);
-    register_C0xx_memory_read_handler(0xC056, txt_bus_read_C056);
-    register_C0xx_memory_read_handler(0xC057, txt_bus_read_C057);
-
-    register_C0xx_memory_write_handler(0xC050, txt_bus_write_C050);
-    register_C0xx_memory_write_handler(0xC051, txt_bus_write_C051);
-    register_C0xx_memory_write_handler(0xC052, txt_bus_write_C052);
-    register_C0xx_memory_write_handler(0xC053, txt_bus_write_C053);
-    register_C0xx_memory_write_handler(0xC054, txt_bus_write_C054);
-    register_C0xx_memory_write_handler(0xC055, txt_bus_write_C055);
-    register_C0xx_memory_write_handler(0xC056, txt_bus_write_C056);
-    register_C0xx_memory_write_handler(0xC057, txt_bus_write_C057); */
-
-    //init_display_sdl(ds);
 
     computer->sys_event->registerHandler(SDL_EVENT_KEY_DOWN, [ds](const SDL_Event &event) {
         return handle_display_event(ds, event);
@@ -669,19 +628,16 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
 
 
 void toggle_display_engine(display_state_t *ds) {
-    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     ds->display_color_engine = (display_color_engine_t)((ds->display_color_engine + 1) % DM_NUM_COLOR_ENGINES);
     force_display_update(ds);
 }
 
 void set_display_engine(display_state_t *ds, display_color_engine_t mode) {
-    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     ds->display_color_engine = mode;
     force_display_update(ds);
 }
 
 void set_display_mono_color(display_state_t *ds, display_mono_color_t mode) {
-    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     ds->display_mono_color = mode;
     force_display_update(ds);
 }
@@ -713,7 +669,6 @@ void display_dump_text_page(cpu_state *cpu, int page) {
 }
 
 void raise_window(cpu_state *cpu) {
-    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     video_system_t *vs = cpu->video_system;
     SDL_RaiseWindow(vs->window);
 }
