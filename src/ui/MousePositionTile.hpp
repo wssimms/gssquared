@@ -62,5 +62,5 @@ public:
      * 
      * @param event The SDL event to handle
      */
-    void handle_mouse_event(const SDL_Event& event) override;
+    bool handle_mouse_event(const SDL_Event& event) override;
 }; 

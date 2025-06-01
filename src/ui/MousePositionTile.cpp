@@ -52,8 +52,8 @@ void MousePositionTile_t::render(SDL_Renderer* renderer) {
     SDL_RenderDebugText(renderer, content_x, content_y, position_text);
 }
 
-void MousePositionTile_t::handle_mouse_event(const SDL_Event& event) {
-    if (!active || !visible) return;
+bool MousePositionTile_t::handle_mouse_event(const SDL_Event& event) {
+    if (!active || !visible) return(false);
 
     if (event.type == SDL_EVENT_MOUSE_MOTION) {
         // Update stored mouse position
@@ -63,4 +63,5 @@ void MousePositionTile_t::handle_mouse_event(const SDL_Event& event) {
 
     // Still call base class to handle hover detection etc.
     Tile_t::handle_mouse_event(event);
+    return false;
 }

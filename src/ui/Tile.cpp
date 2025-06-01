@@ -76,6 +76,11 @@ Tile_t::Tile_t(const Style_t& initial_style) : style(initial_style) {}
         set_size(content_w, content_h);
     }
 
+    int Tile_t::calc_opacity(uint32_t color) {
+        int opc = opacity < (color & 0xFF) ? opacity : (color & 0xFF);
+        return(opc);
+    }
+
     /**
      * @brief Renders the tile's background and border.
      * @param renderer The SDL renderer to use.
@@ -90,7 +95,7 @@ Tile_t::Tile_t(const Style_t& initial_style) : style(initial_style) {}
             (style.background_color >> 24) & 0xFF,
             (style.background_color >> 16) & 0xFF,
             (style.background_color >> 8) & 0xFF,
-            style.background_color & 0xFF
+            calc_opacity(style.background_color)
         );
         
         SDL_FRect tile_rect = {x, y, w, h};
@@ -103,7 +108,7 @@ Tile_t::Tile_t(const Style_t& initial_style) : style(initial_style) {}
                 (bcolor >> 24) & 0xFF,
                 (bcolor >> 16) & 0xFF,
                 (bcolor >> 8) & 0xFF,
-                bcolor & 0xFF
+                calc_opacity(bcolor)
             );
             for (uint32_t i = 0; i < style.border_width; i++) {
                 SDL_FRect border_rect = {
@@ -115,8 +120,8 @@ Tile_t::Tile_t(const Style_t& initial_style) : style(initial_style) {}
         }
     }
     
-    void Tile_t::handle_mouse_event(const SDL_Event& event) {
-        if (!active || !visible) return;
+    bool Tile_t::handle_mouse_event(const SDL_Event& event) {
+        if (!active || !visible) return(false);
 
         if (event.type == SDL_EVENT_MOUSE_MOTION) {
             float mouse_x = event.motion.x;
@@ -132,9 +137,11 @@ Tile_t::Tile_t(const Style_t& initial_style) : style(initial_style) {}
                 is_hovering = is_inside;
                 on_hover_changed(is_hovering);
             }
+            // others may care about same event
         }
         else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN && is_hovering) {
             on_click();
+            return(true); // we did a thing.
         }
         else if (event.type == SDL_EVENT_WINDOW_MOUSE_LEAVE) {
             // Mouse left the window entirely, clear hover state
@@ -143,6 +150,7 @@ Tile_t::Tile_t(const Style_t& initial_style) : style(initial_style) {}
                 on_hover_changed(false);
             }
         }
+        return(false);
     }
     
     bool Tile_t::is_visible() const { return visible; }
@@ -179,4 +187,8 @@ Tile_t::Tile_t(const Style_t& initial_style) : style(initial_style) {}
 
     void Tile_t::set_text_renderer(TextRenderer *text_render) {
         this->text_render = text_render;
+    }
+
+    void Tile_t::set_opacity(int o) {
+        opacity = o;
     }

@@ -30,6 +30,7 @@
 #include "MousePositionTile.hpp"
 #include "AssetAtlas.hpp"
 #include "util/TextRenderer.hpp"
+#include "FadeButton.hpp"
 
 #define SLIDE_IN 1
 #define SLIDE_OUT 2
@@ -69,6 +70,10 @@ protected:
     Button_t *save_as_btn = nullptr;
     Button_t *discard_btn = nullptr;
     Button_t *cancel_btn = nullptr;
+
+    //int controlOpacity = 0;
+    Button_t *close_btn = nullptr;
+    FadeButton_t *open_btn = nullptr;
 
     std::vector<Container_t *> containers;
     Container_t *hud_drive_container = nullptr;
@@ -129,4 +134,7 @@ public:
     void close_diskii_modal(uint64_t key, uint64_t data);
 
     void set_heads_up_message(const std::string &text, int count);
+
+    void open_panel();
+    void close_panel();
 };

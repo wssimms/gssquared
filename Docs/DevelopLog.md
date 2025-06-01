@@ -4193,4 +4193,42 @@ I need to pass computer-> into OSD so OSD can call reset.
     osd = new OSD(computer, computer->cpu, vs->renderer, vs->window, slot_manager, 1120, 768);
 So a lot of the other stuff I'm passing in, is available under computer. cpu, videosystem (and then to renderer and window).
 slot_manager should probably be in computer then, too.
+The get_module_state and set_module_state etc. can be less about finding our own state now, more about publishing state.
 
+I want to add the little tab thingy to the edge of the OSD. First, I am now tracking a "control opacity" which is a thing that will fade controls out after mouse inactivity. practically, should also keep them displayed if the mouse is -not captured- and moves, or, not captured and is in the controls area. That part is easy enough.
+Trouble now is: when I click the button, the right thing happens. But the mouse is captured. because we keep processing the event afterward. I need to do:
+in tile:handle_mouse_event I need to return a bool from that whole thing back up the stack to tell higher-up we took the event.
+
+I guess now let's get back to the debugger!!
+
+## June 1, 2025
+
+The hideaway tab for opening the OSD looks and works pretty good I think. It follows these UI design rules:
+
+it should be obvious to user when users do normal user things, what the interaction options are.
+
+I should finish implementing the "disappearing message".
+
+I should maybe also put the fade-away logic into its own widget type, like FadeButton or something.
+
+Thinking about copy and paste, because, I have a hundred things to do on this project but this one would be fun. ha ha! Since there is no keyboard buffer on a II+/e, the GS has one but it's quite small.
+
+So - when a paste is done, the text must be put into a buffer, and, we need to meter it into the keyboard routine.
+
+Each frame:
+    if there is pending paste text remaining,
+        check to see if the keyboard latch is clear.
+        if yes, inject a Key Down event ourselves.
+
+So that could (likely) work at up to 60cps. And if software is a little slow for some reason to read the keyboard and clear the latch, we sit and wait. There should be some way to stop a paste operation. A reset() should do it. Drag and drop of text would work the same way. Two different events, same implementation. Using the "create stream of keyboard events" makes it device-agnostic.
+I don't think there is any feasible way to support any media type other than text. where should this live? split. define that keyboard modules must support the paste semantics. they're the ones that check themselves for readiness, and, register a frame callback to do so.
+
+Now, for copy. Copy - we create a clipboard object that takes a snapshot of the screen at a particular moment. And we can offer multiple media types. text page could for instance offer text and a graphics image of the frame buffer.
+We then tell SDL3 we're "offering" a particular media to the clipboard. We don't actually -provide- it until requested via a callback.
+
+Shift-insert is fine for paste as a keyboard shortcut. copy? maybe print screen? What are the SDL mechanics of grabbing the frame data? Will have to investigate.
+
+claude suggests the following:
+https://claude.ai/chat/d62f96a2-8d7b-473c-8847-e8578269d0bb
+
+i.e. keep all my screen data in CPU primarily and just chuck it to the gpu once in a while.

@@ -203,6 +203,18 @@ void click_reset_cpu(void *data) {
     computer->reset(false);
 }
 
+void close_btn_click(void *data) {
+    printf("close_btn_click %p\n", data);
+    OSD *osd = (OSD *)data;
+    osd->close_panel();
+}
+
+void open_btn_click(void *data) {
+    printf("open_btn_click %p\n", data);
+    OSD *osd = (OSD *)data;
+    osd->open_panel();
+}
+
 void modal_diskii_click(void *data) {
     diskii_modal_callback_data_t *d = (diskii_modal_callback_data_t *)data;
     printf("modal_diskii_click %p %lld\n", data, d->key);
@@ -437,9 +449,21 @@ OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Wind
     diskii_save_con->add_tile(cancel_btn, 2);
     diskii_save_con->layout();
     //containers.push_back(diskii_save_con); // just for testing
+    
+    close_btn = new Button_t("<", TextButtonCfg);
+    close_btn->set_click_callback(close_btn_click, this);
+    close_btn->set_size(36, 36);
+    close_btn->set_position(window_w-100, 49);
+
+    open_btn = new FadeButton_t(">", TextButtonCfg);
+    open_btn->set_click_callback(open_btn_click, this);
+    open_btn->set_size(36, 36);
+    open_btn->set_position(0, 50);
+    open_btn->set_fade_frames(512, 4); // hold for one second, then fade out over next second. (roughly)
 }
 
 void OSD::update() {
+
     /** Control panel slide in/out logic */ 
     /* if control panel is sliding in, update position and acceleration */
     if (slideStatus == SLIDE_IN) {
@@ -512,8 +536,9 @@ void OSD::set_heads_up_message(const std::string &text, int count) {
 /** Draw the control panel (if visible) */
 void OSD::render() {
 
-    if (headsUpMessageCount) {
-        SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, headsUpMessageCount);
+    if (headsUpMessageCount) { // set it to 512 for instance to sit at full opacity for 4 seconds then fade out over 4ish seconds.
+        int opacity = headsUpMessageCount < 255 ? headsUpMessageCount : 255;
+        SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, opacity);
         text_render->render(headsUpMessageText, window_w - 200, window_h- 60 );
         headsUpMessageCount--;
     }
@@ -538,7 +563,7 @@ void OSD::render() {
         SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xC0);
         SDL_FRect rect = {0, 50, (float)(window_w-100), (float)(window_h-100)};
         SDL_RenderFillRect(renderer, &rect);
-        
+       
         SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xFF, 0xFF);
         SDL_RenderDebugText(renderer, 50, 80, "This is your menu. It isn't very done, hai!");
 
@@ -553,7 +578,8 @@ void OSD::render() {
 
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         //printFRect(&cpTargetRect);
-        
+        close_btn->render(renderer);
+
         // Render the container and its buttons into the cpTexture
         SDL_SetRenderTarget(renderer, cpTexture);
         for (Container_t* container : containers) {
@@ -571,6 +597,7 @@ void OSD::render() {
         SDL_SetRenderScale(renderer, ox,oy);
     } 
     if (currentSlideStatus == SLIDE_OUT) {
+
         drive_status_t ds1 = diskii_button1->get_disk_status();
         drive_status_t ds2 = diskii_button2->get_disk_status();
 
@@ -580,6 +607,8 @@ void OSD::render() {
         float ox,oy;
         SDL_GetRenderScale(renderer, &ox, &oy);
         SDL_SetRenderScale(renderer, 1,1); // TODO: calculate these based on window size
+
+        open_btn->render(renderer); // this now takes care of its own fade-out.
 
         if (ds1.motor_on || ds2.motor_on) {
 
@@ -617,10 +646,15 @@ bool OSD::event(const SDL_Event &event) {
         if (activeModal) {
             activeModal->handle_mouse_event(event);
         } else {
+            close_btn->handle_mouse_event(event);
             // Let containers have a stab at the event
             for (Container_t* container : containers) {
                 container->handle_mouse_event(event);
             }
+        }
+    } else {
+        if (open_btn->handle_mouse_event(event)) {
+            return(true);
         }
     }
 
@@ -633,20 +667,33 @@ bool OSD::event(const SDL_Event &event) {
                 // if we're already in motion, disregard this for now.
                 if (!slideStatus) {
                     if (currentSlideStatus == SLIDE_IN) { // we are in right now, slide it out
-                        slideStatus = SLIDE_OUT;   
-                        slidePosition = 0;
-                        slidePositionDelta = slidePositionDeltaMin;
+                        close_panel();
                     } else if (currentSlideStatus == SLIDE_OUT) {
-                        slideStatus = SLIDE_IN; // slide it in right to the top
-                        slidePosition = -slidePositionMax;
-                        slidePositionDelta = slidePositionDeltaMax;
+                        open_panel();
                     }
                 }
                 return(true);
             }
             break;
+        case SDL_EVENT_MOUSE_MOTION:
+            if (!SDL_GetWindowRelativeMouseMode(window)) {
+                open_btn->reset_fade();
+            }
+            break;
     }    
     return(active);
+}
+
+void OSD::open_panel() {
+    slideStatus = SLIDE_IN; // slide it in right to the top
+    slidePosition = -slidePositionMax;
+    slidePositionDelta = slidePositionDeltaMax;
+}
+
+void OSD::close_panel() {
+    slideStatus = SLIDE_OUT;   
+    slidePosition = 0;
+    slidePositionDelta = slidePositionDeltaMin;
 }
 
 void OSD::show_diskii_modal(uint64_t key, uint64_t data) {

@@ -33,6 +33,7 @@
 class Tile_t {
 protected:
     Style_t style;
+    int opacity = 255;
     float x, y;                  // Position of the entire tile
     float w, h;                  // Total size including padding and border
     float content_w, content_h;  // Size of the content area
@@ -106,7 +107,7 @@ public:
      * @brief Handles mouse events for the tile.
      * @param event The SDL event to handle
      */
-    virtual void handle_mouse_event(const SDL_Event& event);
+    virtual bool handle_mouse_event(const SDL_Event& event);
 
     // State getters
     bool is_visible() const;
@@ -122,6 +123,8 @@ public:
     void set_hover_color(uint32_t color);
     void set_click_callback(click_callback_t callback, void* data = nullptr);
     void set_text_renderer(TextRenderer *text_render);
+    void set_opacity(int o);
+    int calc_opacity(uint32_t color);
 
 protected:
     /**

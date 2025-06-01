@@ -106,7 +106,7 @@ void Button_t::render(SDL_Renderer* renderer) {
             (style.text_color >> 24) & 0xFF,
             (style.text_color >> 16) & 0xFF,
             (style.text_color >> 8) & 0xFF,
-            style.text_color & 0xFF
+            calc_opacity(style.text_color)
         );
         
         if (text_render == nullptr) {

@@ -428,11 +428,6 @@ int main(int argc, char *argv[]) {
     computer->cpu->set_mmu(mmu);
     computer->set_mmu(mmu);
 
-    // Load into memory at correct address
-    /* printf("Main Rom Data: %p base_addr: %04X size: %zu\n", rd->main_rom_data, rd->main_base_addr, rd->main_rom_file->size());
-    for (uint64_t i = 0; i < rd->main_rom_file->size(); i++) {
-        raw_memory_write(computer->cpu, rd->main_base_addr + i, (*rd->main_rom_data)[i]);
-    } */
     // need to tell the MMU about our ROM somehow.
     // need a function in MMU to "reset page to default".
 
