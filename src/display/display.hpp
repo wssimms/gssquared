@@ -28,6 +28,8 @@
 #define BORDER_WIDTH 30
 #define BORDER_HEIGHT 20
 
+#define TESTBUFFER 1
+
 // Graphics vs Text, C050 / C051
 typedef enum {
     TEXT_MODE = 0,
@@ -97,6 +99,7 @@ typedef class display_state_t {
 
 public:
     display_state_t();
+    ~display_state_t();
 
     SDL_Texture* screenTexture;
 
@@ -115,6 +118,8 @@ public:
 
     uint32_t dirty_line[24];
     line_mode_t line_mode[24]; // 0 = TEXT, 1 = LO RES GRAPHICS, 2 = HI RES GRAPHICS
+
+    uint8_t *buffer = nullptr;
 
 } display_state_t;
 

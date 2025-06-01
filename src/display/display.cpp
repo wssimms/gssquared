@@ -211,6 +211,13 @@ void update_display_apple2(cpu_state *cpu) {
             updated = 1;
         }
     }
+#if TESTBUFFER
+    void* pixels;
+    int pitch;
+    SDL_LockTexture(ds->screenTexture, NULL, &pixels, &pitch);
+    memcpy(pixels, ds->buffer, 560 * 192 * sizeof(RGBA));
+    SDL_UnlockTexture(ds->screenTexture);
+#endif
     vs->render_frame(ds->screenTexture);
 }
 
@@ -327,10 +334,15 @@ void render_line_ntsc(cpu_state *cpu, int y) {
     void* pixels;
     int pitch;
 
+#if TESTBUFFER
+    pixels = ds->buffer + (y * 8 * 560 * 4);
+    pitch = 560 * sizeof(RGBA);
+#else
     if (!SDL_LockTexture(ds->screenTexture, &updateRect, &pixels, &pitch)) {
         fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
         return;
     }
+#endif
 
     line_mode_t mode = ds->line_mode[y];
 
@@ -345,7 +357,9 @@ void render_line_ntsc(cpu_state *cpu, int y) {
     } else {
         processAppleIIFrame_LUT(frameBuffer + (y * 8 * 560), (RGBA *)pixels, y * 8, (y + 1) * 8);
     }
+#if !TESTBUFFER
     SDL_UnlockTexture(ds->screenTexture);
+#endif
 }
 
 void render_line_rgb(cpu_state *cpu, int y) {
@@ -539,6 +553,13 @@ display_state_t::display_state_t() {
     display_page_table = &display_pages[display_page_num];
     flash_state = false;
     flash_counter = 0;
+
+    buffer = new uint8_t[560 * 192 * sizeof(RGBA)];
+    memset(buffer, 0, 560 * 192 * sizeof(RGBA)); // TODO: maybe start it with apple logo?
+}
+
+display_state_t::~display_state_t() {
+    delete[] buffer;
 }
 
 
