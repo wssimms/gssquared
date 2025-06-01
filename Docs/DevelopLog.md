@@ -1664,7 +1664,7 @@ Since I got past my include file location issues of earlier, I can now be consis
 So have more thinking to do - for debug output, can write to a file. And create a debug log abstraction. 
 
 [ ] When a VM is off, its window can display the apple logo and the machine name underneath. (e.g. Apple IIe, //c etc.)
-[ ] edit the icon so it's square, and, has a transparent background where the white is.
+[x] edit the icon so it's square, and, has a transparent background where the white is.
 
 Thinking about UI. Two ways to go here.
 1. Do a web browser type, discussed above. Gives access to a broad range of UI tools in-browser, except perhaps the one we really need, which is select local file.
@@ -4231,4 +4231,11 @@ Shift-insert is fine for paste as a keyboard shortcut. copy? maybe print screen?
 claude suggests the following:
 https://claude.ai/chat/d62f96a2-8d7b-473c-8847-e8578269d0bb
 
-i.e. keep all my screen data in CPU primarily and just chuck it to the gpu once in a while.
+i.e. keep all my screen data in CPU primarily and just chuck it to the gpu once in a while. That is actually working really well. When there are full-screen updates going on, it's actually running faster to do just one update per frame of the entire texture than up to 24 partial texture updates. Running in about 1/2 the time it used to.
+
+Still getting a 3x benefit of partial display recalculation vs doing the whole thing (500us for full update, 175-200us for partial). Of course, the hires calculations even with LUT are fairly expensive, so not having to do all of those is a savings. But - are there any possible optimizations if we get rid of that?
+* fewer conditionals
+* don't have to do the txt/hires shadowing. That could save a lot of horsepower on the CPU side not having to do all those calculations on the update side, and I don't have a way to measure that easily.
+* what about generating the scanline bits in actual bits, instead of in bytes. I would be moving 8x less data around. This doesn't help once we get to the IIgs of course but would for the legacy II modes.
+
+But I -still- have the entire display in VRAM texture that I can use to create thumbnails. And in RAM I can stuff into the clipboard.

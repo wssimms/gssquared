@@ -28,8 +28,6 @@
 #define BORDER_WIDTH 30
 #define BORDER_HEIGHT 20
 
-#define TESTBUFFER 1
-
 // Graphics vs Text, C050 / C051
 typedef enum {
     TEXT_MODE = 0,

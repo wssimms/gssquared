@@ -191,7 +191,7 @@ void update_display_apple2(cpu_state *cpu) {
 
     // the backbuffer must be cleared each frame. The docs state this clearly
     // but I didn't know what the backbuffer was. Also, I assumed doing it once
-    // at startup was enough. NOPE.
+    // at startup was enough. NOPE. (oh, it's buffer flipping).
 
     int updated = 0;
     for (int line = 0; line < 24; line++) {
@@ -211,13 +211,17 @@ void update_display_apple2(cpu_state *cpu) {
             updated = 1;
         }
     }
-#if TESTBUFFER
-    void* pixels;
-    int pitch;
-    SDL_LockTexture(ds->screenTexture, NULL, &pixels, &pitch);
-    memcpy(pixels, ds->buffer, 560 * 192 * sizeof(RGBA));
-    SDL_UnlockTexture(ds->screenTexture);
-#endif
+
+    if (updated) { // only reload texture if we updated any lines.
+        void* pixels;
+        int pitch;
+        if (!SDL_LockTexture(ds->screenTexture, NULL, &pixels, &pitch)) {
+            fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
+            return;
+        }
+        memcpy(pixels, ds->buffer, 560 * 192 * sizeof(RGBA)); // load all buffer into texture
+        SDL_UnlockTexture(ds->screenTexture);
+    }
     vs->render_frame(ds->screenTexture);
 }
 
@@ -324,25 +328,9 @@ void render_line_ntsc(cpu_state *cpu, int y) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     video_system_t *vs = cpu->video_system;
     // this writes into texture - do not put border stuff here.
-    SDL_Rect updateRect = {
-        0,          // X position (left of window))
-        y * 8,      // Y position (8 pixels per character)
-        BASE_WIDTH,        // Width of line
-        8           // Height of line
-    };
 
-    void* pixels;
-    int pitch;
-
-#if TESTBUFFER
-    pixels = ds->buffer + (y * 8 * 560 * 4);
-    pitch = 560 * sizeof(RGBA);
-#else
-    if (!SDL_LockTexture(ds->screenTexture, &updateRect, &pixels, &pitch)) {
-        fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
-        return;
-    }
-#endif
+    void* pixels = ds->buffer + (y * 8 * 560 * 4);
+    int pitch = 560 * sizeof(RGBA);
 
     line_mode_t mode = ds->line_mode[y];
 
@@ -357,30 +345,15 @@ void render_line_ntsc(cpu_state *cpu, int y) {
     } else {
         processAppleIIFrame_LUT(frameBuffer + (y * 8 * 560), (RGBA *)pixels, y * 8, (y + 1) * 8);
     }
-#if !TESTBUFFER
-    SDL_UnlockTexture(ds->screenTexture);
-#endif
+
 }
 
 void render_line_rgb(cpu_state *cpu, int y) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     video_system_t *vs = cpu->video_system;
 
-    // this writes into texture - do not put border stuff here.
-    SDL_Rect updateRect = {
-        0,                 // X position (left of window))
-        y * 8,             // Y position (8 pixels per character)
-        BASE_WIDTH,        // Width of line
-        8                  // Height of line
-    };
-
-    void* pixels;
-    int pitch;
-
-    if (!SDL_LockTexture(ds->screenTexture, &updateRect, &pixels, &pitch)) {
-        fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
-        return;
-    }
+    void* pixels = ds->buffer + (y * 8 * 560 * 4);;
+    int pitch = 560 * sizeof(RGBA);
 
     line_mode_t mode = ds->line_mode[y];
 
@@ -388,7 +361,6 @@ void render_line_rgb(cpu_state *cpu, int y) {
     else if (mode == LM_HIRES_MODE) render_hgr_scanline(cpu, y, pixels, pitch);
     else render_text_scanline(cpu, y, pixels, pitch);
 
-    SDL_UnlockTexture(ds->screenTexture);
 }
 
 void render_line_mono(cpu_state *cpu, int y) {
@@ -397,21 +369,8 @@ void render_line_mono(cpu_state *cpu, int y) {
 
     RGBA mono_color_value ;
 
-    // this writes into texture - do not put border stuff here.
-    SDL_Rect updateRect = {
-        0,          // X position (left of window))
-        y * 8,      // Y position (8 pixels per character)
-        BASE_WIDTH,        // Width of line
-        8           // Height of line
-    };
-
-    void* pixels;
-    int pitch;
-
-    if (!SDL_LockTexture(ds->screenTexture, &updateRect, &pixels, &pitch)) {
-        fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
-        return;
-    }
+    void* pixels = ds->buffer + (y * 8 * 560 * 4);
+    int pitch = 560 * sizeof(RGBA);
 
     line_mode_t mode = ds->line_mode[y];
 
@@ -423,7 +382,6 @@ void render_line_mono(cpu_state *cpu, int y) {
 
     processAppleIIFrame_Mono(frameBuffer + (y * 8 * 560), (RGBA *)pixels, y * 8, (y + 1) * 8, mono_color_value);
 
-    SDL_UnlockTexture(ds->screenTexture);
 }
 
 uint8_t txt_bus_read_C050(void *context, uint16_t address) {
