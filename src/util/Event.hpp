@@ -23,7 +23,7 @@
 #define EVENT_MODAL_CLICK 2
 #define EVENT_PLAY_SOUNDEFFECT 3
 #define EVENT_REFOCUS 4
-
+#define EVENT_SHOW_MESSAGE 5
 
 /**
  * event_id: a 64-bit integer that uniquely identifies the type of event.

@@ -252,6 +252,9 @@ OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Wind
 
     /* Setup a text renderer for this OSD */
     text_render = new TextRenderer(rendererp, "fonts/OpenSans-Regular.ttf", 15.0f);
+    title_trender = new TextRenderer(rendererp, "fonts/OpenSans-Regular.ttf", 30.0f);
+    text_render->setColor(0xFF, 0xFF, 0xFF, 0xFF);
+    title_trender->setColor(0, 0, 0, 0xFF);
 
     Style_t CS;
     CS.padding = 4;
@@ -460,6 +463,7 @@ OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Wind
     open_btn->set_size(36, 36);
     open_btn->set_position(0, 50);
     open_btn->set_fade_frames(512, 4); // hold for one second, then fade out over next second. (roughly)
+
 }
 
 void OSD::update() {
@@ -536,13 +540,6 @@ void OSD::set_heads_up_message(const std::string &text, int count) {
 /** Draw the control panel (if visible) */
 void OSD::render() {
 
-    if (headsUpMessageCount) { // set it to 512 for instance to sit at full opacity for 4 seconds then fade out over 4ish seconds.
-        int opacity = headsUpMessageCount < 255 ? headsUpMessageCount : 255;
-        SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, opacity);
-        text_render->render(headsUpMessageText, window_w - 200, window_h- 60 );
-        headsUpMessageCount--;
-    }
-
     /** if current Status is out, don't draw. If status is in transition or IN, draw. */
     if (currentSlideStatus == SLIDE_IN || (currentSlideStatus != slideStatus)) {
         float ox,oy;
@@ -563,10 +560,7 @@ void OSD::render() {
         SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xC0);
         SDL_FRect rect = {0, 50, (float)(window_w-100), (float)(window_h-100)};
         SDL_RenderFillRect(renderer, &rect);
-       
-        SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xFF, 0xFF);
-        SDL_RenderDebugText(renderer, 50, 80, "This is your menu. It isn't very done, hai!");
-
+      
         /* ----- */
 
         SDL_FRect cpTargetRect = {
@@ -577,7 +571,11 @@ void OSD::render() {
         };
 
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-        //printFRect(&cpTargetRect);
+
+        SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
+        //SDL_RenderDebugText(renderer, 50, 80, "This is your menu. It isn't very done, hai!");
+        title_trender->render("Control Panel", 100, 50);
+
         close_btn->render(renderer);
 
         // Render the container and its buttons into the cpTexture
@@ -607,6 +605,16 @@ void OSD::render() {
         float ox,oy;
         SDL_GetRenderScale(renderer, &ox, &oy);
         SDL_SetRenderScale(renderer, 1,1); // TODO: calculate these based on window size
+
+        if (headsUpMessageCount) { // set it to 512 for instance to sit at full opacity for 4 seconds then fade out over 4ish seconds.
+            int opacity = headsUpMessageCount < 255 ? headsUpMessageCount : 255;
+            //SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, opacity);
+            text_render->setColor(0xFF, 0xFF, 0xFF, opacity);
+            text_render->render(headsUpMessageText, window_width/2, 30, TEXT_ALIGN_CENTER);
+            
+            headsUpMessageCount -= 3;
+            if (headsUpMessageCount < 0) headsUpMessageCount = 0;
+        }
 
         open_btn->render(renderer); // this now takes care of its own fade-out.
 

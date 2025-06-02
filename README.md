@@ -161,7 +161,7 @@ We've successfully built for windows using the following environment:
 git clone --recurse-submodules https://github.com/jawaidbazyar2/gssquared.git
 cd gssquared
 mkdir build
-cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -B build -S .
+cmake -G "MinGW Makefiles" -DGS2_PROGRAM_FILES=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -B build -S .
 mingw32-make.exe
 ```
 

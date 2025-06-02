@@ -2,6 +2,7 @@
 
 #include <SDL3/SDL.h>
 #include "computer.hpp"
+#include "util/EventQueue.hpp"
 
 #define BORDER_WIDTH 30
 #define BORDER_HEIGHT 20
@@ -35,4 +36,6 @@ struct video_system_t {
 
     int border_width = BORDER_WIDTH;
     int border_height = BORDER_HEIGHT;
+
+    EventQueue *event_queue = nullptr;
 };

@@ -4207,7 +4207,7 @@ The hideaway tab for opening the OSD looks and works pretty good I think. It fol
 
 it should be obvious to user when users do normal user things, what the interaction options are.
 
-I should finish implementing the "disappearing message".
+[x] I should finish implementing the "disappearing message".  (done!!)
 
 I should maybe also put the fade-away logic into its own widget type, like FadeButton or something.
 
@@ -4239,3 +4239,6 @@ Still getting a 3x benefit of partial display recalculation vs doing the whole t
 * what about generating the scanline bits in actual bits, instead of in bytes. I would be moving 8x less data around. This doesn't help once we get to the IIgs of course but would for the legacy II modes.
 
 But I -still- have the entire display in VRAM texture that I can use to create thumbnails. And in RAM I can stuff into the clipboard.
+
+(Just tested on linux - this made an even bigger performance improvement there, I have frame draws getting down to 100us! I wonder how windows will react..)
+ok, I got build working on Win with PROGRAM_FILES=ON. The other causes it to try to insert /share/blah. still need to switch windows to use cpkg.

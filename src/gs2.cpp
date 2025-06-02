@@ -232,27 +232,31 @@ void run_cpus(computer_t *computer) {
                         osd->show_diskii_modal(event->getEventKey(), event->getEventData());
                         break;
                     case EVENT_MODAL_CLICK:
-                    {
-                        uint64_t key = event->getEventKey();
-                        uint64_t data = event->getEventData();
-                        printf("EVENT_MODAL_CLICK: %llu %llu\n", key, data);
-                        if (data == 1) {
-                            // save and unmount.
-                            osd->cpu->mounts->unmount_media(key, SAVE_AND_UNMOUNT);
-                            osd->cpu->event_queue->addEvent(new Event(EVENT_PLAY_SOUNDEFFECT, 0, SE_SHUGART_OPEN));
-                        } else if (data == 2) {
-                            // save as - need to open file dialog, get new filename, change media filename, then unmount.
-                        } else if (data == 3) {
-                            // discard
-                            osd->cpu->mounts->unmount_media(key, DISCARD);
-                            osd->cpu->event_queue->addEvent(new Event(EVENT_PLAY_SOUNDEFFECT, 0, SE_SHUGART_OPEN));
-                        } else if (data == 4) {
-                            // cancel
-                            // Do nothing!
+                        {
+                            uint64_t key = event->getEventKey();
+                            uint64_t data = event->getEventData();
+                            printf("EVENT_MODAL_CLICK: %llu %llu\n", key, data);
+                            if (data == 1) {
+                                // save and unmount.
+                                osd->cpu->mounts->unmount_media(key, SAVE_AND_UNMOUNT);
+                                osd->cpu->event_queue->addEvent(new Event(EVENT_PLAY_SOUNDEFFECT, 0, SE_SHUGART_OPEN));
+                            } else if (data == 2) {
+                                // save as - need to open file dialog, get new filename, change media filename, then unmount.
+                            } else if (data == 3) {
+                                // discard
+                                osd->cpu->mounts->unmount_media(key, DISCARD);
+                                osd->cpu->event_queue->addEvent(new Event(EVENT_PLAY_SOUNDEFFECT, 0, SE_SHUGART_OPEN));
+                            } else if (data == 4) {
+                                // cancel
+                                // Do nothing!
+                            }
+                            osd->close_diskii_modal(key, data);
                         }
-                        osd->close_diskii_modal(key, data);
                         break;
-                    }
+                    case EVENT_SHOW_MESSAGE:
+                        osd->set_heads_up_message((const char *)event->getEventData(), 512);
+                        break;
+                 
                 }
                 delete event; // processed, we can now delete it.
             }

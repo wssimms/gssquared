@@ -88,6 +88,7 @@ protected:
     int window_w = 0;
     int window_h = 0;
     TextRenderer *text_render = nullptr;
+    TextRenderer *title_trender = nullptr;
 
     std::string headsUpMessageText;
     int headsUpMessageCount = 0;

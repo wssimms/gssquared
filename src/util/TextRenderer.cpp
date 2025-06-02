@@ -19,7 +19,7 @@ TextRenderer::TextRenderer(SDL_Renderer *renderer, const std::string &font_path,
 
     /* load up the font */
     use_debug_font = false;
-    font_size = 15.0f;
+    //font_size = 15.0f;
     std::string font_path_full = gs2_app_values.base_path + font_path;
     font = TTF_OpenFont(font_path_full.c_str(), font_size);
     if (!font) {
@@ -45,13 +45,30 @@ TextRenderer::~TextRenderer() {
  * rare.
  */
 
-void TextRenderer::render(const std::string &text, int x, int y) {
+
+void TextRenderer::render(const std::string &text, int x, int y, TextAlignment alignment) {
     if (use_debug_font) {
         SDL_RenderDebugText(renderer, x, y, text.c_str());
     } else {
         TTF_Text *ttf_text = TTF_CreateText(engine, font, text.c_str(), 0);
-        TTF_DrawRendererText(ttf_text, (float)x, (float)y);
+        int w, h;
+        TTF_GetTextSize(ttf_text, &w, &h);
+        float eff_x = x, eff_y = y;
+        if (alignment == TEXT_ALIGN_CENTER) {
+            eff_x = x - w / 2;
+        } else if (alignment == TEXT_ALIGN_RIGHT) {
+            eff_x = x - w;
+        }
+        
+        TTF_SetTextColor(ttf_text, color_r, color_g, color_b, color_a);
+        TTF_DrawRendererText(ttf_text, (float)eff_x, (float)eff_y);
         TTF_DestroyText(ttf_text);
-
     }
+}
+
+void TextRenderer::setColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+    color_r = r;
+    color_g = g;
+    color_b = b;
+    color_a = a;
 }

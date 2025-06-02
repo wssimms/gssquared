@@ -102,18 +102,18 @@ void Button_t::render(SDL_Renderer* renderer) {
 
     // Draw button-specific content (text or image)
     if (buttonType == BT_Text) {
-        SDL_SetRenderDrawColor(renderer,
-            (style.text_color >> 24) & 0xFF,
-            (style.text_color >> 16) & 0xFF,
-            (style.text_color >> 8) & 0xFF,
-            calc_opacity(style.text_color)
-        );
-        
         if (text_render == nullptr) {
+            SDL_SetRenderDrawColor(renderer,
+                (style.text_color >> 24) & 0xFF,
+                (style.text_color >> 16) & 0xFF,
+                (style.text_color >> 8) & 0xFF,
+                calc_opacity(style.text_color)
+            );
             int wid = (strlen(text.c_str()) * SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE);
             int hei = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE;
             SDL_RenderDebugText(renderer, content_x + (content_w - wid) / 2, content_y + (content_h - hei) / 2, text.c_str());
         } else {
+            text_render->setColor((style.text_color >> 24) & 0xFF, (style.text_color >> 16) & 0xFF, (style.text_color >> 8) & 0xFF, calc_opacity(style.text_color)); 
             text_render->render(text, content_x, content_y);
         }
     } else if (buttonType == BT_Atlas) {
