@@ -179,6 +179,15 @@ void video_system_t::window_resize(const SDL_Event &event) {
 
 void video_system_t::toggle_fullscreen() {
     display_fullscreen_mode = (display_fullscreen_mode_t)((display_fullscreen_mode + 1) % NUM_FULLSCREEN_MODES);
+    int num_displays;
+    SDL_DisplayID *display_ids = SDL_GetDisplays(&num_displays);
+    int num_modes;
+    SDL_DisplayMode **modes = SDL_GetFullscreenDisplayModes(display_ids[0], &num_modes);
+    for (int i = 0; i < num_modes; i++) {
+        printf("Mode %d: %dx%d @ \n", i, modes[i]->w, modes[i]->h);
+    }
+    SDL_SetWindowFullscreenMode(window, modes[0]);
+    SDL_free(modes);
     SDL_SetWindowFullscreen(window, display_fullscreen_mode);
 }
 
