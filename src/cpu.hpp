@@ -185,7 +185,7 @@ struct cpu_state {
     video_system_t *video_system;
 
     Mounts *mounts;
-    EventQueue *event_queue = nullptr;
+    //EventQueue *event_queue = nullptr;
 
     void *module_store[MODULE_NUM_MODULES];
     SlotData *slot_store[NUM_SLOTS];

@@ -5,6 +5,7 @@
 #include "Module_ID.hpp"
 #include "SlotData.hpp"
 #include "util/EventDispatcher.hpp"
+#include "util/EventQueue.hpp"
 #include <vector>
 
 struct cpu_state;
@@ -28,6 +29,8 @@ struct computer_t {
     video_system_t *video_system;
     debug_window_t *debug_window;
 
+    EventQueue *event_queue;
+
     std::vector<reset_handler_rec> reset_handlers;
 
     void *module_store[MODULE_NUM_MODULES];
@@ -48,5 +51,7 @@ struct computer_t {
     void set_slot_state( SlotType_t slot, SlotData *state);
 
     void set_slot_irq( uint8_t slot, bool irq);
+
+    void send_clock_mode_message();
 
 };

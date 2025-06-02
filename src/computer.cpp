@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "gs2.hpp"
 //#include "reset.hpp"
 #include "cpu.hpp"
@@ -11,20 +13,14 @@
 #include "util/EventDispatcher.hpp"
 
 
-void send_clock_mode_message(cpu_state *cpu) {
-    static char buffer[256];
-    const char *clock_mode_names[] = {
-        "Ludicrous Speed",
-        "1.0205MHz",
-        "2.8 MHz",
-        "4.0 MHz"
-    };
-
-    snprintf(buffer, sizeof(buffer), "Clock Mode Set to %s", clock_mode_names[cpu->clock_mode]);
-    cpu->event_queue->addEvent(new Event(EVENT_SHOW_MESSAGE, 0, buffer));
-}
-
 computer_t::computer_t() {
+    // lots of stuff is going to need this.
+    event_queue = new EventQueue();
+    if (!event_queue) {
+        std::cerr << "Failed to allocate event queue for CPU " << std::endl;
+        exit(1);
+    }
+
     sys_event = new EventDispatcher(); // different queue for "system" events that get processed first.
     dispatch = new EventDispatcher(); // has to be very first thing, devices etc are going to immediately register handlers.
     cpu = new cpu_state();
@@ -49,7 +45,7 @@ computer_t::computer_t() {
         }
         if (key == SDLK_F9) { 
             toggle_clock_mode(cpu);
-            send_clock_mode_message(cpu);
+            send_clock_mode_message();
             return true; 
         }
         return false;
@@ -153,4 +149,17 @@ void computer_t::set_slot_irq(uint8_t slot, bool irq) {
     } else {
         cpu->irq_asserted &= ~(1 << slot);
     }
+}
+
+void computer_t::send_clock_mode_message() {
+    static char buffer[256];
+    const char *clock_mode_names[] = {
+        "Ludicrous Speed",
+        "1.0205MHz",
+        "2.8 MHz",
+        "4.0 MHz"
+    };
+
+    snprintf(buffer, sizeof(buffer), "Clock Mode Set to %s", clock_mode_names[cpu->clock_mode]);
+    event_queue->addEvent(new Event(EVENT_SHOW_MESSAGE, 0, buffer));
 }

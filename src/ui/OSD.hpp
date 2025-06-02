@@ -48,7 +48,12 @@
  * including disk drive controls, slot buttons, and monitor controls.
  */
 class OSD {
+public:
+    EventQueue *event_queue = nullptr;
+
 protected:
+    computer_t *computer = nullptr;
+
     int slideStatus = SLIDE_NONE;
     int currentSlideStatus = SLIDE_OUT;
     int slidePosition = -slidePositionMax;

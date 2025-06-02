@@ -219,7 +219,7 @@ void run_cpus(computer_t *computer) {
         current_time = SDL_GetTicksNS();
         if ((this_free_run) && (current_time - last_app_event_update > 16667000)
             || (!this_free_run)) {
-            Event *event = cpu->event_queue->getNextEvent();
+            Event *event = computer->event_queue->getNextEvent();
             if (event) {
                 switch (event->getEventType()) {
                     case EVENT_PLAY_SOUNDEFFECT:
@@ -239,13 +239,13 @@ void run_cpus(computer_t *computer) {
                             if (data == 1) {
                                 // save and unmount.
                                 osd->cpu->mounts->unmount_media(key, SAVE_AND_UNMOUNT);
-                                osd->cpu->event_queue->addEvent(new Event(EVENT_PLAY_SOUNDEFFECT, 0, SE_SHUGART_OPEN));
+                                osd->event_queue->addEvent(new Event(EVENT_PLAY_SOUNDEFFECT, 0, SE_SHUGART_OPEN));
                             } else if (data == 2) {
                                 // save as - need to open file dialog, get new filename, change media filename, then unmount.
                             } else if (data == 3) {
                                 // discard
                                 osd->cpu->mounts->unmount_media(key, DISCARD);
-                                osd->cpu->event_queue->addEvent(new Event(EVENT_PLAY_SOUNDEFFECT, 0, SE_SHUGART_OPEN));
+                                osd->event_queue->addEvent(new Event(EVENT_PLAY_SOUNDEFFECT, 0, SE_SHUGART_OPEN));
                             } else if (data == 4) {
                                 // cancel
                                 // Do nothing!

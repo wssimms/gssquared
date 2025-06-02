@@ -555,7 +555,7 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     // alloc and init display state
     display_state_t *ds = new display_state_t;
     video_system_t *vs = cpu->video_system;
-    ds->event_queue = cpu->event_queue;
+    ds->event_queue = computer->event_queue;
 
     // Create the screen texture
     ds->screenTexture = SDL_CreateTexture(vs->renderer,

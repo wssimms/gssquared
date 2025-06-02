@@ -80,7 +80,7 @@ static void /* SDLCALL */ file_dialog_callback(void* userdata, const char* const
     dm.slot = data->key >> 8;
     dm.drive = data->key & 0xFF;   
     osd->cpu->mounts->mount_media(dm);
-    osd->cpu->event_queue->addEvent(new Event(EVENT_PLAY_SOUNDEFFECT, 0, SE_SHUGART_CLOSE));
+    osd->event_queue->addEvent(new Event(EVENT_PLAY_SOUNDEFFECT, 0, SE_SHUGART_CLOSE));
 }
 
 void diskii_button_click(void *userdata) {
@@ -94,7 +94,7 @@ void diskii_button_click(void *userdata) {
         } else {
             //disk_mount_t dm;    
             osd->cpu->mounts->unmount_media(data->key, DISCARD);
-            osd->cpu->event_queue->addEvent(new Event(EVENT_PLAY_SOUNDEFFECT, 0, SE_SHUGART_OPEN));
+            osd->event_queue->addEvent(new Event(EVENT_PLAY_SOUNDEFFECT, 0, SE_SHUGART_OPEN));
         }
         return;
     }
@@ -221,7 +221,7 @@ void modal_diskii_click(void *data) {
     OSD *osd = d->osd;
     cpu_state *cpu = osd->cpu;
     ModalContainer_t *container = d->container;
-    cpu->event_queue->addEvent(new Event(EVENT_MODAL_CLICK, container->get_key(), d->key));
+    osd->event_queue->addEvent(new Event(EVENT_MODAL_CLICK, container->get_key(), d->key));
     // I need to reference back to the button that was clicked and get its ID.
 }
 
@@ -233,11 +233,13 @@ SDL_Window* OSD::get_window() {
 }
 
 void OSD::set_raise_window() {
-    cpu->event_queue->addEvent(new Event(EVENT_REFOCUS, 0, (uint64_t)0));
+    event_queue->addEvent(new Event(EVENT_REFOCUS, 0, (uint64_t)0));
 }
 
 OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManager_t *slot_manager, int window_width, int window_height) 
-    : renderer(rendererp), window(windowp), window_w(window_width), window_h(window_height), cpu(cpu), slot_manager(slot_manager) {
+    : renderer(rendererp), window(windowp), window_w(window_width), window_h(window_height), computer(computer), cpu(cpu), slot_manager(slot_manager) {
+
+    event_queue = computer->event_queue;
 
     cpTexture = SDL_CreateTexture(renderer,
         SDL_PIXELFORMAT_RGBA8888,

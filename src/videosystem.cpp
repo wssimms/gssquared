@@ -17,7 +17,7 @@ video_system_t::video_system_t(computer_t *computer) {
     float aspect_ratio = (float)window_width / (float)window_height;
 
     display_fullscreen_mode = DISPLAY_WINDOWED_MODE;
-    event_queue = computer->cpu->event_queue;
+    event_queue = computer->event_queue;
 
     window = SDL_CreateWindow(
         "GSSquared - Apple ][ Emulator", 

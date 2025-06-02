@@ -346,7 +346,7 @@ void init_mb_game_controller(computer_t *computer, SlotType_t slot) {
     SDL_InitSubSystem(SDL_INIT_GAMEPAD);
     // alloc and init display state
     gamec_state_t *ds = new gamec_state_t;
-    ds->event_queue = cpu->event_queue;
+    ds->event_queue = computer->event_queue;
 
     ds->game_switch_0 = 0;
     ds->game_switch_1 = 0;
