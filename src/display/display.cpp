@@ -35,6 +35,7 @@
 #include "devices/videx/videx.hpp"
 #include "devices/videx/videx_80x24.hpp"
 #include "devices/annunciator/annunciator.hpp"
+#include "videosystem.hpp"
 
 display_page_t display_pages[NUM_DISPLAY_PAGES] = {
     {
@@ -187,7 +188,7 @@ void init_display_font(rom_data *rd) {
  */
 void update_display_apple2(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    video_system_t *vs = cpu->video_system;
+    video_system_t *vs = ds->video_system;
 
     // the backbuffer must be cleared each frame. The docs state this clearly
     // but I didn't know what the backbuffer was. Also, I assumed doing it once
@@ -233,7 +234,7 @@ void update_display(cpu_state *cpu) {
     // the backbuffer must be cleared each frame. The docs state this clearly
     // but I didn't know what the backbuffer was. Also, I assumed doing it once
     // at startup was enough. NOPE.
-    cpu->video_system->clear();
+    ds->video_system->clear(); // TODO: this should probably go down into videosystem.
 
     if (videx_d && ds->display_mode == TEXT_MODE && anc_d && anc_d->annunciators[0] ) {
         update_display_videx(cpu, videx_d ); 
@@ -326,7 +327,7 @@ void flip_display_scale_mode(display_state_t *ds) {
 
 void render_line_ntsc(cpu_state *cpu, int y) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    video_system_t *vs = cpu->video_system;
+    video_system_t *vs = ds->video_system;
     // this writes into texture - do not put border stuff here.
 
     void* pixels = ds->buffer + (y * 8 * 560 * 4);
@@ -350,7 +351,7 @@ void render_line_ntsc(cpu_state *cpu, int y) {
 
 void render_line_rgb(cpu_state *cpu, int y) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    video_system_t *vs = cpu->video_system;
+    video_system_t *vs = ds->video_system;
 
     void* pixels = ds->buffer + (y * 8 * 560 * 4);;
     int pitch = 560 * sizeof(RGBA);
@@ -365,7 +366,7 @@ void render_line_rgb(cpu_state *cpu, int y) {
 
 void render_line_mono(cpu_state *cpu, int y) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    video_system_t *vs = cpu->video_system;
+    video_system_t *vs = ds->video_system;
 
     RGBA mono_color_value ;
 
@@ -554,7 +555,8 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     
     // alloc and init display state
     display_state_t *ds = new display_state_t;
-    video_system_t *vs = cpu->video_system;
+    video_system_t *vs = computer->video_system;
+    ds->video_system = vs;
     ds->event_queue = computer->event_queue;
 
     // Create the screen texture
@@ -661,9 +663,4 @@ void display_dump_text_page(cpu_state *cpu, int page) {
     uint16_t base_addr = (page == 1) ? 0x0400 : 0x0800;
     display_dump_file(cpu, "dump.txt", base_addr, 0x0400);
     fprintf(stdout, "Dumped TXT page %d to dump.txt\n", page);
-}
-
-void raise_window(cpu_state *cpu) {
-    video_system_t *vs = cpu->video_system;
-    SDL_RaiseWindow(vs->window);
 }

@@ -31,6 +31,7 @@
 #include "mb.hpp"
 #include "devices/speaker/speaker.hpp"
 #include "debug.hpp"
+#include "util/EventTimer.hpp"
 
 enum AY_Registers {
     A_Tone_Low = 0,
@@ -939,7 +940,7 @@ void mb_t1_timer_callback(uint64_t instanceID, void *user_data) {
     }
 
     if (tc->ier.bits.timer1) {
-        cpu->event_timer.scheduleEvent(cpu->cycles + counter, mb_t1_timer_callback, instanceID , cpu);
+        mb_d->event_timer->scheduleEvent(cpu->cycles + counter, mb_t1_timer_callback, instanceID , cpu);
     }
 }
 
@@ -959,7 +960,7 @@ void mb_t2_timer_callback(uint64_t instanceID, void *user_data) {
     tc->t2_counter = tc->t2_latch;
 
     if (tc->ier.bits.timer2) {
-        cpu->event_timer.scheduleEvent(cpu->cycles + tc->t2_counter, mb_t2_timer_callback, instanceID , cpu);
+        mb_d->event_timer->scheduleEvent(cpu->cycles + tc->t2_counter, mb_t2_timer_callback, instanceID , cpu);
     }
 }
 
@@ -1025,9 +1026,9 @@ void mb_write_Cx00(void *context, uint16_t addr, uint8_t data) {
             tc->ifr.bits.timer1 = 0;
             tc->t1_triggered_cycles = cpu->cycles;
             if (tc->ier.bits.timer1) {
-                cpu->event_timer.scheduleEvent(cpu->cycles + tc->t1_counter, mb_t1_timer_callback, 0x10000000 | (slot << 8) | chip , cpu);
+                mb_d->event_timer->scheduleEvent(cpu->cycles + tc->t1_counter, mb_t1_timer_callback, 0x10000000 | (slot << 8) | chip , cpu);
             } else {
-                cpu->event_timer.cancelEvents(0x10000000 | (slot << 8) | chip);
+                mb_d->event_timer->cancelEvents(0x10000000 | (slot << 8) | chip);
             }
             break;
         case MB_6522_PCR:
@@ -1062,14 +1063,14 @@ void mb_write_Cx00(void *context, uint16_t addr, uint8_t data) {
                 uint64_t instanceID = 0x10000000 | (slot << 8) | chip;
                 // if timer1 interrupt is disabled, cancel any pending events. (Only enable + write to T1C will reschedule)
                 if (!tc->ier.bits.timer1) {
-                    cpu->event_timer.cancelEvents(instanceID);
+                    mb_d->event_timer->cancelEvents(instanceID);
                 } else { // if we set the counter/latch BEFORE we enable interrupts.
                     uint64_t cycle_base = tc->t1_triggered_cycles == 0 ? cpu->cycles : tc->t1_triggered_cycles;
                     uint16_t counter = tc->t1_counter;
                     if (counter == 0) { // if they enable interrupts before setting the counter (and it's zero) set it to 65535 to avoid infinite loop.
                         counter = 65535;
                     }
-                    cpu->event_timer.scheduleEvent(cycle_base + counter, mb_t1_timer_callback, instanceID , cpu);
+                    mb_d->event_timer->scheduleEvent(cycle_base + counter, mb_t1_timer_callback, instanceID , cpu);
                 }
             }
             break;
@@ -1241,7 +1242,7 @@ void mb_reset(void *context) {
 
 void init_slot_mockingboard(computer_t *computer, SlotType_t slot) {
     cpu_state *cpu = computer->cpu;
-    
+
     uint16_t slot_base = 0xC080 + (slot * 0x10);
     printf("init_slot_mockingboard: %d\n", slot);
 
@@ -1268,6 +1269,7 @@ void init_slot_mockingboard(computer_t *computer, SlotType_t slot) {
         mb_d->d_6522[i].t1_triggered_cycles = 0;
         mb_d->d_6522[i].t2_triggered_cycles = 0;
     }
+    mb_d->event_timer = computer->event_timer;
 
     speaker_state_t *speaker_d = (speaker_state_t *)get_module_state(cpu, MODULE_SPEAKER);
     int dev_id = speaker_d->device_id;

@@ -105,6 +105,7 @@ struct mb_cpu_data: public SlotData {
     SDL_AudioStream *stream;
     uint64_t last_cycle;
     uint8_t slot;
+    EventTimer *event_timer;
 };
 
 void init_slot_mockingboard(computer_t *computer, SlotType_t slot);

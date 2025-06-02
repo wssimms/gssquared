@@ -33,7 +33,6 @@
 #include "OSD.hpp"
 #include "display/display.hpp"
 #include "util/mount.hpp"
-// #include "util/reset.hpp" // TODO: needs to hook into computer->reset() now.
 #include "util/soundeffects.hpp"
 #include "ModalContainer.hpp"
 #include "util/strndup.h"
@@ -79,7 +78,7 @@ static void /* SDLCALL */ file_dialog_callback(void* userdata, const char* const
     dm.filename = strndup(filelist[0], 1024);
     dm.slot = data->key >> 8;
     dm.drive = data->key & 0xFF;   
-    osd->cpu->mounts->mount_media(dm);
+    osd->computer->mounts->mount_media(dm);
     osd->event_queue->addEvent(new Event(EVENT_PLAY_SOUNDEFFECT, 0, SE_SHUGART_CLOSE));
 }
 
@@ -87,13 +86,13 @@ void diskii_button_click(void *userdata) {
     diskii_callback_data_t *data = (diskii_callback_data_t *)userdata;
     OSD *osd = data->osd;
 
-    if (osd->cpu->mounts->media_status(data->key).is_mounted) {
+    if (osd->computer->mounts->media_status(data->key).is_mounted) {
         // if media was modified, create Event to handle modal dialog. Otherwise, just unmount.
-        if (osd->cpu->mounts->media_status(data->key).is_modified) {
+        if (osd->computer->mounts->media_status(data->key).is_modified) {
             osd->show_diskii_modal(data->key, 0);
         } else {
             //disk_mount_t dm;    
-            osd->cpu->mounts->unmount_media(data->key, DISCARD);
+            osd->computer->mounts->unmount_media(data->key, DISCARD);
             osd->event_queue->addEvent(new Event(EVENT_PLAY_SOUNDEFFECT, 0, SE_SHUGART_OPEN));
         }
         return;
@@ -118,9 +117,9 @@ void unidisk_button_click(void *userdata) {
     diskii_callback_data_t *data = (diskii_callback_data_t *)userdata;
     OSD *osd = data->osd;
 
-    if (osd->cpu->mounts->media_status(data->key).is_mounted) {
+    if (osd->computer->mounts->media_status(data->key).is_mounted) {
         disk_mount_t dm;
-        osd->cpu->mounts->unmount_media(data->key, DISCARD); // TODO: we write blocks as we go, there is nothing to 'save' here.
+        osd->computer->mounts->unmount_media(data->key, DISCARD); // TODO: we write blocks as we go, there is nothing to 'save' here.
         return;
     }
     
@@ -502,17 +501,17 @@ void OSD::update() {
     static int updCount=0;
     if (updCount++ > 60) {
         updCount = 0;
-        cpu->mounts->dump();
+        computer->mounts->dump();
     }
 
     // TODO: iterate over all drives based on what's in slots.
     // update disk status
-    diskii_button1->set_disk_status(cpu->mounts->media_status(0x600));
-    diskii_button2->set_disk_status(cpu->mounts->media_status(0x601));
-    hud_diskii_1->set_disk_status(cpu->mounts->media_status(0x600));
-    hud_diskii_2->set_disk_status(cpu->mounts->media_status(0x601));
-    unidisk_button1->set_disk_status(cpu->mounts->media_status(0x500));
-    unidisk_button2->set_disk_status(cpu->mounts->media_status(0x501));
+    diskii_button1->set_disk_status(computer->mounts->media_status(0x600));
+    diskii_button2->set_disk_status(computer->mounts->media_status(0x601));
+    hud_diskii_1->set_disk_status(computer->mounts->media_status(0x600));
+    hud_diskii_2->set_disk_status(computer->mounts->media_status(0x601));
+    unidisk_button1->set_disk_status(computer->mounts->media_status(0x500));
+    unidisk_button2->set_disk_status(computer->mounts->media_status(0x501));
 
     // background color update based on clock speed to highlight current button.
     speed_btn_10->set_background_color(0x000000FF);

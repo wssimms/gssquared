@@ -25,11 +25,8 @@
 
 #include "memoryspecs.hpp"
 #include "clock.hpp"
-#include "util/EventQueue.hpp"
-#include "util/EventTimer.hpp"
 #include "devices.hpp"
 #include "SlotData.hpp"
-#include "videosystem.hpp"
 #include "debugger/trace.hpp"
 #include "mmus/mmu_ii.hpp"
 #include "Module_ID.hpp"
@@ -182,15 +179,8 @@ struct cpu_state {
     
     execute_next_fn execute_next;
 
-    video_system_t *video_system;
-
-    Mounts *mounts;
-    //EventQueue *event_queue = nullptr;
-
     void *module_store[MODULE_NUM_MODULES];
     SlotData *slot_store[NUM_SLOTS];
-
-    EventTimer event_timer;
 
     /* Tracing & Debug */
     /* These are CPU controls, leave them here */
@@ -201,15 +191,12 @@ struct cpu_state {
     uint64_t instructions_left = 0;
 
     void init();
-    /* void init_default_memory_map();
-    void init_memory(); */
     void set_processor(int processor_type);
     void reset();
-    void set_video_system(video_system_t *video_system);
+    
     void set_mmu(MMU *mmu) { this->mmu = (MMU_II *) mmu; }
 
     inline uint8_t read_byte(uint16_t address) {
-        //uint8_t value = read_memory(this, address);
         uint8_t value = mmu->read(address);
         incr_cycles(this);
         return value;
@@ -226,7 +213,6 @@ struct cpu_state {
     }
 
     inline void write_byte( uint16_t address, uint8_t value) {
-        //write_memory(this, address, value);
         mmu->write(address, value);
         incr_cycles(this);
     }
@@ -256,8 +242,6 @@ struct cpu_state {
 #define FLAG_N        0b10000000 /* 0x80 */
 
 extern struct cpu_state *CPUs[MAX_CPUS];
-
-//void run_cpus(void) ;
 
 void toggle_clock_mode(cpu_state *cpu);
 

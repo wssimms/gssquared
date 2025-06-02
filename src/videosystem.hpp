@@ -19,13 +19,13 @@ typedef enum {
 struct video_system_t {
     video_system_t(computer_t *computer);
     ~video_system_t();
-    //void window_resize(int new_w, int new_h);
     void window_resize(const SDL_Event &event);
     void toggle_fullscreen();
     void render_frame(SDL_Texture *texture);
     void clear();
     void present();
     void display_capture_mouse(bool capture);
+    void raise();
     void raise(SDL_Window *window);
     void hide(SDL_Window *window);
     void show(SDL_Window *window);

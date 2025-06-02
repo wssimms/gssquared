@@ -19,6 +19,7 @@
 #include "videx.hpp"
 #include "videx_80x24.hpp"
 #include "display/display.hpp"
+#include "videosystem.hpp"
 
 uint32_t videx_color_table[DM_NUM_MONO_MODES] = {
     0xFFFFFFFF, // color, keep it as-is
@@ -128,7 +129,7 @@ void videx_render_line(cpu_state *cpu, videx_data * videx_d, int y) {
  */
 void update_display_videx(cpu_state *cpu, /* SlotType_t slot */ videx_data * videx_d) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    video_system_t *vs = cpu->video_system;
+    video_system_t *vs = videx_d->video_system;
 
 // openemulator disagrees, claims bit 5 = 1 means display cursor. But the manual clearly says bit 5 = 0 means cursor is on.
     bool cursor_blink_mode = (videx_d->reg[R10_CURSOR_START] & 0b01000000) != 0;

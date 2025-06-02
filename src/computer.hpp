@@ -1,16 +1,18 @@
 #pragma once
 
-//#include "cpu.hpp"
+#include <vector>
+
 #include "mmus/mmu_ii.hpp"
 #include "Module_ID.hpp"
 #include "SlotData.hpp"
 #include "util/EventDispatcher.hpp"
 #include "util/EventQueue.hpp"
-#include <vector>
 
 struct cpu_state;
 struct debug_window_t; // don't bring in debugwindow.hpp, it would create a depedence on SDL.
 struct video_system_t; // same.
+class Mounts;
+class EventTimer;
 
 typedef void (*reset_handler_t)(void *context);
 
@@ -23,13 +25,17 @@ struct computer_t {
     cpu_state *cpu = nullptr;
     MMU_II *mmu = nullptr;
 
-    EventDispatcher *sys_event;
-    EventDispatcher *dispatch;
+    EventDispatcher *sys_event = nullptr;
+    EventDispatcher *dispatch = nullptr;
 
-    video_system_t *video_system;
-    debug_window_t *debug_window;
+    video_system_t *video_system = nullptr;
+    debug_window_t *debug_window = nullptr;
 
-    EventQueue *event_queue;
+    EventTimer *event_timer = nullptr;
+
+    EventQueue *event_queue = nullptr;
+    
+    Mounts *mounts = nullptr;
 
     std::vector<reset_handler_rec> reset_handlers;
 

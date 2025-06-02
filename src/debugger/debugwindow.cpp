@@ -5,6 +5,7 @@
 #include "cpu.hpp"
 #include "util/TextRenderer.hpp"
 #include "computer.hpp"
+#include "videosystem.hpp"
 
 debug_window_t::debug_window_t(computer_t *computer) {
     this->computer = computer;
@@ -16,6 +17,7 @@ debug_window_t::debug_window_t(computer_t *computer) {
     renderer = SDL_CreateRenderer(window, nullptr);
 
     text_renderer = new TextRenderer(renderer, "/fonts/OxygenMono-Regular.ttf", 15.0f);
+    text_renderer->setColor(255, 255, 255, 255);
     font_line_height = text_renderer->font_line_height;
 
     window_id = SDL_GetWindowID(window);

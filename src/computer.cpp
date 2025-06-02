@@ -11,7 +11,8 @@
 #include "computer.hpp"
 #include "debugger/debugwindow.hpp"
 #include "util/EventDispatcher.hpp"
-
+#include "util/EventTimer.hpp"
+#include "videosystem.hpp"
 
 computer_t::computer_t() {
     // lots of stuff is going to need this.
@@ -21,10 +22,15 @@ computer_t::computer_t() {
         exit(1);
     }
 
+    event_timer = new EventTimer();
+
     sys_event = new EventDispatcher(); // different queue for "system" events that get processed first.
     dispatch = new EventDispatcher(); // has to be very first thing, devices etc are going to immediately register handlers.
     cpu = new cpu_state();
     cpu->init();
+
+    mounts = new Mounts(cpu);
+
     video_system = new video_system_t(this);
     debug_window = new debug_window_t(this);
 
@@ -151,6 +157,7 @@ void computer_t::set_slot_irq(uint8_t slot, bool irq) {
     }
 }
 
+// TODO: should live inside a reconstituted clock class.
 void computer_t::send_clock_mode_message() {
     static char buffer[256];
     const char *clock_mode_names[] = {

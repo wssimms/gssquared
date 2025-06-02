@@ -85,7 +85,6 @@ int Mounts::unmount_media(uint64_t key, unmount_action_t action) {
         unmount_diskII(cpu, slot, drive);
         return true;
     } else if (it->second.drive_type == DRIVE_TYPE_PRODOS_BLOCK) {
-        //return pdblock2_osd_status(cpu, key);
         unmount_pdblock2(cpu, key);
         return true;
     }

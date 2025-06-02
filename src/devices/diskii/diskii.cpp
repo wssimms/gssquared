@@ -186,8 +186,6 @@ In DOS at $B800 lives the "prenibble routine" . I could perhaps steal that. hehe
  0x3D,  0xCD,  0x00,  0x08,   0xA6,  0x2B,  0x90,  0xDB,   0x4C,  0x01,  0x08,  0x00,   0x00,  0x00,  0x00,  0x00,  
 }; */
 
-//diskII_controller diskII_slot[8]; // slots 0-7. We'll never use 0 etc.
-
 #define DEBUG_PH(slot, drive, phase, onoff) fprintf(stdout, "PH: slot %d, drive %d, phase %d, onoff %d \n", slot, drive, phase, onoff)
 #define DEBUG_MOT(slot, drive, onoff) fprintf(stdout, "MOT: slot %d, drive %d, motor %d \n", slot, drive, onoff)
 #define DEBUG_DS(slot, drive, drives) fprintf(stdout, "DS:slot %d, drive %d, drive_select %d \n", slot, drive, drives)
@@ -259,7 +257,6 @@ void write_nybble(diskII& disk) { // cause a shift.
 }
 
 void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor *media) {
-    //diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
     diskII_controller *diskII_d = (diskII_controller *)get_slot_state(cpu, (SlotType_t)slot);
 
     if (media->data_size != 560 * 256) {
@@ -308,7 +305,6 @@ void mount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor 
 }
 
 void writeback_diskII_image(cpu_state *cpu, uint8_t slot, uint8_t drive) {
-    //diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
     diskII_controller *diskII_d = (diskII_controller *)get_slot_state(cpu, (SlotType_t)slot);
     diskII &disk = diskII_d->drive[drive];
 
@@ -326,7 +322,6 @@ void writeback_diskII_image(cpu_state *cpu, uint8_t slot, uint8_t drive) {
 }
 
 void unmount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive) {
-    //diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
     diskII_controller *diskII_d = (diskII_controller *)get_slot_state(cpu, (SlotType_t)slot);
 
     // we used to write disk image here, but, moved to mount.cpp
@@ -343,7 +338,6 @@ void unmount_diskII(cpu_state *cpu, uint8_t slot, uint8_t drive) {
 }
 
 drive_status_t diskii_status(cpu_state *cpu, uint64_t key) {
-    //diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
     uint8_t slot = key >> 8;
     uint8_t drive = key & 0xFF;
     diskII_controller *diskII_d = (diskII_controller *)get_slot_state(cpu, (SlotType_t)slot);
@@ -365,7 +359,6 @@ drive_status_t diskii_status(cpu_state *cpu, uint64_t key) {
 }
 
 bool any_diskii_motor_on(cpu_state *cpu) {
-    //diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
 
     // iterate slots. if a slot is a diskII, check if motor is on.
     // all slot data structures must start with a device ID so I know what to cast to.
@@ -382,7 +375,6 @@ bool any_diskii_motor_on(cpu_state *cpu) {
 }
 
 int diskii_tracknumber_on(cpu_state *cpu) {
-    //diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
     for (int i = 0; i < 8; i++) {
 
         diskII_controller *diskII_d = (diskII_controller *)get_slot_state(cpu, (SlotType_t)i);
@@ -419,12 +411,9 @@ int diskii_tracknumber_on(cpu_state *cpu) {
 
 uint8_t diskII_read_C0xx(void *context, uint16_t address) {
     cpu_state *cpu = (cpu_state *)context;
-    //diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
 
-    //uint16_t addr = address - 0xC080;
     int reg = address & 0x0F;
     uint8_t slot = (address >> 4) & 0x7;
-    //diskII_controller *thisSlot = &diskII_slot[slot];
     diskII_controller *thisSlot = (diskII_controller *)get_slot_state(cpu, (SlotType_t)slot);
     int drive = thisSlot->drive_select;
 
@@ -582,7 +571,6 @@ uint8_t diskII_read_C0xx(void *context, uint16_t address) {
 
 void diskII_write_C0xx(void *context, uint16_t address, uint8_t value) {
     cpu_state *cpu = (cpu_state *)context;
-    //diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
 
     uint16_t addr = address - 0xC080;
     int reg = addr & 0x0F;
@@ -633,31 +621,27 @@ void diskII_init(cpu_state *cpu, SlotType_t slot) {
     // clear out and reset all potential slots etc to sane states.
     diskII_controller * diskII_d = (diskII_controller *)get_slot_state(cpu, slot);
 
-    //for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 2; j++) {
-            diskII_d->drive[j].track = 0;
-            diskII_d->drive[j].phase0 = 0;
-            diskII_d->drive[j].phase1 = 0;
-            diskII_d->drive[j].phase2 = 0;
-            diskII_d->drive[j].phase3 = 0;
-            diskII_d->drive[j].last_phase_on = 0;
-            diskII_d->drive[j].image_index = 0;
-            diskII_d->drive[j].write_protect = 0 /* 1 */ ;
-            diskII_d->drive[j].bit_position = 0; // how many bits left in byte.
-            diskII_d->drive[j].read_shift_register = 0; // when bit position = 0, this is 0. As bit_position increments, we shift in the next bit of the byte at head_position.
-            diskII_d->drive[j].head_position = 0; // index into the track
-        }
-        diskII_d->drive_select = 0;
-        diskII_d->motor = 0;
-        diskII_d->mark_cycles_turnoff = 0; // when DRIVES OFF, set this to current cpu cycles. Then don't actually set motor=0 until one second (1M cycles) has passed. Then reset this to 0.
-    //}
+    for (int j = 0; j < 2; j++) {
+        diskII_d->drive[j].track = 0;
+        diskII_d->drive[j].phase0 = 0;
+        diskII_d->drive[j].phase1 = 0;
+        diskII_d->drive[j].phase2 = 0;
+        diskII_d->drive[j].phase3 = 0;
+        diskII_d->drive[j].last_phase_on = 0;
+        diskII_d->drive[j].image_index = 0;
+        diskII_d->drive[j].write_protect = 0 /* 1 */ ;
+        diskII_d->drive[j].bit_position = 0; // how many bits left in byte.
+        diskII_d->drive[j].read_shift_register = 0; // when bit position = 0, this is 0. As bit_position increments, we shift in the next bit of the byte at head_position.
+        diskII_d->drive[j].head_position = 0; // index into the track
+    }
+    diskII_d->drive_select = 0;
+    diskII_d->motor = 0;
+    diskII_d->mark_cycles_turnoff = 0; // when DRIVES OFF, set this to current cpu cycles. Then don't actually set motor=0 until one second (1M cycles) has passed. Then reset this to 0.
 }
 
 
 void diskii_reset(void *context) {
     cpu_state *cpu = (cpu_state *)context;
-    //diskII_controller * diskII_slot = (diskII_controller *)get_module_state(cpu, MODULE_DISKII);
-    //diskII_controller * diskII_d = (diskII_controller *)get_slot_state(cpu, slot);
     printf("diskii_reset\n");
     // TODO: this should be a callback from the CPU reset handler.
     for (int i = 0; i < 8; i++) {
@@ -674,11 +658,9 @@ void diskii_reset(void *context) {
 void init_slot_diskII(computer_t *computer, SlotType_t slot) {
     cpu_state *cpu = computer->cpu;
     
-    //diskII_controller * diskII_slot = new diskII_controller[8];
     diskII_controller *diskII_d = new diskII_controller();
 
     // set in CPU so we can reference later
-    //set_module_state(cpu, MODULE_DISKII, diskII_slot);
     diskII_d->id = DEVICE_ID_DISK_II;
     set_slot_state(cpu, slot, diskII_d);
     
@@ -753,15 +735,10 @@ void init_slot_diskII(computer_t *computer, SlotType_t slot) {
 
     cpu->mmu->set_slot_rom(slot, rom_data);
 
-    // load the firmware into the slot memory
-    /* for (int i = 0; i < 256; i++) {
-        raw_memory_write(cpu, 0xC000 + (slot * 0x0100) + i, rom_data[i]);
-    } */
-
     // register drives with mounts for status reporting
     uint64_t key = (slot << 8) | 0;
-    cpu->mounts->register_drive(DRIVE_TYPE_DISKII, key);
-    cpu->mounts->register_drive(DRIVE_TYPE_DISKII, key + 1);
+    computer->mounts->register_drive(DRIVE_TYPE_DISKII, key);
+    computer->mounts->register_drive(DRIVE_TYPE_DISKII, key + 1);
 
     computer->register_reset_handler({diskii_reset, cpu});
 

@@ -119,8 +119,11 @@ void video_system_t::clear() {
     SDL_RenderClear(renderer);
 }
 
-void video_system_t::raise(SDL_Window *window) {
+void video_system_t::raise() {
     SDL_RaiseWindow(window);
+}
+void video_system_t::raise(SDL_Window *windowp) {
+    SDL_RaiseWindow(windowp);
 }
 
 void video_system_t::hide(SDL_Window *window) {
@@ -131,7 +134,6 @@ void video_system_t::show(SDL_Window *window) {
     SDL_ShowWindow(window);
 }
 
-//void video_system_t::window_resize(int new_w, int new_h) {
 void video_system_t::window_resize(const SDL_Event &event) {
     int new_w = event.window.data1;
     int new_h = event.window.data2;
@@ -160,7 +162,5 @@ void video_system_t::toggle_fullscreen() {
 
 
 void video_system_t::display_capture_mouse(bool capture) {
-    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    //video_system_t *vs = cpu->video_system;
     SDL_SetWindowRelativeMouseMode(window, capture);
 }

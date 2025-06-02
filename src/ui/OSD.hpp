@@ -50,9 +50,9 @@
 class OSD {
 public:
     EventQueue *event_queue = nullptr;
+    computer_t *computer = nullptr;
 
 protected:
-    computer_t *computer = nullptr;
 
     int slideStatus = SLIDE_NONE;
     int currentSlideStatus = SLIDE_OUT;

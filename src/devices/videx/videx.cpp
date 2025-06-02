@@ -21,6 +21,7 @@
 #include "debug.hpp"
 #include "display/display.hpp"
 #include "videx_80x24.hpp"
+#include "videosystem.hpp"
 
 void videx_set_line_dirty(videx_data * videx_d, int line) {
     if (line>=0 && line<24) {
@@ -143,8 +144,9 @@ void videx_write_C0xx(void *context, uint16_t addr, uint8_t data) {
 void init_slot_videx(computer_t *computer, SlotType_t slot) {
     cpu_state *cpu = computer->cpu;
     
+    video_system_t *vs = computer->video_system;
     videx_data * videx_d = new videx_data;
-    video_system_t *vs = cpu->video_system;
+    videx_d->video_system = vs;
 
     videx_d->id = DEVICE_ID_VIDEX;
     // set in CPU so we can reference later

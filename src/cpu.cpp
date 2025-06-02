@@ -124,7 +124,3 @@ void cpu_state::reset() {
     halt = 0; // if we were STPed etc.
     pc = read_word(RESET_VECTOR);
 }
-
-void cpu_state::set_video_system(video_system_t *video_system) {
-    this->video_system = video_system;
-}

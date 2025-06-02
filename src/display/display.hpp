@@ -119,6 +119,7 @@ public:
 
     uint8_t *buffer = nullptr;
     EventQueue *event_queue;
+    video_system_t *video_system;
 
 } display_state_t;
 
@@ -143,5 +144,4 @@ void display_dump_hires_page(cpu_state *cpu, int page);
 void display_dump_text_page(cpu_state *cpu, int page);
 
 void flip_display_scale_mode(display_state_t *ds);
-void raise_window(cpu_state *cpu);
 void set_display_mono_color(display_state_t *ds, display_mono_color_t mode);

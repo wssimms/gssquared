@@ -51,6 +51,7 @@
 #include "debugger/debugwindow.hpp"
 #include "computer.hpp"
 #include "mmus/mmu_ii.hpp"
+#include "util/EventTimer.hpp"
 
 /**
  * References: 
@@ -139,7 +140,7 @@ void run_cpus(computer_t *computer) {
             switch (cpu->execution_mode) {
                     case EXEC_NORMAL:
                         while (cpu->cycles - last_cycle_count < cycles_for_this_burst) { // 1/60th second.
-                            cpu->event_timer.processEvents(cpu->cycles); // TODO: implement a cache to speed up this check.
+                            computer->event_timer->processEvents(cpu->cycles); // TODO: implement a cache to speed up this check.
                             (cpu->execute_next)(cpu);
                             if (computer->debug_window->window_open) {
                                 /* if (cpu->trace_entry.eaddr == 0x03FE) {
@@ -157,7 +158,7 @@ void run_cpus(computer_t *computer) {
                         break;
                     case EXEC_STEP_INTO:
                         while (cpu->instructions_left) {
-                            cpu->event_timer.processEvents(cpu->cycles); // TODO: implement a cache to speed up this check.
+                            computer->event_timer->processEvents(cpu->cycles); // TODO: implement a cache to speed up this check.
                             (cpu->execute_next)(cpu);
                             cpu->instructions_left--;
                         }
@@ -226,7 +227,7 @@ void run_cpus(computer_t *computer) {
                         soundeffects_play(event->getEventData());
                         break;
                     case EVENT_REFOCUS:
-                        raise_window(cpu);
+                        computer->video_system->raise();
                         break;
                     case EVENT_MODAL_SHOW:
                         osd->show_diskii_modal(event->getEventKey(), event->getEventData());
@@ -238,13 +239,13 @@ void run_cpus(computer_t *computer) {
                             printf("EVENT_MODAL_CLICK: %llu %llu\n", key, data);
                             if (data == 1) {
                                 // save and unmount.
-                                osd->cpu->mounts->unmount_media(key, SAVE_AND_UNMOUNT);
+                                computer->mounts->unmount_media(key, SAVE_AND_UNMOUNT);
                                 osd->event_queue->addEvent(new Event(EVENT_PLAY_SOUNDEFFECT, 0, SE_SHUGART_OPEN));
                             } else if (data == 2) {
                                 // save as - need to open file dialog, get new filename, change media filename, then unmount.
                             } else if (data == 3) {
                                 // discard
-                                osd->cpu->mounts->unmount_media(key, DISCARD);
+                                computer->mounts->unmount_media(key, DISCARD);
                                 osd->event_queue->addEvent(new Event(EVENT_PLAY_SOUNDEFFECT, 0, SE_SHUGART_OPEN));
                             } else if (data == 4) {
                                 // cancel
@@ -436,10 +437,9 @@ int main(int argc, char *argv[]) {
     // need a function in MMU to "reset page to default".
 
     computer->cpu->set_processor(platform->processor_type);
-    computer->cpu->mounts = new Mounts(computer->cpu); // TODO: this should happen in a CPU constructor.
+    computer->mounts = new Mounts(computer->cpu); // TODO: this should happen in a CPU constructor.
 
-    computer->cpu->set_video_system(computer->video_system);
-    //computer->cpu->video_system = new video_system_t();
+    //computer->cpu->set_video_system(computer->video_system);
 
     init_display_font(rd);
 
@@ -466,7 +466,7 @@ int main(int argc, char *argv[]) {
         disk_mount_t disk_mount = disks_to_mount.back();
         disks_to_mount.pop_back(); 
 
-        computer->cpu->mounts->mount_media(disk_mount);
+        computer->mounts->mount_media(disk_mount);
     }
 
     video_system_t *vs = computer->video_system;
@@ -499,7 +499,6 @@ int main(int argc, char *argv[]) {
 
     //dump_full_speaker_event_log();
 
-    //delete computer->cpu->video_system;
     delete computer;
     return 0;
 }

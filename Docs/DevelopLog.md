@@ -4242,3 +4242,15 @@ But I -still- have the entire display in VRAM texture that I can use to create t
 
 (Just tested on linux - this made an even bigger performance improvement there, I have frame draws getting down to 100us! I wonder how windows will react..)
 ok, I got build working on Win with PROGRAM_FILES=ON. The other causes it to try to insert /share/blah. still need to switch windows to use cpkg.
+
+## June 2, 2025
+
+got event_queue pulled out of cpu and into computer. Getting there! A good next bit will be 'mounts'. 
+Done. Also doing a bunch of misc. cleanup. Some functions have multiple iterations of commented-out code. ick.
+Got video_system out of cpu too.
+
+[ ] For efficiency, we should draw the control panel template - the styling, "Control Panel" text, etc whatever nice graphics we want, into a texture and then just lay down that texture first with the dynamic elements on top of it. Right now not a big deal, but, if we want something really nice-looking it will need to be done this way.
+
+Event_Timer needs to go into computer too. This should involve only the mockingboard right now.. yep, and done. 
+Two main things left in CPU that should go, are the clocking stuff (not the clock counter, but the stuff that determines clock speed) and module_store / slot_store.
+I bet I can remove a lot of headers from cpu.hpp..
