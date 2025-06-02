@@ -196,9 +196,9 @@ void video_system_t::toggle_fullscreen() {
         SDL_SetWindowFullscreen(window, display_fullscreen_mode);
         SDL_free(modes);
     } else {
-        // Reapply window size and aspect ratio constraints
-        SDL_SetWindowAspectRatio(window, aspect_ratio, aspect_ratio);
+        // Reapply window size and aspect ratio constraints in reverse order from above.
         SDL_SetWindowFullscreen(window, display_fullscreen_mode);
+        SDL_SetWindowAspectRatio(window, aspect_ratio, aspect_ratio);
     }   
 }
 
