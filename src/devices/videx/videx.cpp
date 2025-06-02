@@ -20,6 +20,7 @@
 #include "videx.hpp"
 #include "debug.hpp"
 #include "display/display.hpp"
+#include "display/types.hpp"
 #include "videx_80x24.hpp"
 #include "videosystem.hpp"
 
@@ -156,6 +157,9 @@ void init_slot_videx(computer_t *computer, SlotType_t slot) {
 
     videx_d->char_memory = new uint8_t[VIDEX_CHAR_SET_COUNT * VIDEX_CHARSET_SIZE];
 
+    videx_d->buffer = new uint8_t[VIDEX_SCREEN_WIDTH * VIDEX_SCREEN_HEIGHT * sizeof(RGBA)];
+    memset(videx_d->buffer, 0, VIDEX_SCREEN_WIDTH * VIDEX_SCREEN_HEIGHT * sizeof(RGBA));
+    
     uint8_t registers_init[18] = {
         0x7B,         0x50,        0x62,        0x29,        0x1B,
         0x08,        0x18,        0x19,        0x00,        0x08,

@@ -4254,3 +4254,5 @@ Got video_system out of cpu too.
 Event_Timer needs to go into computer too. This should involve only the mockingboard right now.. yep, and done. 
 Two main things left in CPU that should go, are the clocking stuff (not the clock counter, but the stuff that determines clock speed) and module_store / slot_store.
 I bet I can remove a lot of headers from cpu.hpp..
+
+The Videx code should be modified to only LockTexture once per frame, just like the updated display code. done

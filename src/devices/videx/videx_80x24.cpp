@@ -19,6 +19,7 @@
 #include "videx.hpp"
 #include "videx_80x24.hpp"
 #include "display/display.hpp"
+#include "display/types.hpp"
 #include "videosystem.hpp"
 
 uint32_t videx_color_table[DM_NUM_MONO_MODES] = {
@@ -91,36 +92,12 @@ void render_videx_scanline_80x24(cpu_state *cpu, videx_data * videx_d, int y, vo
 void videx_render_line(cpu_state *cpu, videx_data * videx_d, int y) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
 
-    if (y < 0 || y >= 24) {
-        return;
-    }
-
-    // this writes into texture - do not put border stuff here.
-    SDL_Rect updateRect = {
-        0,          // X position (left of window))
-        y * 8,      // Y position (8 pixels per character)
-        BASE_WIDTH,        // Width of line
-        8           // Height of line
-    };
-
     // the texture is our canvas. When we 'lock' it, we get a pointer to the pixels, and the pitch which is pixels per row
     // of the area. Since all our chars are the same we can just use the same pitch for all our chars.
 
-    void* pixels;
-    int pitch;
+    void* pixels = videx_d->buffer + (y * 9 * VIDEX_SCREEN_WIDTH * 4);
+    render_videx_scanline_80x24(cpu, videx_d, y, pixels, VIDEX_SCREEN_WIDTH * 4);
 
-    SDL_Rect vupdateRect = {
-        0,          // X position (left of window))
-        y * 9,      // Y position (8 pixels per character)
-        VIDEX_SCREEN_WIDTH,        // Width of line
-        9          // Height of line
-    };
-    if (!SDL_LockTexture(videx_d->videx_texture, &vupdateRect, &pixels, &pitch)) {
-        fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
-        return;
-    }
-    render_videx_scanline_80x24(cpu, videx_d, y, pixels, pitch);
-    SDL_UnlockTexture(videx_d->videx_texture);
 }
 
 /**
@@ -152,13 +129,26 @@ void update_display_videx(cpu_state *cpu, /* SlotType_t slot */ videx_data * vid
         }
     }
 
+    int framedirty = 0;
     for (int line = 0; line < 24; line++) {
         if (videx_d->line_dirty[line]) {
             videx_render_line(cpu, videx_d, line);
             videx_d->line_dirty[line] = false;
+            framedirty=1;
         }
     }
-    
+// copy buffer into texture in one go.
+    if (framedirty) {
+        void* pixels;
+        int pitch;
+        if (!SDL_LockTexture(videx_d->videx_texture, NULL, &pixels, &pitch)) {
+            fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
+            return;
+        }
+        memcpy(pixels, videx_d->buffer, VIDEX_SCREEN_WIDTH * VIDEX_SCREEN_HEIGHT * sizeof(RGBA));
+        SDL_UnlockTexture(videx_d->videx_texture);
+    }
+
     SDL_SetTextureBlendMode(videx_d->videx_texture, SDL_BLENDMODE_ADD); // double-draw this to increase brightness.
     vs->render_frame(videx_d->videx_texture);
     vs->render_frame(videx_d->videx_texture);
