@@ -68,7 +68,7 @@ video_system_t::video_system_t(computer_t *computer) {
         return true;
     });
     computer->dispatch->registerHandler(SDL_EVENT_MOUSE_BUTTON_DOWN, [this](const SDL_Event &event) {
-        event_queue->addEvent(new Event(EVENT_SHOW_MESSAGE, 0, (uint64_t) &"Mouse Captured, release with F1"));
+        event_queue->addEvent(new Event(EVENT_SHOW_MESSAGE, 0, "Mouse Captured, release with F1"));
         display_capture_mouse(true);
         return true;
     });

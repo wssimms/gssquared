@@ -118,6 +118,7 @@ public:
     line_mode_t line_mode[24]; // 0 = TEXT, 1 = LO RES GRAPHICS, 2 = HI RES GRAPHICS
 
     uint8_t *buffer = nullptr;
+    EventQueue *event_queue;
 
 } display_state_t;
 

@@ -262,12 +262,18 @@ uint8_t read_game_switch_2(void *context, uint16_t address) {
 bool recompute_gamepads(gamec_state_t *gp_d) {
     int gpcount;
     SDL_JoystickID *gpid = SDL_GetGamepads(&gpcount);
-    printf("Gamepad count: %d\n", gpcount);
+    //printf("Gamepad count: %d\n", gpcount);
 
     for (int i = 0; i < gpcount; i++) {
         const char *nm = SDL_GetGamepadNameForID(gpid[i]);
         printf("Gamepad ID: %d, name: %s\n", gpid[i], nm);
     }
+    if (gpcount > 0) {
+        gp_d->event_queue->addEvent(new Event(EVENT_SHOW_MESSAGE, 0, "Gamepad connected"));
+    } else {
+        gp_d->event_queue->addEvent(new Event(EVENT_SHOW_MESSAGE, 0, "No gamepads connected, joystick emulation via mouse"));
+    }
+
     // if there is only one, connect to it.
     if (gpcount == 0) {
         gp_d->gps[0].game_type = GAME_INPUT_TYPE_MOUSE;
@@ -340,6 +346,8 @@ void init_mb_game_controller(computer_t *computer, SlotType_t slot) {
     SDL_InitSubSystem(SDL_INIT_GAMEPAD);
     // alloc and init display state
     gamec_state_t *ds = new gamec_state_t;
+    ds->event_queue = cpu->event_queue;
+
     ds->game_switch_0 = 0;
     ds->game_switch_1 = 0;
     ds->game_switch_2 = 0;

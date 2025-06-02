@@ -75,6 +75,8 @@ typedef struct gamec_state_t {
     int paddle_flip_01;
 
     gamepad_state gps[MAX_GAMEPAD_COUNT];   
+
+    EventQueue *event_queue;
 } gamec_state_t;
 
 void init_mb_game_controller(computer_t *computer, SlotType_t slot);

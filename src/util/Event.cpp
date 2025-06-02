@@ -21,3 +21,7 @@
 Event::Event(uint64_t event_type, uint64_t event_key, uint64_t event_data) : event_type(event_type), event_key(event_key), event_data(event_data) {
     event_ts = SDL_GetTicks();
 }
+
+Event::Event(uint64_t event_type, uint64_t event_key, const char *event_data) : event_type(event_type), event_key(event_key), event_data((uint64_t)event_data) {
+    event_ts = SDL_GetTicks();
+}

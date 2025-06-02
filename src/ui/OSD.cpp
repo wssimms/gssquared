@@ -233,7 +233,7 @@ SDL_Window* OSD::get_window() {
 }
 
 void OSD::set_raise_window() {
-    cpu->event_queue->addEvent(new Event(EVENT_REFOCUS, 0, 0));
+    cpu->event_queue->addEvent(new Event(EVENT_REFOCUS, 0, (uint64_t)0));
 }
 
 OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManager_t *slot_manager, int window_width, int window_height) 

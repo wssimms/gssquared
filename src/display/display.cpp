@@ -555,6 +555,8 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     // alloc and init display state
     display_state_t *ds = new display_state_t;
     video_system_t *vs = cpu->video_system;
+    ds->event_queue = cpu->event_queue;
+
     // Create the screen texture
     ds->screenTexture = SDL_CreateTexture(vs->renderer,
         SDL_PIXELFORMAT_RGBA8888,
@@ -606,14 +608,28 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
 }
 
 
+void send_engine_message(display_state_t *ds) {
+    static char buffer[256];
+    const char *display_color_engine_names[] = {
+        "NTSC",
+        "RGB",
+        "Monochrome"
+    };
+
+    snprintf(buffer, sizeof(buffer), "Display Engine Set to %s", display_color_engine_names[ds->display_color_engine]);
+    ds->event_queue->addEvent(new Event(EVENT_SHOW_MESSAGE, 0, buffer));
+}
+
 void toggle_display_engine(display_state_t *ds) {
     ds->display_color_engine = (display_color_engine_t)((ds->display_color_engine + 1) % DM_NUM_COLOR_ENGINES);
     force_display_update(ds);
+    send_engine_message(ds);
 }
 
 void set_display_engine(display_state_t *ds, display_color_engine_t mode) {
     ds->display_color_engine = mode;
     force_display_update(ds);
+    send_engine_message(ds);
 }
 
 void set_display_mono_color(display_state_t *ds, display_mono_color_t mode) {

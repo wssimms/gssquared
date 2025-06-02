@@ -11,6 +11,19 @@
 #include "util/EventDispatcher.hpp"
 
 
+void send_clock_mode_message(cpu_state *cpu) {
+    static char buffer[256];
+    const char *clock_mode_names[] = {
+        "Ludicrous Speed",
+        "1.0205MHz",
+        "2.8 MHz",
+        "4.0 MHz"
+    };
+
+    snprintf(buffer, sizeof(buffer), "Clock Mode Set to %s", clock_mode_names[cpu->clock_mode]);
+    cpu->event_queue->addEvent(new Event(EVENT_SHOW_MESSAGE, 0, buffer));
+}
+
 computer_t::computer_t() {
     sys_event = new EventDispatcher(); // different queue for "system" events that get processed first.
     dispatch = new EventDispatcher(); // has to be very first thing, devices etc are going to immediately register handlers.
@@ -36,6 +49,7 @@ computer_t::computer_t() {
         }
         if (key == SDLK_F9) { 
             toggle_clock_mode(cpu);
+            send_clock_mode_message(cpu);
             return true; 
         }
         return false;
