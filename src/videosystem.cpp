@@ -192,10 +192,10 @@ void video_system_t::toggle_fullscreen() {
             printf("Mode %d: %dx%d\n", i, modes[i]->w, modes[i]->h);
         }
         selected_mode = modes[0];
+        SDL_free(modes);
 #endif
         SDL_SetWindowFullscreenMode(window, selected_mode);
 
-        SDL_free(modes);
         SDL_SetWindowFullscreen(window, display_fullscreen_mode);
     } else {
         SDL_SetWindowFullscreen(window, display_fullscreen_mode);
