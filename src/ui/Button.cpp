@@ -114,7 +114,7 @@ void Button_t::render(SDL_Renderer* renderer) {
             SDL_RenderDebugText(renderer, content_x + (content_w - wid) / 2, content_y + (content_h - hei) / 2, text.c_str());
         } else {
             text_render->setColor((style.text_color >> 24) & 0xFF, (style.text_color >> 16) & 0xFF, (style.text_color >> 8) & 0xFF, calc_opacity(style.text_color)); 
-            text_render->render(text, content_x, content_y);
+            text_render->render(text, content_x + (content_w /2), content_y, TEXT_ALIGN_CENTER);
         }
     } else if (buttonType == BT_Atlas) {
         aa->draw(assetID, content_x, content_y);

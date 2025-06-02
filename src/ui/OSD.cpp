@@ -423,7 +423,7 @@ OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Wind
     ModalStyle.border_color = 0xFF0000FF;
     ModalStyle.padding = 2;
     
-    diskii_save_con = new ModalContainer_t(renderer, 10, "Disk Data has been modified. Save?", ModalStyle);
+    diskii_save_con = new ModalContainer_t(renderer, text_render, 10, "Disk Data has been modified. Save?", ModalStyle);
     diskii_save_con->set_position(300, 200);
     diskii_save_con->set_size(500, 200);
     // Create text buttons for the disk save dialog
@@ -443,6 +443,10 @@ OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Wind
     save_as_btn->set_size(100, 20);
     discard_btn->set_size(100, 20);
     cancel_btn->set_size(100, 20);
+    save_btn->set_text_renderer(text_render);
+    //save_as_btn->set_text_renderer(text_render);
+    discard_btn->set_text_renderer(text_render);
+    cancel_btn->set_text_renderer(text_render);
     save_btn->set_click_callback(modal_diskii_click, new diskii_modal_callback_data_t{this, diskii_save_con, 1});
     //save_as_btn->set_click_callback(modal_diskii_click, new diskii_modal_callback_data_t{this, diskii_save_con, 2});
     discard_btn->set_click_callback(modal_diskii_click, new diskii_modal_callback_data_t{this, diskii_save_con, 3});
@@ -531,6 +535,7 @@ void OSD::update() {
     if (activeModal) {
         activeModal->render();
     }
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0xFF); // TODO: a dirty hack to make sure the background is black.
 }
 
 void OSD::set_heads_up_message(const std::string &text, int count) {

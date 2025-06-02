@@ -19,16 +19,18 @@
 
 #include <string>
 #include "Container.hpp"
+#include "util/TextRenderer.hpp"
 
 class ModalContainer_t : public Container_t {
 private:
     std::string msg_text;
     uint64_t key;
     uint64_t data;
-
+    TextRenderer *text_render;
+    
 public:
-    ModalContainer_t(SDL_Renderer *rendererp, size_t max_tiles, const char* msg_text, const Style_t& initial_style);
-    ModalContainer_t(SDL_Renderer *rendererp, size_t max_tiles, const char* msg_text);
+    ModalContainer_t(SDL_Renderer *rendererp, TextRenderer *text_render, size_t max_tiles, const char* msg_text, const Style_t& initial_style);
+    ModalContainer_t(SDL_Renderer *rendererp, TextRenderer *text_render, size_t max_tiles, const char* msg_text);
     
     void layout() override;
     void render() override;

@@ -4256,3 +4256,8 @@ Two main things left in CPU that should go, are the clocking stuff (not the cloc
 I bet I can remove a lot of headers from cpu.hpp..
 
 The Videx code should be modified to only LockTexture once per frame, just like the updated display code. done
+
+The modal dialog should be updated with fonts that are actually readable. Done, though I just noticed that if you hover the Cancel button it changes the whole frame coloring. Something's not setting the colors it wants.
+
+* UI principle: either save and restore all context you touch, or, just set all the context you need every time.
+
