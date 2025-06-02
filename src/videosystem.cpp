@@ -179,18 +179,29 @@ void video_system_t::window_resize(const SDL_Event &event) {
 
 void video_system_t::toggle_fullscreen() {
     display_fullscreen_mode = (display_fullscreen_mode_t)((display_fullscreen_mode + 1) % NUM_FULLSCREEN_MODES);
-    int num_displays;
-    //SDL_DisplayID *display_ids = SDL_GetDisplays(&num_displays);
-    SDL_DisplayID did = SDL_GetDisplayForWindow(window);
-    int num_modes;
-    SDL_DisplayMode **modes = SDL_GetFullscreenDisplayModes(did, &num_modes);
-    for (int i = 0; i < num_modes; i++) {
-        printf("Mode %d: %dx%d\n", i, modes[i]->w, modes[i]->h);
-    }
-    SDL_SetWindowFullscreenMode(window, modes[0]);
-    SDL_free(modes);
-    SDL_SetWindowFullscreen(window, display_fullscreen_mode);
+
+    if (display_fullscreen_mode == DISPLAY_FULLSCREEN_MODE) {
+        SDL_DisplayMode *selected_mode;
+#ifdef __linux__
+        selected_mode = NULL;
+#else
+        SDL_DisplayID did = SDL_GetDisplayForWindow(window);
+        int num_modes;
+        SDL_DisplayMode **modes = SDL_GetFullscreenDisplayModes(did, &num_modes);
+        for (int i = 0; i < num_modes; i++) {
+            printf("Mode %d: %dx%d\n", i, modes[i]->w, modes[i]->h);
+        }
+        selected_mode = modes[0];
+#endif
+        SDL_SetWindowFullscreenMode(window, selected_mode);
+
+        SDL_free(modes);
+        SDL_SetWindowFullscreen(window, display_fullscreen_mode);
+    } else {
+        SDL_SetWindowFullscreen(window, display_fullscreen_mode);
+    }   
 }
+
 
 void video_system_t::display_capture_mouse(bool capture) {
     SDL_SetWindowRelativeMouseMode(window, capture);
