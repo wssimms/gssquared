@@ -49,6 +49,7 @@ struct video_system_t {
 
     int border_width = BORDER_WIDTH;
     int border_height = BORDER_HEIGHT;
+    float aspect_ratio = 0.0;
 
     EventQueue *event_queue = nullptr;
 

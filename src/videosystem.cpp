@@ -21,11 +21,11 @@ video_system_t::video_system_t(computer_t *computer) {
 
     int window_width = (BASE_WIDTH + border_width*2) * SCALE_X;
     int window_height = (BASE_HEIGHT + border_height*2) * SCALE_Y;
-    float aspect_ratio = (float)window_width / (float)window_height;
+    aspect_ratio = (float)window_width / (float)window_height;
 
-    display_fullscreen_mode = DISPLAY_WINDOWED_MODE;
+    /* display_fullscreen_mode = DISPLAY_WINDOWED_MODE;
     event_queue = computer->event_queue;
-
+ */
     window = SDL_CreateWindow(
         "GSSquared - Apple ][ Emulator", 
         (BASE_WIDTH + border_width*2) * SCALE_X, 
@@ -39,7 +39,7 @@ video_system_t::video_system_t(computer_t *computer) {
 
     // Set minimum and maximum window sizes to maintain reasonable dimensions
     SDL_SetWindowMinimumSize(window, window_width / 2, window_height / 2);  // Half size
-    SDL_SetWindowMaximumSize(window, window_width * 2, window_height * 2);  // 4x size
+    //SDL_SetWindowMaximumSize(window, window_width * 2, window_height * 2);  // 4x size
     
     // Set the window's aspect ratio to match the Apple II display (560:384)
     SDL_SetWindowAspectRatio(window, aspect_ratio, aspect_ratio);
@@ -182,9 +182,7 @@ void video_system_t::toggle_fullscreen() {
 
     if (display_fullscreen_mode == DISPLAY_FULLSCREEN_MODE) {
         SDL_DisplayMode *selected_mode;
-#ifdef __linux__
-        selected_mode = NULL;
-#else
+
         SDL_DisplayID did = SDL_GetDisplayForWindow(window);
         int num_modes;
         SDL_DisplayMode **modes = SDL_GetFullscreenDisplayModes(did, &num_modes);
@@ -192,12 +190,14 @@ void video_system_t::toggle_fullscreen() {
             printf("Mode %d: %dx%d\n", i, modes[i]->w, modes[i]->h);
         }
         selected_mode = modes[0];
-        SDL_free(modes);
-#endif
-        SDL_SetWindowFullscreenMode(window, selected_mode);
 
+        SDL_SetWindowAspectRatio(window, 0.0f, 0.0f);
+        SDL_SetWindowFullscreenMode(window, selected_mode);
         SDL_SetWindowFullscreen(window, display_fullscreen_mode);
+        SDL_free(modes);
     } else {
+        // Reapply window size and aspect ratio constraints
+        SDL_SetWindowAspectRatio(window, aspect_ratio, aspect_ratio);
         SDL_SetWindowFullscreen(window, display_fullscreen_mode);
     }   
 }
