@@ -46,11 +46,6 @@ void render_lores_scanline(cpu_state *cpu, int y, void *pixels, int pitch) {
     display_page_t *display_page = ds->display_page_table;
     uint16_t *TEXT_PAGE_TABLE = display_page->text_page_table;
 
-    // Bounds checking
-    if (y < 0 || y >= 24) {
-        return;
-    }
-
     for (int x = 0; x < 40; x++) {
         //uint8_t character = raw_memory_read(cpu, TEXT_PAGE_TABLE[y] + x);
         uint8_t character = cpu->mmu->read_raw(TEXT_PAGE_TABLE[y] + x);

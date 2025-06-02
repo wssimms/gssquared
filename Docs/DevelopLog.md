@@ -4261,3 +4261,18 @@ The modal dialog should be updated with fonts that are actually readable. Done, 
 
 * UI principle: either save and restore all context you touch, or, just set all the context you need every time.
 
+videx: Videx color used should track video engine mode: color and RGB should be white; mono should use selected mono color.
+Currently these routines live in display. They should live in computer.
+
+And we should have a single flag somewhere in videosystem to force a full frame redraw. Key frame draw as it were.
+
+that's sort of in place. But, let's think about the engines. We have engine, which is basically the type of virtual "monitor" connected.
+NTSC; RGB; Monochrome.
+But we also have different video sources: Videx; Apple II Display; GS display; etc.
+for now I need to push the current display engine and mono settings down into videosystem so videx can get it. And, practically, these settings ought to be in the videosystem itself.
+
+Remove bounds checking from all scanline emitters, they're not necessary.
+
+ok, the breakdown is this:
+stuff that is general to the emulaTOR - like how we present an application window to the OS; how we draw pixels, and scale; and whether the user wants ntsc, rgb, or monochrome, are decided by the app. It sets values into videosystem; the various display modules can get those values to make rendering decisions. They do not need to handle 
+BUT, things like the NTSC configuration is done specifically for the NTSC rendering system in the emulaTED, which is specific to the apple II display module. Videx has no need of it, nor will the Apple IIgs SHR stuff, which will be much simpler direct pixel mapping from GS SHR buffer to modern video buffer.

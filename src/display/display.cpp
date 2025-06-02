@@ -196,8 +196,8 @@ void update_display_apple2(cpu_state *cpu) {
 
     int updated = 0;
     for (int line = 0; line < 24; line++) {
-        if (ds->dirty_line[line]) {
-            switch (ds->display_color_engine) {
+        if (vs->force_full_frame_redraw || ds->dirty_line[line]) {
+            switch (vs->display_color_engine) {
                 case DM_ENGINE_NTSC:
                     render_line_ntsc(cpu, line);
                     break;
@@ -223,6 +223,7 @@ void update_display_apple2(cpu_state *cpu) {
         memcpy(pixels, ds->buffer, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA)); // load all buffer into texture
         SDL_UnlockTexture(ds->screenTexture);
     }
+    vs->force_full_frame_redraw = false;
     vs->render_frame(ds->screenTexture);
 }
 
@@ -297,32 +298,6 @@ void set_graphics_mode(display_state_t *ds, display_graphics_mode_t mode) {
     update_line_mode(ds);
 }
 
-#if 0
-void flip_display_color_engine(cpu_state *cpu) {
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    if (ds->display_color_engine == DM_ENGINE_RGB) {
-        ds->display_color_engine = DM_ENGINE_NTSC;
-    } else {
-        ds->display_color_engine = DM_ENGINE_RGB;
-    }
-    force_display_update(cpu);
-}
-#endif
-
-void flip_display_scale_mode(display_state_t *ds) {
-    SDL_ScaleMode scale_mode;
-
-    if (ds->display_pixel_mode == DM_PIXEL_FUZZ) {
-        ds->display_pixel_mode = DM_PIXEL_SQUARE;
-        scale_mode = SDL_SCALEMODE_NEAREST;
-    } else {
-        ds->display_pixel_mode = DM_PIXEL_FUZZ;
-        scale_mode = SDL_SCALEMODE_LINEAR;
-    }
-    SDL_SetTextureScaleMode(ds->screenTexture, scale_mode);
-    force_display_update(ds);
-}
-
 // anything we lock we have to completely replace.
 
 void render_line_ntsc(cpu_state *cpu, int y) {
@@ -379,10 +354,9 @@ void render_line_mono(cpu_state *cpu, int y) {
     else if (mode == LM_HIRES_MODE) render_hgrng_scanline(cpu, y, (uint8_t *)pixels);
     else render_text_scanline_ng(cpu, y);
 
-    mono_color_value = mono_color_table[ds->display_mono_color];
+    mono_color_value = vs->get_mono_color();
 
     processAppleIIFrame_Mono(frameBuffer + (y * 8 * BASE_WIDTH), (RGBA *)pixels, y * 8, (y + 1) * 8, mono_color_value);
-
 }
 
 uint8_t txt_bus_read_C050(void *context, uint16_t address) {
@@ -390,7 +364,7 @@ uint8_t txt_bus_read_C050(void *context, uint16_t address) {
     // set graphics mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Graphics Mode\n");
     set_display_mode(ds, GRAPHICS_MODE);
-    force_display_update(ds);
+    ds->video_system->set_full_frame_redraw();
     return 0;
 }
 
@@ -404,7 +378,7 @@ uint8_t txt_bus_read_C051(void *context, uint16_t address) {
 // set text mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Text Mode\n");
     set_display_mode(ds, TEXT_MODE);
-    force_display_update(ds);
+    ds->video_system->set_full_frame_redraw();
     return 0;
 }
 
@@ -418,7 +392,7 @@ uint8_t txt_bus_read_C052(void *context, uint16_t address) {
     // set full screen
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Full Screen\n");
     set_split_mode(ds, FULL_SCREEN);
-    force_display_update(ds);
+    ds->video_system->set_full_frame_redraw();
     return 0;
 }
 
@@ -432,7 +406,7 @@ uint8_t txt_bus_read_C053(void *context, uint16_t address) {
     // set split screen
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Split Screen\n");
     set_split_mode(ds, SPLIT_SCREEN);
-    force_display_update(ds);
+    ds->video_system->set_full_frame_redraw();
     return 0;
 }
 void txt_bus_write_C053(void *context, uint16_t address, uint8_t value) {
@@ -445,7 +419,7 @@ uint8_t txt_bus_read_C054(void *context, uint16_t address) {
     // switch to screen 1
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Switching to screen 1\n");
     set_display_page1(ds);
-    force_display_update(ds);
+    ds->video_system->set_full_frame_redraw();
     return 0;
 }
 void txt_bus_write_C054(void *context, uint16_t address, uint8_t value) {
@@ -458,7 +432,7 @@ uint8_t txt_bus_read_C055(void *context, uint16_t address) {
     // switch to screen 2
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Switching to screen 2\n");
     set_display_page2(ds);
-    force_display_update(ds);
+    ds->video_system->set_full_frame_redraw();
     return 0;
 }
 
@@ -472,7 +446,7 @@ uint8_t txt_bus_read_C056(void *context, uint16_t address) {
     // set lo-res (graphics) mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Lo-Res Mode\n");
     set_graphics_mode(ds, LORES_MODE);
-    force_display_update(ds);
+    ds->video_system->set_full_frame_redraw();
     return 0;
 }
 
@@ -485,7 +459,7 @@ uint8_t txt_bus_read_C057(void *context, uint16_t address) {
     // set hi-res (graphics) mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Hi-Res Mode\n");
     set_graphics_mode(ds, HIRES_MODE);
-    force_display_update(ds);
+    ds->video_system->set_full_frame_redraw();
     return 0;
 }
 
@@ -497,10 +471,6 @@ void txt_bus_write_C057(void *context, uint16_t address, uint8_t value) {
  * display_state_t Class Implementation
  */
 display_state_t::display_state_t() {
-    /* Display Rendering Engine Modes */
-    display_color_engine = DM_ENGINE_NTSC;
-    display_mono_color = DM_MONO_GREEN;
-    display_pixel_mode = DM_PIXEL_FUZZ;
 
     for (int i = 0; i < 24; i++) {
         dirty_line[i] = 0;
@@ -526,15 +496,6 @@ bool handle_display_event(display_state_t *ds, const SDL_Event &event) {
     SDL_Keymod mod = event.key.mod;
     SDL_Keycode key = event.key.key;
 
-    if (key == SDLK_F5) {
-        flip_display_scale_mode(ds);
-        return true;
-    }
-    if (key == SDLK_F2) {
-        toggle_display_engine(ds);
-        force_display_update(ds);
-        return true;
-    }
     if ((key == SDLK_KP_PLUS || key == SDLK_KP_MINUS)) {
         printf("key: %x, mod: %x\n", key, mod);
         if (mod & SDL_KMOD_ALT) { // ALT == hue (windows key on my mac)
@@ -543,7 +504,8 @@ bool handle_display_event(display_state_t *ds, const SDL_Event &event) {
             config.videoSaturation += ((key == SDLK_KP_PLUS) ? 0.1f : -0.1f);
         }
         init_hgr_LUT();
-        force_display_update(ds);
+        //force_display_update(ds);
+        ds->video_system->set_full_frame_redraw();
         printf("video hue: %f, saturation: %f\n", config.videoHue, config.videoSaturation);
         return true;
     }
@@ -607,36 +569,6 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
         return handle_display_event(ds, event);
     });
 
-}
-
-
-void send_engine_message(display_state_t *ds) {
-    static char buffer[256];
-    const char *display_color_engine_names[] = {
-        "NTSC",
-        "RGB",
-        "Monochrome"
-    };
-
-    snprintf(buffer, sizeof(buffer), "Display Engine Set to %s", display_color_engine_names[ds->display_color_engine]);
-    ds->event_queue->addEvent(new Event(EVENT_SHOW_MESSAGE, 0, buffer));
-}
-
-void toggle_display_engine(display_state_t *ds) {
-    ds->display_color_engine = (display_color_engine_t)((ds->display_color_engine + 1) % DM_NUM_COLOR_ENGINES);
-    force_display_update(ds);
-    send_engine_message(ds);
-}
-
-void set_display_engine(display_state_t *ds, display_color_engine_t mode) {
-    ds->display_color_engine = mode;
-    force_display_update(ds);
-    send_engine_message(ds);
-}
-
-void set_display_mono_color(display_state_t *ds, display_mono_color_t mode) {
-    ds->display_mono_color = mode;
-    force_display_update(ds);
 }
 
 void display_dump_file(cpu_state *cpu, const char *filename, uint16_t base_addr, uint16_t sizer) {

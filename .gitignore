@@ -1,4 +1,6 @@
 CMakeFiles/
+.cache/
+.cache/*
 build/
 build/*
 gs2.dSYM/

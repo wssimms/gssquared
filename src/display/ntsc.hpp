@@ -19,8 +19,9 @@
 
 #include <vector>
 #include "Matrix3x3.hpp"
-#include "display.hpp"
+//#include "display.hpp"
 #include "display/types.hpp"
+//#include "videosystem.hpp"
 
 // Define types
 
@@ -57,7 +58,7 @@ const float NTSC_4FSC = 4 * NTSC_FSC;
 
 extern ntsc_config config ;
 
-extern RGBA mono_color_table[DM_NUM_MONO_MODES];
+/* extern RGBA mono_color_table[DM_NUM_MONO_MODES]; */
 
 void setupConfig();
 void init_hgr_LUT();

@@ -22,18 +22,27 @@
 #include "display/types.hpp"
 #include "videosystem.hpp"
 
-uint32_t videx_color_table[DM_NUM_MONO_MODES] = {
+/* uint32_t videx_color_table[DM_NUM_MONO_MODES] = {
     0xFFFFFFFF, // color, keep it as-is
     0x00C044FF, //0x00e64dFF, // green (10% brighter).
     0xFFBF00FF, // amber.
-};
+}; */
+
+/* uint32_t videx_color_lookup(videx_data * videx_d) {
+    display_state_t *ds = videx_d->->display_state;
+    if (ds->display_color_engine == DM_ENGINE_RGB) {
+        return 0xFFFFFFFF;
+    } else if (ds->display_color_engine == DM_ENGINE_NTSC) {
+        return 0x00C044FF;
+    }
+} */
 
 void render_videx_scanline_80x24(cpu_state *cpu, videx_data * videx_d, int y, void *pixels, int pitch) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     //videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
     uint32_t *texturePixels = (uint32_t *)pixels;
 
-    uint32_t color_value = videx_color_table[ds->display_mono_color];
+    uint32_t color_value = ds->video_system->get_mono_color_u();
 
     /**
      * calculate memory address of start of line:
@@ -131,7 +140,7 @@ void update_display_videx(cpu_state *cpu, /* SlotType_t slot */ videx_data * vid
 
     int framedirty = 0;
     for (int line = 0; line < 24; line++) {
-        if (videx_d->line_dirty[line]) {
+        if (vs->force_full_frame_redraw || videx_d->line_dirty[line]) {
             videx_render_line(cpu, videx_d, line);
             videx_d->line_dirty[line] = false;
             framedirty=1;
@@ -148,6 +157,7 @@ void update_display_videx(cpu_state *cpu, /* SlotType_t slot */ videx_data * vid
         memcpy(pixels, videx_d->buffer, VIDEX_SCREEN_WIDTH * VIDEX_SCREEN_HEIGHT * sizeof(RGBA));
         SDL_UnlockTexture(videx_d->videx_texture);
     }
+    vs->force_full_frame_redraw = false;
 
     SDL_SetTextureBlendMode(videx_d->videx_texture, SDL_BLENDMODE_ADD); // double-draw this to increase brightness.
     vs->render_frame(videx_d->videx_texture);

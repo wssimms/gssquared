@@ -20,6 +20,7 @@
 #include "gs2.hpp"
 #include "cpu.hpp"
 #include "platforms.hpp"
+#include "videosystem.hpp"
 
 #define SCALE_X 2
 #define SCALE_Y 4
@@ -53,7 +54,7 @@ typedef enum {
 } line_mode_t;
 
 /** Display Modes */
-
+/* 
 typedef enum {
     DM_ENGINE_NTSC = 0,
     DM_ENGINE_RGB,
@@ -72,7 +73,7 @@ typedef enum {
     DM_PIXEL_FUZZ = 0,
     DM_PIXEL_SQUARE,
     DM_NUM_PIXEL_MODES
-} display_pixel_mode_t;
+} display_pixel_mode_t; */
 
 /** End Display Modes */
 
@@ -101,9 +102,9 @@ public:
 
     SDL_Texture* screenTexture;
 
-    display_color_engine_t display_color_engine;
+   /*  display_color_engine_t display_color_engine;
     display_mono_color_t display_mono_color;
-    display_pixel_mode_t display_pixel_mode;
+    display_pixel_mode_t display_pixel_mode; */
 
     display_mode_t display_mode;
     display_split_mode_t display_split_mode;
@@ -115,7 +116,7 @@ public:
     int flash_counter;
 
     uint32_t dirty_line[24];
-    line_mode_t line_mode[24]; // 0 = TEXT, 1 = LO RES GRAPHICS, 2 = HI RES GRAPHICS
+    line_mode_t line_mode[24] = {LM_TEXT_MODE}; // 0 = TEXT, 1 = LO RES GRAPHICS, 2 = HI RES GRAPHICS
 
     uint8_t *buffer = nullptr;
     EventQueue *event_queue;
@@ -126,7 +127,6 @@ public:
 
 extern uint32_t lores_color_table[16]; 
 
-void force_display_update(display_state_t *ds);
 void update_display(cpu_state *cpu);
 
 void txt_memory_write(uint16_t , uint8_t );
@@ -137,11 +137,7 @@ void render_line_rgb(cpu_state *cpu, int y);
 void render_line_mono(cpu_state *cpu, int y);
 void pre_calculate_font(rom_data *rd);
 void init_display_font(rom_data *rd);
-void toggle_display_engine(display_state_t *ds);
-void set_display_engine(display_state_t *ds, display_color_engine_t mode);
 
 void display_dump_hires_page(cpu_state *cpu, int page);
 void display_dump_text_page(cpu_state *cpu, int page);
 
-void flip_display_scale_mode(display_state_t *ds);
-void set_display_mono_color(display_state_t *ds, display_mono_color_t mode);

@@ -25,7 +25,7 @@
 #include "computer.hpp"
 #include "DiskII_Button.hpp"
 #include "Unidisk_Button.hpp"
-#include "MousePositionTile.hpp"
+//#include "MousePositionTile.hpp"
 #include "Container.hpp"
 #include "AssetAtlas.hpp"
 #include "Style.hpp"
@@ -141,34 +141,34 @@ void unidisk_button_click(void *userdata) {
 void set_color_display_ntsc(void *data) {
     printf("set_color_display_ntsc %p\n", data);
     display_state_t *ds = (display_state_t *)data;
-    set_display_engine(ds, DM_ENGINE_NTSC);
+    ds->video_system->set_display_engine(DM_ENGINE_NTSC);
 }
 
 void set_color_display_rgb(void *data) {
     printf("set_color_display_rgb %p\n", data);
     display_state_t *ds = (display_state_t *)data;
-    set_display_engine(ds, DM_ENGINE_RGB);
+    ds->video_system->set_display_engine(DM_ENGINE_RGB);
 }
 
 void set_green_display(void *data) {
     printf("set_green_display %p\n", data);
     display_state_t *ds = (display_state_t *)data;
-    set_display_mono_color(ds, DM_MONO_GREEN);
-    set_display_engine(ds, DM_ENGINE_MONO);
+    ds->video_system->set_display_mono_color(DM_MONO_GREEN);
+    ds->video_system->set_display_engine(DM_ENGINE_MONO);
 }
 
 void set_amber_display(void *data) {
     printf("set_amber_display %p\n", data);
     display_state_t *ds = (display_state_t *)data;
-    set_display_mono_color(ds, DM_MONO_AMBER);
-    set_display_engine(ds, DM_ENGINE_MONO);
+    ds->video_system->set_display_mono_color(DM_MONO_AMBER);
+    ds->video_system->set_display_engine(DM_ENGINE_MONO);
 }
 
 void set_white_display(void *data) {
     printf("set_white_display %p\n", data);
     display_state_t *ds = (display_state_t *)data;
-    set_display_mono_color(ds, DM_MONO_WHITE);
-    set_display_engine(ds, DM_ENGINE_MONO);
+    ds->video_system->set_display_mono_color(DM_MONO_WHITE);
+    ds->video_system->set_display_engine(DM_ENGINE_MONO);
 }
 
 void set_mhz_1_0(void *data) {
@@ -550,7 +550,7 @@ void OSD::render() {
     if (currentSlideStatus == SLIDE_IN || (currentSlideStatus != slideStatus)) {
         float ox,oy;
         SDL_GetRenderScale(renderer, &ox, &oy);
-        SDL_SetRenderScale(renderer, 1,1); // TODO: calculate these based on window size
+        SDL_SetRenderScale(renderer, 1.0,1.0); // TODO: calculate these based on window size
 
         /* ----- */
         /* Redraw the whole control panel from bottom up, because the modal could have been anywhere! */
@@ -628,7 +628,7 @@ void OSD::render() {
 
             // Update HUD drive container position based on window size
             // Position it at the bottom of the screen with some padding
-            hud_drive_container->set_position((window_width - 420) / 2, window_height - 125 );
+            hud_drive_container->set_position(((float)window_width - 420) / 2, window_height - 125 );
 
             // display running disk drives at the bottom of the screen.
             SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);

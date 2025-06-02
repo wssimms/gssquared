@@ -69,12 +69,6 @@ void pre_calculate_font (rom_data *rd) {
     }
 }
 
-uint32_t text_color_table[DM_NUM_MONO_MODES] = {
-    0xFFFFFFFF, // color, keep it as-is
-    0x00e64dFF, //0x009933FF, // green.
-    0xFFBF00FF, // amber.
-};
-
 /**
  * render group of 8 scanlines represented by one row of bytes of memory.
  */
@@ -82,20 +76,13 @@ uint32_t text_color_table[DM_NUM_MONO_MODES] = {
 void render_text_scanline(cpu_state *cpu, int y, void *pixels, int pitch) {
 
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    display_mono_color_t color_mode = ds->display_mono_color;
     uint32_t color_value;  
     uint16_t *TEXT_PAGE_TABLE = ds->display_page_table->text_page_table;
 
     color_value = 0xFFFFFFFF;
     
-    // Bounds checking
-    if (y < 0 || y >= 24) {
-        return;
-    }
-
     for (int x = 0; x < 40; x++) {
 
-        //uint8_t character = raw_memory_read(cpu, TEXT_PAGE_TABLE[y] + x);
         uint8_t character = cpu->mmu->read_raw(TEXT_PAGE_TABLE[y] + x);
 
         // Calculate font offset (8 bytes per character, starting at 0x20)
@@ -181,11 +168,6 @@ void render_text_scanline_ng(cpu_state *cpu, int y) {
 
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     uint8_t *textdata = NULL;
-
-    // Bounds checking
-    if (y < 0 || y >= 24) {
-        return;
-    }
 
     uint8_t *output = frameBuffer + (y * 8 * 560);
 
@@ -328,7 +310,6 @@ void txt_memory_write(void *context, uint16_t address, uint8_t value) {
     // update any line. Dirty logic is same for text and lores.
     ds->dirty_line[y_loc] = 1;
 }
-
 
 uint8_t txt_bus_read(cpu_state *cpu, uint16_t address) {
     return 0;

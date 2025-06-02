@@ -1,5 +1,5 @@
 
-#include "gs2.hpp"
+//#include "gs2.hpp"
 #include "computer.hpp"
 #include "videosystem.hpp"
 #include "display/display.hpp"
@@ -11,6 +11,13 @@ video_system_t::video_system_t(computer_t *computer) {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         fprintf(stderr, "Error initializing SDL: %s\n", SDL_GetError());
     }
+
+    display_color_engine = DM_ENGINE_NTSC;
+    display_mono_color = DM_MONO_GREEN;
+    display_pixel_mode = DM_PIXEL_FUZZ;
+
+    display_fullscreen_mode = DISPLAY_WINDOWED_MODE;
+    event_queue = computer->event_queue;
 
     int window_width = (BASE_WIDTH + border_width*2) * SCALE_X;
     int window_height = (BASE_HEIGHT + border_height*2) * SCALE_Y;
@@ -60,6 +67,7 @@ video_system_t::video_system_t(computer_t *computer) {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     clear();
     present();
+    force_full_frame_redraw = true; // first time through!
 
     SDL_RaiseWindow(window);
 
@@ -79,8 +87,16 @@ video_system_t::video_system_t(computer_t *computer) {
             return true;
         }
         if (key == SDLK_F1) {
-            //display_capture_mouse(cpu, false);
             display_capture_mouse(false);
+            return true;
+        }
+        if (key == SDLK_F5) {
+            flip_display_scale_mode();
+            return true;
+        }
+        if (key == SDLK_F2) {
+            toggle_display_engine();
+            set_full_frame_redraw();
             return true;
         }
         return false;
@@ -100,6 +116,12 @@ void video_system_t::present() {
 void video_system_t::render_frame(SDL_Texture *texture) {
     float w,h;
     SDL_GetTextureSize(texture, &w, &h);
+    if (display_pixel_mode == DM_PIXEL_FUZZ) {
+        SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_LINEAR);
+    } else {
+        SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
+    }
+
     SDL_FRect dstrect = {
         (float)border_width,
         (float)border_height,
@@ -160,7 +182,53 @@ void video_system_t::toggle_fullscreen() {
     SDL_SetWindowFullscreen(window, display_fullscreen_mode);
 }
 
-
 void video_system_t::display_capture_mouse(bool capture) {
     SDL_SetWindowRelativeMouseMode(window, capture);
+}
+
+void video_system_t::set_full_frame_redraw() {
+    force_full_frame_redraw = true;
+}
+
+
+void video_system_t::send_engine_message() {
+    static char buffer[256];
+    const char *display_color_engine_names[] = {
+        "NTSC",
+        "RGB",
+        "Monochrome"
+    };
+
+    snprintf(buffer, sizeof(buffer), "Display Engine Set to %s", display_color_engine_names[display_color_engine]);
+    event_queue->addEvent(new Event(EVENT_SHOW_MESSAGE, 0, buffer));
+}
+
+void video_system_t::toggle_display_engine() {
+    display_color_engine = (display_color_engine_t)((display_color_engine + 1) % DM_NUM_COLOR_ENGINES);
+    set_full_frame_redraw();
+    send_engine_message();
+}
+
+void video_system_t::set_display_engine(display_color_engine_t mode) {
+    display_color_engine = mode;
+    set_full_frame_redraw();
+    send_engine_message();
+}
+
+void video_system_t::set_display_mono_color(display_mono_color_t mode) {
+    display_mono_color = mode;
+    set_full_frame_redraw();
+}
+
+void video_system_t::flip_display_scale_mode() {
+    SDL_ScaleMode scale_mode;
+
+    if (display_pixel_mode == DM_PIXEL_FUZZ) {
+        display_pixel_mode = DM_PIXEL_SQUARE;
+        scale_mode = SDL_SCALEMODE_NEAREST;
+    } else {
+        display_pixel_mode = DM_PIXEL_FUZZ;
+        scale_mode = SDL_SCALEMODE_LINEAR;
+    }
+    set_full_frame_redraw();
 }

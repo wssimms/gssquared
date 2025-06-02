@@ -21,7 +21,7 @@
 
 ## Release 0.4
 
-[ ] provide a mode for Atari Joyport - use the dpad. https://lukazi.blogspot.com/2009/04/game-controller-atari-joysticks.html  
+[ ] provide a mode for Atari Joyport - use the dpad. https://lukazi.blogspot.com/2009/04/game-controller-atari-joysticks.html. Can also use gamepad.    
 
 [ ] GS2 starts in powered-off mode. have snazzy tiles showing each platform that can be booted.  
 [ ] can power on and power off.  
