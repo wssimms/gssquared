@@ -512,6 +512,23 @@ bool handle_display_event(display_state_t *ds, const SDL_Event &event) {
     return false;
 }
 
+void display_engine_get_buffer(computer_t *computer, uint8_t *buffer, uint32_t *width, uint32_t *height) {
+    display_state_t *ds = (display_state_t *)get_module_state(computer->cpu, MODULE_DISPLAY);
+    *width = BASE_WIDTH;
+    *height = BASE_HEIGHT;
+    //memcpy(buffer, ds->buffer, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA));
+    // Copy RGB values without alpha channel
+    RGBA *src = (RGBA *)ds->buffer;
+    uint8_t *dst = buffer;
+    for (int scanline = BASE_HEIGHT - 1; scanline >= 0; scanline--) {
+        for (int i = 0; i < BASE_WIDTH; i++) {
+            *dst++ = src[scanline * BASE_WIDTH + i].b;
+            *dst++ = src[scanline * BASE_WIDTH + i].g;
+            *dst++ = src[scanline * BASE_WIDTH + i].r;
+        }
+    }
+}
+
 void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     cpu_state *cpu = computer->cpu;
     

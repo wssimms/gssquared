@@ -4,6 +4,7 @@
 #include "computer.hpp"
 #include "util/EventQueue.hpp"
 #include "display/types.hpp"
+#include "ui/Clipboard.hpp"
 
 #define BORDER_WIDTH 30
 #define BORDER_HEIGHT 20
@@ -54,6 +55,8 @@ struct video_system_t {
     EventQueue *event_queue = nullptr;
 
     bool force_full_frame_redraw = false;
+
+    ClipboardImage *clip = nullptr;
 
     RGBA mono_color_table[DM_NUM_MONO_MODES] = {
         {0xFF, 0xFF, 0xFF, 0xFF }, // white

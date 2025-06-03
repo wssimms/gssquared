@@ -1,8 +1,8 @@
-
 //#include "gs2.hpp"
 #include "computer.hpp"
 #include "videosystem.hpp"
 #include "display/display.hpp"
+#include "ui/Clipboard.hpp"
 
 video_system_t::video_system_t(computer_t *computer) {
 
@@ -11,6 +11,8 @@ video_system_t::video_system_t(computer_t *computer) {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         fprintf(stderr, "Error initializing SDL: %s\n", SDL_GetError());
     }
+
+    clip = new ClipboardImage();
 
     display_color_engine = DM_ENGINE_NTSC;
     display_mono_color = DM_MONO_GREEN;
@@ -80,7 +82,7 @@ video_system_t::video_system_t(computer_t *computer) {
         display_capture_mouse(true);
         return true;
     });
-    computer->sys_event->registerHandler(SDL_EVENT_KEY_DOWN, [this](const SDL_Event &event) {
+    computer->sys_event->registerHandler(SDL_EVENT_KEY_DOWN, [this, computer](const SDL_Event &event) {
         int key = event.key.key;
         if (key == SDLK_F3) {
             toggle_fullscreen();
@@ -98,6 +100,10 @@ video_system_t::video_system_t(computer_t *computer) {
             toggle_display_engine();
             set_full_frame_redraw();
             return true;
+        }
+        if (key == SDLK_PRINTSCREEN) {
+            clip->Clip(computer);
+            printf("click!\n");
         }
         return false;
     });
@@ -192,7 +198,7 @@ void video_system_t::toggle_fullscreen() {
         selected_mode = modes[0];
 
         SDL_SetWindowAspectRatio(window, 0.0f, 0.0f);
-        SDL_SetWindowFullscreenMode(window, selected_mode);
+        SDL_SetWindowFullscreenMode(window, /* selected_mode */ NULL);
         SDL_SetWindowFullscreen(window, display_fullscreen_mode);
         SDL_free(modes);
     } else {
