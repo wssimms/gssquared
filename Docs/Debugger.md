@@ -113,3 +113,25 @@ OK, so that's one approach. The other is more of a full GUI approach. That would
 RmlUI is pretty sophisticated. Might do most of the things we want? Looks pretty snazzy too. ImGui looks more like stuff from 20 years ago. Square and blocky.
 
 [ ] when we hit a breakpoint, make a beepy sound.  
+
+Instead of tabs, what if in the window we have panes, that the user can enable and disable by clicking buttons. Most screens today are very wide, so add panes horizontally. We can automatically increase/decrease the window width as they open/close.
+
+disassembly pane
+monitor pane
+memory mon pane
+video decode pane
+
+Certain monitor commands will automatically pop open panes. for example if you set a breakpoint.
+List breakpoints in the disassembly pane.
+
+reduce whitespace a bit between cycles and registers.
+I don't need the horizontal spacing anywhere except the disassembly pane, so free up all that RE at the top.
+Put control buttons at the top. These can be Button_t in a container!
+
+That's coming together nicely.
+
+## Text Input
+
+so the monitor section, we need a text input widget. 
+
+TextInputLine: Tile_t : Define a rectangular area. if you click inside the area, key down events start to be processed by that. If you click outside the area, key down events stop being processed. It can be a derivative of Tile like everything else. on Enter, a callback you set is called (just like we have done with click callbacks). need to handle delete and backspace. Track a cursor position. I don't think the SDL Text Input is needed here. that's primarily useful for mobile, which I don't care bout. Just do it by hand.

@@ -223,7 +223,7 @@ add_library(gs2_devices_mockingboard     src/devices/mockingboard/mb.cpp )
 
 add_library(gs2_devices_annunciator     src/devices/annunciator/annunciator.cpp )
 
-add_library(gs2_debugger src/debugger/trace.cpp src/debugger/trace_opcodes.cpp src/debugger/debugwindow.cpp)
+add_library(gs2_debugger src/debugger/trace.cpp src/debugger/trace_opcodes.cpp src/debugger/debugwindow.cpp src/debugger/monitor.cpp src/debugger/ExecuteCommand.cpp)
 
 add_library(gs2_mmu src/mmus/mmu.cpp src/mmus/mmu_ii.cpp )
 
@@ -307,6 +307,9 @@ add_subdirectory(apps/mmutest)
 
 add_subdirectory(apps/cputest)
 
+add_subdirectory(apps/montest)
+
+add_subdirectory(apps/cycletest)
 
 ################################################################################
 #### Packaging targets per platform

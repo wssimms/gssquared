@@ -263,7 +263,7 @@ int execute_next(cpu_state *cpu) {
         
     case OP_ASL_ABS_X: /* ASL Absolute, X */
         {
-            absaddr_t addr = get_operand_address_absolute_x(cpu);
+            absaddr_t addr = get_operand_address_absolute_x_rmw(cpu);
             arithmetic_shift_left_addr(cpu, addr);
         }
         break;
@@ -655,6 +655,7 @@ int execute_next(cpu_state *cpu) {
         case OP_LDX_ZP_Y: /* LDX Zero Page, Y */
             {
                 cpu->x_lo = get_operand_zeropage_y(cpu);
+                incr_cycles(cpu); // ldx zp, y uses an extra cycle.
                 set_n_z_flags(cpu, cpu->x_lo);
             }
             break;
@@ -747,7 +748,7 @@ int execute_next(cpu_state *cpu) {
 
         case OP_LSR_ABS_X: /* LSR Absolute, X */
             {
-                absaddr_t addr = get_operand_address_absolute_x(cpu);
+                absaddr_t addr = get_operand_address_absolute_x_rmw(cpu);
                 logical_shift_right_addr(cpu, addr);
             }
             break;
@@ -836,6 +837,7 @@ int execute_next(cpu_state *cpu) {
         case OP_PLP_IMP: /* PLP Implied */
             {
                 cpu->p = pop_byte(cpu) & ~FLAG_B; // break flag is cleared.
+                incr_cycles(cpu); // TODO: where should this extra cycle actually go?
             }
             break;
 
@@ -878,7 +880,7 @@ int execute_next(cpu_state *cpu) {
 
         case OP_ROL_ABS_X: /* ROL Absolute, X */
             {
-                absaddr_t addr = get_operand_address_absolute_x(cpu);
+                absaddr_t addr = get_operand_address_absolute_x_rmw(cpu);
                 rotate_left_addr(cpu, addr);
             }
             break;
@@ -914,7 +916,7 @@ int execute_next(cpu_state *cpu) {
 
         case OP_ROR_ABS_X: /* ROR Absolute, X */
             {
-                absaddr_t addr = get_operand_address_absolute_x(cpu);
+                absaddr_t addr = get_operand_address_absolute_x_rmw(cpu);
                 rotate_right_addr(cpu, addr);
             }
             break;
@@ -1029,6 +1031,8 @@ int execute_next(cpu_state *cpu) {
         case OP_STX_ZP_Y: /* STX Zero Page, Y */
             {
                 store_operand_zeropage_y(cpu, cpu->x_lo);
+                incr_cycles(cpu); // ldx zp, y uses an extra cycle.
+                // TODO: look into this and see where the extra cycle might need to actually go.
             }
             break;
 
@@ -1137,6 +1141,8 @@ int execute_next(cpu_state *cpu) {
                 absaddr_t addr = get_operand_address_absolute(cpu);
                 push_word(cpu, cpu->pc -1); // return address pushed is last byte of JSR instruction
                 cpu->pc = addr;
+                // load address fetched into the PC
+                incr_cycles(cpu);
                 //if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, "$%04X", cpu->pc);
             }
             break;
