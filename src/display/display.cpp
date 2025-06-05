@@ -500,13 +500,20 @@ bool handle_display_event(display_state_t *ds, const SDL_Event &event) {
         printf("key: %x, mod: %x\n", key, mod);
         if (mod & SDL_KMOD_ALT) { // ALT == hue (windows key on my mac)
             config.videoHue += ((key == SDLK_KP_PLUS) ? 0.025f : -0.025f);
+            if (config.videoHue < -0.3f) config.videoHue = -0.3f;
+            if (config.videoHue > 0.3f) config.videoHue = 0.3f;
+
         } else if (mod & SDL_KMOD_SHIFT) { // WINDOWS == brightness
             config.videoSaturation += ((key == SDLK_KP_PLUS) ? 0.1f : -0.1f);
+            if (config.videoSaturation < 0.0f) config.videoSaturation = 0.0f;
+            if (config.videoSaturation > 1.0f) config.videoSaturation = 1.0f;
         }
         init_hgr_LUT();
         //force_display_update(ds);
         ds->video_system->set_full_frame_redraw();
-        printf("video hue: %f, saturation: %f\n", config.videoHue, config.videoSaturation);
+        static char msgbuf[256];
+        snprintf(msgbuf, sizeof(msgbuf), "Hue set to: %f, Saturation to: %f\n", config.videoHue, config.videoSaturation);
+        ds->event_queue->addEvent(new Event(EVENT_SHOW_MESSAGE, 0, msgbuf));
         return true;
     }
     return false;
@@ -514,9 +521,10 @@ bool handle_display_event(display_state_t *ds, const SDL_Event &event) {
 
 void display_engine_get_buffer(computer_t *computer, uint8_t *buffer, uint32_t *width, uint32_t *height) {
     display_state_t *ds = (display_state_t *)get_module_state(computer->cpu, MODULE_DISPLAY);
+    // pass back the size.
     *width = BASE_WIDTH;
     *height = BASE_HEIGHT;
-    //memcpy(buffer, ds->buffer, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA));
+    // BMP files have the last scanline first. What? 
     // Copy RGB values without alpha channel
     RGBA *src = (RGBA *)ds->buffer;
     uint8_t *dst = buffer;
@@ -527,6 +535,9 @@ void display_engine_get_buffer(computer_t *computer, uint8_t *buffer, uint32_t *
             *dst++ = src[scanline * BASE_WIDTH + i].r;
         }
     }
+    static char msgbuf[256];
+    snprintf(msgbuf, sizeof(msgbuf), "Screen snapshot taken");
+    computer->event_queue->addEvent(new Event(EVENT_SHOW_MESSAGE, 0, msgbuf));
 }
 
 void init_mb_device_display(computer_t *computer, SlotType_t slot) {
