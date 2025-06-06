@@ -265,6 +265,12 @@ void init_pdblock2(computer_t *computer, SlotType_t slot)
     if (DEBUG(DEBUG_PD_BLOCK)) std::cout << "Initializing ProDOS Block2 slot " << slot << std::endl;
     pdblock2_data * pdblock_d = new pdblock2_data;
     pdblock_d->id = DEVICE_ID_PD_BLOCK2;
+    for (int i = 0; i < 7; i++) {
+        for (int j = 0; j < 2; j++) {
+            pdblock_d->prodosblockdevices[i][j].file = nullptr;
+            pdblock_d->prodosblockdevices[i][j].media = nullptr;
+        }
+    }
     
     // set in CPU so we can reference later
     set_slot_state(cpu, slot, pdblock_d);
