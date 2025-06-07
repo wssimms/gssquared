@@ -126,8 +126,8 @@ void Button_t::render(SDL_Renderer* renderer) {
     // For now, the base hover detection is sufficient
 } */
 
-void Button_t::on_click() {
+void Button_t::on_click(const SDL_Event& event) {
     // Button-specific click behavior could go here
     // For now, just call the base class implementation
-    Tile_t::on_click();
+    Tile_t::on_click(event);
 }

@@ -136,4 +136,11 @@ public:
      * @brief Renders the container and all its tiles.
      */
     virtual void render();
+
+    /**
+     * @brief Gets a tile by index.
+     * @param index The index of the tile to get
+     * @return The tile at the specified index
+     */
+    Tile_t* get_tile(size_t index) const;
 }; 

@@ -112,5 +112,5 @@ protected:
     /**
      * @brief Called when the button is clicked.
      */
-    void on_click() override;
+    void on_click(const SDL_Event& event) override;
 }; 

@@ -4302,3 +4302,72 @@ This is a lot to stare at. And lots of potential interactions. I need to write a
 Hey, I'm at 1:53 now. So for purposes of all this FP math the ROR was the big deal. for fun let's check locksmith disk speed.. nope, still reads very very slow. 
 
 I have the program ccbench1 on testpo.po
+
+## Jun 5, 2025
+
+ok to work around the problem with mac in the GoodFullscreenMode blowing up when it opens up the file dialog, we've got two options.
+* build our own file dialog. (I really don't wanna)
+* or, leave fullscreen mode then open the dialog.
+
+I've tried doing this code:
+
+```
+#if __APPLE__
+    if (osd->computer->video_system->get_window_fullscreen() == DISPLAY_FULLSCREEN_MODE) {
+        osd->computer->video_system->set_window_fullscreen(DISPLAY_WINDOWED_MODE);
+        osd->computer->video_system->sync_window();
+    }
+#endif
+```
+
+right before we call the dialog thing, however, it doesn't help. I think we don't have time to run through some events and actually perform all the fullscreen mode change stuff.
+
+This would suggest the following process:
+instead of immediately calling the OS file selector, we send an event to the main loop to do it.
+that event handler does: screen change, then send ourselves an event for next time round, to open the dialog;
+this is a hassle! But maybe it's better to do the dialog from the event loop than deeper in the code anyway?
+
+You know, opening the Mac dialog is slow ugly and awkward anyway.. and then we'd have the same interface per platform that would be consistent across platforms.. not now. Put this down for a Later Project.
+
+for now let's ask the user to leave full screen before opening disk. tee hee.
+
+Also, I implemented a diskII accelerator. Got the idea from apple2ts. instead of trying to load the entire byte at once to speed up (as I'd tried), they only skip 6 bits or something. So I tried that and it's working pretty well. Let's alpha test this a while before releasing to the wild. (I still like the "ludicrous speed when disk is on" but I suspect it's going to have other issues even if I get around the current one..)
+
+for Container - allow specifying different Layout object dependencies. E.g., grid layout - but also linear, etc.
+
+also, for buttons/tiles etc - refactor to use lambdas instead of the C-ish setup I have now. Lambdas are superiore! Do it now before it gets to be way more stuff to refactor later. I am able to do it both ways (separate version of the function for lambdas. so we can refactor a bit at a time).
+
+```
+boot prodos 2.4.3 in vscode debugger;
+hit tab a couple times;
+hit a bad memory reference 
+
+    media_descriptor *media = pdblock_d->prodosblockdevices[slot][drive].media;
+        fseek(fp, media->data_offset + (block * media->block_size), SEEK_SET);
+
+media-> is a bad pointer here.
+(Fixed).
+```
+
+in the trace Pane, we need to eventually make room for 24 bit addresses and 16-bit registers. So we'll need maybe 10 extra characters per line.
+[ ] in trace, option to hide raw bytes and only show PCPC: LDA $xxxx  This will save 10 chars.   
+[ ] Can also bring the EFF left another few characters to save room.  
+[ ] Shorten Cycle some more
+
+[ ] Develop a "line output" class that hides some of the complexity of generating this text line output. e.g. line->putc() stores char and automatically increments.  
+[ ] Develop a "scrollable text widget" that will allow display of lines from a generalized text buffer.
+
+ok, I think we want to move the following controls from the osd control panel, to hover controls (like the pull-out tab):
+* display engine
+* cpu speed
+* reset button
+
+## Jun 6, 2025
+
+I am pretty sure the Skyfox problem is just that it's a bad crack. It's overwriting the interrupt vector (or never setting it in the first place). Looking at 3F0.3FF you can see it get overwritten backwards along with other stuff in the text page 1. So when the interrupts kick on it's just garbaged there.
+
+But the big news is: I determined this with the DEBUGGER, BABY!
+
+I made huge progress on this debugger over the past couple days. Adding to the trace screen from before, I now I have a (very) basic monitor and a memory monitor. I need to add monitor commands to control the memory display.
+
+Have a TextEditor widget that lets you edit a line of text. insert, delete, backspace and arrows work. don't have copy/cut/paste.

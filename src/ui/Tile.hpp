@@ -18,6 +18,8 @@
 #pragma once
 
 #include <SDL3/SDL.h>
+#include <functional>
+
 #include "Style.hpp"
 #include "util/TextRenderer.hpp"
 
@@ -31,21 +33,11 @@
  * - Click callback support
  */
 class Tile_t {
-protected:
-    Style_t style;
-    int opacity = 255;
-    float x, y;                  // Position of the entire tile
-    float w, h;                  // Total size including padding and border
-    float content_w, content_h;  // Size of the content area
-    bool visible = true;
-    bool active = true;
-    bool is_hovering = false;
-    typedef void (*click_callback_t)(void* data);
-    click_callback_t click_callback = nullptr;
-    void* callback_data = nullptr;
-    TextRenderer *text_render = nullptr;
 
 public:
+    using EventHandler = std::function<bool(const SDL_Event&)>;
+    typedef void (*click_callback_t)(void* data);
+
     /**
      * @brief Constructs a tile with the given style.
      * @param initial_style The initial style settings for the tile
@@ -121,7 +113,11 @@ public:
     void set_background_color(uint32_t color);
     void set_border_color(uint32_t color);
     void set_hover_color(uint32_t color);
+
+    /* Two varieties - one for C-style callbacks, one for lambdas */
     void set_click_callback(click_callback_t callback, void* data = nullptr);
+    void set_click_callback(EventHandler handler);
+
     void set_text_renderer(TextRenderer *text_render);
     void set_opacity(int o);
     int calc_opacity(uint32_t color);
@@ -136,5 +132,20 @@ protected:
     /**
      * @brief Called when tile is clicked.
      */
-    virtual void on_click();
+    virtual void on_click(const SDL_Event& event);
+
+// should be private?
+    Style_t style;
+    int opacity = 255;
+    float x, y;                  // Position of the entire tile
+    float w, h;                  // Total size including padding and border
+    float content_w, content_h;  // Size of the content area
+    bool visible = true;
+    bool active = true;
+    bool is_hovering = false;
+    click_callback_t click_callback = nullptr;
+    EventHandler click_callback_h = nullptr;
+    void* callback_data = nullptr;
+    TextRenderer *text_render = nullptr;
+
 }; 

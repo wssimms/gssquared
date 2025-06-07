@@ -38,6 +38,14 @@ TextRenderer::~TextRenderer() {
     TTF_Quit();
 }
 
+int TextRenderer::char_width(char c) {
+    int charWidth, charHeight;
+    TTF_GetStringSize(font, &c, 1, &charWidth, &charHeight);
+    return charWidth;
+}
+
+
+
 /** 
  * seems like maybe I should create a texture once, based on the window size.
  * Lock, draw text to it, unlock, like we do the video code, then render that? rather than doing so many individual gpu calls.

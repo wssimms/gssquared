@@ -163,6 +163,11 @@ void video_system_t::show(SDL_Window *window) {
 }
 
 void video_system_t::window_resize(const SDL_Event &event) {
+    // make sure this event is for the primary window.
+    if (event.window.windowID != SDL_GetWindowID(window)) {
+        return;
+    }
+
     int new_w = event.window.data1;
     int new_h = event.window.data2;
 
@@ -183,10 +188,12 @@ void video_system_t::window_resize(const SDL_Event &event) {
     SDL_SetRenderScale(renderer, new_scale_x, new_scale_y);
 }
 
-void video_system_t::toggle_fullscreen() {
-    display_fullscreen_mode = (display_fullscreen_mode_t)((display_fullscreen_mode + 1) % NUM_FULLSCREEN_MODES);
+display_fullscreen_mode_t video_system_t::get_window_fullscreen() {
+    return display_fullscreen_mode;
+}
 
-    if (display_fullscreen_mode == DISPLAY_FULLSCREEN_MODE) {
+void video_system_t::set_window_fullscreen(display_fullscreen_mode_t mode) {
+    if (mode == DISPLAY_FULLSCREEN_MODE) {
         SDL_DisplayMode *selected_mode;
 
         SDL_DisplayID did = SDL_GetDisplayForWindow(window);
@@ -198,14 +205,27 @@ void video_system_t::toggle_fullscreen() {
         selected_mode = modes[0];
 
         SDL_SetWindowAspectRatio(window, 0.0f, 0.0f);
-        SDL_SetWindowFullscreenMode(window, /* selected_mode */ NULL);
+#if __APPLE__
+        SDL_SetWindowFullscreenMode(window, NULL);
+#else
+        SDL_SetWindowFullscreenMode(window, selected_mode);
+#endif
         SDL_SetWindowFullscreen(window, display_fullscreen_mode);
         SDL_free(modes);
     } else {
         // Reapply window size and aspect ratio constraints in reverse order from above.
         SDL_SetWindowFullscreen(window, display_fullscreen_mode);
         SDL_SetWindowAspectRatio(window, aspect_ratio, aspect_ratio);
-    }   
+    } 
+}
+
+void video_system_t::sync_window() {
+    SDL_SyncWindow(window);
+}
+
+void video_system_t::toggle_fullscreen() {
+    display_fullscreen_mode = (display_fullscreen_mode_t)((display_fullscreen_mode + 1) % NUM_FULLSCREEN_MODES);
+    set_window_fullscreen(display_fullscreen_mode);
 }
 
 

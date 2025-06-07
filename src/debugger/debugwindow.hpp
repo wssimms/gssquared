@@ -5,9 +5,25 @@
 
 #include "cpu.hpp"
 #include "util/TextRenderer.hpp"
+#include "ui/Container.hpp"
+#include "ui/TextInput.hpp"
+
 
 struct computer_t;
 struct video_system_t;
+
+enum debug_panel_t {
+    DEBUG_PANEL_TRACE = 0,
+    DEBUG_PANEL_MONITOR,
+    DEBUG_PANEL_MEMORY,
+    DEBUG_PANEL_COUNT
+};
+
+struct memory_watch_t {
+    uint16_t start;
+    uint16_t end;
+};
+
 
 struct debug_window_t {
     computer_t *computer;
@@ -25,6 +41,16 @@ struct debug_window_t {
     
     TextRenderer *text_renderer;
     int font_line_height = 14;
+    std::vector<Container_t *> containers;
+    Container_t *tab_container;
+    std::vector<memory_watch_t> memory_watches;
+
+    int panel_visible[DEBUG_PANEL_COUNT] = {0};
+    SDL_Rect pane_area[DEBUG_PANEL_COUNT];
+
+    TextInput_t* mon_textinput;
+    std::vector<std::string> mon_display_buffer;
+    std::vector<std::string> mon_history;
 
     debug_window_t(computer_t *computer);
     //void init(cpu_state *cpu);
@@ -34,6 +60,17 @@ struct debug_window_t {
     void set_open();
     void set_closed();
     void resize(int width, int height);
-    void separator_line(int y);
-    void draw_text(int y, const char *text);
+    void separator_line(debug_panel_t pane, int y);
+    void draw_text(debug_panel_t pane, int x, int y, const char *text);
+    void resize_window();
+    void toggle_panel(debug_panel_t panel);
+    void render_pane_trace();
+    void render_pane_monitor();
+    void render_pane_memory();
+    bool is_pane_first(debug_panel_t pane);
+    int num_lines_in_pane(debug_panel_t pane);
+    void event_pane_monitor(SDL_Event &event);
+
+protected:
+    void execute_command(const std::string& command);
 };

@@ -140,7 +140,7 @@ Tile_t::Tile_t(const Style_t& initial_style) : style(initial_style) {}
             // others may care about same event
         }
         else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN && is_hovering) {
-            on_click();
+            on_click(event);
             return(true); // we did a thing.
         }
         else if (event.type == SDL_EVENT_WINDOW_MOUSE_LEAVE) {
@@ -167,6 +167,10 @@ Tile_t::Tile_t(const Style_t& initial_style) : style(initial_style) {}
         callback_data = data;
     }
 
+    void Tile_t::set_click_callback(EventHandler handler) {
+        click_callback_h = handler;
+    }
+
     /**
      * @brief Called when the hover state changes.
      * @param hovering True if the mouse is now hovering, false otherwise.
@@ -177,11 +181,14 @@ Tile_t::Tile_t(const Style_t& initial_style) : style(initial_style) {}
     }
 
     /**
-     * @brief Called when the tile is clicked.
+     * @brief Called when the tile is clicked. (send the event for fullness, for text edit etc we need the exact x/y location)
      */
-    void Tile_t::on_click() {
+    void Tile_t::on_click(const SDL_Event& event) {
         if (click_callback) {
             click_callback(callback_data);
+        }
+        else if (click_callback_h) {
+            click_callback_h(event);
         }
     }
 

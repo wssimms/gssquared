@@ -1,7 +1,7 @@
 #include <cstring>
 #include <fstream>
 
-#include "gs2.hpp"
+#include "util/HexDecode.hpp"
 #include "debugger/trace.hpp"
 #include "debugger/trace_opcodes.hpp"
 #include "opcodes.hpp"
@@ -56,34 +56,21 @@
         return &entries[index];
     }
 
-    char hex_table[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 
-    void decode_hex_byte(char *buffer, uint8_t byte) {
-        buffer[0] = hex_table[(byte >> 4) & 0x0F];
-        buffer[1] = hex_table[byte & 0x0F];
-    }
-
-    void decode_hex_word(char *buffer, uint16_t word) {
-        buffer[0] = hex_table[(word >> 12) & 0x0F];
-        buffer[1] = hex_table[(word >> 8) & 0x0F];
-        buffer[2] = hex_table[(word >> 4) & 0x0F];
-        buffer[3] = hex_table[word & 0x0F];
-    }
-
-#define TB_A 20
-#define TB_X 23
-#define TB_Y 26
-#define TB_SP 29
-#define TB_P 34
-#define TB_BAR1 37
-#define TB_PC 40
-#define TB_OPBYTES 46
-#define TB_OPCODE 58
-#define TB_OPERAND 62
-#define TB_OPERAND2 64
-#define TB_OPERAND3 66
-#define TB_EADDR 78
-#define TB_DATA 83
+#define TB_A 16
+#define TB_X 19
+#define TB_Y 22
+#define TB_SP 25
+#define TB_P 30
+#define TB_BAR1 33
+#define TB_PC 36
+#define TB_OPBYTES 42
+#define TB_OPCODE 54
+#define TB_OPERAND 58
+#define TB_OPERAND2 60
+#define TB_OPERAND3 62
+#define TB_EADDR 71
+#define TB_DATA 76
 
     char * system_trace_buffer::decode_trace_entry(system_trace_entry_t *entry) {
         static char buffer[256];
@@ -93,8 +80,8 @@
         size_t snpbuf_size = sizeof(snpbuf);
         // if in 8-bit mode
         memset(buffer, ' ', buffer_size);
-        snprintf(buffer, buffer_size, "%-16llu ", entry->cycle);
-        buffer[17] = ' ' ;
+        snprintf(buffer, buffer_size, "%-12llu ", entry->cycle);
+        buffer[13] = ' ' ;
         decode_hex_byte(buffer + TB_A, entry->a);
         decode_hex_byte(buffer + TB_X, entry->x);
         decode_hex_byte(buffer + TB_Y, entry->y);

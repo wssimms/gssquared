@@ -393,10 +393,22 @@ OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Wind
     Button_t *sp2 = new Button_t(aa, MHz2_8Button, CB);
     Button_t *sp3 = new Button_t(aa, MHz4_0Button, CB);
     Button_t *sp4 = new Button_t(aa, MHzInfinityButton, CB);
-    sp1->set_click_callback(set_mhz_1_0, cpu);
-    sp2->set_click_callback(set_mhz_2_8, cpu);
-    sp3->set_click_callback(set_mhz_4_0, cpu);
-    sp4->set_click_callback(set_mhz_infinity, cpu);
+    sp1->set_click_callback([this,cpu](const SDL_Event& event) -> bool {
+        set_clock_mode(cpu, CLOCK_1_024MHZ);
+        return true;
+    });
+    sp2->set_click_callback([this,cpu](const SDL_Event& event) -> bool {
+        set_clock_mode(cpu, CLOCK_2_8MHZ);
+        return true;
+    });
+    sp3->set_click_callback([this,cpu](const SDL_Event& event) -> bool {
+        set_clock_mode(cpu, CLOCK_4MHZ);
+        return true;
+    });
+    sp4->set_click_callback([this,cpu](const SDL_Event& event) -> bool {
+        set_clock_mode(cpu, CLOCK_FREE_RUN);
+        return true;
+    });
     speed_con->add_tile(sp1, 0);
     speed_con->add_tile(sp2, 1);
     speed_con->add_tile(sp3, 2);
@@ -411,7 +423,10 @@ OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Wind
     gen_con->set_position(5, 100);
     gen_con->set_size(65, 300);
     Button_t *b1 = new Button_t(aa, ResetButton, CB);
-    b1->set_click_callback(click_reset_cpu, computer);
+    b1->set_click_callback([this,computer](const SDL_Event& event) -> bool {
+        computer->reset(false);
+        return true;
+    });
     gen_con->add_tile(b1, 0);
     gen_con->layout();
     containers.push_back(gen_con);

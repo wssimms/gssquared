@@ -29,5 +29,7 @@ struct TextRenderer {
     void setColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
     void render(const std::string &text, int x, int y) { render(text, x, y, TEXT_ALIGN_LEFT); }
     void render(const std::string &text, int x, int y, TextAlignment alignment);
+    int char_width(char c);
+    int get_font_line_height() { return font_line_height; }
 };
 

@@ -256,3 +256,10 @@ void Container_t::render() {
         }
     }
 }
+
+Tile_t* Container_t::get_tile(size_t index) const {
+    if (index < tile_count) {
+        return tiles[index];
+    }
+    return nullptr;
+}

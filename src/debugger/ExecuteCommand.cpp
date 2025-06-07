@@ -73,6 +73,7 @@ void ExecuteCommand::execute() {
             for (int i = 0 ; i < 16; i++) {
                 if (address + i <= node0.val_range.hi) {
                     uint8_t val = mmu->read(address + i);
+                    val &= 0x7F;
                     if (val < 32 || val > 126) {
                         line << ".";
                     } else {

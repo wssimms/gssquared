@@ -1,18 +1,26 @@
 #include <SDL3/SDL.h>
+#include <iostream>
 
 #include "debugwindow.hpp"
-#include "gs2.hpp"
 #include "cpu.hpp"
 #include "util/TextRenderer.hpp"
+#include "util/HexDecode.hpp"
 #include "computer.hpp"
 #include "videosystem.hpp"
+#include "ui/Container.hpp"
+#include "ui/Button.hpp"
+#include "ui/TextInput.hpp"
+#include "debugger/ExecuteCommand.hpp"
+#include "debugger/monitor.hpp"
 
 debug_window_t::debug_window_t(computer_t *computer) {
     this->computer = computer;
     this->cpu = computer->cpu;
 
+    panel_visible[DEBUG_PANEL_TRACE] = 1; // all default to off, so enable here.
+
     // create a new window
-    window = SDL_CreateWindow("Debug Window", window_width, window_height, SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIDDEN);
+    window = SDL_CreateWindow("GSSquared Debugger", window_width, window_height, SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIDDEN);
     // create a new renderer
     renderer = SDL_CreateRenderer(window, nullptr);
 
@@ -23,27 +31,123 @@ debug_window_t::debug_window_t(computer_t *computer) {
     window_id = SDL_GetWindowID(window);
     control_area_height = 8 * font_line_height;
     lines_in_view_area = (window_height - control_area_height) / font_line_height;
+
+
+    // create a container object to hold our tab control buttons
+    Style_t CS;
+    CS.padding = 2;
+    CS.border_width = 0;
+    CS.background_color = 0x00000000;
+    CS.border_color = 0x00800000;
+    CS.hover_color = 0x00000000;
+
+    tab_container = new Container_t(renderer, 10, CS);  // Increased to 5 to accommodate the mouse position tile
+    tab_container->set_position(25, 15);
+    tab_container->set_size(400, 35);
+    containers.push_back(tab_container);
+
+    Style_t SS;
+    //SS.background_color = 0x00A1F0FF; // active (20% brighter)
+    SS.background_color = 0x00426340; // 50% darker than 0x0084C6FF
+    SS.border_color = 0xFFFFFFFF;
+    SS.hover_color = 0x606060FF;
+    SS.text_color = 0xFFFFFFFF;
+    SS.padding = 4;
+    SS.border_width = 1;
+    
+    Button_t* s1 = new Button_t("Trace", SS);
+    s1->set_size(60, 20);
+    s1->set_text_renderer(text_renderer); // set text renderer for the button
+    s1->set_click_callback([this](const SDL_Event& event) -> bool {
+        toggle_panel(DEBUG_PANEL_TRACE);
+        return true;
+    });
+    tab_container->add_tile(s1,0);
+    
+    Button_t* s2 = new Button_t("Monitor", SS);
+    s2->set_size(60, 20);
+    s2->set_text_renderer(text_renderer); // set text renderer for the button
+    s2->set_click_callback([this](const SDL_Event& event) -> bool {
+        toggle_panel(DEBUG_PANEL_MONITOR);
+        return true;
+    });
+    tab_container->add_tile(s2,1);
+
+    Button_t* s3 = new Button_t("Memory", SS);
+    s3->set_size(60, 20);
+    s3->set_text_renderer(text_renderer); // set text renderer for the button
+    s3->set_click_callback([this](const SDL_Event& event) -> bool {
+        toggle_panel(DEBUG_PANEL_MEMORY);
+        return true;
+    });
+
+    tab_container->add_tile(s3,2);
+
+    tab_container->layout();
+
+    // set up some default memory watches
+    memory_watches.push_back({0x4000, 0x40FF});
+    memory_watches.push_back({0x0000, 0x00FF});
+    memory_watches.push_back({0x03F0, 0x03FF});
+
+    mon_textinput = new TextInput_t("test text show me a cursor ", SS);
+    mon_textinput->set_text_renderer(text_renderer);
+    mon_textinput->set_max_length(80);
+    mon_textinput->set_size(600, 20);
+    mon_textinput->set_padding(2);
+    mon_textinput->set_enter_handler([this](const SDL_Event& event) -> bool {
+        // Call the command interpreter.
+        execute_command(mon_textinput->get_text());
+        return true;
+    });
+    resize_window(); // first time we need to calculate the pane locations and window size.
 }
 
-void debug_window_t::separator_line(int y) {
-    SDL_RenderLine(renderer, 0, (y*font_line_height)-3, window_width, (y*font_line_height)-3);
-}
+void debug_window_t::execute_command(const std::string& command) {
+    MonitorCommand *cmd = new MonitorCommand(command);
+    cmd->print();
 
-void debug_window_t::draw_text(int y, const char *textToShow) {
-    text_renderer->render(textToShow, window_margin, y*font_line_height);
-}
+    ExecuteCommand *exec = new ExecuteCommand(computer->mmu, cmd);
+    exec->execute();
+    
+    mon_display_buffer.push_back("> " + command);
 
-void debug_window_t::render() {
-    char buffer[256];
-
-    if (!window_open) {
-        return;
+    // Print the output buffer to stdout (you can remove this or redirect as needed)
+    const auto& output = exec->getOutput();
+    for (const auto& line : output) {
+        std::cout << line << std::endl;
+        mon_display_buffer.push_back(line);
     }
+    mon_textinput->clear_edit();
+}
 
-    SDL_SetRenderDrawColor(renderer, 0,0,0, 255);
-    SDL_RenderClear(renderer);
+void debug_window_t::separator_line(debug_panel_t pane, int y) {
+    int x = pane_area[pane].x;
+    int w = pane_area[pane].w;
+    SDL_RenderLine(renderer, x, (y*font_line_height)-3, x+w, (y*font_line_height)-3);
+}
 
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+void debug_window_t::draw_text(debug_panel_t pane, int x,int y, const char *textToShow) {
+    text_renderer->render(textToShow, window_margin + pane_area[pane].x, y*font_line_height);
+}
+
+bool debug_window_t::is_pane_first(debug_panel_t pane) {
+    for (int i = 0; i < pane; i++) {
+        if (panel_visible[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+int debug_window_t::num_lines_in_pane(debug_panel_t pane) {
+    int pane_is_first = is_pane_first(pane);
+    return (window_height - (pane_is_first ? control_area_height : 0)) / font_line_height;
+}
+
+void debug_window_t::render_pane_trace() {
+    char buffer[256];
+    int x = 0;
+    int w = pane_area[DEBUG_PANEL_TRACE].w;
 
     int numlines = (window_height - control_area_height) / font_line_height;
     size_t head = cpu->trace_buffer->head;
@@ -56,26 +160,27 @@ void debug_window_t::render() {
     for (int i = 0; i < numlines; i++) {
         size_t idx = (start_idx + i) % size;
         char *line = cpu->trace_buffer->decode_trace_entry(&cpu->trace_buffer->entries[idx]);
-        draw_text(8 + i, line);
+        draw_text(DEBUG_PANEL_TRACE, x, 8 + i, line);
     }
 
-    separator_line(3);
+    separator_line(DEBUG_PANEL_TRACE, 3);
     snprintf(buffer, sizeof(buffer), "T)race: %s  SPACE: Step  RETURN: Run  Up/Dn/PgUp/PgDn/Home/End: Scroll", cpu->trace ? "ON " : "OFF");
-    draw_text(3, buffer);
-   
-
-    separator_line(4);
-    draw_text(4, "PC     A  X  Y  SP     N V - D B I Z C");
+    draw_text(DEBUG_PANEL_TRACE, x, 3, buffer);
+  
+    separator_line(DEBUG_PANEL_TRACE, 4);
+    draw_text(DEBUG_PANEL_TRACE, x, 4, "PC     A  X  Y  SP     N V - D B I Z C");
     snprintf(buffer, sizeof(buffer), "%04X   %02X %02X %02X %04X   %d %d - %d %d %d %d %d", cpu->pc, cpu->a, cpu->x, cpu->y, cpu->sp, 
         cpu->N, cpu->V, cpu->B, cpu->D, cpu->I, cpu->Z, cpu->C);
-    draw_text(5, buffer);
+    draw_text(DEBUG_PANEL_TRACE, x, 5, buffer);
 
     snprintf(buffer, sizeof(buffer), "Cycles: %18llu    MHz: %10.5f", cpu->cycles, cpu->e_mhz);
-    draw_text(6, buffer);
+    draw_text(DEBUG_PANEL_TRACE, x, 6, buffer);
 
-    separator_line(7);
-    draw_text(7, "   Cycle             A  X  Y  SP   P     PC                                   Eff  M");
-    separator_line(8);
+    separator_line(DEBUG_PANEL_TRACE, 7);
+    draw_text(DEBUG_PANEL_TRACE, x, 7, "   Cycle         A  X  Y  SP   P     PC                                Eff  M");
+    separator_line(DEBUG_PANEL_TRACE, 8);
+
+    SDL_RenderLine(renderer, w + x -1.0f, 0, w + x -1.0f, window_height);
 
     // draw location bar (not exactly a scrollbar)
     // Calculate number of lines entries distance of view_position is from tail
@@ -84,12 +189,153 @@ void debug_window_t::render() {
     float bar_height = window_height - control_area_height;
     float bar_fraction = 1 - (float)view_position / buffer_size; // it's the inverse of the fraction since we want it to be at the bottom
     float bar_divider = (bar_fraction * bar_height);
-    SDL_FRect bar_rect = {window_width - 10.0f, (float)control_area_height, 10.0f, bar_height};
+    SDL_FRect bar_rect = {w + x - 10.0f, (float)control_area_height, 10.0f, bar_height};
     SDL_RenderRect(renderer, &bar_rect);
     bar_rect.y = control_area_height + bar_divider;
     bar_rect.h = bar_height - bar_divider;
     SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
     SDL_RenderFillRect(renderer, &bar_rect);
+}
+
+void debug_window_t::render_pane_monitor() {
+
+    if (!panel_visible[DEBUG_PANEL_MONITOR]) {
+        return;
+    }
+
+    int x = pane_area[DEBUG_PANEL_MONITOR].x;
+    int y = pane_area[DEBUG_PANEL_MONITOR].y;
+    int base_line = 0;
+    if (is_pane_first(DEBUG_PANEL_MONITOR)) {
+        base_line = 3;
+    }
+    int buf_area_lines = num_lines_in_pane(DEBUG_PANEL_MONITOR) - 3;
+    
+    separator_line(DEBUG_PANEL_MONITOR, buf_area_lines);
+    char buffer[256] = {' '};
+    
+    mon_textinput->set_position(x + 5, (buf_area_lines * font_line_height));
+    mon_textinput->render(renderer);
+
+    // get number of lines in mon_display_buffer
+    int bufferlines = mon_display_buffer.size();
+    int startline = 0;
+    int dolines = 0;
+    if (bufferlines > buf_area_lines) {
+        startline = bufferlines - buf_area_lines;
+        dolines = buf_area_lines;
+    } else dolines = bufferlines;
+
+    for (int i = 0; i < dolines; i++) {
+        draw_text(DEBUG_PANEL_MONITOR, x, base_line + i, mon_display_buffer[i+startline].c_str());
+    }
+}
+
+void debug_window_t::event_pane_monitor(SDL_Event &event) {
+    mon_textinput->handle_mouse_event(event);
+}
+
+void debug_window_t::render_pane_memory() {
+
+    if (!panel_visible[DEBUG_PANEL_MEMORY]) {
+        return;
+    }
+
+    // just for testing, display the text page memory.
+    int x = pane_area[DEBUG_PANEL_MEMORY].x;
+    int y = pane_area[DEBUG_PANEL_MEMORY].y;
+    int base_line = 0;
+    if (is_pane_first(DEBUG_PANEL_MEMORY)) {
+        base_line = 3;
+    }
+
+    char buffer[256] = {' '};
+
+    int index = 0; // number of byte on current line being displayed
+    int line = 0; // vertical line number to output text to on display
+    char *ptr = buffer;
+
+    for (memory_watch_t watch : memory_watches) {
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        for (int i = watch.start; i <= watch.end; i++) {
+            if (index == 0) {
+                decode_hex_word(buffer, i);
+                ptr += 4;
+                *ptr++ = ':';
+                *ptr++ = ' ';
+            }
+            uint8_t mem = computer->mmu->read(i);
+            decode_hex_byte( ptr, mem);
+            decode_ascii(buffer+54+index, mem);
+            ptr+=2;
+            *ptr++ = ' ';
+            index++;
+            if (index == 16) {
+                buffer[70] = 0;
+                draw_text(DEBUG_PANEL_MEMORY, x, base_line + line, buffer);
+                memset(buffer, ' ', sizeof(buffer));
+                ptr = buffer;
+                index = 0;
+                line++;
+            }
+        }
+        // draw anything left over
+        if (index < 16) {
+            buffer[70] = 0;
+            draw_text(DEBUG_PANEL_MEMORY, x, base_line + line, buffer);
+            memset(buffer, ' ', sizeof(buffer));
+            //line++;
+        }
+        SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
+        separator_line(DEBUG_PANEL_MEMORY, base_line + line);
+        ptr = buffer;
+        index = 0;
+    }
+}
+
+
+void debug_window_t::render() {
+    char buffer[256];
+
+    if (!window_open) {
+        return;
+    }
+
+    // update - I feel like this should be in handle_event, or in a different method altogether.
+    // Update button states based on current tab
+    for (size_t i = 0; i < DEBUG_PANEL_COUNT; i++) {
+        Button_t* btn = static_cast<Button_t*>(tab_container->get_tile(i));
+        if (btn) {
+            // Set active tab button to different background color
+            if (panel_visible[i]) {
+                btn->set_background_color(0x00A1F0FF); // Active tab color
+            } else {
+                btn->set_background_color(0x00426340); // Inactive tab color
+            }
+        }
+    }
+
+    // end of update
+
+    SDL_SetRenderDrawColor(renderer, 0,0,0, 255);
+    SDL_RenderClear(renderer);
+
+    for (Container_t *container : containers) {
+        container->render();
+    }
+
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    text_renderer->setColor(255, 255, 255, 255);
+
+    if (panel_visible[DEBUG_PANEL_TRACE]) {
+        render_pane_trace();
+    }
+    if (panel_visible[DEBUG_PANEL_MONITOR]) {
+        render_pane_monitor();
+    }
+    if (panel_visible[DEBUG_PANEL_MEMORY]) {
+        render_pane_memory();
+    }
 
     SDL_RenderPresent(renderer);
 }
@@ -102,6 +348,9 @@ void debug_window_t::resize(int width, int height) {
 
 bool debug_window_t::handle_event(SDL_Event &event) {
     if (event.window.windowID == window_id) {
+        if (mon_textinput->handle_mouse_event(event)) {
+            return true;
+        }
         switch (event.type) {
             case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
                 set_closed();
@@ -153,7 +402,11 @@ bool debug_window_t::handle_event(SDL_Event &event) {
                 if (event.key.key == SDLK_T) {
                     cpu->trace = !cpu->trace;
                 }
-
+                break;
+            default:
+                for (Container_t *container : containers) {
+                    container->handle_mouse_event(event);
+                }
                 break;
         }
         return true;
@@ -189,4 +442,32 @@ void debug_window_t::set_closed() {
 
     // SDL_HideWindow(window);
     // SDL_RaiseWindow(video_system->window);
+}
+
+void debug_window_t::resize_window() {
+   window_width = 0;
+    if (panel_visible[DEBUG_PANEL_TRACE]) {
+        pane_area[DEBUG_PANEL_TRACE].x = window_width;
+        pane_area[DEBUG_PANEL_TRACE].w = 720;
+        window_width += 720;
+    }    
+    if (panel_visible[DEBUG_PANEL_MONITOR]) {
+        pane_area[DEBUG_PANEL_MONITOR].x = window_width;
+        pane_area[DEBUG_PANEL_MONITOR].w = 680;
+        window_width += 680;
+    }
+    if (panel_visible[DEBUG_PANEL_MEMORY]) {
+        pane_area[DEBUG_PANEL_MEMORY].x = window_width;
+        pane_area[DEBUG_PANEL_MEMORY].w = 640;
+        window_width += 640;
+    }
+    if (window_width < 720) {
+        window_width = 720;
+    }
+    SDL_SetWindowSize(window, window_width, window_height);
+}
+
+void debug_window_t::toggle_panel(debug_panel_t panel) {
+    panel_visible[panel] = !panel_visible[panel];
+    resize_window();
 }

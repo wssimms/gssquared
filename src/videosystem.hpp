@@ -40,8 +40,8 @@ typedef enum {
 
 
 struct video_system_t {
-    SDL_Window *window;
-    SDL_Renderer* renderer ;
+    SDL_Window *window; // primary emulated display window
+    SDL_Renderer* renderer;
 
     display_fullscreen_mode_t display_fullscreen_mode = DISPLAY_WINDOWED_MODE;
     display_color_engine_t display_color_engine = DM_ENGINE_NTSC;
@@ -72,6 +72,9 @@ struct video_system_t {
     ~video_system_t();
     void window_resize(const SDL_Event &event);
     void toggle_fullscreen();
+    void set_window_fullscreen(display_fullscreen_mode_t mode);
+    display_fullscreen_mode_t get_window_fullscreen();
+    void sync_window();
     void render_frame(SDL_Texture *texture);
     void clear();
     void present();
