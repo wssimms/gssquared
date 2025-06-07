@@ -1134,6 +1134,7 @@ uint8_t mb_read_Cx00(void *context, uint16_t addr) {
             break;
         }
         case MB_6522_T2C_L: { /* read only lo latch */
+        // TODO: here and below we have a potential division by zero if the latch is 0.
             uint64_t cycle_diff = mb_d->d_6522[chip].t2_latch - ((cpu->cycles - mb_d->d_6522[chip].t2_triggered_cycles) % mb_d->d_6522[chip].t2_latch);
             retval = (cycle_diff) & 0xFF;
             break;
