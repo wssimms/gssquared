@@ -216,10 +216,22 @@ uint8_t read_nybble(diskII& disk, bool motor)
             disk.head_position = 0;
         } */
         if (disk.read_shift_register == 0xFF) { // for sync bytes simulate that they are 10 bits. (with two trailing zero bits)
-            disk.bit_position = 8; // at 10 this isn't working? 
+            disk.bit_position = 8; // at 10 c600 boot code never syncs 
         } else {
             disk.bit_position = 8;
         }
+        disk.read_shift_register <<= 1; // "pre-shift" 6 bits to Accelerate. This may not work for some copy-protected disks.
+        disk.bit_position--;
+        disk.read_shift_register <<= 1;
+        disk.bit_position--;
+        disk.read_shift_register <<= 1;
+        disk.bit_position--;
+        disk.read_shift_register <<= 1;
+        disk.bit_position--;
+        disk.read_shift_register <<= 1;
+        disk.bit_position--;
+        disk.read_shift_register <<= 1;
+        disk.bit_position--;
     }
 
     //uint8_t shiftedbyte = (disk.read_shift_register >> (disk.bit_position-1) );
