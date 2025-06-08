@@ -18,6 +18,7 @@
 #pragma once
 
 #include <vector>
+#include "cpu.hpp"
 #include "Matrix3x3.hpp"
 //#include "display.hpp"
 #include "display/types.hpp"
@@ -64,3 +65,12 @@ void setupConfig();
 void init_hgr_LUT();
 void processAppleIIFrame_LUT(uint8_t* frameData, RGBA* outputImage, int y_start, int y_end);
 void processAppleIIFrame_Mono(uint8_t* frameData, RGBA* outputImage, int y_start, int y_end, RGBA color_value);
+void newProcessAppleIIFrame_LUT (
+    cpu_state *cpu,             // access to cpu->vidbits
+    RGBA* outputImage           // Will be filled with 560x192 RGBA pixels
+);
+void newProcessAppleIIFrame_Mono (
+    cpu_state *cpu,             // access to cpu->vidbits
+    RGBA* outputImage,          // Will be filled with 560x192 RGBA pixels
+    RGBA color_value
+);

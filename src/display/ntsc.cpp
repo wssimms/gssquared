@@ -334,3 +334,88 @@ void processAppleIIFrame_Mono (
         }
     }
 }
+
+/** Generate a 'frame' (i.e., a group of 8 scanlines) of video output data using the lookup table.  */
+void newProcessAppleIIFrame_LUT (
+    cpu_state *cpu,             // access to cpu->vidbits
+    RGBA* outputImage           // Will be filled with 560x192 RGBA pixels
+)
+{
+    int mask = ((1 << ((NUM_TAPS * 2) + 1)) - 1);
+
+    // Process each scanline
+    for (int line = 0; line < 192; line++)
+    {
+        // for x = 0, we need bits preloaded with the first NUM_TAPS+1 bits in 
+        // 16-8, and 0's in 0-7.
+        // if num_taps = 6, 
+        // 11111 1X000000
+
+        uint32_t ntscbits = 0;
+
+        // Process the scanline
+        int x = 0;
+        for (int col = 0; col < 40; ++col)
+        {
+            int countmax = 14;
+            uint16_t rawbits = cpu->vidbits[line][col];
+
+            if (col == 0) {
+                for (int i = NUM_TAPS; i; --i)
+                {
+                    ntscbits = ntscbits >> 1;
+                    if (rawbits & 1)
+                        ntscbits = ntscbits | (1 << ((NUM_TAPS*2)));
+                    rawbits >>= 1;
+                    --countmax;
+                }
+            }
+
+            for (int count = countmax; count; --count)
+            {
+                ntscbits = ntscbits >> 1;
+                if ((x < 560-NUM_TAPS) && (rawbits & 1)) // lookahead..
+                {
+                    ntscbits = ntscbits | (1 << ((NUM_TAPS*2)));
+                    rawbits >>= 1;
+                }
+
+                //  Use the phase and the bits as the index
+                outputImage[0] = g_hgr_LUT[x % 4][ntscbits];
+                outputImage++;
+                x++;
+            }
+        }
+    }
+}
+
+/**
+ * Mono mode - just convert the bitstream to RGBA white (for now, I will grab the mono color later)
+ */
+void newProcessAppleIIFrame_Mono (
+    cpu_state *cpu,             // access to cpu->vidbits
+    RGBA* outputImage,          // Will be filled with 560x192 RGBA pixels
+    RGBA color_value
+)
+{
+    static RGBA p_black = { 0xFF, 0x00, 0x00, 0x00 };
+
+    // Process each scanline
+    for (int line = 0; line < 192; ++line)
+    {
+        for (int col = 0; col < 40; ++col)
+        {
+            uint16_t rawbits = cpu->vidbits[line][col];
+            for (int count = 14; count; --count)
+            {
+                if (rawbits & 1) {
+                    outputImage[0] = color_value;
+                } else {
+                    outputImage[0] = p_black;
+                }
+                outputImage++;
+                rawbits >>= 1;
+            }
+        }
+    }
+}

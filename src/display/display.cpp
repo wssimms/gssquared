@@ -227,6 +227,40 @@ void update_display_apple2(cpu_state *cpu) {
     vs->render_frame(ds->screenTexture);
 }
 
+/**
+ * This is effectively a "redraw the entire screen each frame" method now.
+ * With an optimization only update dirty lines.
+ */
+void new_update_display_apple2(cpu_state *cpu) {
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    video_system_t *vs = ds->video_system;
+
+    switch (vs->display_color_engine) {
+        case DM_ENGINE_NTSC:
+            newProcessAppleIIFrame_LUT(cpu, (RGBA *)(ds->buffer));
+            break;
+        case DM_ENGINE_RGB:
+            for (int line = 0; line < 24; ++line)
+                render_line_rgb(cpu, line);
+            break;
+        default:
+            newProcessAppleIIFrame_Mono(cpu, (RGBA *)(ds->buffer), vs->get_mono_color());
+            break;
+    }
+
+    void* pixels;
+    int pitch;
+
+    if (!SDL_LockTexture(ds->screenTexture, NULL, &pixels, &pitch)) {
+        fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
+        return;
+    }
+    memcpy(pixels, ds->buffer, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA)); // load all buffer into texture
+    SDL_UnlockTexture(ds->screenTexture);
+
+    vs->render_frame(ds->screenTexture);
+}
+
 void update_display(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     annunciator_state_t * anc_d = (annunciator_state_t *)get_module_state(cpu, MODULE_ANNUNCIATOR);
@@ -240,7 +274,8 @@ void update_display(cpu_state *cpu) {
     if (videx_d && ds->display_mode == TEXT_MODE && anc_d && anc_d->annunciators[0] ) {
         update_display_videx(cpu, videx_d ); 
     } else {
-        update_display_apple2(cpu);
+        //update_display_apple2(cpu);
+        new_update_display_apple2(cpu);
     }
     // TODO: IIgs will need a hook here too - do same video update callback function.
 }
