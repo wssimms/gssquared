@@ -101,7 +101,8 @@ reads a couple tracks then fails with:
 
 Unknown opcode: FFFFFFFF: 0xFA
 
-Say what? how did we get to address -1 and get stuck there?
+we're looping on jmp (3f0) -> FFFF -> BRK.
+
 
 ## Clue
 
@@ -125,8 +126,24 @@ Ascii Express 3.46 loads. Of course, we don't have any serial ports on here righ
 
 ## Wizardry
 
-if there's a Videx, wizardry (aka Pascal) turns it on. Then all you see is the Videx screen. Huh.
+if there's a Videx, wizardry (aka Pascal) turns it on. Then all you see is the Videx screen. Huh. there's a whole video from Chris Torrance about this.
 
 ## Epyx Preview Disk
 
 baseball ok. Winter Games, something's not right, is it trying to double-buffer and it isn't triggering correctly?
+
+## Skyfox
+
+working as of 0.3x with mockingboard support. both standalone disk version and version on Total Replay. Was a language card problem.
+
+## Rescue Raiders
+
+boots - get the demo screen. 's' to start. terrorists have been found at Cherbourg - then it sits in a loop at 8147 - I put a 0 in address $59 a few times and it started workingish. at least I have animation, if not audio. ah ha! This is why:
+https://comp.sys.apple2.narkive.com/7TzX1OSL/rescue-raiders-v1-2-and-1-3-questions
+here's the manual for reference:
+https://archive.org/details/rescueraidersusersmanual/page/n17/mode/2up
+
+## Total Replay
+
+boots up detects 64K and mockingboard and then thinks "and it talks!" . uh. wrong. but lots of the games on it work, including Rescue Raiders.
+

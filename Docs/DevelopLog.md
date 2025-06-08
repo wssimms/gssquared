@@ -4368,6 +4368,30 @@ I am pretty sure the Skyfox problem is just that it's a bad crack. It's overwrit
 
 But the big news is: I determined this with the DEBUGGER, BABY!
 
-I made huge progress on this debugger over the past couple days. Adding to the trace screen from before, I now I have a (very) basic monitor and a memory monitor. I need to add monitor commands to control the memory display.
+I made huge progress on this debugger over the past couple days. Adding to the trace screen from before, I now I have a (very) basic monitor and a memory monitor. I need to add monitor commands to control the memory watch.
 
 Have a TextEditor widget that lets you edit a line of text. insert, delete, backspace and arrows work. don't have copy/cut/paste.
+
+[ ] next bit: do a forward-looking disassembler.  
+
+## Jun 7, 2025
+
+I added monitor commands for controlling breakpoints and memory watch.
+
+I'm wrong! Skyfox claims to be Apple II compatible, and, it boots fine in II+ mode in Virtual II. My theory is now that Skyfox is failing because something in there is accessing language card control through a (ZP,X) lookup, which may be relying on 6502 ghost reads aka phantom reads. 
+let's go back to that system tester program : audit.dsk
+bp's: d17b; c080-c08f;
+
+639e - inc $C083,X - ok, what does this do.
+reads c083;
+reads c083 again?
+writes c083
+
+Test Suite for Mockingboards and 6502/65c02:
+[ ] https://github.com/tomcw/mb-audit  
+
+ok, three reads in a row does not seem to cause any problems. how about writes..
+
+Ah, well I found a difference in my language card impl: STA C083 on mine does nothing; in Sather and in a2ts it enables read from RAM!
+DOH! That was it. Skyfox is working!! I wonder what else will work now.. HA TOTAL REPLAY boots now. It also detects 64K and the mockingboard automagically. and skyfox on that runs.
+checking rescue raiders.. how do I start the game.. 
