@@ -1,5 +1,5 @@
 #include <SDL3/SDL.h>
-#include "debugger/monitor.hpp"
+#include "debugger/MonitorCommand.hpp"
 #include "debugger/ExecuteCommand.hpp"
 #include <iostream>
 
@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
         MonitorCommand *cmd = new MonitorCommand(command);
         cmd->print();
 
-        ExecuteCommand *exec = new ExecuteCommand(mmu, cmd);
+        ExecuteCommand *exec = new ExecuteCommand(mmu, cmd, nullptr, nullptr);
         exec->execute();
         
         // Print the output buffer to stdout (you can remove this or redirect as needed)

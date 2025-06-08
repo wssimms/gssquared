@@ -7,7 +7,7 @@
 #include "util/TextRenderer.hpp"
 #include "ui/Container.hpp"
 #include "ui/TextInput.hpp"
-
+#include "debugger/MemoryWatch.hpp"
 
 struct computer_t;
 struct video_system_t;
@@ -17,11 +17,6 @@ enum debug_panel_t {
     DEBUG_PANEL_MONITOR,
     DEBUG_PANEL_MEMORY,
     DEBUG_PANEL_COUNT
-};
-
-struct memory_watch_t {
-    uint16_t start;
-    uint16_t end;
 };
 
 
@@ -43,7 +38,8 @@ struct debug_window_t {
     int font_line_height = 14;
     std::vector<Container_t *> containers;
     Container_t *tab_container;
-    std::vector<memory_watch_t> memory_watches;
+    MemoryWatch memory_watches;
+    MemoryWatch breaks;
 
     int panel_visible[DEBUG_PANEL_COUNT] = {0};
     SDL_Rect pane_area[DEBUG_PANEL_COUNT];
@@ -51,6 +47,7 @@ struct debug_window_t {
     TextInput_t* mon_textinput;
     std::vector<std::string> mon_display_buffer;
     std::vector<std::string> mon_history;
+    int mon_history_position = 0;
 
     debug_window_t(computer_t *computer);
     //void init(cpu_state *cpu);
@@ -67,9 +64,12 @@ struct debug_window_t {
     void render_pane_trace();
     void render_pane_monitor();
     void render_pane_memory();
+    void set_panel_visible(debug_panel_t panel, bool visible);
     bool is_pane_first(debug_panel_t pane);
     int num_lines_in_pane(debug_panel_t pane);
     void event_pane_monitor(SDL_Event &event);
+    bool handle_pane_event_monitor(SDL_Event &event);
+    bool check_breakpoint(system_trace_entry_t *entry);
 
 protected:
     void execute_command(const std::string& command);
