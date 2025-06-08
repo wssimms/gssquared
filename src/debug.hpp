@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 // Values can be 0 - no debug, 1 - instruction decode, 2- detailed decode.
 extern uint64_t debug_level;
 
