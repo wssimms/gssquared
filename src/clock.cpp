@@ -77,7 +77,66 @@ void incr_cycles(cpu_state *cpu) {
 #include "platforms.hpp"
 #include "display/display.hpp"
 
+uint8_t flipped[256];
+void make_flipped(void) {
+    for (int n = 0; n < 256; ++n) {
+        uint8_t byte = (uint8_t)n;
+        uint8_t flipped_byte = byte >> 7; // leave high bit as high bit
+        for (int i = 7; i; --i) {
+            flipped_byte = (flipped_byte << 1) | (byte & 1);
+            byte >>= 1;
+        }
+    }
+}
+
+uint16_t hgr_bits[256];
+void make_hgr_bits(void) {
+    for (uint16_t n = 0; n < 256; ++n) {
+        uint8_t  byte = flipped[n];
+        uint16_t hgrbits = 0;
+        for (int i = 7; i; --i) {
+            hgrbits = (hgrbits << 1) | (byte & 1);
+            hgrbits = (hgrbits << 1) | (byte & 1);
+            byte >>= 1;
+        }
+        hgrbits <<= (byte & 1);
+        hgr_bits[n] = hgrbits;
+    }
+}
+
+uint16_t lgr_bits[32];
+void make_lgr_bits(void) {
+    for (int n = 0; n < 16; ++n) {
+        uint8_t pattern = flipped[n];
+
+        // form even column pattern
+        uint16_t lgrbits = 0;
+        for (int i = 14; i; --i) {
+            lgrbits = (lgrbits << 1) | (pattern & 1);
+            pattern = ((pattern & 1) << 3) | (pattern >> 1); // rotate
+        }
+        hgr_bits[2*n] = lgrbits;
+
+        // form odd column pattern
+        lgrbits = 0;
+        for (int i = 14; i; --i) {
+            lgrbits = (lgrbits << 1) | (pattern & 1);
+            pattern = ((pattern & 1) << 3) | (pattern >> 1); // rotate
+        }
+        hgr_bits[2*n+1] = lgrbits;
+    }
+}
+
+int made_bits = 0;
+
 void mega_ii_cycle(cpu_state *cpu) {
+    if (!made_bits) {
+        make_flipped();
+        make_hgr_bits();
+        make_lgr_bits();
+        ++made_bits;
+    }
+
     cpu->cycles++;
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     
@@ -123,21 +182,15 @@ void mega_ii_cycle(cpu_state *cpu) {
             else if (ds->display_graphics_mode == LORES_MODE) {
                 line_addr = ds->display_page_table->text_page_table[major];
                 vbyte = cpu->mmu->read_raw(line_addr + col);
-                for (int count = 7; count; --count) {
-                    vidbits = (vidbits << 1) | (vbyte & 1);
-                    vidbits = (vidbits << 1) | (vbyte & 1);
-                    vbyte >>= 1;
-                }
+                vbyte = (vbyte >> (minor & 4)) & 0x0F; // hi or lo nibble
+                vbyte = (vbyte << 1) | (col & 1); // different for even/odd columns
+                vidbits = lgr_bits[vbyte];
             }
             else {  // GRAPHICS_MODE && HIRES_MODE
                 line_addr = ds->display_page_table->hgr_page_table[major];
                 line_addr = line_addr + 0x400 * minor;
                 vbyte = cpu->mmu->read_raw(line_addr + col);
-                for (int count = 7; count; --count) {
-                    vidbits = (vidbits << 1) | (vbyte & 1);
-                    vidbits = (vidbits << 1) | (vbyte & 1);
-                    vbyte >>= 1;
-                }
+                vidbits = hgr_bits[vbyte];
             }
 
             cpu->vidbits[row][col] = vidbits;
