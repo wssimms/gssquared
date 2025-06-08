@@ -442,7 +442,7 @@ int main(int argc, char *argv[]) {
     //computer->cpu->set_video_system(computer->video_system);
 
     computer->cpu->rd = rd;
-    //init_display_font(rd);
+    init_display_font(rd);
 
     SystemConfig_t *system_config = get_system_config(platform_id);
 
