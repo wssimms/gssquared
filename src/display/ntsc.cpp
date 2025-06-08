@@ -341,6 +341,9 @@ void newProcessAppleIIFrame_LUT (
     RGBA* outputImage           // Will be filled with 560x192 RGBA pixels
 )
 {
+    static RGBA p_black = { 0xFF, 0x00, 0x00, 0x00 };
+    static RGBA p_white = { 0xFF, 0xFF, 0xFF, 0xFF };
+
     int mask = ((1 << ((NUM_TAPS * 2) + 1)) - 1);
 
     // Process each scanline
@@ -351,13 +354,22 @@ void newProcessAppleIIFrame_LUT (
         // if num_taps = 6, 
         // 11111 1X000000
 
-        uint32_t ntscbits = 0;
-
         // Process the scanline
         int x = 0;
+        uint32_t ntscbits = 0;
+
         for (int col = 0; col < 40; ++col)
         {
-            int countmax = 14;
+#if 0
+            // debug
+            uint16_t rawbits = cpu->vidbits[line][col];
+            for (int count = 14; count; --count) {
+                outputImage[0] = (rawbits & 1) ? p_white : p_black;
+                outputImage++;
+                rawbits >>= 1;
+            }
+#else
+            int count = 14;
             uint16_t rawbits = cpu->vidbits[line][col];
 
             if (col == 0) {
@@ -366,25 +378,31 @@ void newProcessAppleIIFrame_LUT (
                     ntscbits = ntscbits >> 1;
                     if (rawbits & 1)
                         ntscbits = ntscbits | (1 << ((NUM_TAPS*2)));
-                    rawbits >>= 1;
-                    --countmax;
+                    rawbits = rawbits >> 1;
+                    --count;
                 }
             }
 
-            for (int count = countmax; count; --count)
+            for ( ; count; --count)
             {
                 ntscbits = ntscbits >> 1;
-                if ((x < 560-NUM_TAPS) && (rawbits & 1)) // lookahead..
-                {
+                if ((rawbits & 1) && (x < (560 - NUM_TAPS)))
                     ntscbits = ntscbits | (1 << ((NUM_TAPS*2)));
-                    rawbits >>= 1;
-                }
+                rawbits = rawbits >> 1;
 
                 //  Use the phase and the bits as the index
                 outputImage[0] = g_hgr_LUT[x % 4][ntscbits];
                 outputImage++;
                 x++;
             }
+#endif
+        }
+
+        for (int count = NUM_TAPS; count; --count) {
+                ntscbits = ntscbits >> 1;
+                //  Use the phase and the bits as the index
+                outputImage[0] = g_hgr_LUT[x % 4][ntscbits];
+                outputImage++;
         }
     }
 }
@@ -399,8 +417,10 @@ void newProcessAppleIIFrame_Mono (
 )
 {
     static RGBA p_black = { 0xFF, 0x00, 0x00, 0x00 };
+    static RGBA p_white = { 0xFF, 0xFF, 0xFF, 0xFF };
 
     // Process each scanline
+    int x = 0;
     for (int line = 0; line < 192; ++line)
     {
         for (int col = 0; col < 40; ++col)
@@ -413,9 +433,11 @@ void newProcessAppleIIFrame_Mono (
                 } else {
                     outputImage[0] = p_black;
                 }
+
                 outputImage++;
                 rawbits >>= 1;
             }
         }
+        ++x;
     }
 }
