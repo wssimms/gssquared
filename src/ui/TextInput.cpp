@@ -114,6 +114,22 @@ void TextInput_t::render(SDL_Renderer* renderer) {
     // take padding, border etc into account
     int eff_x = x + style.padding + style.border_width;
 
+    // draw the background
+    int r,g,b,a;
+    r = (style.background_color & 0xFF000000) >> 24;
+    g = (style.background_color & 0x00FF0000) >> 16;
+    b = (style.background_color & 0x0000FF00) >> 8;
+    a = (style.background_color & 0x000000FF);
+    if (!edit_active) {
+        r = r * 0.7;
+        g = g * 0.7;
+        b = b * 0.7;
+        //a = a * 0.4;
+    }
+    SDL_SetRenderDrawColor(renderer, r, g, b, a);
+    SDL_FRect eb = {x, y, w, h};
+    SDL_RenderFillRect(renderer, &eb);
+
     // first, render what is in the text input area.    
     text_renderer->render(text, eff_x, y + style.padding);
 
