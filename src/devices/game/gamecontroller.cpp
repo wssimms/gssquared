@@ -150,6 +150,10 @@ uint8_t strobe_game_inputs(void *context, uint16_t address) {
     return 0x00;
 }
 
+void strobe_game_inputs_w(void *context, uint16_t address, uint8_t value) {
+    strobe_game_inputs(context, address);
+}
+
 uint8_t read_game_input_0(void *context, uint16_t address) {
     cpu_state *cpu = (cpu_state *)context;
     gamec_state_t *ds = (gamec_state_t *)get_module_state(cpu, MODULE_GAMECONTROLLER);
@@ -374,6 +378,7 @@ void init_mb_game_controller(computer_t *computer, SlotType_t slot) {
     cpu->mmu->set_C0XX_read_handler(GAME_ANALOG_2, { read_game_input_2, cpu });
     cpu->mmu->set_C0XX_read_handler(GAME_ANALOG_3, { read_game_input_3, cpu });
     cpu->mmu->set_C0XX_read_handler(GAME_ANALOG_RESET, { strobe_game_inputs, cpu });
+    cpu->mmu->set_C0XX_write_handler(GAME_ANALOG_RESET, { strobe_game_inputs_w, cpu });
     cpu->mmu->set_C0XX_read_handler(GAME_SWITCH_0, { read_game_switch_0, cpu });
     cpu->mmu->set_C0XX_read_handler(GAME_SWITCH_1, { read_game_switch_1, cpu });
     cpu->mmu->set_C0XX_read_handler(GAME_SWITCH_2, { read_game_switch_2, cpu }); 
