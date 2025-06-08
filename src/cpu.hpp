@@ -50,6 +50,18 @@ enum execution_modes_t {
     EXEC_STEP_OVER
 };
 
+// TODO: deal with endianness here.
+
+struct addr_t {
+    union {
+        struct {
+            uint8_t al;
+            uint8_t ah;
+        };
+        uint16_t a;
+    };
+};
+
 // a couple forward declarations
 struct cpu_state;
 class Mounts;
@@ -207,9 +219,12 @@ struct cpu_state {
     }
 
     inline uint16_t read_word_from_pc() {
-        uint16_t value = read_byte(pc) | (read_byte(pc + 1) << 8);
+        // make sure this is read lo-byte first.
+        addr_t ad;
+        ad.al = read_byte(pc);
+        ad.ah = read_byte(pc + 1);
         pc += 2;
-        return value;
+        return ad.a;
     }
 
     inline void write_byte( uint16_t address, uint8_t value) {

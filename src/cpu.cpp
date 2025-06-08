@@ -49,7 +49,8 @@ void toggle_clock_mode(cpu_state *cpu) {
 
 processor_model processor_models[NUM_PROCESSOR_TYPES] = {
     { "6502 (nmos)", cpu_6502::execute_next },
-    { "65C02 (cmos)", cpu_65c02::execute_next }
+    //{ "65C02 (cmos)", cpu_65c02::execute_next }
+    { "65C02 (cmos)", cpu_6502::execute_next }
 };
 
 const char* processor_get_name(int processor_type) {

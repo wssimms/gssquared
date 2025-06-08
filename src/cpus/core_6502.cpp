@@ -34,6 +34,9 @@
  * very different for the 16-bit mode stuff.
  */
 
+#include "opcodes.hpp"
+
+#include "core_6502.hpp"
 
 /**
  * References: 
@@ -47,6 +50,7 @@
  * TODO: Decide whether to implement the 'illegal' instructions. Maybe have that as a processor variant? the '816 does not implement them.
  * 
  */
+namespace cpu_6502 {
 
 int execute_next(cpu_state *cpu) {
 
@@ -77,34 +81,18 @@ int execute_next(cpu_state *cpu) {
         fprintf(stdout, "[eHz: %.0f] ", cycles_per_second);
     }
 #endif
-#if 0
-    if ( DEBUG(DEBUG_TIMEDRUN) && cpu->cycles > (10 * cpu->HZ_RATE) ) { // should take about 10 seconds.
-        uint64_t current_time = get_current_time_in_microseconds();
-        uint64_t elapsed_time = current_time - cpu->boot_time;
-        fprintf(stdout, "[eTime: %llu] ", elapsed_time);
-        float cycles_per_second = (cpu->cycles * 1000000000.0) / (elapsed_time * 1000.0);
-        fprintf(stdout, "[eHz: %f] ", cycles_per_second);
-        cpu->halt = HLT_INSTRUCTION;
-    }
-#endif
-
-    //if (DEBUG(DEBUG_REGISTERS)) fprintf(stdout, " | PC: $%04X, A: $%02X, X: $%02X, Y: $%02X, P: $%02X, S: $%02X || ", cpu->pc, cpu->a_lo, cpu->x_lo, cpu->y_lo, cpu->p, cpu->sp);
-
-    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "%04X: ", cpu->pc); // so PC is correct.
 
     if (!cpu->I && cpu->irq_asserted) { // if IRQ is not disabled, and IRQ is asserted, handle it.
         push_word(cpu, cpu->pc); // push current PC
         push_byte(cpu, cpu->p | FLAG_UNUSED); // break flag and Unused bit set to 1.
         cpu->p |= FLAG_I; // interrupt disable flag set to 1.
         cpu->pc = cpu->read_word(IRQ_VECTOR);
-        //if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, " => $%04X", cpu->pc);
         incr_cycles(cpu);
         incr_cycles(cpu);
         return 0;
     }
 
     opcode_t opcode = cpu->read_byte_from_pc();
-    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "%s", get_opcode_name(opcode));
     tb->opcode = opcode;
 
     switch (opcode) {
@@ -430,25 +418,29 @@ int execute_next(cpu_state *cpu) {
     /* DEC --------------------------------- */
         case OP_DEC_ZP: /* DEC Zero Page */
             {
-                dec_operand_zeropage(cpu);
+                zpaddr_t zpaddr = get_operand_address_zeropage(cpu);
+                dec_operand(cpu, zpaddr);
             }
             break;
 
         case OP_DEC_ZP_X: /* DEC Zero Page, X */
             {
-                dec_operand_zeropage_x(cpu);
+                zpaddr_t zpaddr = get_operand_address_zeropage_x(cpu);
+                dec_operand(cpu, zpaddr);
             }
             break;
 
         case OP_DEC_ABS: /* DEC Absolute */
             {
-                dec_operand_absolute(cpu);
+                absaddr_t addr = get_operand_address_absolute(cpu);
+                dec_operand(cpu, addr);
             }
             break;
 
         case OP_DEC_ABS_X: /* DEC Absolute, X */
             {
-                dec_operand_absolute_x(cpu);
+                absaddr_t addr = get_operand_address_absolute_x_rmw(cpu);
+                dec_operand(cpu, addr);
             }
             break;
 
@@ -539,25 +531,29 @@ int execute_next(cpu_state *cpu) {
     /* INC --------------------------------- */
         case OP_INC_ZP: /* INC Zero Page */
             {
-                inc_operand_zeropage(cpu);
+                zpaddr_t zpaddr = get_operand_address_zeropage(cpu);
+                inc_operand(cpu, zpaddr);
             }
             break;
 
         case OP_INC_ZP_X: /* INC Zero Page, X */
             {
-                inc_operand_zeropage_x(cpu);
+                zpaddr_t zpaddr = get_operand_address_zeropage_x(cpu);
+                inc_operand(cpu, zpaddr);
             }
             break;
 
         case OP_INC_ABS: /* INC Absolute */
             {
-                inc_operand_absolute(cpu);
+                absaddr_t addr = get_operand_address_absolute(cpu);
+                inc_operand(cpu, addr);
             }
             break;
 
         case OP_INC_ABS_X: /* INC Absolute, X */
             {
-                inc_operand_absolute_x(cpu);
+                absaddr_t addr = get_operand_address_absolute_x_rmw(cpu);
+                inc_operand(cpu, addr);
             }
             break;
 
@@ -1109,22 +1105,14 @@ int execute_next(cpu_state *cpu) {
                 push_byte(cpu, cpu->p | FLAG_B | FLAG_UNUSED); // break flag and Unused bit set to 1.
                 cpu->p |= FLAG_I; // interrupt disable flag set to 1.
                 cpu->pc = cpu->read_word(BRK_VECTOR);
-                //if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, " => $%04X", cpu->pc);
             }
             break;
 
         /* JMP --------------------------------- */
         case OP_JMP_ABS: /* JMP Absolute */
             {
-                //absaddr_t thisaddr = cpu->pc-1;
                 absaddr_t addr = get_operand_address_absolute(cpu);
                 cpu->pc = addr;
-                /* if (thisaddr == cpu->pc) {
-                    fprintf(stdout, " JUMP TO SELF INFINITE LOOP JMP $%04X\n", cpu->pc);
-                    cpu->halt = HLT_INSTRUCTION;
-                } */
-                //if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, " $%04X", cpu->pc);
-                //TRACE(cpu->trace_entry.operand = cpu->pc;)
             }
             break;
 
@@ -1132,7 +1120,6 @@ int execute_next(cpu_state *cpu) {
             {
                 absaddr_t addr = get_operand_address_absolute_indirect(cpu);
                 cpu->pc = addr;
-                //if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, " -> [$%04X]", addr);
             }
             break;
 
@@ -1144,7 +1131,6 @@ int execute_next(cpu_state *cpu) {
                 cpu->pc = addr;
                 // load address fetched into the PC
                 incr_cycles(cpu);
-                //if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, "$%04X", cpu->pc);
             }
             break;
 
@@ -1158,7 +1144,6 @@ int execute_next(cpu_state *cpu) {
 
                 cpu->pc = pop_word(cpu);
                 TRACE(cpu->trace_entry.operand = cpu->pc;)
-                //if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, "$%04X %02X", cpu->pc, cpu->p);
             }
             break;
 
@@ -1169,7 +1154,6 @@ int execute_next(cpu_state *cpu) {
                 incr_cycles(cpu);
                 cpu->pc++;
                 incr_cycles(cpu);
-                //if (DEBUG(DEBUG_OPERAND)) fprintf(stdout, "$%04X", cpu->pc);
                 TRACE(cpu->trace_entry.operand = cpu->pc;)
             }
             break;
@@ -1177,11 +1161,9 @@ int execute_next(cpu_state *cpu) {
         /* NOP --------------------------------- */
         case OP_NOP_IMP: /* NOP */
             {
-                /* if (DEBUG) std::cout << "NOP"; */
                 incr_cycles(cpu);
             }
             break;
-
 
         /* Flags ---------------------------------  */
 
@@ -1267,8 +1249,10 @@ int execute_next(cpu_state *cpu) {
             //cpu->halt = HLT_INSTRUCTION;
             break;
     }
-    //if (DEBUG(DEBUG_OPCODE)) fprintf(stdout, "\n");
+
     TRACE(if (cpu->trace) cpu->trace_buffer->add_entry(cpu->trace_entry);)
 
     return 0;
+}
+
 }
