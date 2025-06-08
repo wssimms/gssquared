@@ -116,7 +116,8 @@ void set_memory_pages_based_on_flags(cpu_state *cpu) {
     }
 
     if (DEBUG(DEBUG_LANGCARD)) {
-        cpu->mmu->dump_page_table(0xD0, 0xFF);
+        cpu->mmu->dump_page_table(0xD0, 0xD0);
+        cpu->mmu->dump_page_table(0xE0, 0xE0);
         /* for (int i = 0; i < 48; i+=16) {
             printf("page: %02X read: %p write: %p canwrite: %d ", 0xD0 + i,
                 cpu->memory->pages_read[i + 0xD0], 
@@ -129,6 +130,118 @@ void set_memory_pages_based_on_flags(cpu_state *cpu) {
         } */
     }
 }
+
+uint8_t languagecard_read_C0xx(void *context, uint16_t address) {
+    cpu_state *cpu = (cpu_state *)context;
+    languagecard_state_t *lc = (languagecard_state_t *)get_module_state(cpu, MODULE_LANGCARD);
+
+    if (DEBUG(DEBUG_LANGCARD)) printf("languagecard read %04X [%llu] ", address, cpu->cycles);
+
+    /** Bank Select */    
+    
+    if (address & LANG_A3 ) {
+        // 1 = any access sets Bank_1
+        lc->FF_BANK_1 = 1;
+    } else {
+        // 0 = any access resets Bank_1
+        lc->FF_BANK_1 = 0;
+    }
+
+    /** Read Enable */
+    
+    if (((address & LANG_A0A1) == 0) || ((address & LANG_A0A1) == 3)) {
+        // 00, 11 - set READ_ENABLE
+        lc->FF_READ_ENABLE = 1;
+    } else {
+        // 01, 10 - reset READ_ENABLE
+        lc->FF_READ_ENABLE = 0;
+    }
+
+    int old_pre_write = lc->FF_PRE_WRITE;
+
+    /* PRE_WRITE */
+    if ((address & 0b00000001) == 1) {  // read 1 or 3
+        // 00000001 - set PRE_WRITE
+        lc->FF_PRE_WRITE = 1;
+    } else {                            // read 0 or 2
+        // 00000000 - reset PRE_WRITE
+        lc->FF_PRE_WRITE = 0;
+    }
+
+    /** Write Enable */
+    if ((old_pre_write == 1) && ((address & 0b00000001) == 1)) { // PRE_WRITE set, read 1 or 3
+        // 00000000 - reset WRITE_ENABLE'
+        lc->_FF_WRITE_ENABLE = 0;
+    }
+    if ((address & 0b00000001) == 0) { // read 0 or 2, set _WRITE_ENABLE
+        // 00000001 - set WRITE_ENABLE'
+        lc->_FF_WRITE_ENABLE = 1;
+    }
+
+    if (DEBUG(DEBUG_LANGCARD)) printf("FF_BANK_1: %d, FF_READ_ENABLE: %d, FF_PRE_WRITE: %d, _FF_WRITE_ENABLE: %d\n", 
+        lc->FF_BANK_1, lc->FF_READ_ENABLE, lc->FF_PRE_WRITE, lc->_FF_WRITE_ENABLE);
+   
+    /**
+     * compose the memory map.
+     * in main_ram:
+     * 0x0000 - 0xBFFF - straight map.
+     * 0xC000 - 0xCFFF - bank 1 extra memory
+     * 0xD000 - 0xDFFF - bank 2 extra memory
+     * 0xE000 - 0xFFFF - rest of extra memory
+     * */
+
+    set_memory_pages_based_on_flags(cpu);
+    return 0;
+}
+
+
+void languagecard_write_C0xx(void *context, uint16_t address, uint8_t value) {
+    cpu_state *cpu = (cpu_state *)context;
+    languagecard_state_t *lc = (languagecard_state_t *)get_module_state(cpu, MODULE_LANGCARD);
+
+    if (DEBUG(DEBUG_LANGCARD)) printf("languagecard write %04X value: %02X\n", address, value);
+    
+
+    /** Bank Select */
+
+    if (address & LANG_A3 ) {
+        // 1 = any access sets Bank_1 - read or write.
+        lc->FF_BANK_1 = 1;
+    } else {
+        // 0 = any access resets Bank_1
+        lc->FF_BANK_1 = 0;
+    }
+
+    /** READ_ENABLE  */
+    
+    if (((address & LANG_A0A1) == 0) || ((address & LANG_A0A1) == 3)) { // write 0 or 3
+        // 00, 11 - set READ_ENABLE
+        lc->FF_READ_ENABLE = 1;
+    } else {
+        // 01, 10 - reset READ_ENABLE
+        lc->FF_READ_ENABLE = 0;
+    }
+    
+    /** PRE_WRITE */ // any write, reests PRE_WRITE
+    lc->FF_PRE_WRITE = 0;
+
+    /** WRITE_ENABLE */
+    if ((address & 0b00000001) == 0) { // write 0 or 2
+        lc->_FF_WRITE_ENABLE = 1;
+    }
+
+    /* This means there is a feature of RAM card control
+    not documented by Apple: write access to odd address in C08X
+    range controls the READ ENABLE flip-flip without affecting the WRITE enable' flip-flop.
+    STA $C081: no effect on write enable, disable read, bank 2 */
+
+    if (DEBUG(DEBUG_LANGCARD)) printf("FF_BANK_1: %d, FF_READ_ENABLE: %d, FF_PRE_WRITE: %d, _FF_WRITE_ENABLE: %d\n", 
+        lc->FF_BANK_1, lc->FF_READ_ENABLE, lc->FF_PRE_WRITE, lc->_FF_WRITE_ENABLE);   
+
+    set_memory_pages_based_on_flags(cpu);
+}
+
+#if 0
 
 uint8_t languagecard_read_C0xx(void *context, uint16_t address) {
     cpu_state *cpu = (cpu_state *)context;
@@ -190,6 +303,8 @@ void languagecard_write_C0xx(void *context, uint16_t address, uint8_t value) {
     languagecard_state_t *lc = (languagecard_state_t *)get_module_state(cpu, MODULE_LANGCARD);
 
     if (DEBUG(DEBUG_LANGCARD)) printf("languagecard write %04X value: %02X\n", address, value);
+    
+    // any write, reests PRE_WRITE
     lc->FF_PRE_WRITE = 0;
 
     if (address & LANG_A3 ) {
@@ -212,14 +327,18 @@ void languagecard_write_C0xx(void *context, uint16_t address, uint8_t value) {
     not documented by Apple: write access to odd address in C08X
     range controls the READ ENABLE flip-flip without affecting the WRITE enable' flip-flop.
     STA $C081: no effect on write enable, disable read, bank 2 */
-    if (address & 0b00000001) {
+    /* if (address & 0b00000001) {
         lc->FF_READ_ENABLE = 0;
+    } */
+    if ((address & 0b00000001) == 1) { // e.g. STA $C083
+        lc->FF_READ_ENABLE = 1;
     }
     if (DEBUG(DEBUG_LANGCARD)) printf("FF_BANK_1: %d, FF_READ_ENABLE: %d, FF_PRE_WRITE: %d, _FF_WRITE_ENABLE: %d\n", 
         lc->FF_BANK_1, lc->FF_READ_ENABLE, lc->FF_PRE_WRITE, lc->_FF_WRITE_ENABLE);   
 
     set_memory_pages_based_on_flags(cpu);
 }
+#endif
 
 uint8_t languagecard_read_C011(void *context, uint16_t address) {
     cpu_state *cpu = (cpu_state *)context;
