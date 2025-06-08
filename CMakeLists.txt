@@ -227,7 +227,7 @@ add_library(gs2_debugger src/debugger/trace.cpp src/debugger/trace_opcodes.cpp s
 
 add_library(gs2_mmu src/mmus/mmu.cpp src/mmus/mmu_ii.cpp )
 
-add_library(gs2_cpu src/cpus/cpu_6502.cpp src/cpus/cpu_65c02.cpp src/cpu.cpp )
+add_library(gs2_cpu src/cpus/cpu_6502.cpp src/cpus/cpu_65c02.cpp src/cpu.cpp src/clock.cpp )
 
 add_library(gs2_computer src/computer.cpp )
 

@@ -71,6 +71,8 @@ namespace cpu_65c02 {
     extern int execute_next(cpu_state *cpu);
 }
 
+struct rom_data;
+
 struct cpu_state {
     union {
         struct {
@@ -162,6 +164,11 @@ struct cpu_state {
     };
     uint8_t halt = 0; /* == 1 is HLT instruction halt; == 2 is user halt */
     uint64_t cycles; /* Number of cycles since reset */
+
+    uint16_t vidbits[192][40];
+    uint16_t vert_counter;
+    uint16_t horz_counter;
+    rom_data *rd;
 
     uint64_t irq_asserted = 0; /** bits 0-7 correspond to slot IRQ lines slots 0-7. */
 

@@ -50,7 +50,7 @@ struct rom_data {
     main_rom_t *main_rom_data;
     char_rom_t *char_rom_data;
 
-/*     uint8_t* main_rom;
+/*  uint8_t* main_rom;
     size_t main_size;
     uint8_t* char_rom;
     size_t char_size; */
