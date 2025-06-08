@@ -117,7 +117,6 @@ public:
 
     uint32_t dirty_line[24];
     line_mode_t line_mode[24] = {LM_TEXT_MODE}; // 0 = TEXT, 1 = LO RES GRAPHICS, 2 = HI RES GRAPHICS
-    line_mode_t current_mode;
 
     uint8_t *buffer = nullptr;
     EventQueue *event_queue;
