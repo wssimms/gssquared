@@ -15,6 +15,9 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#undef BAZYAR
+#ifdef BAZYAR
+
 #include <vector>
 #include <cstdio>
 #include <stdexcept>
@@ -144,3 +147,5 @@ void render_hgrng_scanline(cpu_state *cpu, int y, uint8_t *pixels)
     }
     processAppleIIFrame_LUT(frameBuffer + (y * 8 * 560), (RGBA *)pixels, y * 8, (y + 1) * 8);
 }
+
+#endif

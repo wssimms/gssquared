@@ -15,6 +15,8 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#undef BAZYAR
+#ifdef BAZYAR
 
 #include <vector>
 #include <cstdio>
@@ -138,3 +140,5 @@ void render_lgrng_scanline(cpu_state *cpu, int y)
     printf("Processed entire image: %zu pixels\n", totalPixels);
     return bitSignalOut;
 } */
+
+#endif

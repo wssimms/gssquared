@@ -86,6 +86,7 @@ void make_flipped(void) {
             flipped_byte = (flipped_byte << 1) | (byte & 1);
             byte >>= 1;
         }
+        flipped[n] = flipped_byte;
     }
 }
 
@@ -99,8 +100,9 @@ void make_hgr_bits(void) {
             hgrbits = (hgrbits << 1) | (byte & 1);
             byte >>= 1;
         }
-        hgrbits <<= (byte & 1);
+        hgrbits = hgrbits << (byte & 1);
         hgr_bits[n] = hgrbits;
+        //printf("%4.4x\n", hgrbits);
     }
 }
 
@@ -108,6 +110,8 @@ uint16_t lgr_bits[32];
 void make_lgr_bits(void) {
     for (int n = 0; n < 16; ++n) {
         uint8_t pattern = flipped[n];
+        pattern >>= 3;
+        //uint8_t pattern = (uint8_t)n;
 
         // form even column pattern
         uint16_t lgrbits = 0;
@@ -115,7 +119,7 @@ void make_lgr_bits(void) {
             lgrbits = (lgrbits << 1) | (pattern & 1);
             pattern = ((pattern & 1) << 3) | (pattern >> 1); // rotate
         }
-        hgr_bits[2*n] = lgrbits;
+        lgr_bits[2*n] = lgrbits;
 
         // form odd column pattern
         lgrbits = 0;
@@ -123,7 +127,7 @@ void make_lgr_bits(void) {
             lgrbits = (lgrbits << 1) | (pattern & 1);
             pattern = ((pattern & 1) << 3) | (pattern >> 1); // rotate
         }
-        hgr_bits[2*n+1] = lgrbits;
+        lgr_bits[2*n+1] = lgrbits;
     }
 }
 

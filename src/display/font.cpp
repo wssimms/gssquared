@@ -15,6 +15,9 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#undef BAZYAR
+#ifdef BAZYAR
+
 #include <cstdio>   
 //#include "display/types.hpp"
 #include "display/hgr.hpp"
@@ -54,3 +57,5 @@ void buildHires40Font(Model model, int revision)
         }
     }
 }
+
+#endif

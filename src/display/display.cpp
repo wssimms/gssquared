@@ -182,6 +182,9 @@ void init_display_font(rom_data *rd) {
     pre_calculate_font(rd);
 }
 
+#undef BAZYAR
+#ifdef BAZYAR
+
 /**
  * This is effectively a "redraw the entire screen each frame" method now.
  * With an optimization only update dirty lines.
@@ -226,6 +229,7 @@ void update_display_apple2(cpu_state *cpu) {
     vs->force_full_frame_redraw = false;
     vs->render_frame(ds->screenTexture);
 }
+#endif
 
 /**
  * This is effectively a "redraw the entire screen each frame" method now.
@@ -235,9 +239,14 @@ void new_update_display_apple2(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     video_system_t *vs = ds->video_system;
 
+    static RGBA p_white = { 0xFF, 0xFF, 0xFF, 0xFF };
+
     switch (vs->display_color_engine) {
         case DM_ENGINE_NTSC:
-            newProcessAppleIIFrame_LUT(cpu, (RGBA *)(ds->buffer));
+            if (ds->display_mode == TEXT_MODE)
+                newProcessAppleIIFrame_Mono(cpu, (RGBA *)(ds->buffer), p_white);
+            else
+                newProcessAppleIIFrame_LUT(cpu, (RGBA *)(ds->buffer));
             break;
         case DM_ENGINE_RGB:
             for (int line = 0; line < 24; ++line)
@@ -280,14 +289,16 @@ void update_display(cpu_state *cpu) {
     // TODO: IIgs will need a hook here too - do same video update callback function.
 }
 
+#ifdef BAZYAR
 void force_display_update(display_state_t *ds) {
     for (int y = 0; y < 24; y++) {
         ds->dirty_line[y] = 1;
     }
 }
+#endif
 
 void update_line_mode(display_state_t *ds) {
-
+#ifdef BAZYAR
     line_mode_t top_mode;
     line_mode_t bottom_mode;
 
@@ -313,6 +324,7 @@ void update_line_mode(display_state_t *ds) {
     for (int y = 20; y < 24; y++) {
         ds->line_mode[y] = bottom_mode;
     }
+#endif
 }
 
 void set_display_mode(display_state_t *ds, display_mode_t mode) {
@@ -333,8 +345,8 @@ void set_graphics_mode(display_state_t *ds, display_graphics_mode_t mode) {
     update_line_mode(ds);
 }
 
+#ifdef BAZYAR
 // anything we lock we have to completely replace.
-
 void render_line_ntsc(cpu_state *cpu, int y) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     video_system_t *vs = ds->video_system;
@@ -358,6 +370,7 @@ void render_line_ntsc(cpu_state *cpu, int y) {
     }
 
 }
+#endif
 
 void render_line_rgb(cpu_state *cpu, int y) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
@@ -374,6 +387,7 @@ void render_line_rgb(cpu_state *cpu, int y) {
 
 }
 
+#ifdef BAZYAR
 void render_line_mono(cpu_state *cpu, int y) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     video_system_t *vs = ds->video_system;
@@ -393,6 +407,7 @@ void render_line_mono(cpu_state *cpu, int y) {
 
     processAppleIIFrame_Mono(frameBuffer + (y * 8 * BASE_WIDTH), (RGBA *)pixels, y * 8, (y + 1) * 8, mono_color_value);
 }
+#endif
 
 uint8_t txt_bus_read_C050(void *context, uint16_t address) {
     display_state_t *ds = (display_state_t *)context;

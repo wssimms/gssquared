@@ -15,6 +15,9 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#undef BAZYAR
+#ifdef BAZYAR
+
 #pragma once
 
 #include "hgr.hpp"
@@ -22,3 +25,5 @@
 extern uint8_t hires40Font[];
 
 void buildHires40Font(Model model, int revision);
+
+#endif

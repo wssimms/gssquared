@@ -264,6 +264,8 @@ void init_hgr_LUT()
     }
 }
 
+#undef BAZYAR
+#ifdef BAZYAR
 /** Generate a 'frame' (i.e., a group of 8 scanlines) of video output data using the lookup table.  */
 void processAppleIIFrame_LUT (
     uint8_t* frameData,         // 560x192 bytes - gray bitstream data
@@ -334,6 +336,7 @@ void processAppleIIFrame_Mono (
         }
     }
 }
+#endif
 
 /** Generate a 'frame' (i.e., a group of 8 scanlines) of video output data using the lookup table.  */
 void newProcessAppleIIFrame_LUT (
@@ -341,9 +344,6 @@ void newProcessAppleIIFrame_LUT (
     RGBA* outputImage           // Will be filled with 560x192 RGBA pixels
 )
 {
-    static RGBA p_black = { 0xFF, 0x00, 0x00, 0x00 };
-    static RGBA p_white = { 0xFF, 0xFF, 0xFF, 0xFF };
-
     int mask = ((1 << ((NUM_TAPS * 2) + 1)) - 1);
 
     // Process each scanline
@@ -355,22 +355,14 @@ void newProcessAppleIIFrame_LUT (
         // 11111 1X000000
 
         // Process the scanline
-        int x = 0;
+        int x = 2;   // gives correct phase
+        uint16_t rawbits = 0;
         uint32_t ntscbits = 0;
 
         for (int col = 0; col < 40; ++col)
         {
-#if 0
-            // debug
-            uint16_t rawbits = cpu->vidbits[line][col];
-            for (int count = 14; count; --count) {
-                outputImage[0] = (rawbits & 1) ? p_white : p_black;
-                outputImage++;
-                rawbits >>= 1;
-            }
-#else
             int count = 14;
-            uint16_t rawbits = cpu->vidbits[line][col];
+            rawbits = rawbits | cpu->vidbits[line][col];
 
             if (col == 0) {
                 for (int i = NUM_TAPS; i; --i)
@@ -395,7 +387,6 @@ void newProcessAppleIIFrame_LUT (
                 outputImage++;
                 x++;
             }
-#endif
         }
 
         for (int count = NUM_TAPS; count; --count) {
