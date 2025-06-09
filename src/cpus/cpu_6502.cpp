@@ -34,9 +34,9 @@
 
 // 6502-specific wrapper
 
-namespace cpu_6502 {
-
 #include "core_6502.hpp"
+
+namespace cpu_6502 {
 
 #include "core_6502.cpp"
 

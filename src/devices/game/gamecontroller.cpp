@@ -119,14 +119,14 @@ uint8_t strobe_game_inputs(void *context, uint16_t address) {
         float mouse_x, mouse_y;
         SDL_GetMouseState(&mouse_x, &mouse_y);
         if (ds->paddle_flip_01) {
-            uint64_t x_trigger =  cpu->cycles + (GAME_INPUT_DECAY_TIME / 255) * (255-((mouse_x *255) / WINDOW_WIDTH));
-            uint64_t y_trigger = cpu->cycles + (GAME_INPUT_DECAY_TIME / 255) * (255-((mouse_y *255) / WINDOW_HEIGHT));
+            uint64_t x_trigger =  cpu->cycles + (GAME_INPUT_DECAY_TIME * (1.0f - (float(mouse_x) / WINDOW_WIDTH)));
+            uint64_t y_trigger = cpu->cycles + (GAME_INPUT_DECAY_TIME * (1.0f - (float(mouse_y) / WINDOW_HEIGHT)));
 
             ds->game_input_trigger_0 = y_trigger;
             ds->game_input_trigger_1 =x_trigger;   
         } else {
-            uint64_t x_trigger =  cpu->cycles + (GAME_INPUT_DECAY_TIME / 255) * ((mouse_x *255) / WINDOW_WIDTH);
-            uint64_t y_trigger = cpu->cycles + (GAME_INPUT_DECAY_TIME / 255) * ((mouse_y *255) / WINDOW_HEIGHT);
+            uint64_t x_trigger =  cpu->cycles + (GAME_INPUT_DECAY_TIME * (float(mouse_x) / WINDOW_WIDTH));
+            uint64_t y_trigger = cpu->cycles + (GAME_INPUT_DECAY_TIME * (float(mouse_y) / WINDOW_HEIGHT));
 
             ds->game_input_trigger_0 = x_trigger;
             ds->game_input_trigger_1 = y_trigger;
@@ -148,6 +148,10 @@ uint8_t strobe_game_inputs(void *context, uint16_t address) {
         ds->game_input_trigger_1 = y_trigger;
     }
     return 0x00;
+}
+
+void strobe_game_inputs_w(void *context, uint16_t address, uint8_t value) {
+    strobe_game_inputs(context, address);
 }
 
 uint8_t read_game_input_0(void *context, uint16_t address) {
@@ -374,6 +378,7 @@ void init_mb_game_controller(computer_t *computer, SlotType_t slot) {
     cpu->mmu->set_C0XX_read_handler(GAME_ANALOG_2, { read_game_input_2, cpu });
     cpu->mmu->set_C0XX_read_handler(GAME_ANALOG_3, { read_game_input_3, cpu });
     cpu->mmu->set_C0XX_read_handler(GAME_ANALOG_RESET, { strobe_game_inputs, cpu });
+    cpu->mmu->set_C0XX_write_handler(GAME_ANALOG_RESET, { strobe_game_inputs_w, cpu });
     cpu->mmu->set_C0XX_read_handler(GAME_SWITCH_0, { read_game_switch_0, cpu });
     cpu->mmu->set_C0XX_read_handler(GAME_SWITCH_1, { read_game_switch_1, cpu });
     cpu->mmu->set_C0XX_read_handler(GAME_SWITCH_2, { read_game_switch_2, cpu }); 
