@@ -74,3 +74,7 @@ void newProcessAppleIIFrame_Mono (
     RGBA* outputImage,          // Will be filled with 560x192 RGBA pixels
     RGBA color_value
 );
+void newProcessAppleIIFrame_RGB (
+    cpu_state *cpu,             // access to cpu->vidbits
+    RGBA* outputImage           // Will be filled with 560x192 RGBA pixels
+);

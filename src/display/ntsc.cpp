@@ -411,7 +411,6 @@ void newProcessAppleIIFrame_Mono (
     static RGBA p_white = { 0xFF, 0xFF, 0xFF, 0xFF };
 
     // Process each scanline
-    int x = 0;
     for (int line = 0; line < 192; ++line)
     {
         for (int col = 0; col < 40; ++col)
@@ -429,6 +428,136 @@ void newProcessAppleIIFrame_Mono (
                 rawbits >>= 1;
             }
         }
-        ++x;
+    }
+}
+
+RGBA standard_iigs_color_table[16] = {
+    { 0xFF, 0x00, 0x00, 0x00 },
+    { 0xFF, 0x30, 0x00, 0xD0 },
+    { 0xFF, 0x90, 0x00, 0x00 },
+    { 0xFF, 0xD0, 0x20, 0xD0 },
+    { 0xFF, 0x20, 0x70, 0x00 },
+    { 0xFF, 0x50, 0x50, 0x50 },
+    { 0xFF, 0xF0, 0x20, 0x20 },
+    { 0xFF, 0xF0, 0xA0, 0x60 },
+    { 0xFF, 0x00, 0x50, 0x80 },
+    { 0xFF, 0x00, 0x60, 0xF0 },
+    { 0xFF, 0xA0, 0xA0, 0xA0 },
+    { 0xFF, 0x80, 0x90, 0xF0 },
+    { 0xFF, 0x00, 0xD0, 0x10 },
+    { 0xFF, 0x00, 0xF0, 0xF0 },
+    { 0xFF, 0x90, 0xF0, 0x40 },
+    { 0xFF, 0xF0, 0xF0, 0xF0 }
+};
+
+/*
+0000 -> 0000
+
+0001 -> 0100
+0010 -> 1000
+0011 -> 1100
+0100 -> 0001
+
+0101 -> 0101
+
+0110 -> 1001
+0111 -> 1101
+1000 -> 0010
+1001 -> 0110
+
+1010 -> 1010
+
+1011 -> 1110
+1100 -> 0011
+1101 -> 0111
+1110 -> 1011
+
+1111 -> 1111
+*/
+
+RGBA iigs_color_table[16] = {
+    { 0xFF, 0x00, 0x00, 0x00 },
+    { 0xFF, 0x20, 0x70, 0x00 },
+    { 0xFF, 0x00, 0x50, 0x80 },
+    { 0xFF, 0x00, 0xD0, 0x10 },
+    { 0xFF, 0x30, 0x00, 0xD0 },
+    { 0xFF, 0x50, 0x50, 0x50 },
+    { 0xFF, 0x00, 0x60, 0xF0 },
+    { 0xFF, 0x00, 0xF0, 0xF0 },
+    { 0xFF, 0x90, 0x00, 0x00 },
+    { 0xFF, 0xF0, 0x20, 0x20 },
+    { 0xFF, 0xA0, 0xA0, 0xA0 },
+    { 0xFF, 0xF0, 0xA0, 0x60 },
+    { 0xFF, 0xD0, 0x20, 0xD0 },
+    { 0xFF, 0xF0, 0xA0, 0x60 },
+    { 0xFF, 0x80, 0x90, 0xF0 },
+    { 0xFF, 0xF0, 0xF0, 0xF0 }
+};
+
+/**
+ * RGB mode
+ */
+void newProcessAppleIIFrame_RGB (
+    cpu_state *cpu,             // access to cpu->vidbits
+    RGBA* outputImage           // Will be filled with 560x192 RGBA pixels
+)
+{
+    static RGBA p_black = { 0xFF, 0x00, 0x00, 0x00 };
+
+    // Process each scanline
+    int palidx = 0;
+    for (int line = 0; line < 192; ++line)
+    {
+        uint16_t rawbits = 0;
+        for (int col = 0; col < 20; ++col)
+        {
+            rawbits = rawbits | cpu->vidbits[line][2*col];
+            for (int times = 3; times; --times)
+            {
+                palidx = rawbits & 15;
+                RGBA color = iigs_color_table[palidx];
+                for (int count = 4; count; --count)
+                {
+                    if (rawbits & 1) {
+                        outputImage[0] = color;
+                    } else {
+                        outputImage[0] = p_black;
+                    }
+                    outputImage++;
+                    rawbits = rawbits >> 1;
+                }
+            }
+
+            rawbits = rawbits | (cpu->vidbits[line][2*col+1] << 2);
+            palidx = rawbits & 15;
+            RGBA color = *((RGBA*)(iigs_color_table + palidx));
+            for (int count = 4; count; --count)
+            {
+                if (rawbits & 1) {
+                    outputImage[0] = color;
+                } else {
+                    outputImage[0] = p_black;
+                }
+                outputImage++;
+                rawbits = rawbits >> 1;
+            }
+            
+            rawbits = (cpu->vidbits[line][2*col+1] >> 2);
+            for (int times = 3; times; --times)
+            {
+                palidx = rawbits & 15;
+                RGBA color = *((RGBA*)(iigs_color_table + palidx));
+                for (int count = 4; count; --count)
+                {
+                    if (rawbits & 1) {
+                        outputImage[0] = color;
+                    } else {
+                        outputImage[0] = p_black;
+                    }
+                    outputImage++;
+                    rawbits = rawbits >> 1;
+                }
+            }
+        }
     }
 }

@@ -249,8 +249,15 @@ void new_update_display_apple2(cpu_state *cpu) {
                 newProcessAppleIIFrame_LUT(cpu, (RGBA *)(ds->buffer));
             break;
         case DM_ENGINE_RGB:
+#if 0
             for (int line = 0; line < 24; ++line)
                 render_line_rgb(cpu, line);
+#else                
+            if (ds->display_mode == TEXT_MODE)
+                newProcessAppleIIFrame_Mono(cpu, (RGBA *)(ds->buffer), p_white);
+            else
+                newProcessAppleIIFrame_RGB(cpu, (RGBA *)(ds->buffer));
+#endif                
             break;
         default:
             newProcessAppleIIFrame_Mono(cpu, (RGBA *)(ds->buffer), vs->get_mono_color());
@@ -295,10 +302,8 @@ void force_display_update(display_state_t *ds) {
         ds->dirty_line[y] = 1;
     }
 }
-#endif
 
 void update_line_mode(display_state_t *ds) {
-#ifdef BAZYAR
     line_mode_t top_mode;
     line_mode_t bottom_mode;
 
@@ -324,25 +329,25 @@ void update_line_mode(display_state_t *ds) {
     for (int y = 20; y < 24; y++) {
         ds->line_mode[y] = bottom_mode;
     }
-#endif
 }
+#endif
 
 void set_display_mode(display_state_t *ds, display_mode_t mode) {
 
     ds->display_mode = mode;
-    update_line_mode(ds);
+    //update_line_mode(ds);
 }
 
 void set_split_mode(display_state_t *ds, display_split_mode_t mode) {
 
     ds->display_split_mode = mode;
-    update_line_mode(ds);
+    //update_line_mode(ds);
 }
 
 void set_graphics_mode(display_state_t *ds, display_graphics_mode_t mode) {
 
     ds->display_graphics_mode = mode;
-    update_line_mode(ds);
+    //update_line_mode(ds);
 }
 
 #ifdef BAZYAR
