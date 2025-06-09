@@ -143,11 +143,11 @@ void run_cpus(computer_t *computer) {
                             computer->event_timer->processEvents(cpu->cycles); // TODO: implement a cache to speed up this check.
                             (cpu->execute_next)(cpu);
                             if (computer->debug_window->window_open) {
-                                /* if (cpu->trace_entry.eaddr == 0x03FE) {
+                                if (computer->debug_window->check_breakpoint(&cpu->trace_entry)) {
                                     cpu->execution_mode = EXEC_STEP_INTO;
                                     cpu->instructions_left = 0;
                                     break;
-                                } */
+                                }
                                 if (cpu->trace_entry.opcode == 0x00) { // catch a BRK and stop execution.
                                     cpu->execution_mode = EXEC_STEP_INTO;
                                     cpu->instructions_left = 0;

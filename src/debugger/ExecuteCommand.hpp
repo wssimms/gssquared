@@ -1,17 +1,19 @@
 #pragma once 
 
-#include "debugger/monitor.hpp"
+#include "debugger/MonitorCommand.hpp"
 #include "mmus/mmu.hpp"
 #include <sstream>
 #include <vector>
-
+#include "debugger/MemoryWatch.hpp"
 
 class ExecuteCommand {
   private:
-    MonitorCommand *cmd;
-    MMU *mmu;
+    MonitorCommand *cmd = nullptr;
+    MMU *mmu = nullptr;
     std::vector<std::string> output_buffer;
-    
+    MemoryWatch *memory_watches = nullptr;
+    MemoryWatch *breaks = nullptr;
+
     void addOutput(const std::string& line) {
         output_buffer.push_back(line);
     }
@@ -27,7 +29,7 @@ class ExecuteCommand {
     }
 
     public:
-        ExecuteCommand(MMU *mmu, MonitorCommand *cmd);
+        ExecuteCommand(MMU *mmu, MonitorCommand *cmd, MemoryWatch *watches, MemoryWatch *breaks);
         const std::vector<std::string>& getOutput() const;
         void clearOutput();
         void execute();

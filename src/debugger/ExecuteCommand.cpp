@@ -1,14 +1,16 @@
 #include "debugger/ExecuteCommand.hpp"
-#include "debugger/monitor.hpp"
+#include "debugger/MonitorCommand.hpp"
 #include "mmus/mmu.hpp"
 #include <sstream>
 #include <vector>
 #include <iomanip>
+#include "debugger/MemoryWatch.hpp"
 
-
-ExecuteCommand::ExecuteCommand(MMU *mmu, MonitorCommand *cmd) {
+ExecuteCommand::ExecuteCommand(MMU *mmu, MonitorCommand *cmd, MemoryWatch *watches, MemoryWatch *breaks) {
     this->mmu = mmu;
     this->cmd = cmd;
+    this->memory_watches = watches;
+    this->breaks = breaks;
 }
 
 const std::vector<std::string>& ExecuteCommand::getOutput() const {
@@ -88,6 +90,80 @@ void ExecuteCommand::execute() {
             address += 16;
         }
         addOutput(""); // Empty line at the end
+    }
+    if (memory_watches && (node0.type == MON_NODE_TYPE_COMMAND) && (node0.val_cmd == MON_CMD_WATCH)) {
+        // set memory monitor
+        if (cmd->nodes.size() < 2) {
+            addOutput("Current memory watches:");
+            for (MemoryWatch::iterator watch = memory_watches->begin(); watch != memory_watches->end(); ++watch) {
+                std::ostringstream line;
+                line << " >> " << std::hex << std::uppercase << std::setfill('0') 
+                     << std::setw(4) << watch->start << " - " 
+                     << std::setw(4) << watch->end;
+                addOutput(line.str());
+            }
+            return;
+        }
+        auto &node1 = cmd->nodes[1];
+        if (node1.type == MON_NODE_TYPE_RANGE) {
+            memory_watches->add(node1.val_range.lo, node1.val_range.hi);
+        } else {
+            addOutput("Error: expected range as first argument");
+        }
+    }
+    if (memory_watches && (node0.type == MON_NODE_TYPE_COMMAND) && (node0.val_cmd == MON_CMD_NOWATCH)) {
+        // clear memory monitor
+        auto &node1 = cmd->nodes[1];
+        if (node1.type == MON_NODE_TYPE_NUMBER) {
+            memory_watches->remove(node1.val_number);
+        } else {
+            addOutput("Error: expected address as first argument");
+        }
+    }
+    if (breaks && (node0.type == MON_NODE_TYPE_COMMAND) && (node0.val_cmd == MON_CMD_BP)) {
+        // set memory monitor
+        if (cmd->nodes.size() < 2) {
+            addOutput("Current breakpoints:");
+            for (MemoryWatch::iterator watch = breaks->begin(); watch != breaks->end(); ++watch) {
+                std::ostringstream line;
+                line << " >> " << std::hex << std::uppercase << std::setfill('0') 
+                     << std::setw(4) << watch->start << " - " 
+                     << std::setw(4) << watch->end;
+                addOutput(line.str());
+            }
+            return;
+        }
+        auto &node1 = cmd->nodes[1];
+        if (node1.type == MON_NODE_TYPE_RANGE) {
+            breaks->add(node1.val_range.lo, node1.val_range.hi);
+        } else {
+            addOutput("Error: expected range as first argument");
+        }
+    }
+    if (breaks && (node0.type == MON_NODE_TYPE_COMMAND) && (node0.val_cmd == MON_CMD_NOBP)) {
+        // clear memory monitor
+        auto &node1 = cmd->nodes[1];
+        if (node1.type == MON_NODE_TYPE_NUMBER) {
+            breaks->remove(node1.val_number);
+        } else {
+            addOutput("Error: expected address as first argument");
+        }
+    }
+
+    if ((node0.type == MON_NODE_TYPE_COMMAND) && (node0.val_cmd == MON_CMD_HELP)) {
+        addOutput("watch range_lo:range_hi      - watch memory range");
+        addOutput("watch                        - list watches");
+        addOutput("nowatch address              - remove watch");
+        addOutput("bp range_lo:range_hi         - set breakpoint");
+        addOutput("bp                           - list breakpoints");
+        addOutput("nobp address                 - remove breakpoint");
+        addOutput("set address value [value...] - set memory values");
+        addOutput("address:value [value...]     - set memory values");
+        addOutput("load \"filename\" address      - load memory from file");
+        addOutput("save \"filename\" lo.hi        - save memory range to file");
+        addOutput("move lo.hi address           - move memory from lo to hi to address");
+        addOutput("help                         - this help");
+        return;
     }
     if ((node0.type == MON_NODE_TYPE_COMMAND) && (node0.val_cmd == MON_CMD_SET)) {
         // set memory from range

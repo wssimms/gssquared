@@ -3,6 +3,7 @@
 
 #include "debugwindow.hpp"
 #include "cpu.hpp"
+#include "debugger/trace.hpp"
 #include "util/TextRenderer.hpp"
 #include "util/HexDecode.hpp"
 #include "computer.hpp"
@@ -11,7 +12,7 @@
 #include "ui/Button.hpp"
 #include "ui/TextInput.hpp"
 #include "debugger/ExecuteCommand.hpp"
-#include "debugger/monitor.hpp"
+#include "debugger/MonitorCommand.hpp"
 
 debug_window_t::debug_window_t(computer_t *computer) {
     this->computer = computer;
@@ -85,12 +86,7 @@ debug_window_t::debug_window_t(computer_t *computer) {
 
     tab_container->layout();
 
-    // set up some default memory watches
-    memory_watches.push_back({0x4000, 0x40FF});
-    memory_watches.push_back({0x0000, 0x00FF});
-    memory_watches.push_back({0x03F0, 0x03FF});
-
-    mon_textinput = new TextInput_t("test text show me a cursor ", SS);
+    mon_textinput = new TextInput_t("help", SS);
     mon_textinput->set_text_renderer(text_renderer);
     mon_textinput->set_max_length(80);
     mon_textinput->set_size(600, 20);
@@ -103,13 +99,30 @@ debug_window_t::debug_window_t(computer_t *computer) {
     resize_window(); // first time we need to calculate the pane locations and window size.
 }
 
+bool debug_window_t::check_breakpoint(system_trace_entry_t *entry) {
+    for (MemoryWatch::iterator watch = breaks.begin(); watch != breaks.end(); ++watch) {
+        if ((entry->pc >= watch->start && entry->pc <= watch->end) ||
+            (entry->eaddr >= watch->start && entry->eaddr <= watch->end)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void debug_window_t::execute_command(const std::string& command) {
     MonitorCommand *cmd = new MonitorCommand(command);
     cmd->print();
 
-    ExecuteCommand *exec = new ExecuteCommand(computer->mmu, cmd);
+    int num_mem_watches = memory_watches.size();
+    ExecuteCommand *exec = new ExecuteCommand(computer->mmu, cmd, &memory_watches, &breaks);
     exec->execute();
     
+    mon_history.push_back(command); // put into the scrollback
+    if (mon_history.size() > 10) {
+        mon_history.erase(mon_history.begin());
+    }
+    mon_history_position = mon_history.size(); // one past the end of the list
+
     mon_display_buffer.push_back("> " + command);
 
     // Print the output buffer to stdout (you can remove this or redirect as needed)
@@ -119,6 +132,15 @@ void debug_window_t::execute_command(const std::string& command) {
         mon_display_buffer.push_back(line);
     }
     mon_textinput->clear_edit();
+    delete exec;
+    delete cmd;
+
+    if (num_mem_watches != memory_watches.size()) {
+        // memory watch list changed, so we need to re-render the memory pane
+        if (memory_watches.size() > 0) {
+            set_panel_visible(DEBUG_PANEL_MEMORY, true);
+        }
+    }
 }
 
 void debug_window_t::separator_line(debug_panel_t pane, int y) {
@@ -213,8 +235,8 @@ void debug_window_t::render_pane_monitor() {
     
     separator_line(DEBUG_PANEL_MONITOR, buf_area_lines);
     char buffer[256] = {' '};
-    
-    mon_textinput->set_position(x + 5, (buf_area_lines * font_line_height));
+    draw_text(DEBUG_PANEL_MONITOR, x, buf_area_lines, ">");
+    mon_textinput->set_position(x + 20, (buf_area_lines * font_line_height));
     mon_textinput->render(renderer);
 
     // get number of lines in mon_display_buffer
@@ -255,9 +277,9 @@ void debug_window_t::render_pane_memory() {
     int line = 0; // vertical line number to output text to on display
     char *ptr = buffer;
 
-    for (memory_watch_t watch : memory_watches) {
+    for (MemoryWatch::iterator watch = memory_watches.begin(); watch != memory_watches.end(); ++watch) {
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-        for (int i = watch.start; i <= watch.end; i++) {
+        for (int i = watch->start; i <= watch->end; i++) {
             if (index == 0) {
                 decode_hex_word(buffer, i);
                 ptr += 4;
@@ -280,11 +302,11 @@ void debug_window_t::render_pane_memory() {
             }
         }
         // draw anything left over
-        if (index < 16) {
+        if (index > 0 && index < 16) {
             buffer[70] = 0;
             draw_text(DEBUG_PANEL_MEMORY, x, base_line + line, buffer);
             memset(buffer, ' ', sizeof(buffer));
-            //line++;
+            line++;
         }
         SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
         separator_line(DEBUG_PANEL_MEMORY, base_line + line);
@@ -346,9 +368,39 @@ void debug_window_t::resize(int width, int height) {
     lines_in_view_area = (window_height - control_area_height) / font_line_height;
 }
 
+bool debug_window_t::handle_pane_event_monitor(SDL_Event &event) {
+    if (event.type == SDL_EVENT_KEY_DOWN) {
+        if (event.key.key == SDLK_UP && mon_textinput->is_edit_active()) {
+            if (mon_history.size() > 0) {
+                mon_history_position--;
+                if (mon_history_position < 0) {
+                    mon_history_position = mon_history.size() - 1;
+                } 
+                if (mon_history_position < 0) mon_history_position = 0;
+                mon_textinput->set_text(mon_history[mon_history_position]);
+            }
+            return true;
+        }
+        if (event.key.key == SDLK_DOWN && mon_textinput->is_edit_active()) {
+            if (mon_history.size() > 0) {
+                mon_history_position++;
+                if (mon_history_position >= mon_history.size()) {
+                    mon_history_position = mon_history.size() - 1;
+                }
+                mon_textinput->set_text(mon_history[mon_history_position]);
+            }
+            return true;
+        }
+    }
+    if (mon_textinput->handle_mouse_event(event)) {
+        return true;
+    }
+    return false;
+}
+
 bool debug_window_t::handle_event(SDL_Event &event) {
     if (event.window.windowID == window_id) {
-        if (mon_textinput->handle_mouse_event(event)) {
+        if (handle_pane_event_monitor(event)) {
             return true;
         }
         switch (event.type) {
@@ -469,5 +521,10 @@ void debug_window_t::resize_window() {
 
 void debug_window_t::toggle_panel(debug_panel_t panel) {
     panel_visible[panel] = !panel_visible[panel];
+    resize_window();
+}
+
+void debug_window_t::set_panel_visible(debug_panel_t panel, bool visible) {
+    panel_visible[panel] = visible;
     resize_window();
 }

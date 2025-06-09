@@ -23,6 +23,11 @@ enum mon_cmd_type_t {
     MON_CMD_LOAD,
     MON_CMD_SAVE,
     MON_CMD_SET,
+    MON_CMD_WATCH,
+    MON_CMD_NOWATCH,
+    MON_CMD_HELP,
+    MON_CMD_BP,
+    MON_CMD_NOBP,
 };
 
 struct mon_node_entry_t {

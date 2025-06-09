@@ -15,6 +15,7 @@ public:
     void set_max_length(int max_length);
     bool handle_mouse_event(const SDL_Event& event) override;
     void set_edit_active(bool active);
+    bool is_edit_active() const { return edit_active; }
     void set_enter_handler(EventHandler handler);
     void clear_edit();
 

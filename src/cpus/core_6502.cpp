@@ -63,6 +63,7 @@ int execute_next(cpu_state *cpu) {
     tb->p = cpu->p;
     tb->db = cpu->db;
     tb->pb = cpu->pb;
+    tb->eaddr = 0;
     }
     )
 
