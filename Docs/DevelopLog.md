@@ -4459,8 +4459,18 @@ And also I had been doing a lot of thinking about the '816, its 16 bit registers
 
 And this implies a different code re-use strategy. In fact it may not be possible to reuse large chunks of the switch statement because of this as I'd originally envisioned. And, the "undocumented opcodes" probably shouldn't be ignored.
 
-[ ] I have a lot of functions where the instruction switch just calls the function. I should flatten that out. That will also help unoptimized execution time.  
+[x] I have a lot of functions where the instruction switch just calls the function. I should flatten that out. That will also help unoptimized execution time.  
 [ ] Explore: can I have an optimized memory read function for zero page, stack since they can't possibly do any I/O stuff? They -can- be remapped but can't do I/O. Not sure it will make a big difference.
 
 
 [ ] implement cache of things like 'is trace on' by checking once per frame, not every instruction execution.  
+
+## Jun 9, 2025
+
+some loop optimizations? See what kind of difference some of these things make:
+15.7610, 15.8359
+move cycle subtraction outside of loop: 15.9243, 15.9073, 15.8835 - seems to have helped a bit.
+cache processEvents: 16.3768, 16.4482: good. make sure it works. ha!
+16.4 / 15.8 = almost 4%.
+
+When we're in free run in the main loop, we are only processing 17008 cpu cycles. but in free run, this will do the frame-based stuff checks a hundred times more often maybe? Wasted time. however I set the cycles per 'frame' for free run mode to 66665 (4 times as much) and effective mhz slowed down? I am getting tons of audio queue underruns. I am not generating enough audio data. 170080. a bit slower yet. frame processing stuff must be failing somehow. compiled with optimizations, I get 356MHz. That might be a hair better. Let's put it back for now.

@@ -13,6 +13,10 @@ FIREWORKS.BAS works (it's just applesoft).
 hello + fireworks (B) does not work. It is apparently doing some crazy cycle-timed stuff, switching display modes using very tight timing.
 So this is "mixing video modes". This won't work with our emulation approach at all.
 
+## Crazy Cycles.dsk
+
+This is intended for Apple IIe only. hangs on boot waiting for VBL. Then it hangs trying to read C070 - which is likely supposed to return "floating bus" value. At least, it does in OE.
+
 ## crazy cycles 2.dsk
 
 Apple II+.
@@ -20,6 +24,7 @@ Apple II+.
 when booting, displays "MB#" But disk is still running. it's loading a LOT? trying in OE it sounds like the head is scanning back and forth.
 Nothing happens.
 Same on OE with II+ and IIe. I guess this is just not working.
+in 0.3x, we don't even ever get off track 0, like it's not booting correctly.
 
 ## four_voice_music.dsk
 
@@ -110,7 +115,7 @@ boots and is working, but, disk drive continues running inappropriately.
 
 ## Classic Concentration
 
-Dies during game load with gazillions of unknown opcodes.
+Dies during game load with gazillions of unknown opcodes. last instructions before crash are sta c003 sta c005 - looks like a //e 128k game.
 
 ## Karateka (Brutal Deluxe crack)
 
@@ -142,8 +147,29 @@ boots - get the demo screen. 's' to start. terrorists have been found at Cherbou
 https://comp.sys.apple2.narkive.com/7TzX1OSL/rescue-raiders-v1-2-and-1-3-questions
 here's the manual for reference:
 https://archive.org/details/rescueraidersusersmanual/page/n17/mode/2up
+Requires speech synthesis support for Mockingboard.
 
 ## Total Replay
 
 boots up detects 64K and mockingboard and then thinks "and it talks!" . uh. wrong. but lots of the games on it work, including Rescue Raiders.
 
+## Carrier Aviation 
+
+seems to work. don't know how to play :)
+
+## Shufflepuck
+
+we don't have mouse support yet
+
+## Cybernoid Music Disk
+
+works, but has lowercase. For iie.
+
+## Apple Cider Spider - 4am crack
+
+works with mockingboard. game controller not working with it? I thought it used to. weird. maybe I used the keyboard. In any event, it's doing a write to $C070 to reset. We're not handling that!
+Working now.
+
+## Apple II Bejeweled
+
+looks like requires //e 80 column card.
