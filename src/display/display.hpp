@@ -115,6 +115,12 @@ public:
     bool flash_state;
     int flash_counter;
 
+    uint16_t vert_counter;
+    uint16_t horz_counter;
+    uint8_t  video_byte;
+    uint8_t  video_blanking;
+    uint16_t vidbits[192][40];
+
     uint32_t dirty_line[24];
     line_mode_t line_mode[24] = {LM_TEXT_MODE}; // 0 = TEXT, 1 = LO RES GRAPHICS, 2 = HI RES GRAPHICS
 

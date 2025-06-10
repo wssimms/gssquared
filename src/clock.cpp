@@ -144,31 +144,33 @@ void mega_ii_cycle(cpu_state *cpu) {
     cpu->cycles++;
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     
-    cpu->horz_counter++;
-    if (cpu->horz_counter == 65) {
-        cpu->horz_counter = 0;
-        cpu->vert_counter++;
-        if (cpu->vert_counter == 262) {
-            cpu->vert_counter = 0;
+    ds->horz_counter++;
+    if (ds->horz_counter == 65) {
+        ds->horz_counter = 0;
+        ds->vert_counter++;
+        if (ds->vert_counter == 262) {
+            ds->vert_counter = 0;
         }
     }
 
-    if (cpu->vert_counter >= 34 && cpu->vert_counter < 226) {
-        if (cpu->horz_counter >= 25 && cpu->horz_counter < 65) {
+    ds->video_blanking = 0;
+    if (ds->vert_counter >= 34 && ds->vert_counter < 226) {
+        ds->video_blanking = 0x80;
+        if (ds->horz_counter >= 25 && ds->horz_counter < 65) {
 
             uint8_t vbyte = 0;
             uint16_t vidbits = 0;
             uint32_t line_addr = 0;
-            int row = cpu->vert_counter - 34;
-            int col = cpu->horz_counter - 25;
+            int row = ds->vert_counter - 34;
+            int col = ds->horz_counter - 25;
             int major = row / 8;
             int minor = row % 8;
-            int split_text = (cpu->vert_counter >= 194)
+            int split_text = (ds->vert_counter >= 194)
                                 && (ds->display_split_mode == SPLIT_SCREEN);
 
             if (split_text || ds->display_mode == TEXT_MODE) {
                 line_addr = ds->display_page_table->text_page_table[major];
-                uint8_t ccode = cpu->mmu->read_raw(line_addr + col);
+                uint8_t ccode = ds->video_byte = cpu->mmu->read_raw(line_addr + col);
                 vbyte = (*cpu->rd->char_rom_data)[8 * ccode + minor];
 
                 // for inverse, xor the pixels with 0xFF to invert them.
@@ -185,7 +187,7 @@ void mega_ii_cycle(cpu_state *cpu) {
             }
             else if (ds->display_graphics_mode == LORES_MODE) {
                 line_addr = ds->display_page_table->text_page_table[major];
-                vbyte = cpu->mmu->read_raw(line_addr + col);
+                vbyte = ds->video_byte = cpu->mmu->read_raw(line_addr + col);
                 vbyte = (vbyte >> (minor & 4)) & 0x0F; // hi or lo nibble
                 vbyte = (vbyte << 1) | (col & 1); // different for even/odd columns
                 vidbits = lgr_bits[vbyte];
@@ -193,11 +195,11 @@ void mega_ii_cycle(cpu_state *cpu) {
             else {  // GRAPHICS_MODE && HIRES_MODE
                 line_addr = ds->display_page_table->hgr_page_table[major];
                 line_addr = line_addr + 0x400 * minor;
-                vbyte = cpu->mmu->read_raw(line_addr + col);
+                vbyte = ds->video_byte = cpu->mmu->read_raw(line_addr + col);
                 vidbits = hgr_bits[vbyte];
             }
 
-            cpu->vidbits[row][col] = vidbits;
+            ds->vidbits[row][col] = vidbits;
         }
     }
 }

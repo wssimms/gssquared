@@ -344,7 +344,7 @@ void newProcessAppleIIFrame_LUT (
     RGBA* outputImage           // Will be filled with 560x192 RGBA pixels
 )
 {
-    int mask = ((1 << ((NUM_TAPS * 2) + 1)) - 1);
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
 
     // Process each scanline
     for (int line = 0; line < 192; line++)
@@ -362,7 +362,7 @@ void newProcessAppleIIFrame_LUT (
         for (int col = 0; col < 40; ++col)
         {
             int count = 14;
-            rawbits = rawbits | cpu->vidbits[line][col];
+            rawbits = rawbits | ds->vidbits[line][col];
 
             if (col == 0) {
                 for (int i = NUM_TAPS; i; --i)
@@ -410,12 +410,14 @@ void newProcessAppleIIFrame_Mono (
     static RGBA p_black = { 0xFF, 0x00, 0x00, 0x00 };
     static RGBA p_white = { 0xFF, 0xFF, 0xFF, 0xFF };
 
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+
     // Process each scanline
     for (int line = 0; line < 192; ++line)
     {
         for (int col = 0; col < 40; ++col)
         {
-            uint16_t rawbits = cpu->vidbits[line][col];
+            uint16_t rawbits = ds->vidbits[line][col];
             for (int count = 14; count; --count)
             {
                 if (rawbits & 1) {
@@ -504,6 +506,8 @@ void newProcessAppleIIFrame_RGB (
 {
     static RGBA p_black = { 0xFF, 0x00, 0x00, 0x00 };
 
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+
     // Process each scanline
     int palidx = 0;
     for (int line = 0; line < 192; ++line)
@@ -511,7 +515,7 @@ void newProcessAppleIIFrame_RGB (
         uint16_t rawbits = 0;
         for (int col = 0; col < 20; ++col)
         {
-            rawbits = rawbits | cpu->vidbits[line][2*col];
+            rawbits = rawbits | ds->vidbits[line][2*col];
             for (int times = 3; times; --times)
             {
                 palidx = rawbits & 15;
@@ -528,7 +532,7 @@ void newProcessAppleIIFrame_RGB (
                 }
             }
 
-            rawbits = rawbits | (cpu->vidbits[line][2*col+1] << 2);
+            rawbits = rawbits | (ds->vidbits[line][2*col+1] << 2);
             palidx = rawbits & 15;
             RGBA color = *((RGBA*)(iigs_color_table + palidx));
             for (int count = 4; count; --count)
@@ -542,11 +546,11 @@ void newProcessAppleIIFrame_RGB (
                 rawbits = rawbits >> 1;
             }
             
-            rawbits = (cpu->vidbits[line][2*col+1] >> 2);
+            rawbits = (ds->vidbits[line][2*col+1] >> 2);
             for (int times = 3; times; --times)
             {
                 palidx = rawbits & 15;
-                RGBA color = *((RGBA*)(iigs_color_table + palidx));
+                RGBA color = iigs_color_table[palidx];
                 for (int count = 4; count; --count)
                 {
                     if (rawbits & 1) {
