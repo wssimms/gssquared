@@ -27,6 +27,7 @@
 
 struct keyboard_state_t {
     uint8_t kb_key_strobe = 0x41; 
+    std::string paste_buffer;
 } ;
 
 /* uint8_t kb_memory_read(uint16_t address);
