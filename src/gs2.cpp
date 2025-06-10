@@ -18,8 +18,6 @@
 #include <iostream>
 #include <cstdio>
 #include <unistd.h>
-#include <sstream>
-#include <iomanip>
 #include <time.h>
 #include <getopt.h>
 #include <regex>
@@ -30,15 +28,10 @@
 #include "cpu.hpp"
 #include "clock.hpp"
 #include "display/display.hpp"
-#include "opcodes.hpp"
-#include "debug.hpp"
-#include "test.hpp"
 #include "display/text_40x24.hpp"
 #include "event_poll.hpp"
 #include "devices/speaker/speaker.hpp"
-#include "devices/loader.hpp"
 #include "platforms.hpp"
-#include "util/media.hpp"
 #include "util/dialog.hpp"
 #include "util/mount.hpp"
 #include "ui/OSD.hpp"
@@ -224,6 +217,7 @@ void run_cpus(computer_t *computer) {
             last_audio_update = current_time;
         }
 
+        /* Process Internal Event Queue */
         current_time = SDL_GetTicksNS();
         if ((this_free_run) && (current_time - last_app_event_update > 16667000)
             || (!this_free_run)) {
