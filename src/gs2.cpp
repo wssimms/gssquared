@@ -139,26 +139,33 @@ void run_cpus(computer_t *computer) {
         if (! cpu->halt) {
             switch (cpu->execution_mode) {
                     case EXEC_NORMAL:
-                        while (cpu->cycles - last_cycle_count < cycles_for_this_burst) { // 1/60th second.
-                            computer->event_timer->processEvents(cpu->cycles); // TODO: implement a cache to speed up this check.
-                            (cpu->execute_next)(cpu);
-                            if (computer->debug_window->window_open) {
-                                if (computer->debug_window->check_breakpoint(&cpu->trace_entry)) {
-                                    cpu->execution_mode = EXEC_STEP_INTO;
-                                    cpu->instructions_left = 0;
-                                    break;
+                        {
+                            uint64_t end_frame_cycles = cpu->cycles + cycles_for_this_burst;
+                            while (cpu->cycles < end_frame_cycles) { // 1/60th second.
+                                if (computer->event_timer->isEventPassed(cpu->cycles)) {
+                                    computer->event_timer->processEvents(cpu->cycles);
                                 }
-                                if (cpu->trace_entry.opcode == 0x00) { // catch a BRK and stop execution.
-                                    cpu->execution_mode = EXEC_STEP_INTO;
-                                    cpu->instructions_left = 0;
-                                    break;
+                                (cpu->execute_next)(cpu);
+                                if (computer->debug_window->window_open) {
+                                    if (computer->debug_window->check_breakpoint(&cpu->trace_entry)) {
+                                        cpu->execution_mode = EXEC_STEP_INTO;
+                                        cpu->instructions_left = 0;
+                                        break;
+                                    }
+                                    if (cpu->trace_entry.opcode == 0x00) { // catch a BRK and stop execution.
+                                        cpu->execution_mode = EXEC_STEP_INTO;
+                                        cpu->instructions_left = 0;
+                                        break;
+                                    }
                                 }
                             }
                         }
                         break;
                     case EXEC_STEP_INTO:
                         while (cpu->instructions_left) {
-                            computer->event_timer->processEvents(cpu->cycles); // TODO: implement a cache to speed up this check.
+                            if (computer->event_timer->isEventPassed(cpu->cycles)) {
+                                computer->event_timer->processEvents(cpu->cycles);
+                            }
                             (cpu->execute_next)(cpu);
                             cpu->instructions_left--;
                         }
