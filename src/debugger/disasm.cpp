@@ -29,6 +29,13 @@ void Disassembler::setAddress(uint16_t address) {
     this->address = address;
 }
 
+uint8_t Disassembler::read_mem(uint16_t address) {
+    if (address >= 0xC000 && address < 0xC0FF) {
+        return 0xEE; // do not actually trigger I/O when we're trying to disassemble.
+    }
+    return mmu->read_raw(address);
+}
+
 void Disassembler::disassemble_one() {
     char buffer[200];
     char snpbuf[100];
@@ -39,7 +46,7 @@ void Disassembler::disassemble_one() {
 
     char *bufptr = buffer + line_prepend;
 
-    uint8_t opcode = mmu->read_raw(address);
+    uint8_t opcode = read_mem(address);
         
     const disasm_entry *da = &disasm_table[opcode];
     const char *opcode_name = da->opcode;
@@ -48,16 +55,16 @@ void Disassembler::disassemble_one() {
 
     decode_hex_word(bufptr + TB_ADDRESS, address);
     bufptr[TB_ADDRESS + 4] = ':';
-    decode_hex_byte(bufptr + TB_OP1, mmu->read_raw(address));
+    decode_hex_byte(bufptr + TB_OP1, read_mem(address));
 
     operand = 0; uint8_t op2, op3;
     if (am->size == 2) {
-        op2 = mmu->read_raw(address + 1);
+        op2 = read_mem(address + 1);
         operand = op2;
         decode_hex_byte(bufptr + TB_OP2, op2);
     } else if (am->size == 3) {
-        op2 = mmu->read_raw(address + 1);
-        op3 = mmu->read_raw(address + 2);
+        op2 = read_mem(address + 1);
+        op3 = read_mem(address + 2);
         operand = op2 | (op3 << 8);
         decode_hex_byte(bufptr + TB_OP2, op2);
         decode_hex_byte(bufptr + TB_OP3, op3);

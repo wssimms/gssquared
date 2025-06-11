@@ -21,4 +21,6 @@ class Disassembler {
         MMU *mmu;
         int line_prepend;
         std::vector<std::string> output_buffer;
+
+        uint8_t read_mem(uint16_t address);
 };
