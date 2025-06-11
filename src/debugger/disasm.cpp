@@ -1,0 +1,111 @@
+#include "mmus/mmu.hpp"
+#include "debugger/disasm.hpp"
+#include "debugger/trace_opcodes.hpp"
+#include "util/HexDecode.hpp"
+
+//           11111111112222222222
+// 012345678901234567890123456789
+// xxxx: xx xx xx    LDA $1234
+
+#define TB_ADDRESS 0
+#define TB_OP1 6
+#define TB_OP2 9
+#define TB_OP3 12
+
+#define TB_OPCODE 18
+#define TB_OPERAND 22
+#define TB_EOL 40
+
+Disassembler::Disassembler(MMU *mmu) : mmu(mmu) {
+    address = 0;
+    length = 0;
+    line_prepend = 0;
+}
+
+Disassembler::~Disassembler() {
+}
+
+void Disassembler::setAddress(uint16_t address) {
+    this->address = address;
+}
+
+void Disassembler::disassemble_one() {
+    char buffer[200];
+    char snpbuf[100];
+    size_t buffer_size = sizeof(buffer);
+    size_t snpbuf_size = sizeof(snpbuf);
+
+    memset(buffer, ' ', buffer_size);
+
+    char *bufptr = buffer + line_prepend;
+
+    uint8_t opcode = mmu->read_raw(address);
+        
+    const disasm_entry *da = &disasm_table[opcode];
+    const char *opcode_name = da->opcode;
+    const address_mode_entry *am = &address_mode_formats[da->mode];
+    uint32_t operand;
+
+    decode_hex_word(bufptr + TB_ADDRESS, address);
+    bufptr[TB_ADDRESS + 4] = ':';
+    decode_hex_byte(bufptr + TB_OP1, mmu->read_raw(address));
+
+    operand = 0; uint8_t op2, op3;
+    if (am->size == 2) {
+        op2 = mmu->read_raw(address + 1);
+        operand = op2;
+        decode_hex_byte(bufptr + TB_OP2, op2);
+    } else if (am->size == 3) {
+        op2 = mmu->read_raw(address + 1);
+        op3 = mmu->read_raw(address + 2);
+        operand = op2 | (op3 << 8);
+        decode_hex_byte(bufptr + TB_OP2, op2);
+        decode_hex_byte(bufptr + TB_OP3, op3);
+    }
+
+    if (opcode_name) memcpy(bufptr + TB_OPCODE, opcode_name, 3);
+    else memcpy(bufptr + TB_OPCODE, "???", 3);
+
+    switch (da->mode) {
+        case NONE:
+            memcpy(bufptr + TB_OPERAND, "???", 3);
+            break;
+        case ACC:
+        case IMP:
+            memcpy(bufptr + TB_OPERAND, am->format, strlen(am->format));
+            break;
+
+        case ABS:
+        case ABS_X:
+        case ABS_Y:
+        case IMM:
+        case INDIR:
+        case INDEX_INDIR:
+        case INDIR_INDEX:
+        case ZP:
+        case ZP_X:
+        case ZP_Y:
+            snprintf(snpbuf, snpbuf_size, am->format, operand);
+            memcpy(bufptr + TB_OPERAND, snpbuf, strlen(snpbuf));
+            break;
+        case REL:
+            uint16_t btarget = (address+2) + (int8_t)operand;
+            snprintf(snpbuf, snpbuf_size, "$%04X", btarget);
+            memcpy(bufptr + TB_OPERAND, snpbuf, strlen(snpbuf));
+            break;
+    }
+    address += am->size; // get ready for next instruction
+    bufptr[TB_EOL] = '\0';
+    output_buffer.push_back(buffer);
+}
+
+// returns vector of disassembled instructions
+std::vector<std::string> Disassembler::disassemble(int count) {
+    printf("disassembling %d instructions\n", count);
+    for (int i = 0; i < count; i++) {
+        disassemble_one();
+    }
+    std::vector<std::string> ret(std::move(output_buffer));
+    output_buffer.clear();
+    return ret;
+}

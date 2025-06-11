@@ -5,6 +5,7 @@
 #include <sstream>
 #include <vector>
 #include "debugger/MemoryWatch.hpp"
+#include "debugger/disasm.hpp"
 
 class ExecuteCommand {
   private:
@@ -13,7 +14,12 @@ class ExecuteCommand {
     std::vector<std::string> output_buffer;
     MemoryWatch *memory_watches = nullptr;
     MemoryWatch *breaks = nullptr;
+    Disassembler *disasm = nullptr;
 
+
+    void addOutput(const std::vector<std::string>& lines) {
+        output_buffer.insert(output_buffer.end(), lines.begin(), lines.end());
+    }
     void addOutput(const std::string& line) {
         output_buffer.push_back(line);
     }
@@ -29,7 +35,7 @@ class ExecuteCommand {
     }
 
     public:
-        ExecuteCommand(MMU *mmu, MonitorCommand *cmd, MemoryWatch *watches, MemoryWatch *breaks);
+        ExecuteCommand(MMU *mmu, MonitorCommand *cmd, MemoryWatch *watches, MemoryWatch *breaks, Disassembler *disasm);
         const std::vector<std::string>& getOutput() const;
         void clearOutput();
         void execute();

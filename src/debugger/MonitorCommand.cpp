@@ -59,6 +59,8 @@ mon_cmd_type_t MonitorCommand::lookup_cmd(const std::string &cmd) {
     if (cmd == "help") return MON_CMD_HELP;
     if (cmd == "bp") return MON_CMD_BP;
     if (cmd == "nobp") return MON_CMD_NOBP;
+    if (cmd == "list") return MON_CMD_LIST;
+    if (cmd == "l") return MON_CMD_LIST;
     return MON_CMD_UNKNOWN;
 }
 
@@ -77,7 +79,14 @@ MonitorCommand::MonitorCommand(const std::string &command) : command(command) {
             std::string value_part = token.substr(colon_pos + 1);
             tokens.push_back(addr_part);
             tokens.push_back(value_part);
-        } else {
+        }
+        // Check if token ends with 'l' and treat prior part as address
+        else if (!token.empty() && token.back() == 'l') {
+            std::string addr_part = token.substr(0, token.length() - 1);
+            tokens.push_back("l");
+            tokens.push_back(addr_part);
+        }
+        else {
             tokens.push_back(token);
         }
     }

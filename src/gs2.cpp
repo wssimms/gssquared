@@ -133,6 +133,7 @@ void run_cpus(computer_t *computer) {
             switch (cpu->execution_mode) {
                     case EXEC_NORMAL:
                         {
+                        if (computer->debug_window->window_open) {
                             uint64_t end_frame_cycles = cpu->cycles + cycles_for_this_burst;
                             while (cpu->cycles < end_frame_cycles) { // 1/60th second.
                                 if (computer->event_timer->isEventPassed(cpu->cycles)) {
@@ -152,6 +153,15 @@ void run_cpus(computer_t *computer) {
                                     }
                                 }
                             }
+                        } else { // skip all debug checks if the window is not open - this may seem repetitioius but it saves all kinds of cycles where every cycle counts (GO FAST MODE)
+                            uint64_t end_frame_cycles = cpu->cycles + cycles_for_this_burst;
+                            while (cpu->cycles < end_frame_cycles) { // 1/60th second.
+                                if (computer->event_timer->isEventPassed(cpu->cycles)) {
+                                    computer->event_timer->processEvents(cpu->cycles);
+                                }
+                                (cpu->execute_next)(cpu);
+                            }
+                        }
                         }
                         break;
                     case EXEC_STEP_INTO:

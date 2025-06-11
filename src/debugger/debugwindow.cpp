@@ -13,6 +13,7 @@
 #include "ui/TextInput.hpp"
 #include "debugger/ExecuteCommand.hpp"
 #include "debugger/MonitorCommand.hpp"
+#include "debugger/disasm.hpp"
 
 debug_window_t::debug_window_t(computer_t *computer) {
     this->computer = computer;
@@ -32,7 +33,6 @@ debug_window_t::debug_window_t(computer_t *computer) {
     window_id = SDL_GetWindowID(window);
     control_area_height = 8 * font_line_height;
     lines_in_view_area = (window_height - control_area_height) / font_line_height;
-
 
     // create a container object to hold our tab control buttons
     Style_t CS;
@@ -114,7 +114,7 @@ void debug_window_t::execute_command(const std::string& command) {
     cmd->print();
 
     int num_mem_watches = memory_watches.size();
-    ExecuteCommand *exec = new ExecuteCommand(computer->mmu, cmd, &memory_watches, &breaks);
+    ExecuteCommand *exec = new ExecuteCommand(computer->mmu, cmd, &memory_watches, &breaks, disasm);
     exec->execute();
     
     mon_history.push_back(command); // put into the scrollback
@@ -171,20 +171,38 @@ void debug_window_t::render_pane_trace() {
     int x = 0;
     int w = pane_area[DEBUG_PANEL_TRACE].w;
 
+    bool single_step = cpu->execution_mode == EXEC_STEP_INTO;
+
     int numlines = (window_height - control_area_height) / font_line_height;
     size_t head = cpu->trace_buffer->head;
     size_t size = cpu->trace_buffer->size;
     
+    // if we're single-stepping, we need to leave room for 10 lines of disassembly
+    if (single_step) {
+        numlines -= 10; // leave room for 10 lines of disassembly
+    }
+
     // Calculate the starting index to show the last numlines entries
     // We need to handle wrapping around the circular buffer
     size_t start_idx = (head + size - numlines - view_position) % size;
     
+    // do numlines minus 10, to leave room for 10 lines of prospective disassembly
+
     for (int i = 0; i < numlines; i++) {
         size_t idx = (start_idx + i) % size;
         char *line = cpu->trace_buffer->decode_trace_entry(&cpu->trace_buffer->entries[idx]);
         draw_text(DEBUG_PANEL_TRACE, x, 8 + i, line);
     }
-
+    if (single_step) {
+        step_disasm->setLinePrepend(36);
+        step_disasm->setAddress(cpu->pc);
+        std::vector<std::string> disasm_lines = step_disasm->disassemble(10);
+        text_renderer->setColor(0, 255, 255, 255);
+        for (int i = 0; i < disasm_lines.size(); i++) {
+            draw_text(DEBUG_PANEL_TRACE, x, 8 + numlines + i, disasm_lines[i].c_str());
+        }
+    }
+    text_renderer->setColor(255, 255, 255, 255);
     separator_line(DEBUG_PANEL_TRACE, 3);
     snprintf(buffer, sizeof(buffer), "T)race: %s  SPACE: Step  RETURN: Run  Up/Dn/PgUp/PgDn/Home/End: Scroll", cpu->trace ? "ON " : "OFF");
     draw_text(DEBUG_PANEL_TRACE, x, 3, buffer);
@@ -378,6 +396,7 @@ bool debug_window_t::handle_pane_event_monitor(SDL_Event &event) {
                 } 
                 if (mon_history_position < 0) mon_history_position = 0;
                 mon_textinput->set_text(mon_history[mon_history_position]);
+                mon_textinput->set_cursor_position(mon_textinput->get_text().size());
             }
             return true;
         }
@@ -388,6 +407,7 @@ bool debug_window_t::handle_pane_event_monitor(SDL_Event &event) {
                     mon_history_position = mon_history.size() - 1;
                 }
                 mon_textinput->set_text(mon_history[mon_history_position]);
+                mon_textinput->set_cursor_position(mon_textinput->get_text().size());
             }
             return true;
         }
@@ -479,6 +499,8 @@ bool debug_window_t::is_open() {
 }
 
 void debug_window_t::set_open() {
+    disasm = new Disassembler(computer->mmu);
+    step_disasm = new Disassembler(computer->mmu);
     window_open = true;
     computer->video_system->show(window);
     computer->video_system->raise(window);
@@ -491,6 +513,11 @@ void debug_window_t::set_closed() {
 
     computer->video_system->hide(window);
     computer->video_system->raise(computer->video_system->window); // TODO: awkward.
+
+    delete disasm;
+    disasm = nullptr;
+    delete step_disasm;
+    step_disasm = nullptr;
 
     // SDL_HideWindow(window);
     // SDL_RaiseWindow(video_system->window);
