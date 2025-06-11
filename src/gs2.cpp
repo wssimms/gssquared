@@ -432,6 +432,7 @@ int main(int argc, char *argv[]) {
     MMU_II *mmu = new MMU_II(256, 48*1024, (uint8_t *) rd->main_rom_data);
     computer->cpu->set_mmu(mmu);
     computer->set_mmu(mmu);
+    mmu->set_cpu(computer->cpu);
 
     // need to tell the MMU about our ROM somehow.
     // need a function in MMU to "reset page to default".

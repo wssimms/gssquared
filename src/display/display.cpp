@@ -37,6 +37,8 @@
 #include "devices/annunciator/annunciator.hpp"
 #include "videosystem.hpp"
 
+#undef BAZYAR
+
 display_page_t display_pages[NUM_DISPLAY_PAGES] = {
     {
         0x0400,
@@ -181,8 +183,6 @@ void set_display_page2(display_state_t *ds) {
 void init_display_font(rom_data *rd) {
     pre_calculate_font(rd);
 }
-
-#undef BAZYAR
 #ifdef BAZYAR
 
 /**
@@ -414,19 +414,24 @@ void render_line_mono(cpu_state *cpu, int y) {
 }
 #endif
 
+uint8_t display_bus_read_C019(void *context, uint16_t address) {
+    display_state_t *ds = (display_state_t *)context;
+    // return Apple IIe/IIgs VBL state
+    return ds->video_blanking | (ds->video_byte & 0x7F);
+}
+
 uint8_t txt_bus_read_C050(void *context, uint16_t address) {
     display_state_t *ds = (display_state_t *)context;
     // set graphics mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Graphics Mode\n");
     set_display_mode(ds, GRAPHICS_MODE);
     ds->video_system->set_full_frame_redraw();
-    return 0;
+    return ds->video_byte;
 }
 
 void txt_bus_write_C050(void *context, uint16_t address, uint8_t value) {
     txt_bus_read_C050(context, address);
 }
-
 
 uint8_t txt_bus_read_C051(void *context, uint16_t address) {
     display_state_t *ds = (display_state_t *)context;
@@ -434,7 +439,7 @@ uint8_t txt_bus_read_C051(void *context, uint16_t address) {
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Text Mode\n");
     set_display_mode(ds, TEXT_MODE);
     ds->video_system->set_full_frame_redraw();
-    return 0;
+    return ds->video_byte;
 }
 
 void txt_bus_write_C051(void *context, uint16_t address, uint8_t value) {
@@ -448,7 +453,7 @@ uint8_t txt_bus_read_C052(void *context, uint16_t address) {
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Full Screen\n");
     set_split_mode(ds, FULL_SCREEN);
     ds->video_system->set_full_frame_redraw();
-    return 0;
+    return ds->video_byte;
 }
 
 void txt_bus_write_C052(void *context, uint16_t address, uint8_t value) {
@@ -462,7 +467,7 @@ uint8_t txt_bus_read_C053(void *context, uint16_t address) {
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Split Screen\n");
     set_split_mode(ds, SPLIT_SCREEN);
     ds->video_system->set_full_frame_redraw();
-    return 0;
+    return ds->video_byte;
 }
 void txt_bus_write_C053(void *context, uint16_t address, uint8_t value) {
     txt_bus_read_C053(context, address);
@@ -475,7 +480,7 @@ uint8_t txt_bus_read_C054(void *context, uint16_t address) {
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Switching to screen 1\n");
     set_display_page1(ds);
     ds->video_system->set_full_frame_redraw();
-    return 0;
+    return ds->video_byte;
 }
 void txt_bus_write_C054(void *context, uint16_t address, uint8_t value) {
     txt_bus_read_C054(context, address);
@@ -488,7 +493,7 @@ uint8_t txt_bus_read_C055(void *context, uint16_t address) {
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Switching to screen 2\n");
     set_display_page2(ds);
     ds->video_system->set_full_frame_redraw();
-    return 0;
+    return ds->video_byte;
 }
 
 void txt_bus_write_C055(void *context, uint16_t address, uint8_t value) {
@@ -502,7 +507,7 @@ uint8_t txt_bus_read_C056(void *context, uint16_t address) {
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Lo-Res Mode\n");
     set_graphics_mode(ds, LORES_MODE);
     ds->video_system->set_full_frame_redraw();
-    return 0;
+    return ds->video_byte;
 }
 
 void txt_bus_write_C056(void *context, uint16_t address, uint8_t value) {
@@ -515,7 +520,7 @@ uint8_t txt_bus_read_C057(void *context, uint16_t address) {
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Hi-Res Mode\n");
     set_graphics_mode(ds, HIRES_MODE);
     ds->video_system->set_full_frame_redraw();
-    return 0;
+    return ds->video_byte;
 }
 
 void txt_bus_write_C057(void *context, uint16_t address, uint8_t value) {

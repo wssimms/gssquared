@@ -27,6 +27,7 @@ class MMU_II : public MMU {
         MMU_II(int page_table_size, int ram_amount, uint8_t *rom_pointer);
         ~MMU_II();
         uint8_t read(uint32_t address) override;
+        uint8_t floating_bus_read() override;
         void write(uint32_t address, uint8_t value) override;
         
         void set_C8xx_handler(SlotType_t slot, void (*handler)(void *context, SlotType_t slot), void *context);

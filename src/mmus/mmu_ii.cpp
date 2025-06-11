@@ -1,4 +1,5 @@
 #include "mmu_ii.hpp"
+#include "display/display.hpp"
 
 /**
  * Sets base memory map without any specificity for various devices.
@@ -48,6 +49,12 @@ void MMU_II::set_default_C8xx_map() {
         //map_page_read_only(page + 0xC8, main_io_4 + (page + 0x08) * 0x100, M_IO);
         map_page_both(page + 0xC8, nullptr, M_IO, 1, 1); // 
     }
+}
+
+uint8_t MMU_II::floating_bus_read() {
+    display_state_t *ds = (display_state_t *)get_module_state(this->cpu, MODULE_DISPLAY);
+    //printf("read float:%2.2x\n", ds->video_byte);
+    return ds->video_byte;
 }
 
 /**

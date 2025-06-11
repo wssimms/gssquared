@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include "mmu.hpp"
+#include "cpu.hpp"
 
 /**
  * MMU provides the memory management interface for the CPU.
@@ -32,9 +33,9 @@ MMU::~MMU() {
     delete[] page_table;
 }
 
-/* void MMU::set_cpu(cpu_state *cpu) {
+void MMU::set_cpu(cpu_state *cpu) {
     this->cpu = cpu;
-} */
+}
 
 // Raw. Do not trigger cycles or do the IO bus stuff
 uint8_t MMU::read_raw(uint32_t address) {

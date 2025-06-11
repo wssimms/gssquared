@@ -44,11 +44,13 @@ struct page_table_entry_t {
     write_handler_t shadow_h;
 };
 
+struct cpu_state;
+
 class MMU {
     public:
         MMU(page_t num_pages);
         virtual ~MMU();
-        //void set_cpu(cpu_state *cpu);
+        void set_cpu(cpu_state *cpu);
 
         void reset();
         uint8_t read_raw(uint32_t address);
@@ -109,7 +111,7 @@ class MMU {
         void dump_page(page_t page);
 
     protected:
-        //cpu_state *cpu;
+        cpu_state *cpu;
         int num_pages = 0;
         // this is an array of info about each page.
         page_table_entry_t *page_table;
