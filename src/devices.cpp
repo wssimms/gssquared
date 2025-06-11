@@ -43,7 +43,7 @@ Device_t Devices[NUM_DEVICE_IDS] = {
     {
         DEVICE_ID_KEYBOARD_IIPLUS,
         "Apple II Plus Keyboard",
-        init_mb_keyboard,
+        init_mb_iiplus_keyboard,
         NULL
     },
     {

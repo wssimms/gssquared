@@ -20,7 +20,6 @@
 #include "SDL3/SDL_keycode.h"
 #include "gs2.hpp"
 #include "computer.hpp"
-#include "cpu.hpp"
 #include "debug.hpp"
 #include "keyboard.hpp"
 
@@ -36,41 +35,38 @@ inline void kb_clear_strobe(keyboard_state_t *kb_state) {
     kb_state->kb_key_strobe = kb_state->kb_key_strobe & 0x7F;
 }
 
-uint8_t kb_memory_read(void *context, uint16_t address) {
+uint8_t kb_read_C00X(void *context, uint16_t address) {
     //fprintf(stderr, "kb_memory_read %04X\n", address);
     keyboard_state_t *kb_state = (keyboard_state_t *)context;
 
-    if (address == 0xC000) {
-        if ((kb_state->kb_key_strobe & 0x80) == 0) { // if keyboard does not already have a buffered character.. 
-            if (kb_state->paste_buffer.length() > 0) { // if there is a paste buffer, use it.
-                uint8_t key = kb_state->paste_buffer[0];
-                if (key == '\n') {
-                    key = '\r'; // apple 2's like \r :)
-                }
-                // TODO: do we need to handle Windows-style \r\n?
-                kb_key_pressed(kb_state, key);
-                kb_state->paste_buffer = kb_state->paste_buffer.substr(1);
+    if ((kb_state->kb_key_strobe & 0x80) == 0) { // if keyboard does not already have a buffered character.. 
+        if (kb_state->paste_buffer.length() > 0) { // if there is a paste buffer, use it.
+            uint8_t key = kb_state->paste_buffer[0];
+            if (key == '\n') {
+                key = '\r'; // apple 2's like \r :)
             }
+            // TODO: do we need to handle Windows-style \r\n?
+            kb_key_pressed(kb_state, key);
+            kb_state->paste_buffer = kb_state->paste_buffer.substr(1);
         }
-        uint8_t key = kb_state->kb_key_strobe;
-        return key;
     }
+    uint8_t key = kb_state->kb_key_strobe;
+    return key;
+}
 
-    if (address == 0xC010) {
-        // Clear the keyboard latch
-        kb_clear_strobe(kb_state);
-        return 0xEE;
-    }
+uint8_t kb_read_C01X(void *context, uint16_t address) {
+    keyboard_state_t *kb_state = (keyboard_state_t *)context;
+
+    // Clear the keyboard latch
+    kb_clear_strobe(kb_state);
     return 0xEE;
 }
 
-void kb_memory_write(void *context, uint16_t address, uint8_t value) {
+void kb_write_C01X(void *context, uint16_t address, uint8_t value) {
     keyboard_state_t *kb_state = (keyboard_state_t *)context;
 
-    if (address == 0xC010) {
-        // Clear the keyboard latch
-        kb_clear_strobe(kb_state);
-    }
+    // Clear the keyboard latch
+    kb_clear_strobe(kb_state);
 }
 
 void decode_key_mod(SDL_Keycode key, SDL_Keymod mod) {
@@ -138,14 +134,19 @@ void handle_keydown_iiplus(const SDL_Event &event, keyboard_state_t *kb_state) {
 
 }
 
-void init_mb_keyboard(computer_t *computer, SlotType_t slot) {
+void init_mb_iiplus_keyboard(computer_t *computer, SlotType_t slot) {
     if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "init_keyboard\n");
     keyboard_state_t *kb_state = new keyboard_state_t;
     computer->set_module_state(MODULE_KEYBOARD, kb_state);
 
-    computer->mmu->set_C0XX_read_handler(0xC000, { kb_memory_read, kb_state });
-    computer->mmu->set_C0XX_read_handler(0xC010, { kb_memory_read, kb_state });
-    computer->mmu->set_C0XX_write_handler(0xC010, { kb_memory_write, kb_state });
+    /** Sather P31: 'The keyboard read addres sis $C00X and the strobe flip-flop reset address is $C01X. */
+    for (int i = 0; i < 16; i++) {
+        computer->mmu->set_C0XX_read_handler(0xC000+i, { kb_read_C00X, kb_state });
+
+        /* on II's through the II+, the keyboard strobe reset is at $C01X read or write. This changes on the IIe and later. */
+        computer->mmu->set_C0XX_read_handler(0xC010+i, { kb_read_C01X, kb_state });
+        computer->mmu->set_C0XX_write_handler(0xC010+i, { kb_write_C01X, kb_state });
+    }
 
     computer->dispatch->registerHandler(SDL_EVENT_KEY_DOWN, [kb_state](const SDL_Event &event) {
         if (event.key.key == SDLK_INSERT && event.key.mod & SDL_KMOD_SHIFT) {
