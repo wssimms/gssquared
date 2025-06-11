@@ -232,14 +232,14 @@ void make_lgr_bits(void) {
 }
 
 int made_bits = 0;
-int go = 0;
+int text_cycles = 0;
 
 void mega_ii_cycle(cpu_state *cpu)
 {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
 
     if (!made_bits) {
-        ds->vert_counter = ds->horz_counter = 0;
+        // lazy initialization
         make_flipped();
         make_hgr_bits();
         make_lgr_bits();
@@ -247,11 +247,6 @@ void mega_ii_cycle(cpu_state *cpu)
     }
 
     cpu->cycles++;
-
-    if ((ds->display_mode != TEXT_MODE)
-        && (ds->display_graphics_mode != LORES_MODE)) {
-            if (go == 0) ++go;
-        }
 
     ds->horz_counter++;
     if (ds->horz_counter == 65) {
@@ -267,6 +262,17 @@ void mega_ii_cycle(cpu_state *cpu)
         display_text |= (ds->vert_counter < 34);
         display_text |= (ds->vert_counter >= 194 && ds->vert_counter < 226);
         display_text |= (ds->vert_counter >= 258);
+    }
+
+    if (display_text) {
+        if (text_cycles >= (192*40*2)) // 2 frames
+            ds->kill_color = true;
+        else
+            ++text_cycles;
+    }
+    else {
+        text_cycles = 0;
+        ds->kill_color = false;
     }
 
     uint32_t line_addr = 0;
@@ -291,12 +297,6 @@ void mega_ii_cycle(cpu_state *cpu)
 
     line_addr += horz_count_offs[ds->horz_counter];
     ds->video_byte = cpu->mmu->read_raw(line_addr);
-    
-    if (go > 0 && go < 262 && ds->horz_counter == 25) {
-        printf("video read:%d:%4.4x:%2.2x\n",
-            ds->vert_counter, line_addr, ds->video_byte);
-        ++go;
-    }
 
     int row = ds->vert_counter - 34;
     int col = ds->horz_counter - 25;

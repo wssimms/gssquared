@@ -53,7 +53,6 @@ void MMU_II::set_default_C8xx_map() {
 
 uint8_t MMU_II::floating_bus_read() {
     display_state_t *ds = (display_state_t *)get_module_state(this->cpu, MODULE_DISPLAY);
-    //printf("read float:%2.2x\n", ds->video_byte);
     return ds->video_byte;
 }
 

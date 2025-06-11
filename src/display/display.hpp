@@ -115,6 +115,7 @@ public:
     bool flash_state;
     int flash_counter;
 
+    bool     kill_color;
     uint16_t vert_counter;
     uint16_t horz_counter;
     uint8_t  video_byte;

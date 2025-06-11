@@ -243,21 +243,16 @@ void new_update_display_apple2(cpu_state *cpu) {
 
     switch (vs->display_color_engine) {
         case DM_ENGINE_NTSC:
-            if (ds->display_mode == TEXT_MODE)
+            if (ds->kill_color)
                 newProcessAppleIIFrame_Mono(cpu, (RGBA *)(ds->buffer), p_white);
             else
                 newProcessAppleIIFrame_LUT(cpu, (RGBA *)(ds->buffer));
             break;
-        case DM_ENGINE_RGB:
-#if 0
-            for (int line = 0; line < 24; ++line)
-                render_line_rgb(cpu, line);
-#else                
-            if (ds->display_mode == TEXT_MODE)
+        case DM_ENGINE_RGB:               
+            if (ds->kill_color)
                 newProcessAppleIIFrame_Mono(cpu, (RGBA *)(ds->buffer), p_white);
             else
-                newProcessAppleIIFrame_RGB(cpu, (RGBA *)(ds->buffer));
-#endif                
+                newProcessAppleIIFrame_RGB(cpu, (RGBA *)(ds->buffer));               
             break;
         default:
             newProcessAppleIIFrame_Mono(cpu, (RGBA *)(ds->buffer), vs->get_mono_color());
@@ -542,6 +537,10 @@ display_state_t::display_state_t() {
     display_page_table = &display_pages[display_page_num];
     flash_state = false;
     flash_counter = 0;
+
+    kill_color = true;
+    vert_counter = 0;
+    horz_counter = 0;
 
     buffer = new uint8_t[BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA)];
     memset(buffer, 0, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA)); // TODO: maybe start it with apple logo?
