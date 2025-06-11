@@ -18,7 +18,7 @@
 #pragma once
 
 #include <unistd.h>
-#include <stdint.h>
+#include <cstdint>
 #include <string>
 
 /* Address types */

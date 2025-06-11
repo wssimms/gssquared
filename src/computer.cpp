@@ -1,18 +1,14 @@
 #include <iostream>
 
 #include "gs2.hpp"
-//#include "reset.hpp"
 #include "cpu.hpp"
-#include "devices/diskii/diskii.hpp"
-#include "devices/languagecard/languagecard.hpp"
-#include "devices/parallel/parallel.hpp"
-#include "devices/mockingboard/mb.hpp"
 
 #include "computer.hpp"
 #include "debugger/debugwindow.hpp"
 #include "util/EventDispatcher.hpp"
 #include "util/EventTimer.hpp"
 #include "videosystem.hpp"
+#include "util/mount.hpp"
 
 computer_t::computer_t() {
     // lots of stuff is going to need this.

@@ -16,7 +16,7 @@
  */
 
 #include <stdio.h>
-#include <stdint.h>
+#include <cstdint>
 
 #include "diskii_fmt.hpp"
 #include "debug.hpp"

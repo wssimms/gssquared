@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 #include "cpu.hpp"
 
 void render_lores_scanline(cpu_state *cpu, int y, void *pixels, int pitch);

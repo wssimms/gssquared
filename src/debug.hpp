@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 
 // Values can be 0 - no debug, 1 - instruction decode, 2- detailed decode.
 extern uint64_t debug_level;
@@ -49,7 +49,7 @@ extern uint64_t debug_level;
 
 #define DEBUG(flag) (debug_level & flag)
 
-#include <stdint.h>
+#include <cstdint>
 #include <iostream>
 #include <sstream>
 #include <iomanip>
