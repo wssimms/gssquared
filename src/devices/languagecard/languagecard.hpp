@@ -66,6 +66,9 @@
 #define RAM_RAM             0b011
 
 struct languagecard_state_t {
+    MMU_II *mmu;  // we need to know II-plus specific stuff like restoring the ROM
+    cpu_state *cpu;
+    
     uint32_t FF_BANK_1;
     uint32_t FF_READ_ENABLE;
     uint32_t FF_PRE_WRITE;
