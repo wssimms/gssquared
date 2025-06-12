@@ -108,7 +108,7 @@ void Disassembler::disassemble_one() {
 
 // returns vector of disassembled instructions
 std::vector<std::string> Disassembler::disassemble(int count) {
-    printf("disassembling %d instructions\n", count);
+    //printf("disassembling %d instructions\n", count);
     for (int i = 0; i < count; i++) {
         disassemble_one();
     }
