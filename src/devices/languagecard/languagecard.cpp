@@ -16,7 +16,6 @@
  */
 
 #include <stdio.h>
-#include "cpu.hpp"
 #include "debug.hpp"
 
 #include "devices/languagecard/languagecard.hpp"
@@ -63,7 +62,7 @@ void set_memory_pages_based_on_flags(languagecard_state_t *lc) {
 uint8_t languagecard_read_C0xx(void *context, uint16_t address) {
     languagecard_state_t *lc = (languagecard_state_t *)context;
 
-    if (DEBUG(DEBUG_LANGCARD)) printf("languagecard read %04X [%llu] ", address, lc->cpu->cycles);
+    if (DEBUG(DEBUG_LANGCARD)) printf("languagecard read %04X ", address);
 
     /** Bank Select */    
     
@@ -195,7 +194,6 @@ void reset_languagecard(languagecard_state_t *lc) {
 }
 
 void init_slot_languagecard(computer_t *computer, SlotType_t slot) {
-    cpu_state *cpu = computer->cpu;
 
     fprintf(stdout, "languagecard_register_slot %d\n", slot);
     if (slot != 0) {
@@ -205,7 +203,6 @@ void init_slot_languagecard(computer_t *computer, SlotType_t slot) {
 
     languagecard_state_t *lc = new languagecard_state_t();
     lc->mmu = computer->mmu;
-    lc->cpu = computer->cpu;
 
 /** At power up, the RAM card is disabled for reading and enabled for writing.
  * the pre-write flip-flop is reset, and bank 2 is selected. 
