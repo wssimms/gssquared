@@ -172,7 +172,6 @@ uint8_t languagecard_read_C011(void *context, uint16_t address) {
     languagecard_state_t *lc = (languagecard_state_t *)context;
 
     if (DEBUG(DEBUG_LANGCARD)) printf("languagecard_read_C011 %04X FF_BANK_1: %d\n", address, lc->FF_BANK_1);
-   /*  return (!lc->FF_BANK_1) << 7; */
    return (lc->FF_BANK_1 == 0) ? 0x80 : 0x00;
 }
 
