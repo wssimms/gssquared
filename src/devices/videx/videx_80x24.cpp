@@ -22,21 +22,6 @@
 #include "display/types.hpp"
 #include "videosystem.hpp"
 
-/* uint32_t videx_color_table[DM_NUM_MONO_MODES] = {
-    0xFFFFFFFF, // color, keep it as-is
-    0x00C044FF, //0x00e64dFF, // green (10% brighter).
-    0xFFBF00FF, // amber.
-}; */
-
-/* uint32_t videx_color_lookup(videx_data * videx_d) {
-    display_state_t *ds = videx_d->->display_state;
-    if (ds->display_color_engine == DM_ENGINE_RGB) {
-        return 0xFFFFFFFF;
-    } else if (ds->display_color_engine == DM_ENGINE_NTSC) {
-        return 0x00C044FF;
-    }
-} */
-
 void render_videx_scanline_80x24(cpu_state *cpu, videx_data * videx_d, int y, void *pixels, int pitch) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     //videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
