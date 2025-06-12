@@ -4492,3 +4492,48 @@ the trouble with this is, for any given chunk of bytes, there could be many inte
 [ ] scrollbar should be clickable, and this jumps the position to that location  
 
 [ ] Have device frame registration function and call from main event loop  
+
+I decided that devices can have private state - but also "published" state, that other modules in the system can query. I am currently kind of using SlotData and MODULE data for both purposes. But, we want these separate.
+
+The "published" data will be pushed by a device during the device's "frame handler". as far as other parts of the system are concerned, it's readonly. And it rests on a base class that stands alone, that doesn't require something like the OSD or debugger to pull in all the detailed headers and data structures from Disk II, etc.
+
+So aside from - generating audio data - emitting video frame - devices can push this status stuff out. The "published info" will be to "well known names". The first time, an entry is created. Succeeding times, the entry is replaced. go with an integer as the name, sort of like I did the Disk "keys". And the stuff may not be super-high-performance (ie. using vectors and such) so you want to only access any of it during frame time. (i.e., NOT during the CPU loop).
+
+How about we call them "mailboxes"? Let's ask claude. ha. Claude agrees. It's so easy to manipulate claude. Poor Claude. NOPE. MessageBus and Message, to be completely boring.
+
+ok, have an implementation. Now to try it.
+
+## Jun 11, 2025
+
+implemented DeviceFrameHandler concept, and mockingboard now uses it. Works! Now I should be able to have TWO mockingboards in a system_config. 
+
+The reset handler stuff needs to be switched around to use lambdas and pass more specific context. with two mockingboards the 2nd one doesn't reset correctly because it's hardcoded for slot 4 lol. oops.
+Do a text search on SLOT_4 to make sure we get 'em all. (done)
+
+Well this is interesting, Ultima V supports a MIDI interface for music. Huh. Apple2ts supports it. how? 
+"Passport card" and software. Web MIDI supports virtual devices in browser. 
+
+This looks like the ticket right here for what will be a cross-platform library to take MIDI in and synthesize output:
+
+https://github.com/FluidSynth/fluidsynth/wiki/MadeWithFluidSynth
+
+This will be for the //e implementation because Ultima V requires 128K iie to do music. And as far 
+
+Mockingboard mixing really takes a beating in Cybernoid music demo.
+
+need to refactor these to use MessageBus:
+
+bool any_diskii_motor_on(cpu_state *cpu) {
+int diskii_tracknumber_on(cpu_state *cpu) {
+drive_status_t diskii_status(cpu_state *cpu, uint64_t key) {
+
+But MessageBus -will- need a concept of "find me all messages that match a class type". E.g., "any diskii motor on" needs to iterate all disk II's. I'm not gonna use this but the IIgs does this (slows clock while any diskII motor is on..)
+But also OSD wants to iterate all the possible disk controllers in the system to construct its displays, instead of hardcoding them.
+OR. the diskII routines have a global variable, which is the status for all diskII devices. (it's that old slots[8][2] array again..) and that is registered mailbox also. Or there is a routine in the diskII code that whenever we update motor on we update that global.. or the first disk device that starts, creates the record, and registers it, which contains data for all slots. Is this ick? or genius?
+
+Also: new concept for Device Debug callbacks. when debugger window is open, and certain device types are selected, we will display useful diagnostic info; e.g. mockingboard registers; disk ii track no and head position; that sort of thing. Then each module is responsible for its own debug info! Snazz.
+
+All the mount/unmount stuff is kind of fugly too. Sigh. One thing at a time. But.. ooh.. we could do the cassette device this way. Hmm. CiderPress can import WAVs to a disk image. Perhaps I could use the CiderPress code. When they 'load' the cassette, feed the audio data into CiderPress, get the binary data out (even if we have to do it in batch) and can play the WAV also out through the mac speaker.
+
+ok, cool. nobody's gonna do this but it will be there for completeness (and maybe an apple I mode..)
+
