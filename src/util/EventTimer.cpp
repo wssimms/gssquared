@@ -10,6 +10,11 @@ EventTimer::EventTimer() = default;
 // Destructor implementation 
 EventTimer::~EventTimer() = default;
 
+inline void EventTimer::updateNextEventCycle() {
+    // Update next_event_cycle to the earliest event's trigger time
+    next_event_cycle = events.empty() ? std::numeric_limits<uint64_t>::max() : events.front().triggerCycles;
+}
+
 // Add a new event to the queue
 void EventTimer::scheduleEvent(uint64_t triggerCycles, void (*callback)(uint64_t, void*), uint64_t instanceID, void* userData) {
     if (DEBUG(DEBUG_EVENT_TIMER)) std::cout << "scheduleEvent: " << triggerCycles << " InstanceID: " << instanceID << std::endl;
@@ -36,6 +41,7 @@ void EventTimer::scheduleEvent(uint64_t triggerCycles, void (*callback)(uint64_t
             return a.triggerCycles > b.triggerCycles; // Reverse for priority queue (earliest first)
         });
     }
+    updateNextEventCycle();
 }
 
 // Process all events that should trigger by the given cycle count
@@ -57,6 +63,7 @@ void EventTimer::processEvents(uint64_t currentCycles) {
             event.triggerCallback(event.instanceID, event.userData);
         }
     }
+    updateNextEventCycle();
 }
 
 // Cancel all events for a specific instance
@@ -71,6 +78,7 @@ void EventTimer::cancelEvents(uint64_t instanceID) {
             return a.triggerCycles > b.triggerCycles;
         });
     }
+    updateNextEventCycle();
 }
 
 // Check if there are any pending events
@@ -80,8 +88,5 @@ bool EventTimer::hasPendingEvents() const {
 
 // Get the cycle count of the next event
 uint64_t EventTimer::getNextEventCycle() const {
-    if (events.empty()) {
-        return std::numeric_limits<uint64_t>::max();
-    }
-    return events.front().triggerCycles;
+    return next_event_cycle;
 }

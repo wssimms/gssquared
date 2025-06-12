@@ -27,10 +27,11 @@
 
 struct keyboard_state_t {
     uint8_t kb_key_strobe = 0x41; 
+    std::string paste_buffer;
 } ;
 
 /* uint8_t kb_memory_read(uint16_t address);
 void kb_memory_write(uint16_t address, uint8_t value); */
 void kb_key_pressed(keyboard_state_t *kb_state, uint8_t key);
 void handle_keydown_iiplus(cpu_state *cpu, const SDL_Event &event);
-void init_mb_keyboard(computer_t *computer, SlotType_t slot);
+void init_mb_iiplus_keyboard(computer_t *computer, SlotType_t slot);

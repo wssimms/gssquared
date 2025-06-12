@@ -907,7 +907,7 @@ while (1) {
 }
 #endif
 
-void mb_6522_propagate_interrupt(cpu_state *cpu, mb_cpu_data *mb_d) {
+void mb_6522_propagate_interrupt(mb_cpu_data *mb_d) {
     // for each chip, calculate the IFR bit 7.
     for (int i = 0; i < 2; i++) {
         mb_6522_regs *tc = &mb_d->d_6522[i];
@@ -917,18 +917,19 @@ void mb_6522_propagate_interrupt(cpu_state *cpu, mb_cpu_data *mb_d) {
     }
     bool irq_to_slot = (mb_d->d_6522[0].ifr.value & mb_d->d_6522[0].ier.value & 0x7F) || (mb_d->d_6522[1].ifr.value & mb_d->d_6522[1].ier.value & 0x7F);
     printf("irq_to_slot: %d %d\n", mb_d->slot, irq_to_slot);
-    set_slot_irq(cpu, mb_d->slot, irq_to_slot);
+    mb_d->computer->set_slot_irq(mb_d->slot, irq_to_slot);
 }
 
 void mb_t1_timer_callback(uint64_t instanceID, void *user_data) {
-    cpu_state *cpu = (cpu_state *)user_data;
+    mb_cpu_data *mb_d = (mb_cpu_data *)user_data;
+    cpu_state *cpu = mb_d->computer->cpu;
+
     uint8_t slot = (instanceID & 0x0F00) >> 8;
     uint8_t chip = (instanceID & 0x000F);
-    mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, (SlotType_t)slot);
 
     if (DEBUG(DEBUG_MOCKINGBOARD)) std::cout << "MB 6522 Timer callback " << slot << " " << chip << std::endl;
     mb_d->d_6522[chip].ifr.bits.timer1 = 1; // "Set by 'time out of T1'"
-    mb_6522_propagate_interrupt(cpu, mb_d);
+    mb_6522_propagate_interrupt(mb_d);
  
     // there are two chips; track each IRQ individually and update card IRQ line from that.
     mb_6522_regs *tc = &mb_d->d_6522[chip];
@@ -940,39 +941,39 @@ void mb_t1_timer_callback(uint64_t instanceID, void *user_data) {
     }
 
     if (tc->ier.bits.timer1) {
-        mb_d->event_timer->scheduleEvent(cpu->cycles + counter, mb_t1_timer_callback, instanceID , cpu);
+        mb_d->event_timer->scheduleEvent(cpu->cycles + counter, mb_t1_timer_callback, instanceID , mb_d);
     }
 }
 
 // TODO: don't reschedule if interrupts are disabled.
 void mb_t2_timer_callback(uint64_t instanceID, void *user_data) {
-    cpu_state *cpu = (cpu_state *)user_data;
+    mb_cpu_data *mb_d = (mb_cpu_data *)user_data;
+    cpu_state *cpu = mb_d->computer->cpu;
     uint8_t slot = (instanceID & 0x0F00) >> 8;
     uint8_t chip = (instanceID & 0x000F);
-    mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, (SlotType_t)slot);
 
     std::cout << "MB 6522 Timer callback " << slot << " " << chip << std::endl;
     mb_d->d_6522[chip].ifr.bits.timer2 = 1; // "Set by 'time out of T2'"
-    mb_6522_propagate_interrupt(cpu, mb_d);
+    mb_6522_propagate_interrupt(mb_d);
 
     // TODO: there are two chips; track each IRQ individually and update card IRQ line from that.
     mb_6522_regs *tc = &mb_d->d_6522[chip];
     tc->t2_counter = tc->t2_latch;
 
     if (tc->ier.bits.timer2) {
-        mb_d->event_timer->scheduleEvent(cpu->cycles + tc->t2_counter, mb_t2_timer_callback, instanceID , cpu);
+        mb_d->event_timer->scheduleEvent(cpu->cycles + tc->t2_counter, mb_t2_timer_callback, instanceID , mb_d);
     }
 }
 
 void mb_write_Cx00(void *context, uint16_t addr, uint8_t data) {
-    cpu_state *cpu = (cpu_state *)context;
+    mb_cpu_data *mb_d = (mb_cpu_data *)context;
     uint8_t slot = (addr & 0x0F00) >> 8;
     uint8_t alow = addr & 0x7F;
     uint8_t chip = (addr & 0x80) ? 0 : 1;
-    mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, (SlotType_t)slot);
 
     if (DEBUG(DEBUG_MOCKINGBOARD)) printf("mb_write_Cx00: %02d %d %02x %02x\n", slot, chip, alow, data);
     mb_6522_regs *tc = &mb_d->d_6522[chip]; // which 6522 chip this is.
+    uint64_t cpu_cycles = mb_d->computer->cpu->cycles;
 
     switch (alow) {
 
@@ -990,7 +991,8 @@ void mb_write_Cx00(void *context, uint16_t addr, uint8_t data) {
             if ((data & 0b100) == 0) { // /RESET is low, hence assert reset, reset the chip.
                 // reset the chip. Set all 16 registers to 0.
                 for (int i = 0; i < 16; i++) {
-                    double time = cpu->cycles / 1020500.0;
+                    // TODO: is there a better way to get this?
+                    double time = cpu_cycles / 1020500.0;
                     mb_d->mockingboard->queueRegisterChange(time, chip, i, 0);
                 }
             }
@@ -999,7 +1001,7 @@ void mb_write_Cx00(void *context, uint16_t addr, uint8_t data) {
                 tc->reg_num = tc->ora;
                 if (DEBUG(DEBUG_MOCKINGBOARD)) printf("reg_num: %02x\n", tc->reg_num);
             } else if (data == 6) { // write to the specified register
-                double time = cpu->cycles / 1020500.0;
+                double time = cpu_cycles / 1020500.0;
                 mb_d->mockingboard->queueRegisterChange(time, chip, tc->reg_num, tc->ora);
                 if (DEBUG(DEBUG_MOCKINGBOARD)) printf("queueRegisterChange: [%lf] chip: %d reg: %02x val: %02x\n", time, chip, tc->reg_num, tc->ora);
             }
@@ -1020,13 +1022,13 @@ void mb_write_Cx00(void *context, uint16_t addr, uint8_t data) {
             /* 8 bits loaded into T1 high-order latch. Also both high-and-low order latches transferred into T1 Counter. T1 Interrupt flag is also reset (2-42) */
             // write of t1 counter high clears the interrupt.
             mb_d->d_6522[chip].ifr.bits.timer1 = 0;
-            mb_6522_propagate_interrupt(cpu, mb_d);
+            mb_6522_propagate_interrupt(mb_d);
             tc->t1_latch = (tc->t1_latch & 0x00FF) | (data << 8);
             tc->t1_counter = tc->t1_latch ? tc->t1_latch : 65535;
             tc->ifr.bits.timer1 = 0;
-            tc->t1_triggered_cycles = cpu->cycles;
+            tc->t1_triggered_cycles = cpu_cycles;
             if (tc->ier.bits.timer1) {
-                mb_d->event_timer->scheduleEvent(cpu->cycles + tc->t1_counter, mb_t1_timer_callback, 0x10000000 | (slot << 8) | chip , cpu);
+                mb_d->event_timer->scheduleEvent(cpu_cycles + tc->t1_counter, mb_t1_timer_callback, 0x10000000 | (slot << 8) | chip , mb_d);
             } else {
                 mb_d->event_timer->cancelEvents(0x10000000 | (slot << 8) | chip);
             }
@@ -1046,7 +1048,7 @@ void mb_write_Cx00(void *context, uint16_t addr, uint8_t data) {
                 // for any bit set in wdata, clear the corresponding bit in the IFR.
                 // Pg 2-49 6522 Data Sheet
                 tc->ifr.value &= ~wdata;
-                mb_6522_propagate_interrupt(cpu, mb_d);
+                mb_6522_propagate_interrupt(mb_d);
             }
             break;
         case MB_6522_IER:
@@ -1059,18 +1061,18 @@ void mb_write_Cx00(void *context, uint16_t addr, uint8_t data) {
                 } else {
                     tc->ier.value &= ~data;
                 }
-                mb_6522_propagate_interrupt(cpu, mb_d);
+                mb_6522_propagate_interrupt(mb_d);
                 uint64_t instanceID = 0x10000000 | (slot << 8) | chip;
                 // if timer1 interrupt is disabled, cancel any pending events. (Only enable + write to T1C will reschedule)
                 if (!tc->ier.bits.timer1) {
                     mb_d->event_timer->cancelEvents(instanceID);
                 } else { // if we set the counter/latch BEFORE we enable interrupts.
-                    uint64_t cycle_base = tc->t1_triggered_cycles == 0 ? cpu->cycles : tc->t1_triggered_cycles;
+                    uint64_t cycle_base = tc->t1_triggered_cycles == 0 ? mb_d->computer->cpu->cycles : tc->t1_triggered_cycles;
                     uint16_t counter = tc->t1_counter;
                     if (counter == 0) { // if they enable interrupts before setting the counter (and it's zero) set it to 65535 to avoid infinite loop.
                         counter = 65535;
                     }
-                    mb_d->event_timer->scheduleEvent(cycle_base + counter, mb_t1_timer_callback, instanceID , cpu);
+                    mb_d->event_timer->scheduleEvent(cycle_base + counter, mb_t1_timer_callback, instanceID , mb_d);
                 }
             }
             break;
@@ -1087,11 +1089,11 @@ uint64_t calc_cycle_diff(mb_6522_regs *tc, uint64_t cycles) {
 }
 
 uint8_t mb_read_Cx00(void *context, uint16_t addr) {
-    cpu_state *cpu = (cpu_state *)context;
+    mb_cpu_data *mb_d = (mb_cpu_data *)context;
+    cpu_state *cpu = mb_d->computer->cpu;
     uint8_t slot = (addr & 0x0F00) >> 8;
     uint8_t alow = addr & 0x7F;
     uint8_t chip = (addr & 0x80) ? 0 : 1;
-    mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, (SlotType_t)slot);
 
     if (DEBUG(DEBUG_MOCKINGBOARD)) printf("mb_read_Cx00: %02x => ", alow);
     uint8_t retval = 0xFF;
@@ -1118,7 +1120,7 @@ uint8_t mb_read_Cx00(void *context, uint16_t addr) {
             break;
         case MB_6522_T1C_L:  {  // IFR Timer 1 flag cleared by read T1 counter low. pg 2-42
             mb_d->d_6522[chip].ifr.bits.timer1 = 0;
-            mb_6522_propagate_interrupt(cpu, mb_d);
+            mb_6522_propagate_interrupt(mb_d);
             uint64_t cycle_diff = calc_cycle_diff(&mb_d->d_6522[chip], cpu->cycles);
             //uint64_t cycle_diff = mb_d->d_6522[chip].t1_latch - ((cpu->cycles - mb_d->d_6522[chip].t1_triggered_cycles) % mb_d->d_6522[chip].t1_latch);
             retval = cycle_diff & 0xFF;
@@ -1165,12 +1167,10 @@ uint8_t mb_read_Cx00(void *context, uint16_t addr) {
     return retval;
 }
 
-void generate_mockingboard_frame(cpu_state *cpu, SlotType_t slot) {
+void generate_mockingboard_frame(mb_cpu_data *mb_d) {
     static int frames = 0;
 
-    mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, slot);
-    //const int samples_per_frame = static_cast<int>(735);  // 16.67ms worth of samples -
-    // TODO: 736 is an ugly hack. We need to calculate number of samples based on cycles.
+    // TODO: We need to calculate number of samples based on cycles. (Does the buffer management below handle this, or is this for some other reason?)
     int samples_per_frame = 735;
 
     if (mb_d->stream) {
@@ -1184,10 +1184,10 @@ void generate_mockingboard_frame(cpu_state *cpu, SlotType_t slot) {
         }
     }
 
-    uint64_t cycle_diff = cpu->cycles - mb_d->last_cycle;
+    uint64_t cycle_diff = mb_d->computer->cpu->cycles - mb_d->last_cycle;
     //const int samples_per_frame = ((cycle_diff * 44100) / 1020500.0);
 
-    mb_d->last_cycle = cpu->cycles;
+    mb_d->last_cycle = mb_d->computer->cpu->cycles;
 
     mb_d->mockingboard->generateSamples(samples_per_frame);
 
@@ -1219,10 +1219,7 @@ void insert_empty_mockingboard_frame(mb_cpu_data *mb_d) {
     SDL_PutAudioStreamData(mb_d->stream, empty_frame, 736 * 2 * sizeof(float));
 }
 
-
-void mb_reset(void *context) {
-    cpu_state *cpu = (cpu_state *)context;
-    mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, SLOT_4);
+void mb_reset(mb_cpu_data *mb_d) {
     if (mb_d == nullptr) return;
     mb_d->mockingboard->reset();
     for (int i = 0; i < 2; i++) {
@@ -1237,17 +1234,16 @@ void mb_reset(void *context) {
         mb_d->d_6522[i].ifr.value = 0;
         mb_d->d_6522[i].ier.value = 0;
     }   
-    mb_6522_propagate_interrupt(cpu, mb_d);
-    //set_slot_irq(cpu, mb_d->slot, 0); // TODO: need to use actual slot. the reset routines need the slot number as argument.
+    mb_6522_propagate_interrupt(mb_d); // this reads the slot number and does the right IRQ thing.    
 }
 
 void init_slot_mockingboard(computer_t *computer, SlotType_t slot) {
-    cpu_state *cpu = computer->cpu;
 
     uint16_t slot_base = 0xC080 + (slot * 0x10);
     printf("init_slot_mockingboard: %d\n", slot);
 
     mb_cpu_data *mb_d = new mb_cpu_data;
+    mb_d->computer = computer;
     mb_d->id = DEVICE_ID_MOCKINGBOARD;
     mb_d->mockingboard = new MockingboardEmulator(&mb_d->audio_buffer);
     mb_d->last_cycle = 0;
@@ -1272,7 +1268,8 @@ void init_slot_mockingboard(computer_t *computer, SlotType_t slot) {
     }
     mb_d->event_timer = computer->event_timer;
 
-    speaker_state_t *speaker_d = (speaker_state_t *)get_module_state(cpu, MODULE_SPEAKER);
+// TODO: create an "audiosystem" module and move this stuff to it like we did videosystem.
+    speaker_state_t *speaker_d = (speaker_state_t *)get_module_state(computer->cpu, MODULE_SPEAKER);
     int dev_id = speaker_d->device_id;
 
 /** Init audio stream for the mockingboard device */
@@ -1289,12 +1286,22 @@ void init_slot_mockingboard(computer_t *computer, SlotType_t slot) {
     }
     mb_d->stream = stream;
 
-    set_slot_state(cpu, slot, mb_d);
-    cpu->mmu->set_page_write_h(0xC0 + slot, { mb_write_Cx00, cpu });
-    cpu->mmu->set_page_read_h(0xC0 + slot, { mb_read_Cx00, cpu });
+    //set_slot_state(cpu, slot, mb_d);
+    computer->mmu->set_page_write_h(0xC0 + slot, { mb_write_Cx00, mb_d });
+    computer->mmu->set_page_read_h(0xC0 + slot, { mb_read_Cx00, mb_d });
 
     insert_empty_mockingboard_frame(mb_d);
 
     // set up a reset handler to reset the chips on mockingboard
-    computer->register_reset_handler({mb_reset, cpu});
+    computer->register_reset_handler(
+        [mb_d]() {
+            mb_reset(mb_d);
+            return true;
+        });
+
+    // register a frame processor for the mockingboard.
+    computer->device_frame_dispatcher->registerHandler([mb_d]() {
+        generate_mockingboard_frame(mb_d);
+        return true;
+    });
 }

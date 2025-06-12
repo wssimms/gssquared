@@ -18,8 +18,6 @@
 #include <iostream>
 #include <cstdio>
 #include <unistd.h>
-#include <sstream>
-#include <iomanip>
 #include <time.h>
 #include <getopt.h>
 #include <regex>
@@ -30,15 +28,10 @@
 #include "cpu.hpp"
 #include "clock.hpp"
 #include "display/display.hpp"
-#include "opcodes.hpp"
-#include "debug.hpp"
-#include "test.hpp"
 #include "display/text_40x24.hpp"
 #include "event_poll.hpp"
 #include "devices/speaker/speaker.hpp"
-#include "devices/loader.hpp"
 #include "platforms.hpp"
-#include "util/media.hpp"
 #include "util/dialog.hpp"
 #include "util/mount.hpp"
 #include "ui/OSD.hpp"
@@ -119,6 +112,7 @@ void run_cpus(computer_t *computer) {
     uint64_t last_app_event_update = ct;
     uint64_t last_5sec_update = ct;
     uint64_t last_mockingboard_update = ct;
+    uint64_t last_frame_update = ct;
     uint64_t last_5sec_cycles = cpu->cycles;
 
     uint64_t last_cycle_count =cpu->cycles;
@@ -139,26 +133,43 @@ void run_cpus(computer_t *computer) {
         if (! cpu->halt) {
             switch (cpu->execution_mode) {
                     case EXEC_NORMAL:
-                        while (cpu->cycles - last_cycle_count < cycles_for_this_burst) { // 1/60th second.
-                            computer->event_timer->processEvents(cpu->cycles); // TODO: implement a cache to speed up this check.
-                            (cpu->execute_next)(cpu);
-                            if (computer->debug_window->window_open) {
-                                if (computer->debug_window->check_breakpoint(&cpu->trace_entry)) {
-                                    cpu->execution_mode = EXEC_STEP_INTO;
-                                    cpu->instructions_left = 0;
-                                    break;
+                        {
+                        if (computer->debug_window->window_open) {
+                            uint64_t end_frame_cycles = cpu->cycles + cycles_for_this_burst;
+                            while (cpu->cycles < end_frame_cycles) { // 1/60th second.
+                                if (computer->event_timer->isEventPassed(cpu->cycles)) {
+                                    computer->event_timer->processEvents(cpu->cycles);
                                 }
-                                if (cpu->trace_entry.opcode == 0x00) { // catch a BRK and stop execution.
-                                    cpu->execution_mode = EXEC_STEP_INTO;
-                                    cpu->instructions_left = 0;
-                                    break;
+                                (cpu->execute_next)(cpu);
+                                if (computer->debug_window->window_open) {
+                                    if (computer->debug_window->check_breakpoint(&cpu->trace_entry)) {
+                                        cpu->execution_mode = EXEC_STEP_INTO;
+                                        cpu->instructions_left = 0;
+                                        break;
+                                    }
+                                    if (cpu->trace_entry.opcode == 0x00) { // catch a BRK and stop execution.
+                                        cpu->execution_mode = EXEC_STEP_INTO;
+                                        cpu->instructions_left = 0;
+                                        break;
+                                    }
                                 }
                             }
+                        } else { // skip all debug checks if the window is not open - this may seem repetitioius but it saves all kinds of cycles where every cycle counts (GO FAST MODE)
+                            uint64_t end_frame_cycles = cpu->cycles + cycles_for_this_burst;
+                            while (cpu->cycles < end_frame_cycles) { // 1/60th second.
+                                if (computer->event_timer->isEventPassed(cpu->cycles)) {
+                                    computer->event_timer->processEvents(cpu->cycles);
+                                }
+                                (cpu->execute_next)(cpu);
+                            }
+                        }
                         }
                         break;
                     case EXEC_STEP_INTO:
                         while (cpu->instructions_left) {
-                            computer->event_timer->processEvents(cpu->cycles); // TODO: implement a cache to speed up this check.
+                            if (computer->event_timer->isEventPassed(cpu->cycles)) {
+                                computer->event_timer->processEvents(cpu->cycles);
+                            }
                             (cpu->execute_next)(cpu);
                             cpu->instructions_left--;
                         }
@@ -217,6 +228,7 @@ void run_cpus(computer_t *computer) {
             last_audio_update = current_time;
         }
 
+        /* Process Internal Event Queue */
         current_time = SDL_GetTicksNS();
         if ((this_free_run) && (current_time - last_app_event_update > 16667000)
             || (!this_free_run)) {
@@ -265,17 +277,14 @@ void run_cpus(computer_t *computer) {
             last_app_event_update = current_time;
         }
 
-#if MOCKINGBOARD_ENABLED
-        /* Emit Mockingboard Frame */
+        /* Execute Device Frames - 60 fps */
         current_time = SDL_GetTicksNS();
-        if ((this_free_run) && (current_time - last_mockingboard_update > 16667000)
+        if ((this_free_run) && (current_time - last_frame_update > 16667000)
             || (!this_free_run)) {
-            // TODO: need to iterate slots and call their "generate_frame" functions as appropriate.
-            mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, SLOT_4);
-            if (mb_d) generate_mockingboard_frame(cpu, SLOT_4);
-            last_mockingboard_update = current_time;
+            computer->device_frame_dispatcher->dispatch();
+            last_frame_update = current_time;
         }
-#endif
+
         /* Emit Video Frame */
         current_time = SDL_GetTicksNS();
         if ((this_free_run) && (current_time - last_display_update > 16667000)

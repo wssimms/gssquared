@@ -17,8 +17,7 @@ void parallel_write_C0x0(void *context, uint16_t addr, uint8_t data) {
     fputc(data, parallel_d->output);
 }
 
-void parallel_reset(void *context) {
-    cpu_state *cpu = (cpu_state *)context;
+void parallel_reset(cpu_state *cpu) {
     for (int i = 0; i < 8; i++) {
         parallel_data *parallel_d = (parallel_data *)get_slot_state(cpu, (SlotType_t)i);
 
@@ -63,5 +62,9 @@ void init_slot_parallel(computer_t *computer, SlotType_t slot) {
     /* for (int i = 0; i < 256; i++) {
         raw_memory_write(cpu, 0xC000 + (slot * 0x0100) + i, rom_data[i]);
     } */
-    computer->register_reset_handler({parallel_reset, cpu});
+    computer->register_reset_handler(
+        [cpu]() {
+            parallel_reset(cpu);
+            return true;
+        });
 }

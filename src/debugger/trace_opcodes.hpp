@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 #include <stddef.h>
 
 #include "debugger/trace.hpp"

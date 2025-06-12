@@ -4351,13 +4351,13 @@ media-> is a bad pointer here.
 
 in the trace Pane, we need to eventually make room for 24 bit addresses and 16-bit registers. So we'll need maybe 10 extra characters per line.
 [ ] in trace, option to hide raw bytes and only show PCPC: LDA $xxxx  This will save 10 chars.   
-[ ] Can also bring the EFF left another few characters to save room.  
-[ ] Shorten Cycle some more
+[x] Can also bring the EFF left another few characters to save room.  
+[x] Shorten Cycle some more
 
 [ ] Develop a "line output" class that hides some of the complexity of generating this text line output. e.g. line->putc() stores char and automatically increments.  
 [ ] Develop a "scrollable text widget" that will allow display of lines from a generalized text buffer.
 
-ok, I think we want to move the following controls from the osd control panel, to hover controls (like the pull-out tab):
+ok, I think we want to move (or replicate) the following controls from the osd control panel, to hover controls (like the pull-out tab):
 * display engine
 * cpu speed
 * reset button
@@ -4372,7 +4372,7 @@ I made huge progress on this debugger over the past couple days. Adding to the t
 
 Have a TextEditor widget that lets you edit a line of text. insert, delete, backspace and arrows work. don't have copy/cut/paste.
 
-[ ] next bit: do a forward-looking disassembler.  
+[x] next bit: do a forward-looking disassembler.  
 
 ## Jun 7, 2025
 
@@ -4459,8 +4459,36 @@ And also I had been doing a lot of thinking about the '816, its 16 bit registers
 
 And this implies a different code re-use strategy. In fact it may not be possible to reuse large chunks of the switch statement because of this as I'd originally envisioned. And, the "undocumented opcodes" probably shouldn't be ignored.
 
-[ ] I have a lot of functions where the instruction switch just calls the function. I should flatten that out. That will also help unoptimized execution time.  
+[x] I have a lot of functions where the instruction switch just calls the function. I should flatten that out. That will also help unoptimized execution time.  
 [ ] Explore: can I have an optimized memory read function for zero page, stack since they can't possibly do any I/O stuff? They -can- be remapped but can't do I/O. Not sure it will make a big difference.
 
 
-[ ] implement cache of things like 'is trace on' by checking once per frame, not every instruction execution.  
+[x] implement cache of things like 'is trace on' by checking once per frame, not every instruction execution.  
+
+## Jun 9, 2025
+
+some loop optimizations? See what kind of difference some of these things make:
+15.7610, 15.8359
+move cycle subtraction outside of loop: 15.9243, 15.9073, 15.8835 - seems to have helped a bit.
+cache processEvents: 16.3768, 16.4482: good. make sure it works. ha!
+16.4 / 15.8 = almost 4%.
+
+When we're in free run in the main loop, we are only processing 17008 cpu cycles. but in free run, this will do the frame-based stuff checks a hundred times more often maybe? Wasted time. however I set the cycles per 'frame' for free run mode to 66665 (4 times as much) and effective mhz slowed down? I am getting tons of audio queue underruns. I am not generating enough audio data. 170080. a bit slower yet. frame processing stuff must be failing somehow. compiled with optimizations, I get 356MHz. That might be a hair better. Let's put it back for now.
+
+## Jun 10, 2025
+
+ok, disassembly in debugger is there! it could certainly stand to be fancier. Particularly, . There is also prospective 10-line disassembly following the program counter when in stepwise trace mode.
+What we don't have: retrospective diassembly pane. this would be: current instruction centered vertically; disassembly going backwards, and forwards, from that point.
+
+Backwards disassembly on the 6502 is tricky. Here is the basic idea though. This is going to be some kind of a tree search algorithm to maximize the successfully decoded instructions.
+
+1. check PC-1 to see if it matches any 1-byte instructions. If so, mark it as tentative.
+2. then check PC-2 to see if it matches any 2-byte instructions. if so, we may need to rethink step 1.
+3. then check PC-3 to see if it matches any 3-byte instructions. If so, .. you get the idea.
+
+the trouble with this is, for any given chunk of bytes, there could be many interpretations.
+
+[ ] create a scrollbar widget. the up, down, home, end, pg up and pg down events will go to it. it handles paging, and lets the caller query the current position.  
+[ ] scrollbar should be clickable, and this jumps the position to that location  
+
+[ ] Have device frame registration function and call from main event loop  

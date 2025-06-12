@@ -223,7 +223,8 @@ add_library(gs2_devices_mockingboard     src/devices/mockingboard/mb.cpp )
 
 add_library(gs2_devices_annunciator     src/devices/annunciator/annunciator.cpp )
 
-add_library(gs2_debugger src/debugger/trace.cpp src/debugger/trace_opcodes.cpp src/debugger/debugwindow.cpp src/debugger/MonitorCommand.cpp src/debugger/ExecuteCommand.cpp src/debugger/MemoryWatch.cpp)
+add_library(gs2_debugger src/debugger/trace.cpp src/debugger/trace_opcodes.cpp src/debugger/debugwindow.cpp src/debugger/MonitorCommand.cpp 
+    src/debugger/ExecuteCommand.cpp src/debugger/MemoryWatch.cpp src/debugger/disasm.cpp)
 
 add_library(gs2_mmu src/mmus/mmu.cpp src/mmus/mmu_ii.cpp )
 
@@ -238,12 +239,14 @@ add_library(gs2_event_dispatcher src/util/EventDispatcher.cpp )
 
 add_library(gs2_util src/util/media.cpp src/util/ResourceFile.cpp src/util/dialog.cpp src/util/mount.cpp 
     src/util/soundeffects.cpp src/util/EventQueue.cpp src/util/Event.cpp src/util/EventTimer.cpp src/util/TextRenderer.cpp
-    src/util/HexDecode.cpp)
+    src/util/HexDecode.cpp src/util/DeviceFrameDispatcher.cpp)
 
 add_library(gs2_ui src/ui/AssetAtlas.cpp src/ui/Container.cpp src/ui/DiskII_Button.cpp src/ui/Unidisk_Button.cpp 
     src/ui/MousePositionTile.cpp src/ui/OSD.cpp src/ui/Tile.cpp src/ui/Button.cpp src/ui/MainAtlas.cpp src/ui/ModalContainer.cpp
     src/ui/FadeButton.cpp src/ui/Clipboard.cpp src/ui/TextInput.cpp
 )
+
+add_library(gs2_message_bus src/mbus/MessageBus.cpp)
 
 #add_library(gs2_oldmmu src/memory.cpp src/bus.cpp )
 

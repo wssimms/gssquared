@@ -16,7 +16,7 @@
  */
 
 #include <time.h>
-#include <stdint.h>
+#include <cstdint>
 #include <stdio.h>
 
 #include "debug.hpp"

@@ -358,8 +358,7 @@ uint8_t languagecard_read_C012(void *context, uint16_t address) {
 }
 
 
-void reset_languagecard(void *context) {
-    cpu_state *cpu = (cpu_state *)context;
+void reset_languagecard(cpu_state *cpu) {
 
 }
 
@@ -400,5 +399,9 @@ void init_slot_languagecard(computer_t *computer, SlotType_t slot) {
 
     set_memory_pages_based_on_flags(cpu);
 
-    computer->register_reset_handler({reset_languagecard, cpu});
+    computer->register_reset_handler(
+        [cpu]() {
+            reset_languagecard(cpu);
+            return true;
+        });
 }

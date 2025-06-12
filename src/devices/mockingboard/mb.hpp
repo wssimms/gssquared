@@ -99,6 +99,7 @@ struct mb_6522_regs {
 class MockingboardEmulator; // forward declaration
 
 struct mb_cpu_data: public SlotData {
+    computer_t *computer;
     MockingboardEmulator *mockingboard;
     mb_6522_regs d_6522[2];
     std::vector<float> audio_buffer;

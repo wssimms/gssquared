@@ -33,6 +33,8 @@ int main(int argc, char **argv) {
         mmu->map_page_both(i, &memory[i*256], M_RAM, true, true);
     }
 
+    Disassembler *disasm = new Disassembler(mmu);
+
     std::string command;
     while (1) {
         std::getline(std::cin, command);
@@ -40,8 +42,8 @@ int main(int argc, char **argv) {
 
         MonitorCommand *cmd = new MonitorCommand(command);
         cmd->print();
-
-        ExecuteCommand *exec = new ExecuteCommand(mmu, cmd, nullptr, nullptr);
+        
+        ExecuteCommand *exec = new ExecuteCommand(mmu, cmd, nullptr, nullptr, disasm);
         exec->execute();
         
         // Print the output buffer to stdout (you can remove this or redirect as needed)

@@ -26,7 +26,7 @@
 typedef struct {
     int slot;
     int drive;
-    std::string /* char * */ filename;
+    std::string filename;
     media_descriptor *media;
 } disk_mount_t;
 

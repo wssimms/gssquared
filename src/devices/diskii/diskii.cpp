@@ -652,8 +652,7 @@ void diskII_init(cpu_state *cpu, SlotType_t slot) {
 }
 
 
-void diskii_reset(void *context) {
-    cpu_state *cpu = (cpu_state *)context;
+void diskii_reset(cpu_state *cpu) {
     printf("diskii_reset\n");
     // TODO: this should be a callback from the CPU reset handler.
     for (int i = 0; i < 8; i++) {
@@ -752,7 +751,11 @@ void init_slot_diskII(computer_t *computer, SlotType_t slot) {
     computer->mounts->register_drive(DRIVE_TYPE_DISKII, key);
     computer->mounts->register_drive(DRIVE_TYPE_DISKII, key + 1);
 
-    computer->register_reset_handler({diskii_reset, cpu});
+    computer->register_reset_handler(
+        [cpu]() {
+            diskii_reset(cpu);
+            return true;
+        });
 
 }
 

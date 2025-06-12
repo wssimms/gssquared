@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 #include "cpu.hpp"
 
 void loader_execute(cpu_state *cpu);

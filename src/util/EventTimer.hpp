@@ -11,7 +11,7 @@ public:
         uint64_t instanceID;
         void* userData;
     };
-
+    uint64_t next_event_cycle = 0;
     EventTimer();
     ~EventTimer();
 
@@ -20,7 +20,9 @@ public:
     void cancelEvents(uint64_t instanceID);
     bool hasPendingEvents() const;
     uint64_t getNextEventCycle() const;
-
+    inline bool isEventPassed(uint64_t currentCycles) { return currentCycles >= next_event_cycle; }
+    
 private:
     std::vector<Event> events;
+    void updateNextEventCycle();
 };

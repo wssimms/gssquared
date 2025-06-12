@@ -17,9 +17,9 @@
 
 #include <cstdio>
 #include <SDL3/SDL.h>
+#include "SDL3/SDL_keycode.h"
 #include "gs2.hpp"
 #include "computer.hpp"
-#include "cpu.hpp"
 #include "debug.hpp"
 #include "keyboard.hpp"
 
@@ -35,29 +35,38 @@ inline void kb_clear_strobe(keyboard_state_t *kb_state) {
     kb_state->kb_key_strobe = kb_state->kb_key_strobe & 0x7F;
 }
 
-uint8_t kb_memory_read(void *context, uint16_t address) {
+uint8_t kb_read_C00X(void *context, uint16_t address) {
     //fprintf(stderr, "kb_memory_read %04X\n", address);
     keyboard_state_t *kb_state = (keyboard_state_t *)context;
 
-    if (address == 0xC000) {
-        uint8_t key = kb_state->kb_key_strobe;
-        return key;
+    if ((kb_state->kb_key_strobe & 0x80) == 0) { // if keyboard does not already have a buffered character.. 
+        if (kb_state->paste_buffer.length() > 0) { // if there is a paste buffer, use it.
+            uint8_t key = kb_state->paste_buffer[0];
+            if (key == '\n') {
+                key = '\r'; // apple 2's like \r :)
+            }
+            // TODO: do we need to handle Windows-style \r\n?
+            kb_key_pressed(kb_state, key);
+            kb_state->paste_buffer = kb_state->paste_buffer.substr(1);
+        }
     }
-    if (address == 0xC010) {
-        // Clear the keyboard latch
-        kb_clear_strobe(kb_state);
-        return 0xEE;
-    }
+    uint8_t key = kb_state->kb_key_strobe;
+    return key;
+}
+
+uint8_t kb_read_C01X(void *context, uint16_t address) {
+    keyboard_state_t *kb_state = (keyboard_state_t *)context;
+
+    // Clear the keyboard latch
+    kb_clear_strobe(kb_state);
     return 0xEE;
 }
 
-void kb_memory_write(void *context, uint16_t address, uint8_t value) {
+void kb_write_C01X(void *context, uint16_t address, uint8_t value) {
     keyboard_state_t *kb_state = (keyboard_state_t *)context;
 
-    if (address == 0xC010) {
-        // Clear the keyboard latch
-        kb_clear_strobe(kb_state);
-    }
+    // Clear the keyboard latch
+    kb_clear_strobe(kb_state);
 }
 
 void decode_key_mod(SDL_Keycode key, SDL_Keymod mod) {
@@ -83,62 +92,15 @@ void decode_key_mod(SDL_Keycode key, SDL_Keymod mod) {
     fprintf(stdout, "\n");
 }
 
-#if 0
-void handle_keydown_iiplus(cpu_state *cpu, const SDL_Event &event) {
-
-    // Ignore if only shift is pressed
-    /* uint16_t mod = event.key.keysym.mod;
-    SDL_Keycode key = event.key.keysym.sym; */
-    SDL_Keymod mod = event.key.mod;
-    SDL_Keycode key = event.key.key;
-
-    if (DEBUG(DEBUG_KEYBOARD))  decode_key_mod(key, mod);
-
-    if (mod & SDL_KMOD_SHIFT) {
-        /* if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "shift key pressed: %08X\n", key); */
-        if ((key == SDLK_LSHIFT) || (key == SDLK_RSHIFT)) return;
-        if (key == SDLK_EQUALS) kb_key_pressed('+');
-        else if (key == SDLK_MINUS) kb_key_pressed('_');
-        else if (key == SDLK_1) kb_key_pressed('!');
-        else if (key == SDLK_2) kb_key_pressed('@');
-        else if (key == SDLK_3) kb_key_pressed('#');
-        else if (key == SDLK_4) kb_key_pressed('$');
-        else if (key == SDLK_5) kb_key_pressed('%');
-        else if (key == SDLK_6) kb_key_pressed('^');
-        else if (key == SDLK_7) kb_key_pressed('&');
-        else if (key == SDLK_8) kb_key_pressed('*');
-        else if (key == SDLK_9) kb_key_pressed('(');
-        else if (key == SDLK_0) kb_key_pressed(')');
-        else if (key == SDLK_APOSTROPHE) kb_key_pressed('"');
-        else if (key == SDLK_SEMICOLON) kb_key_pressed(':');
-        else if (key == SDLK_COMMA) kb_key_pressed('<');
-        else if (key == SDLK_PERIOD) kb_key_pressed('>');
-        else if (key == SDLK_SLASH) kb_key_pressed('?');
-        else kb_key_pressed(key);
-        return;
+void handle_paste(keyboard_state_t *kb_state, const SDL_Event &event) {
+    fprintf(stdout, "handle_paste\n");
+    char *clipboardText = SDL_GetClipboardText();
+    if (clipboardText) {
+        fprintf(stdout, "clipboardText: %s\n", clipboardText);
+        kb_state->paste_buffer = std::string(clipboardText);
+        SDL_free(clipboardText);
     }
-
-    if (mod & SDL_KMOD_CTRL) {
-        // Convert lowercase to control code (0x01-0x1A)
-        if (key >= 'a' && key <= 'z') {
-            key = key - 'a' + 1;
-            kb_key_pressed(key);
-            /* if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "control key pressed: %08X\n", key); */
-        }
-    } 
-    else {
-        // convert lowercase characters to uppercase for Apple ][+
-       
-        if (key == SDLK_LEFT) { kb_key_pressed(0x08); return; }
-        if (key == SDLK_RIGHT) { kb_key_pressed(0x15); return; }
-        if (key >= 'a' && key <= 'z') key = key - 'a' + 'A';
-        if (key < 128) { // TODO: create a keyboard map, and allow user to select keyboard map for different languages.
-            kb_key_pressed(key);
-        }
-    }
-    /* if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "key pressed: %08X\n", key); */
 }
-#endif 
 
 //void handle_keydown_iiplus(cpu_state *cpu, const SDL_Event &event) {
 void handle_keydown_iiplus(const SDL_Event &event, keyboard_state_t *kb_state) {
@@ -172,17 +134,26 @@ void handle_keydown_iiplus(const SDL_Event &event, keyboard_state_t *kb_state) {
 
 }
 
-void init_mb_keyboard(computer_t *computer, SlotType_t slot) {
+void init_mb_iiplus_keyboard(computer_t *computer, SlotType_t slot) {
     if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "init_keyboard\n");
     keyboard_state_t *kb_state = new keyboard_state_t;
     computer->set_module_state(MODULE_KEYBOARD, kb_state);
 
-    computer->mmu->set_C0XX_read_handler(0xC000, { kb_memory_read, kb_state });
-    computer->mmu->set_C0XX_read_handler(0xC010, { kb_memory_read, kb_state });
-    computer->mmu->set_C0XX_write_handler(0xC010, { kb_memory_write, kb_state });
+    /** Sather P31: 'The keyboard read addres sis $C00X and the strobe flip-flop reset address is $C01X. */
+    for (int i = 0; i < 16; i++) {
+        computer->mmu->set_C0XX_read_handler(0xC000+i, { kb_read_C00X, kb_state });
+
+        /* on II's through the II+, the keyboard strobe reset is at $C01X read or write. This changes on the IIe and later. */
+        computer->mmu->set_C0XX_read_handler(0xC010+i, { kb_read_C01X, kb_state });
+        computer->mmu->set_C0XX_write_handler(0xC010+i, { kb_write_C01X, kb_state });
+    }
 
     computer->dispatch->registerHandler(SDL_EVENT_KEY_DOWN, [kb_state](const SDL_Event &event) {
+        if (event.key.key == SDLK_INSERT && event.key.mod & SDL_KMOD_SHIFT) {
+            handle_paste(kb_state,event);
+            return true;
+        }
         handle_keydown_iiplus(event, kb_state);
-        return true;
+        return false;
     });
 }

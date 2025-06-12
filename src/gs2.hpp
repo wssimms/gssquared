@@ -18,7 +18,7 @@
 #pragma once
 
 #include <unistd.h>
-#include <stdint.h>
+#include <cstdint>
 #include <string>
 
 /* Address types */
@@ -53,5 +53,4 @@ typedef enum {
     NUM_SLOTS = 8
 } SlotType_t;
 
-#define MOCKINGBOARD_ENABLED 1
 #define VIDEX_ENABLED 1

@@ -6,11 +6,12 @@
 #include <iomanip>
 #include "debugger/MemoryWatch.hpp"
 
-ExecuteCommand::ExecuteCommand(MMU *mmu, MonitorCommand *cmd, MemoryWatch *watches, MemoryWatch *breaks) {
+ExecuteCommand::ExecuteCommand(MMU *mmu, MonitorCommand *cmd, MemoryWatch *watches, MemoryWatch *breaks, Disassembler *disasm) {
     this->mmu = mmu;
     this->cmd = cmd;
     this->memory_watches = watches;
     this->breaks = breaks;
+    this->disasm = disasm;
 }
 
 const std::vector<std::string>& ExecuteCommand::getOutput() const {
@@ -149,7 +150,16 @@ void ExecuteCommand::execute() {
             addOutput("Error: expected address as first argument");
         }
     }
-
+    if (disasm && (node0.type == MON_NODE_TYPE_COMMAND) && (node0.val_cmd == MON_CMD_LIST)) {
+        // list disassembled instructions
+        if (cmd->nodes.size() == 2) {
+            auto &node1 = cmd->nodes[1];
+            if (node1.type == MON_NODE_TYPE_NUMBER) {
+                disasm->setAddress(node1.val_number);
+            }
+        }
+        addOutput(disasm->disassemble(30));
+    }
     if ((node0.type == MON_NODE_TYPE_COMMAND) && (node0.val_cmd == MON_CMD_HELP)) {
         addOutput("watch range_lo:range_hi      - watch memory range");
         addOutput("watch                        - list watches");
@@ -159,6 +169,8 @@ void ExecuteCommand::execute() {
         addOutput("nobp address                 - remove breakpoint");
         addOutput("set address value [value...] - set memory values");
         addOutput("address:value [value...]     - set memory values");
+        addOutput("list (l) address             - disassemble instructions from address");
+        addOutput("list (l)                     - continue disassembly");
         addOutput("load \"filename\" address      - load memory from file");
         addOutput("save \"filename\" lo.hi        - save memory range to file");
         addOutput("move lo.hi address           - move memory from lo to hi to address");

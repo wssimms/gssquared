@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 #include "cpu.hpp"
 
 void hgr_memory_write(void *context, uint16_t address, uint8_t value);

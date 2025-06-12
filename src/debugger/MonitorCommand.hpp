@@ -28,6 +28,7 @@ enum mon_cmd_type_t {
     MON_CMD_HELP,
     MON_CMD_BP,
     MON_CMD_NOBP,
+    MON_CMD_LIST,
 };
 
 struct mon_node_entry_t {

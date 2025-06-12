@@ -15,3 +15,12 @@ This routine (depending on display engine) will:
 
 "Copy" will then populate the bmp header for use when / if the clipboard callback routine is called.
 
+## Paste
+
+Paste should be handled by the keyboard module. When a paste is done, copy the pasted string into a buffer.
+
+each time C000 is read, if:
+    C000 would return false, then read the next character from the buffer.
+    if it would return true, then they have not processed the keystroke.
+
+Implemented!

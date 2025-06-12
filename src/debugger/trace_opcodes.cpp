@@ -15,13 +15,7 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
-#include <unistd.h>
-
-#include "gs2.hpp"
 #include "debugger/trace_opcodes.hpp"
-#include "debugger/trace.hpp"
-
 
 const address_mode_entry address_mode_formats[] = {
    { "???", 1 },

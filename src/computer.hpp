@@ -7,6 +7,7 @@
 #include "SlotData.hpp"
 #include "util/EventDispatcher.hpp"
 #include "util/EventQueue.hpp"
+#include "util/DeviceFrameDispatcher.hpp"
 
 struct cpu_state;
 struct debug_window_t; // don't bring in debugwindow.hpp, it would create a depedence on SDL.
@@ -14,14 +15,17 @@ struct video_system_t; // same.
 class Mounts;
 class EventTimer;
 
-typedef void (*reset_handler_t)(void *context);
+/* typedef void (*reset_handler_t)(void *context);
 
 struct reset_handler_rec {
     reset_handler_t handler;
     void *context;
-};
+}; */
 
 struct computer_t {
+
+    using ResetHandler = std::function<bool ()>;
+
     cpu_state *cpu = nullptr;
     MMU_II *mmu = nullptr;
 
@@ -34,10 +38,12 @@ struct computer_t {
     EventTimer *event_timer = nullptr;
 
     EventQueue *event_queue = nullptr;
-    
+
+    DeviceFrameDispatcher *device_frame_dispatcher = nullptr;
+
     Mounts *mounts = nullptr;
 
-    std::vector<reset_handler_rec> reset_handlers;
+    std::vector<ResetHandler> reset_handlers;
 
     void *module_store[MODULE_NUM_MODULES];
     SlotData *slot_store[NUM_SLOTS];
@@ -47,7 +53,7 @@ struct computer_t {
     void set_mmu(MMU_II *mmu) { this->mmu = mmu; }
     void reset(bool cold_start);
 
-    void register_reset_handler(reset_handler_rec rec);
+    void register_reset_handler(ResetHandler handler);
 
     void *get_module_state( module_id_t module_id);
     void set_module_state( module_id_t module_id, void *state);

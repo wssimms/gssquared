@@ -8,6 +8,7 @@
 #include "ui/Container.hpp"
 #include "ui/TextInput.hpp"
 #include "debugger/MemoryWatch.hpp"
+#include "debugger/disasm.hpp"
 
 struct computer_t;
 struct video_system_t;
@@ -40,6 +41,8 @@ struct debug_window_t {
     Container_t *tab_container;
     MemoryWatch memory_watches;
     MemoryWatch breaks;
+    Disassembler *disasm;
+    Disassembler *step_disasm;
 
     int panel_visible[DEBUG_PANEL_COUNT] = {0};
     SDL_Rect pane_area[DEBUG_PANEL_COUNT];
