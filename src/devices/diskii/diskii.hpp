@@ -66,6 +66,7 @@ struct diskII {
 };
 
 struct diskII_controller : public SlotData {
+    computer_t *computer;
     diskII drive[2];
     uint8_t drive_select;
     bool motor;
