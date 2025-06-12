@@ -4537,3 +4537,8 @@ All the mount/unmount stuff is kind of fugly too. Sigh. One thing at a time. But
 
 ok, cool. nobody's gonna do this but it will be there for completeness (and maybe an apple I mode..)
 
+## Jun 12, 2025
+
+started refactoring callbacks in videx to use videx_d - done for the bus-facing stuff. However the video-facing stuff isn't. Seems like video frames should be called with a lambda. BUT - who determines what module has control of the video display? Maybe : videodisplay clients can return a "priority". whichever one has a higher priority wins. Right now there is only the mainboard display, and videx. In the future, there will be mainboard display and IIGS SHR mode. Perhaps these can determine on their own if they execute, and, return true/false. There is this "Video7" RGB card stuff that a2ts supports now - "provided improved text and graphics, including 40-column color text, and various low-resolution and high-res modees with 16 colors". This is another example.
+
+update_display will then move down into videosystem.
