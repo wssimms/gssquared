@@ -22,6 +22,8 @@ computer_t::computer_t() {
 
     sys_event = new EventDispatcher(); // different queue for "system" events that get processed first.
     dispatch = new EventDispatcher(); // has to be very first thing, devices etc are going to immediately register handlers.
+    device_frame_dispatcher = new DeviceFrameDispatcher();
+
     cpu = new cpu_state();
     cpu->init();
 
@@ -64,8 +66,8 @@ computer_t::~computer_t() {
     delete video_system;
 }
 
-void computer_t::register_reset_handler(reset_handler_rec rec) {
-    reset_handlers.push_back(rec);
+void computer_t::register_reset_handler(ResetHandler handler) {
+    reset_handlers.push_back(handler);
 }
 
 void computer_t::reset(bool cold_start) {
@@ -80,34 +82,24 @@ void computer_t::reset(bool cold_start) {
     cpu->reset();
     mmu->init_map();
 
-    for (reset_handler_rec rec : reset_handlers) {
+    /* for (reset_handler_rec rec : reset_handlers) {
         rec.handler(rec.context);
+    } */
+    for (auto& handler : reset_handlers) {
+        handler();
     }
 }
 
-#if 0
-void computer_t::reset(bool cold_start) {
-    // TODO: implement register_reset_handler so a device can register a reset handler.
-    // and when system_reset is called, it will call all the registered reset handlers.
 
-    // TODO: this is a higher level concept than just resetting the CPU.
-    if (cold_start) {
-        // force a cold start reset
-        cpu->mmu->write(0x3f2, 0x00);
-        cpu->mmu->write(0x3f3, 0x00);
-        cpu->mmu->write(0x3f4, 0x00);
-    }
-
-    cpu->reset();
-    diskii_reset(cpu);
-    //cpu->init_default_memory_map();
-    reset_languagecard(cpu); // reset language card
-    parallel_reset(cpu);
-#if MOCKINGBOARD_ENABLED
-    mb_reset(cpu);
-#endif
+/* void computer_t::registerHandler(EventHandler handler) {
+    handlers.push_back(handler);
 }
-#endif
+
+void DeviceFrameDispatcher::dispatch() {
+    for (auto& handler : handlers) {
+        handler();
+    }
+} */
 
 /** State storage for non-slot devices. */
 void *computer_t::get_module_state(module_id_t module_id) {

@@ -112,6 +112,7 @@ void run_cpus(computer_t *computer) {
     uint64_t last_app_event_update = ct;
     uint64_t last_5sec_update = ct;
     uint64_t last_mockingboard_update = ct;
+    uint64_t last_frame_update = ct;
     uint64_t last_5sec_cycles = cpu->cycles;
 
     uint64_t last_cycle_count =cpu->cycles;
@@ -276,17 +277,14 @@ void run_cpus(computer_t *computer) {
             last_app_event_update = current_time;
         }
 
-#if MOCKINGBOARD_ENABLED
-        /* Emit Mockingboard Frame */
+        /* Execute Device Frames - 60 fps */
         current_time = SDL_GetTicksNS();
-        if ((this_free_run) && (current_time - last_mockingboard_update > 16667000)
+        if ((this_free_run) && (current_time - last_frame_update > 16667000)
             || (!this_free_run)) {
-            // TODO: need to iterate slots and call their "generate_frame" functions as appropriate.
-            mb_cpu_data *mb_d = (mb_cpu_data *)get_slot_state(cpu, SLOT_4);
-            if (mb_d) generate_mockingboard_frame(cpu, SLOT_4);
-            last_mockingboard_update = current_time;
+            computer->device_frame_dispatcher->dispatch();
+            last_frame_update = current_time;
         }
-#endif
+
         /* Emit Video Frame */
         current_time = SDL_GetTicksNS();
         if ((this_free_run) && (current_time - last_display_update > 16667000)
