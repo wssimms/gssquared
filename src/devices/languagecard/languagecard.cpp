@@ -217,14 +217,12 @@ void init_slot_languagecard(computer_t *computer, SlotType_t slot) {
     lc->_FF_WRITE_ENABLE = 0;
     lc->ram_bank = new uint8_t[0x4000];
 
-    set_module_state(cpu, MODULE_LANGCARD, lc);
-
-    cpu->mmu->set_C0XX_read_handler(0xC011, { languagecard_read_C011, lc });
-    cpu->mmu->set_C0XX_read_handler(0xC012, { languagecard_read_C012, lc });
+    lc->mmu->set_C0XX_read_handler(0xC011, { languagecard_read_C011, lc });
+    lc->mmu->set_C0XX_read_handler(0xC012, { languagecard_read_C012, lc });
 
     for (uint16_t i = 0xC080; i <= 0xC08F; i++) {
-        cpu->mmu->set_C0XX_read_handler(i, { languagecard_read_C0xx, lc });
-        cpu->mmu->set_C0XX_write_handler(i, { languagecard_write_C0xx, lc });
+        lc->mmu->set_C0XX_read_handler(i, { languagecard_read_C0xx, lc });
+        lc->mmu->set_C0XX_write_handler(i, { languagecard_write_C0xx, lc });
     }
 
     set_memory_pages_based_on_flags(lc);
