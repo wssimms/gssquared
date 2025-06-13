@@ -56,7 +56,7 @@ void init_slot_parallel(computer_t *computer, SlotType_t slot) {
     
     // memory-map the page. Refactor to have a method to get and set memory map.
     uint8_t *rom_data = parallel_d->rom->get_data();
-    cpu->mmu->set_slot_rom(slot, rom_data);
+    cpu->mmu->set_slot_rom(slot, rom_data, "PARL_ROM");
 
     // load the firmware into the slot memory -- refactor this
     /* for (int i = 0; i < 256; i++) {

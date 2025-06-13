@@ -916,7 +916,7 @@ void mb_6522_propagate_interrupt(mb_cpu_data *mb_d) {
         tc->ifr.bits.irq = irq;
     }
     bool irq_to_slot = (mb_d->d_6522[0].ifr.value & mb_d->d_6522[0].ier.value & 0x7F) || (mb_d->d_6522[1].ifr.value & mb_d->d_6522[1].ier.value & 0x7F);
-    printf("irq_to_slot: %d %d\n", mb_d->slot, irq_to_slot);
+    //printf("irq_to_slot: %d %d\n", mb_d->slot, irq_to_slot);
     mb_d->computer->set_slot_irq(mb_d->slot, irq_to_slot);
 }
 
@@ -1287,8 +1287,8 @@ void init_slot_mockingboard(computer_t *computer, SlotType_t slot) {
     mb_d->stream = stream;
 
     //set_slot_state(cpu, slot, mb_d);
-    computer->mmu->set_page_write_h(0xC0 + slot, { mb_write_Cx00, mb_d });
-    computer->mmu->set_page_read_h(0xC0 + slot, { mb_read_Cx00, mb_d });
+    computer->mmu->set_page_write_h(0xC0 + slot, { mb_write_Cx00, mb_d }, "MB_IO");
+    computer->mmu->set_page_read_h(0xC0 + slot, { mb_read_Cx00, mb_d }, "MB_IO");
 
     insert_empty_mockingboard_frame(mb_d);
 

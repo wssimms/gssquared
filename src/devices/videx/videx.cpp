@@ -56,28 +56,28 @@ void map_rom_videx(void *context, SlotType_t slot) {
 
     uint8_t *dp = videx_d->rom->get_data();
 
-    videx_d->mmu->map_page_read_only(0xC8, dp + 0x000, M_IO);
-    videx_d->mmu->map_page_read_only(0xC9, dp + 0x100, M_IO);
-    videx_d->mmu->map_page_read_only(0xCA, dp + 0x200, M_IO);
-    videx_d->mmu->map_page_read_only(0xCB, dp + 0x300, M_IO);
-    videx_d->mmu->map_page_both(0xCC, nullptr, M_IO, 1, 1);
-    videx_d->mmu->map_page_both(0xCD, nullptr, M_IO, 1, 1);
-    videx_d->mmu->map_page_both(0xCE, nullptr, M_IO, 1, 1);
-    videx_d->mmu->map_page_both(0xCF, nullptr, M_IO, 1, 1);
+    videx_d->mmu->map_page_read_only(0xC8, dp + 0x000, "VIDEXROM");
+    videx_d->mmu->map_page_read_only(0xC9, dp + 0x100, "VIDEXROM");
+    videx_d->mmu->map_page_read_only(0xCA, dp + 0x200, "VIDEXROM");
+    videx_d->mmu->map_page_read_only(0xCB, dp + 0x300, "VIDEXROM");
+    videx_d->mmu->map_page_both(0xCC, nullptr, "NONE");
+    videx_d->mmu->map_page_both(0xCD, nullptr, "NONE");
+    videx_d->mmu->map_page_both(0xCE, nullptr, "NONE");
+    videx_d->mmu->map_page_both(0xCF, nullptr, "NONE");
 
 
-    videx_d->mmu->set_page_write_h(0xCC, { videx_memory_write2, videx_d });
-    videx_d->mmu->set_page_write_h(0xCD, { videx_memory_write2, videx_d });
-    videx_d->mmu->set_page_read_h(0xCC, { videx_memory_read2, videx_d });
-    videx_d->mmu->set_page_read_h(0xCD, { videx_memory_read2, videx_d });
+    videx_d->mmu->set_page_write_h(0xCC, { videx_memory_write2, videx_d }, "VIDEXRAM");
+    videx_d->mmu->set_page_write_h(0xCD, { videx_memory_write2, videx_d }, "VIDEXRAM");
+    videx_d->mmu->set_page_read_h(0xCC, { videx_memory_read2, videx_d }, "VIDEXRAM");
+    videx_d->mmu->set_page_read_h(0xCD, { videx_memory_read2, videx_d }, "VIDEXRAM");
     videx_d->mmu->dump_page_table(0xC8,0xCF);
     
     //if (DEBUG(DEBUG_VIDEX)) fprintf(stdout, "mapped in videx $C800-$CFFF\n");
 }
 
 void update_videx_screen_memory(videx_data * videx_d) {
-    videx_d->mmu->map_page_read_only(0xCC, videx_d->screen_memory + (videx_d->selected_page * 2) * 0x100, M_IO);
-    videx_d->mmu->map_page_read_only(0xCD, videx_d->screen_memory + (videx_d->selected_page * 2) * 0x100 + 0x100, M_IO);
+    videx_d->mmu->map_page_read_only(0xCC, videx_d->screen_memory + (videx_d->selected_page * 2) * 0x100, "VIDEXRAM");
+    videx_d->mmu->map_page_read_only(0xCD, videx_d->screen_memory + (videx_d->selected_page * 2) * 0x100 + 0x100, "VIDEXRAM");
 
 }
 
@@ -206,7 +206,7 @@ void init_slot_videx(computer_t *computer, SlotType_t slot) {
     uint8_t *rom_data = videx_d->rom->get_data();
 
     // load the firmware into the slot memory -- refactor this
-    computer->mmu->set_slot_rom(slot, rom_data+0x0300);
+    computer->mmu->set_slot_rom(slot, rom_data+0x0300, "VIDEXROM");
 
     uint16_t slot_base = 0xC080 + (slot * 0x10);
 

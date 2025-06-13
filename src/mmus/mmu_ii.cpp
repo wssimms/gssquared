@@ -7,7 +7,7 @@
 void MMU_II::init_map() {
     // Apple II Plus - first 48K is RAM, 0000 - BFFF
      for (int i = 0; i < ram_pages; i++) {
-        map_page_both(i, main_ram_64 + i * GS2_PAGE_SIZE, M_RAM, 1, 1);
+        map_page_both(i, main_ram_64 + i * GS2_PAGE_SIZE, "MAIN_RAM");
 
     }
     // Next, 4K of I/O area, C000 - CFFF
@@ -17,7 +17,7 @@ void MMU_II::init_map() {
     } */
     // Then 12K of ROM. D000 - FFFF
     for (int i = 0; i < (ROM_KB / GS2_PAGE_SIZE); i++) {
-        map_page_read_only(i + 0xD0, main_rom_D0 + i * GS2_PAGE_SIZE, M_ROM);
+        map_page_read_only(i + 0xD0, main_rom_D0 + i * GS2_PAGE_SIZE, "SYS_ROM");
     }   
 }
 
@@ -47,7 +47,7 @@ void MMU_II::set_default_C8xx_map() {
     C8xx_slot = 0xFF;
     for (uint8_t page = 0; page < 8; page++) {
         //map_page_read_only(page + 0xC8, main_io_4 + (page + 0x08) * 0x100, M_IO);
-        map_page_both(page + 0xC8, nullptr, M_IO, 1, 1); // 
+        map_page_both(page + 0xC8, nullptr, "NONE"); // 
     }
 }
 
@@ -153,11 +153,12 @@ uint8_t *MMU_II::get_rom_base() {
     return main_rom_D0;
 }
 
-void MMU_II::set_slot_rom(SlotType_t slot, uint8_t *rom) {
+ // TODO: determine if we should use this, and if so take a read_d here.
+void MMU_II::set_slot_rom(SlotType_t slot, uint8_t *rom, const char *name) {
     if (slot < 1 || slot >= 8) {
         return;
     }
-    map_page_read_only(0xC0 + slot, rom, M_ROM);
+    map_page_read_only(0xC0 + slot, rom, name);
 }
 
 void MMU_II::reset() {

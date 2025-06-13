@@ -35,6 +35,7 @@
 Device_t NoDevice = {
         DEVICE_ID_END,
         "No Device",
+        false,
         NULL,
         NULL
     };
@@ -43,96 +44,112 @@ Device_t Devices[NUM_DEVICE_IDS] = {
     {
         DEVICE_ID_KEYBOARD_IIPLUS,
         "Apple II Plus Keyboard",
+        false,
         init_mb_iiplus_keyboard,
         NULL
     },
     {
         DEVICE_ID_KEYBOARD_IIE,
         "Apple IIe Keyboard",
+        false,
         NULL /* init_mb_keyboard, */,
         NULL
     },
     {
         DEVICE_ID_SPEAKER,
         "Speaker",
+        false,
         init_mb_speaker,
         NULL
     },
     {
         DEVICE_ID_DISPLAY,
         "Display",
+        false,
         init_mb_device_display,
         NULL
     },
     {
         DEVICE_ID_GAMECONTROLLER,
-        "Game Controller",
+        "Game Controller",  
+        false,
         init_mb_game_controller,
         NULL
     },
     {
         DEVICE_ID_LANGUAGE_CARD,
         "II/II+ Language Card",
+        false,
         init_slot_languagecard,
         NULL
     },
     {
         DEVICE_ID_PRODOS_BLOCK,
         "Generic ProDOS Block",
+        true,
         NULL, //init_prodos_block,
         NULL
     },
     {
         DEVICE_ID_PRODOS_CLOCK,
         "Generic ProDOS Clock",
+        false,
         init_slot_prodosclock,
         NULL
     },
     {
         DEVICE_ID_DISK_II,
         "Disk II Controller",
+        true,
         init_slot_diskII,
         NULL
     },
     {
         DEVICE_ID_MEM_EXPANSION,
         "Memory Expansion (Slinky)",
+        true,
         init_slot_memexp,
         NULL
     },
     {
         DEVICE_ID_THUNDER_CLOCK,
         "Thunder Clock Plus",
+        false,
         init_slot_thunderclock,
         NULL
     },
     {
         DEVICE_ID_PD_BLOCK2,
         "Generic ProDOS Block 2",
+        true,
         init_pdblock2,
         NULL
     },
     {
         DEVICE_ID_PARALLEL,
         "Apple II Parallel Interface",
+        true,
         init_slot_parallel,
         NULL
     },
     {
         DEVICE_ID_VIDEX,
         "Videx VideoTerm",
+        false,
         init_slot_videx,
         NULL
     },
     {
         DEVICE_ID_MOCKINGBOARD,
         "Mockingboard",
+        true,
         init_slot_mockingboard,
         NULL
     },
     {
         DEVICE_ID_ANNUNCIATOR,
         "Annunciator",
+        false,
         init_annunciator,
         NULL
     }

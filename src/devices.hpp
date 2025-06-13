@@ -31,6 +31,7 @@ struct DeviceMap_t {
 struct Device_t {
     device_id id;
     const char *name;
+    bool multipleInstances = false;
     void (*power_on)(computer_t *computer, SlotType_t slot_number);
     void (*power_off)(computer_t *computer, SlotType_t slot_number);
 };

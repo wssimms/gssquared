@@ -738,7 +738,7 @@ void init_slot_diskII(computer_t *computer, SlotType_t slot) {
     cpu->mmu->set_C0XX_write_handler(slot_base + DiskII_Q7L, { diskII_write_C0xx, diskII_d });
     cpu->mmu->set_C0XX_write_handler(slot_base + DiskII_Q7H, { diskII_write_C0xx, diskII_d });
 
-    cpu->mmu->set_slot_rom(slot, rom_data);
+    cpu->mmu->set_slot_rom(slot, rom_data, "DISK2_ROM");
 
     // register drives with mounts for status reporting
     uint64_t key = (slot << 8) | 0;

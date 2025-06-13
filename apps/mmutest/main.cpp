@@ -32,7 +32,7 @@ void fake_videx_c8xx(void *context, SlotType_t slot) {
     printf("C8xx handler called for slot %d\n", slot);
     fake_slot_context_t *ctx = (fake_slot_context_t *)context;
     for (int i = 0; i < 8; i++) {
-        ctx->mmu->map_page_read_only(i + 0xC8, ctx->card_rom + i * PAGE_SIZE, M_ROM);
+        ctx->mmu->map_page_read_only(i + 0xC8, ctx->card_rom + i * PAGE_SIZE, "VIDEXFAK");
     }
 }
 
@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
     
     uint8_t *ram = new uint8_t[MEM_SIZE];
     for (int page = 0; page < MEM_SIZE / PAGE_SIZE; page++) {
-        mmu.map_page_both(page, ram + page * PAGE_SIZE, M_RAM, true, true);
+        mmu.map_page_both(page, ram + page * PAGE_SIZE, "TEST RAM");
     }
 
     // Set up fake Slot 3 videx device
@@ -71,15 +71,15 @@ int main(int argc, char **argv) {
     fake_slot_context_t fake_videx = { &mmu, nullptr };
     fake_videx.card_rom = new uint8_t[2048];
     uint8_t *cdrom = new uint8_t[256];
-    mmu.set_slot_rom(SLOT_3, cdrom);
+    mmu.set_slot_rom(SLOT_3, cdrom, "VIDEXROM");
     mmu.set_C8xx_handler(SLOT_3, fake_videx_c8xx, &fake_videx);
 
     // This is how a mockingboard will set itself up to take all reads and writes as handler routines.
     fake_mb_context_t fake_mbconfig = { &mmu, 0 };
     read_handler_t fk2 = { fake_mb_CSXX_read_handler, &fake_mbconfig };
     write_handler_t fkw2 = { fake_mb_CSXX_write_handler, &fake_mbconfig };
-    mmu.set_page_read_h(0xC4, fk2);
-    mmu.set_page_write_h(0xC4, fkw2);
+    mmu.set_page_read_h(0xC4, fk2, "MB_CSXX");
+    mmu.set_page_write_h(0xC4, fkw2, "MB_CSXX");
 
     // Set up fake C000 read handler
     // This is how various I/O devices with softswitches in C000 - C0FF register with the MMU.
@@ -149,7 +149,7 @@ int main2(int argc, char **argv) {
     
     uint8_t *ram = new uint8_t[MEM_SIZE];
     for (int page = 0; page < MEM_SIZE / PAGE_SIZE; page++) {
-        mmu.map_page_both(page, ram + page * PAGE_SIZE, M_RAM, true, true);
+        mmu.map_page_both(page, ram + page * PAGE_SIZE, "TEST RAM");
     }
 
     mmu.dump_page_table(0, 191);

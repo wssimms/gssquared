@@ -4517,7 +4517,7 @@ This looks like the ticket right here for what will be a cross-platform library 
 
 https://github.com/FluidSynth/fluidsynth/wiki/MadeWithFluidSynth
 
-This will be for the //e implementation because Ultima V requires 128K iie to do music. And as far 
+This will be for the //e implementation because Ultima V requires 128K iie to do music. And as far as I can tell ultima v is the only program that can use multiple mockingboards.
 
 Mockingboard mixing really takes a beating in Cybernoid music demo.
 
@@ -4535,10 +4535,17 @@ Also: new concept for Device Debug callbacks. when debugger window is open, and 
 
 All the mount/unmount stuff is kind of fugly too. Sigh. One thing at a time. But.. ooh.. we could do the cassette device this way. Hmm. CiderPress can import WAVs to a disk image. Perhaps I could use the CiderPress code. When they 'load' the cassette, feed the audio data into CiderPress, get the binary data out (even if we have to do it in batch) and can play the WAV also out through the mac speaker.
 
-ok, cool. nobody's gonna do this but it will be there for completeness (and maybe an apple I mode..)
+ok, cool. nobody's gonna use this but it will be there for completeness (and maybe an apple I mode..)
 
 ## Jun 12, 2025
 
-started refactoring callbacks in videx to use videx_d - done for the bus-facing stuff. However the video-facing stuff isn't. Seems like video frames should be called with a lambda. BUT - who determines what module has control of the video display? Maybe : videodisplay clients can return a "priority". whichever one has a higher priority wins. Right now there is only the mainboard display, and videx. In the future, there will be mainboard display and IIGS SHR mode. Perhaps these can determine on their own if they execute, and, return true/false. There is this "Video7" RGB card stuff that a2ts supports now - "provided improved text and graphics, including 40-column color text, and various low-resolution and high-res modees with 16 colors". This is another example.
+started refactoring callbacks in videx to use videx_d - done for the bus-facing stuff. However the video-facing stuff isn't. Seems like video frames should be called with a lambda. BUT - who determines what module has control of the video display? Maybe : videosystem clients can return a "priority". whichever one has a higher priority wins. Right now there is only the mainboard display, and videx. In the future, there will be mainboard display and IIGS SHR mode. Perhaps these can determine on their own if they execute, and, return true/false. There is this "Video7" RGB card stuff that a2ts supports now - "provided improved text and graphics, including 40-column color text, and various low-resolution and high-res modees with 16 colors". This is another example.
 
 update_display will then move down into videosystem.
+
+What's an easy way for various modules to get cpu->cycles without having to put cpu in every one? We use this timekeeping concept a lot..
+
+ha! The only thing lc wanted cycles for was debugging. Super lame.
+
+Does the MMU need the "can read / can write" flags at all any more? Or for that matter, the type? Replace the "type"s with the descr.
+

@@ -115,7 +115,7 @@ void map_rom_memexp(void *context, SlotType_t slot) {
     uint8_t *dp = memexp_d->rom->get_data();
     for (uint8_t page = 0; page < 8; page++) {
         //memory_map_page_both(cpu, page + 0xC8, dp + 0x800 + (page * 0x100), MEM_IO);
-        cpu->mmu->map_page_both(page + 0xC8, dp + 0x800 + (page * 0x100), M_IO, 1, 0);
+        cpu->mmu->map_page_read_only(page + 0xC8, dp + 0x800 + (page * 0x100), "MEMEXP_ROM");
     }
     if (DEBUG(DEBUG_MEMEXP)) {
         printf("mapped in memexp $C800-$CFFF\n");
@@ -171,7 +171,7 @@ void init_slot_memexp(computer_t *computer, SlotType_t slot) {
     uint8_t *rom_data = memexp_d->rom->get_data();
     /* memory_map_page_both(cpu, slot + 0xC0, rom_data + (slot*GS2_PAGE_SIZE), MEM_ROM); */
 
-    cpu->mmu->set_slot_rom(slot, rom_data+(slot * 0x0100));
+    cpu->mmu->set_slot_rom(slot, rom_data+(slot * 0x0100), "MEMX_ROM");
 
     // load the firmware into the slot memory -- refactor this
 /*     for (int i = 0; i < 256; i++) {

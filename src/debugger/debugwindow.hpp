@@ -17,6 +17,7 @@ enum debug_panel_t {
     DEBUG_PANEL_TRACE = 0,
     DEBUG_PANEL_MONITOR,
     DEBUG_PANEL_MEMORY,
+    DEBUG_PANEL_DEVICES,
     DEBUG_PANEL_COUNT
 };
 
@@ -67,6 +68,7 @@ struct debug_window_t {
     void render_pane_trace();
     void render_pane_monitor();
     void render_pane_memory();
+    void render_pane_devices();
     void set_panel_visible(debug_panel_t panel, bool visible);
     bool is_pane_first(debug_panel_t pane);
     int num_lines_in_pane(debug_panel_t pane);
