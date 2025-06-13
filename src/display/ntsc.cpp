@@ -355,7 +355,7 @@ void newProcessAppleIIFrame_LUT (
         // 11111 1X000000
 
         // Process the scanline
-        int x = 2;   // gives correct phase
+        int x = 0;   // gives correct phase
         uint16_t rawbits = 0;
         uint32_t ntscbits = 0;
 
@@ -378,22 +378,22 @@ void newProcessAppleIIFrame_LUT (
             for ( ; count; --count)
             {
                 ntscbits = ntscbits >> 1;
-                if ((rawbits & 1) && (x < (560 - NUM_TAPS)))
+                if (rawbits & 1)
                     ntscbits = ntscbits | (1 << ((NUM_TAPS*2)));
                 rawbits = rawbits >> 1;
 
                 //  Use the phase and the bits as the index
-                outputImage[0] = g_hgr_LUT[x % 4][ntscbits];
+                outputImage[0] = g_hgr_LUT[x][ntscbits];
                 outputImage++;
-                x++;
+                x = (x+1) & 3;
             }
         }
 
         for (int count = NUM_TAPS; count; --count) {
                 ntscbits = ntscbits >> 1;
-                //  Use the phase and the bits as the index
-                outputImage[0] = g_hgr_LUT[x % 4][ntscbits];
+                outputImage[0] = g_hgr_LUT[x][ntscbits];
                 outputImage++;
+                x = (x+1) & 3;
         }
     }
 }

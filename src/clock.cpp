@@ -209,25 +209,28 @@ void make_hgr_bits(void) {
 uint16_t lgr_bits[32];
 void make_lgr_bits(void) {
     for (int n = 0; n < 16; ++n) {
+
         uint8_t pattern = flipped[n];
         pattern >>= 3;
+
         //uint8_t pattern = (uint8_t)n;
 
         // form even column pattern
-        uint16_t lgrbits = 0;
+        uint16_t evnbits = 0;
         for (int i = 14; i; --i) {
-            lgrbits = (lgrbits << 1) | (pattern & 1);
+            evnbits = (evnbits << 1) | (pattern & 1);
             pattern = ((pattern & 1) << 3) | (pattern >> 1); // rotate
         }
-        lgr_bits[2*n] = lgrbits;
 
         // form odd column pattern
-        lgrbits = 0;
+        uint16_t oddbits = 0;
         for (int i = 14; i; --i) {
-            lgrbits = (lgrbits << 1) | (pattern & 1);
+            oddbits = (oddbits << 1) | (pattern & 1);
             pattern = ((pattern & 1) << 3) | (pattern >> 1); // rotate
         }
-        lgr_bits[2*n+1] = lgrbits;
+
+        lgr_bits[2*n]   = ((evnbits >> 2) | (oddbits << 12)) & 0x3FFF;
+        lgr_bits[2*n+1] = ((oddbits >> 2) | (evnbits << 12)) & 0x3FFF;
     }
 }
 
@@ -315,9 +318,7 @@ void counter(cpu_state *cpu)
     uint32_t HiresA15toA10 = (mixhgr & ds->hires_bits) & (ds->page_bits | (VCVBVA << 10));
 
     uint32_t address = A2A1A0 | A6A5A4A3 | A9A8A7 | LoresA15toA10 | HiresA15toA10;
-#if 0
-    return address;
-#else
+
     ds->video_byte = cpu->mmu->read_raw(address);
 
     bool display_text = ((ds->display_mode == TEXT_MODE) || (mixtxt != 0));
@@ -372,7 +373,6 @@ void counter(cpu_state *cpu)
             ds->vidbits[ds->vcount - 0x100][ds->hcount - 0x58] = vidbits;
         }
     }
-#endif
 }
 
 void test_counter(cpu_state *cpu)
