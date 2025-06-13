@@ -44,8 +44,6 @@ int TextRenderer::char_width(char c) {
     return charWidth;
 }
 
-
-
 /** 
  * seems like maybe I should create a texture once, based on the window size.
  * Lock, draw text to it, unlock, like we do the video code, then render that? rather than doing so many individual gpu calls.
@@ -74,7 +72,7 @@ void TextRenderer::render(const std::string &text, int x, int y, TextAlignment a
     }
 }
 
-void TextRenderer::setColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+void TextRenderer::set_color(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
     color_r = r;
     color_g = g;
     color_b = b;

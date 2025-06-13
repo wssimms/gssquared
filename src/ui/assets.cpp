@@ -15,7 +15,11 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-** class Asset_t */
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_render.h>
+#include <SDL3_image/SDL_image.h>
+#include <stdexcept>
+
 /**
  * @brief A class that manages SDL textures loaded from image files.
  * 

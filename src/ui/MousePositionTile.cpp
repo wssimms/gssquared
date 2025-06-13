@@ -15,8 +15,6 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <string>
-
 #include "MousePositionTile.hpp"
 #include "Tile.hpp"
 
@@ -31,7 +29,7 @@ MousePositionTile_t::MousePositionTile_t() {
     // Initialize the position text
     snprintf(position_text, sizeof(position_text), "Mouse: %.0f,%.0f", mouse_x, mouse_y);
     // Set a default size that can accommodate the text
-    set_size(150, 30);
+    set_tile_size(150, 30);
 }
 
 void MousePositionTile_t::render(SDL_Renderer* renderer) {
@@ -44,12 +42,12 @@ void MousePositionTile_t::render(SDL_Renderer* renderer) {
     snprintf(position_text, sizeof(position_text), "Mouse: %.0f,%.0f", mouse_x, mouse_y);
 
     // Get content area position
-    float content_x, content_y;
-    get_content_position(&content_x, &content_y);
+    //float content_x, content_y;
+    //get_content_position(&content_x, &content_y);
 
     // Render the position text in the content area
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);  // Black text
-    SDL_RenderDebugText(renderer, content_x, content_y, position_text);
+    SDL_RenderDebugText(renderer, cp.x, cp.y, position_text);
 }
 
 bool MousePositionTile_t::handle_mouse_event(const SDL_Event& event) {

@@ -15,8 +15,6 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <string>
-
 #include <SDL3/SDL.h>
 
 #include "Container.hpp"
@@ -72,7 +70,7 @@ void Container_t::set_position(float new_x, float new_y) {
     layout();  // Relayout when container position changes
 }
 
-void Container_t::set_size(float new_w, float new_h) {
+void Container_t::set_tile_size(float new_w, float new_h) {
     w = new_w;
     h = new_h;
     layout();  // Relayout when container size changes
@@ -112,7 +110,7 @@ void Container_t::layout() {
     for (size_t i = 0; i < tile_count; i++) {
         if (tiles[i] && tiles[i]->is_visible()) {
             float tile_w, tile_h;
-            tiles[i]->get_size(&tile_w, &tile_h);
+            tiles[i]->get_tile_size(&tile_w, &tile_h);
             max_tile_width = std::max(max_tile_width, tile_w);
             max_tile_height = std::max(max_tile_height, tile_h);
             visible_count++;
@@ -153,7 +151,7 @@ void Container_t::layout() {
         float tile_y = y + row * cell_height + style.padding;
 
         // Set tile position
-        tiles[i]->set_position(tile_x, tile_y);
+        tiles[i]->set_tile_position(tile_x, tile_y);
         current_visible++;
     }
 }

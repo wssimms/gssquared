@@ -100,7 +100,7 @@ public:
      * @param new_w Width
      * @param new_h Height
      */
-    void set_size(float new_w, float new_h);
+    void set_tile_size(float new_w, float new_h);
 
     /**
      * @brief Sets the container's padding.

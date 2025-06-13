@@ -51,6 +51,11 @@ protected:
      */
     void set_size_from_asset();
 
+    /**
+     * @brief Updates button size based on the current tile.
+     */
+    void set_content_size_from_tile();
+
 public:
     /**
      * @brief Constructs a text button with style.

@@ -38,6 +38,8 @@ enum MainAtlas {
     Unidisk_Drive2,
     WhiteDisplayButton,
     RGBDisplayButton,
+    Badge_IIPlus,
+    Badge_II,
     MainAtlas_count
 };
 

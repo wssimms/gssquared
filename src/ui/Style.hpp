@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 /** Style_t */
 
 struct Style_t {

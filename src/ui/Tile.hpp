@@ -23,6 +23,18 @@
 #include "Style.hpp"
 #include "util/TextRenderer.hpp"
 
+enum ContentPosition_t {
+    CP_LEFT,
+    CP_CENTER,
+    CP_RIGHT,
+    CP_TOP,
+    CP_BOTTOM
+};
+
+struct UI_Rect {
+    float x, y, w, h;
+};
+
 /**
  * @brief Base class for UI elements that can be rendered and interacted with.
  * 
@@ -54,14 +66,14 @@ public:
      * @param content_width Width of the content area
      * @param content_height Height of the content area
      */
-    void set_size(float content_width, float content_height);
+    void set_tile_size(float tile_width, float tile_height);
 
     /**
      * @brief Gets the content area position.
      * @param out_x Output parameter for content x position
      * @param out_y Output parameter for content y position
      */
-    void get_content_position(float* out_x, float* out_y) const;
+    //void get_content_position(float* out_x, float* out_y) const;
 
     /**
      * @brief Gets the content area size.
@@ -71,11 +83,20 @@ public:
     void get_content_size(float* out_w, float* out_h) const;
 
     /**
+     * @brief Sets the size of the content area.
+     * @param content_width Width of the content area
+     * @param content_height Height of the content area
+     */
+    void set_content_size(float content_width, float content_height);
+    void set_content_size_only(float content_width, float content_height);
+
+    /**
      * @brief Gets the total tile size including padding and borders.
      * @param out_w Output parameter for total width
      * @param out_h Output parameter for total height
      */
-    void get_size(float* out_w, float* out_h) const;
+    void get_tile_size(float* out_w, float* out_h) const;
+    //void set_tile_size(float tile_width, float tile_height);
 
     /**
      * @brief Sets the padding around the content area.
@@ -109,7 +130,7 @@ public:
     // State setters
     void set_visible(bool v);
     void set_active(bool a);
-    void set_position(float new_x, float new_y);
+    void set_tile_position(float x, float y);
     void set_background_color(uint32_t color);
     void set_border_color(uint32_t color);
     void set_hover_color(uint32_t color);
@@ -121,6 +142,8 @@ public:
     void set_text_renderer(TextRenderer *text_render);
     void set_opacity(int o);
     int calc_opacity(uint32_t color);
+
+    void position_content(ContentPosition_t pos_h, ContentPosition_t pos_v);
 
 protected:
     /**
@@ -134,12 +157,22 @@ protected:
      */
     virtual void on_click(const SDL_Event& event);
 
+    void calc_content_position();
+
 // should be private?
     Style_t style;
     int opacity = 255;
-    float x, y;                  // Position of the entire tile
-    float w, h;                  // Total size including padding and border
-    float content_w, content_h;  // Size of the content area
+
+    UI_Rect out;                 // outer rect - rectangle that includes padding and border
+    UI_Rect tp;                  // tile position - does not include padding or border
+    UI_Rect cp;                  // content position - if content is smaller than tp
+
+    //float x, y;                  // Position of the entire tile
+    //float w, h;                  // Total size including padding and border
+    //float content_w, content_h;  // Size of the content area
+    //float content_x, content_y;  // Position of the content area
+
+    ContentPosition_t pos_h = CP_LEFT, pos_v = CP_TOP;
     bool visible = true;
     bool active = true;
     bool is_hovering = false;

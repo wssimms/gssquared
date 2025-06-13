@@ -28,14 +28,21 @@
  * either text or an image (but not both). They support different states
  * (active/inactive) and can change appearance on hover.
  */
-
+// default to setting both tile and content size.
 void Button_t::set_size_from_asset() {
     SDL_FRect rect = aa->get_rect(assetID);
-    set_size(rect.w, rect.h);
+    set_tile_size(rect.w, rect.h);
+    set_content_size(rect.w, rect.h);
+}
+
+void Button_t::set_content_size_from_tile() {
+    cp.w = tp.w; cp.h = tp.h;
 }
 
 Button_t::Button_t(const std::string& button_text, const Style_t& style, int group)
-    : Tile_t(style), text(button_text), group_id(group), buttonType(BT_Text) {}
+    : Tile_t(style), text(button_text), group_id(group), buttonType(BT_Text) {
+        set_content_size_from_tile();
+    }
     
 Button_t::Button_t(AssetAtlas_t* assetp, int assetID, const Style_t& style, int group)
         : Tile_t(style), aa(assetp), assetID(assetID), group_id(group), buttonType(BT_Atlas) {
@@ -97,8 +104,8 @@ void Button_t::render(SDL_Renderer* renderer) {
     style.background_color = original_bg_color;
 
     // Get content area position and size
-    float content_x, content_y;
-    get_content_position(&content_x, &content_y);
+    //float content_x, content_y;
+    //get_content_position(&content_x, &content_y);
 
     // Draw button-specific content (text or image)
     if (buttonType == BT_Text) {
@@ -111,13 +118,19 @@ void Button_t::render(SDL_Renderer* renderer) {
             );
             int wid = (strlen(text.c_str()) * SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE);
             int hei = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE;
-            SDL_RenderDebugText(renderer, content_x + (content_w - wid) / 2, content_y + (content_h - hei) / 2, text.c_str());
+            SDL_RenderDebugText(renderer, tp.x + cp.x + (tp.w - wid) / 2, tp.y + cp.y + (tp.h - hei) / 2, text.c_str());
         } else {
-            text_render->setColor((style.text_color >> 24) & 0xFF, (style.text_color >> 16) & 0xFF, (style.text_color >> 8) & 0xFF, calc_opacity(style.text_color)); 
-            text_render->render(text, content_x + (content_w /2), content_y, TEXT_ALIGN_CENTER);
+            /* if (cp.w == -1) {
+                cp.w = 
+                cp.h = 
+            } */
+
+            text_render->set_color((style.text_color >> 24) & 0xFF, (style.text_color >> 16) & 0xFF, (style.text_color >> 8) & 0xFF, calc_opacity(style.text_color)); 
+            //text_render->render(text, tp.x +cp.x + (cp.w /2), tp.y + cp.y, TEXT_ALIGN_CENTER);
+            text_render->render(text, tp.x +cp.x + (tp.w /2), tp.y + cp.y, TEXT_ALIGN_CENTER);
         }
     } else if (buttonType == BT_Atlas) {
-        aa->draw(assetID, content_x, content_y);
+        aa->draw(assetID, tp.x + cp.x, tp.y + cp.y);
     }
 }
 

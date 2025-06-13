@@ -170,8 +170,10 @@ works, but has lowercase. For iie.
 works with mockingboard. game controller not working with it? I thought it used to. weird. maybe I used the keyboard. In any event, it's doing a write to $C070 to reset. We're not handling that!
 Working now.
 
-
-
 ## Apple II Bejeweled
 
 looks like requires //e 80 column card.
+
+## Jumpman
+
+crashes after loading a few tracks of data; then it has also gone back to C600 and jumps again to $0801 which is an RTS which then wreaks various havoc, gets to a BRK, and ends up in monitor.
