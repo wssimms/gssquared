@@ -4547,3 +4547,5 @@ What's an easy way for various modules to get cpu->cycles without having to put 
 
 ha! The only thing lc wanted cycles for was debugging. Super lame.
 
+Does the MMU need the "can read / can write" flags at all any more? Or for that matter, the type? Replace the "type"s with the descr.
+

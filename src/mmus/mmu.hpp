@@ -33,15 +33,13 @@ struct write_handler_t {
 };
 
 struct page_table_entry_t {
-    uint8_t readable : 1;
-    uint8_t writeable : 1;
-    memory_type_t type_r;
-    memory_type_t type_w;
     page_ref read_p; // pointer to uint8_t pointers
     page_ref write_p;
     read_handler_t read_h;
     write_handler_t write_h;
     write_handler_t shadow_h;
+    const char *read_d;
+    const char *write_d;
 };
 
 class MMU {
@@ -94,16 +92,17 @@ class MMU {
         }
         virtual uint8_t floating_bus_read();
 
-        void map_page_both(page_t page, uint8_t *data, memory_type_t type, bool can_read, bool can_write); // map page to same memory with no read or write handler.
-        void map_page_read_only(page_t page, uint8_t *data, memory_type_t type);
-        void map_page_read_write(page_t page, uint8_t *read_data, uint8_t *write_data, memory_type_t type);
-        void map_page_read(page_t page, uint8_t *data, memory_type_t type);
-        void map_page_write(page_t page, uint8_t *data, memory_type_t type);
+        void map_page_both(page_t page, uint8_t *data, const char *read_d); // map page to same memory with no read or write handler.
+        void map_page_read_only(page_t page, uint8_t *data, const char *read_d);
+        //void map_page_read_write(page_t page, uint8_t *read_data, uint8_t *write_data/* , memory_type_t type */);
+        void map_page_read(page_t page, uint8_t *data, const char *read_d);
+        void map_page_write(page_t page, uint8_t *data, const char *write_d);
         void set_page_shadow(page_t page, write_handler_t handler );
-        void set_page_read_h(page_t page, read_handler_t handler); // set just the read handler routine
-        void set_page_write_h(page_t page, write_handler_t handler); // set just a write handler routine
+        void set_page_read_h(page_t page, read_handler_t handler, const char *read_d); // set just the read handler routine
+        void set_page_write_h(page_t page, write_handler_t handler, const char *write_d); // set just a write handler routine
         uint8_t *get_page_base_address(page_t page);
-
+        const char *get_read_d(page_t page);
+        const char *get_write_d(page_t page);
         void dump_page_table();
         void dump_page_table(page_t start_page, page_t end_page);
         void dump_page(page_t page);

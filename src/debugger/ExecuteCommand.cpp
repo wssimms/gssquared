@@ -252,4 +252,18 @@ void ExecuteCommand::execute() {
             }
         }
     }
+    if ((node0.type == MON_NODE_TYPE_COMMAND) && (node0.val_cmd == MON_CMD_MAP)) {
+        // display memory map
+        // if number of nodes is 1, display summary memory map.
+        if (cmd->nodes.size() == 1) {
+            int pages[] = { 0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8, 0xC9, 0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xCF, 0xD0, 0xE0 };
+            char *buf[128];
+            addFormattedOutput( "Page %10s | %10s", "read", "write");
+            for (int i = 0; i < sizeof(pages)/sizeof(pages[0]); i++) {
+                addFormattedOutput( "$%02X: %10s | %10s", pages[i], mmu->get_read_d(pages[i]), mmu->get_write_d(pages[i]));
+            }
+            
+        }
+        
+    }
 }

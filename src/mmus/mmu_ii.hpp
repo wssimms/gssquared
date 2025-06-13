@@ -36,7 +36,7 @@ class MMU_II : public MMU {
         uint8_t *get_rom_base();
         void init_map();
         void set_default_C8xx_map();
-        void set_slot_rom(SlotType_t slot, uint8_t *rom);
+        void set_slot_rom(SlotType_t slot, uint8_t *rom, const char *name);
         void reset();
         void dump_C0XX_handlers();
 };

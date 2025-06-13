@@ -120,6 +120,7 @@ disassembly pane
 monitor pane
 memory mon pane
 video decode pane
+devices pane
 
 Certain monitor commands will automatically pop open panes. for example if you set a breakpoint.
 List breakpoints in the disassembly pane.
@@ -135,3 +136,29 @@ That's coming together nicely.
 so the monitor section, we need a text input widget. 
 
 TextInputLine: Tile_t : Define a rectangular area. if you click inside the area, key down events start to be processed by that. If you click outside the area, key down events stop being processed. It can be a derivative of Tile like everything else. on Enter, a callback you set is called (just like we have done with click callbacks). need to handle delete and backspace. Track a cursor position. I don't think the SDL Text Input is needed here. that's primarily useful for mobile, which I don't care bout. Just do it by hand.
+
+# Devices Pane
+
+this pane contains a number of selectable diagnostic displays. First to implement, is the memory map status.
+
+$00
+$01
+$02 - $03
+$04 - $07
+$08 - $1F
+$20 - $3F
+$40 - $BF
+$C0
+$C1
+$C2
+$C3
+$C4
+$C5
+$C6
+$C7
+$C8 - $CF
+$D0 - $DF
+$E0 - $FF
+
+Maybe the thing to do here is, when we are mapping memory, we pass along a string to set the memory map description. Then we can just read the whole thing straight out of the MMU page table. That seems good.
+Alternatively, can we just construct this from the softswitches? That requires info about system type. I kind of like just having 

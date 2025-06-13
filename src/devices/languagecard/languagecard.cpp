@@ -23,33 +23,35 @@
 void set_memory_pages_based_on_flags(languagecard_state_t *lc) {
 
     uint8_t *bank = (lc->FF_BANK_1 == 1) ? lc->ram_bank : lc->ram_bank + 0x1000;
+    const char *bank_d = (lc->FF_BANK_1 == 1) ? "LC_BANK1" : "LC_BANK2";
+
     for (int i = 0; i < 16; i++) {
         if (lc->FF_READ_ENABLE) {
-            lc->mmu->map_page_read(i + 0xD0, bank + (i*GS2_PAGE_SIZE), M_RAM);
+            lc->mmu->map_page_read(i + 0xD0, bank + (i*GS2_PAGE_SIZE), bank_d);
         } else { // reads == READ_ROM
-            lc->mmu->map_page_read(i + 0xD0, lc->mmu->get_rom_base() + (i*GS2_PAGE_SIZE), M_ROM);
+            lc->mmu->map_page_read(i + 0xD0, lc->mmu->get_rom_base() + (i*GS2_PAGE_SIZE), "SYS_ROM");
         }
 
         if (!lc->_FF_WRITE_ENABLE) {
-            lc->mmu->map_page_write(i+0xD0, bank + (i*GS2_PAGE_SIZE), M_RAM);
+            lc->mmu->map_page_write(i+0xD0, bank + (i*GS2_PAGE_SIZE), bank_d);
 
         } else { // writes == WRITE_NONE - set it to the ROM and can_write = 0
-            lc->mmu->map_page_write(i+0xD0, nullptr, M_ROM); // much simpler actually.. no write enable means null write pointer.
+            lc->mmu->map_page_write(i+0xD0, nullptr, "NONE"); // much simpler actually.. no write enable means null write pointer.
         }
     }
 
     for (int i = 0; i < 32; i++) {
         if (lc->FF_READ_ENABLE) {
-            lc->mmu->map_page_read(i+0xE0, lc->ram_bank + 0x2000 + (i * GS2_PAGE_SIZE), M_RAM);
+            lc->mmu->map_page_read(i+0xE0, lc->ram_bank + 0x2000 + (i * GS2_PAGE_SIZE), "LC RAM");
 
         } else { // reads == READ_ROM
-            lc->mmu->map_page_read(i+0xE0, lc->mmu->get_rom_base() + 0x1000 + (i * GS2_PAGE_SIZE), M_ROM);
+            lc->mmu->map_page_read(i+0xE0, lc->mmu->get_rom_base() + 0x1000 + (i * GS2_PAGE_SIZE), "LC RAM");
         }
 
         if (!lc->_FF_WRITE_ENABLE) {
-            lc->mmu->map_page_write(i+0xE0, lc->ram_bank + 0x2000 + (i * GS2_PAGE_SIZE), M_RAM);
+            lc->mmu->map_page_write(i+0xE0, lc->ram_bank + 0x2000 + (i * GS2_PAGE_SIZE), "LC RAM");
         } else { // writes == WRITE_NONE - set it to the ROM and can_write = 0
-            lc->mmu->map_page_write(i+0xE0, nullptr, M_ROM); // much simpler actually.. no write enable means null write pointer.
+            lc->mmu->map_page_write(i+0xE0, nullptr, "NONE"); // much simpler actually.. no write enable means null write pointer.
         }
     }
 

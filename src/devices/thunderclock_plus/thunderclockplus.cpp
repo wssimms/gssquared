@@ -130,7 +130,7 @@ void map_rom_thunderclock(void *context, SlotType_t slot) {
     thunderclock_state * thunderclock_d = (thunderclock_state *)get_slot_state(cpu, slot);
     uint8_t *dp = thunderclock_d->rom->get_data();
     for (uint8_t page = 0; page < 8; page++) {
-        cpu->mmu->map_page_both(page + 0xC8, dp + (page * 0x100), M_IO, 1, 0);
+        cpu->mmu->map_page_read_only(page + 0xC8, dp + (page * 0x100), "TCP_ROM");
     }
     if (DEBUG(DEBUG_THUNDERCLOCK)) {
         printf("mapped in thunderclock $C800-$CFFF\n");
@@ -162,7 +162,7 @@ void init_slot_thunderclock(computer_t *computer, SlotType_t slot) {
     /* for (int i = 0; i < 256; i++) {
         raw_memory_write(cpu, 0xC000 + (slot * 0x0100) + i, rom_data[i]);
     } */
-    cpu->mmu->set_slot_rom(slot, rom_data);
+    cpu->mmu->set_slot_rom(slot, rom_data, "TCP_ROM");
 
     cpu->mmu->set_C0XX_read_handler(thunderclock_cmd_reg, { thunderclock_read_register, cpu });
     cpu->mmu->set_C0XX_write_handler(thunderclock_cmd_reg, { thunderclock_write_register, cpu });

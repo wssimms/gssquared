@@ -275,6 +275,25 @@ void debug_window_t::event_pane_monitor(SDL_Event &event) {
     mon_textinput->handle_mouse_event(event);
 }
 
+void debug_window_t::render_pane_devices() {
+    // Disk II Devices - get motor on/off, track number, slot and drive
+
+    // Unidisk - last block read/written, slot and drive
+
+    // Memory - call this II+ MMU; show memory map: what slot (if any) is holding C800-CFFF; languagecard status read/write ram/rom and bank (1 or 2).
+    // this one is composing from a couple different sources. Who is responsible for this? mmu for C800; languagecard for D000-FFFF
+    if (!panel_visible[DEBUG_PANEL_DEVICES]) {
+        return;
+    }
+
+    int x = pane_area[DEBUG_PANEL_DEVICES].x;
+    int y = pane_area[DEBUG_PANEL_DEVICES].y;
+    int base_line = 0;
+
+    
+}
+
+
 void debug_window_t::render_pane_memory() {
 
     if (!panel_visible[DEBUG_PANEL_MEMORY]) {
