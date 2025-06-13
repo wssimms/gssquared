@@ -42,7 +42,5 @@ void emulate_clock_cycle(cpu_state *cpu) ;
 //#define incr_cycles(cpu) cpu->cycles++;
 //inline void incr_cycles(cpu_state *cpu) { cpu->cycles++; };
 
-#define incr_cycles(cpu) counter(cpu)
-//#define incr_cycles(cpu) mega_ii_cycle(cpu)
-void counter(cpu_state *cpu);
+#define incr_cycles(cpu) mega_ii_cycle(cpu)
 void mega_ii_cycle(cpu_state *cpu);

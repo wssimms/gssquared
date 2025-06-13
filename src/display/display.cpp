@@ -322,14 +322,14 @@ void set_display_page(display_state_t *ds, display_page_number_t page) {
 void set_display_page1(display_state_t *ds) {
     set_display_page(ds, DISPLAY_PAGE_1);
 #if 1
-    ds->page_bits = 0x2000;
+    ds->page_bit = 0x2000;
 #endif
 }
 
 void set_display_page2(display_state_t *ds) {
     set_display_page(ds, DISPLAY_PAGE_2);
 #if 1
-    ds->page_bits = 0x4000;
+    ds->page_bit = 0x4000;
 #endif
 }
 
@@ -339,12 +339,12 @@ void set_display_mode(display_state_t *ds, display_mode_t mode)
     //update_line_mode(ds);
 #if 1
     if (mode == TEXT_MODE || ds->display_graphics_mode == LORES_MODE) {
-        ds->lores_bits = 0x1C00;
-        ds->hires_bits = 0;
+        ds->lores_mode_mask = 0x1C00;
+        ds->hires_mode_mask = 0;
     }
     else {
-        ds->lores_bits = 0;
-        ds->hires_bits = 0x7C00;
+        ds->lores_mode_mask = 0;
+        ds->hires_mode_mask = 0x7C00;
     }
 #endif
 }
@@ -355,12 +355,12 @@ void set_graphics_mode(display_state_t *ds, display_graphics_mode_t mode) {
     //update_line_mode(ds);
 #if 1
     if (mode == LORES_MODE || ds->display_mode == TEXT_MODE) {
-        ds->lores_bits = 0x1C00;
-        ds->hires_bits = 0;
+        ds->lores_mode_mask = 0x1C00;
+        ds->hires_mode_mask = 0;
     }
     else {
-        ds->lores_bits = 0;
-        ds->hires_bits = 0x7C00;
+        ds->lores_mode_mask = 0;
+        ds->hires_mode_mask = 0x7C00;
     }
 #endif
 }
@@ -369,12 +369,6 @@ void set_split_mode(display_state_t *ds, display_split_mode_t mode) {
 
     ds->display_split_mode = mode;
     //update_line_mode(ds);
-#if 1
-    if (mode == FULL_SCREEN)
-        ds->full_bits = 0x7C00;
-    else
-        ds->full_bits = 0;
-#endif
 }
 
 #ifdef BAZYAR
@@ -565,21 +559,13 @@ display_state_t::display_state_t() {
     set_display_mode(this, GRAPHICS_MODE);
     set_graphics_mode(this, HIRES_MODE);
     set_split_mode(this, SPLIT_SCREEN);
-    /*
-    display_mode = TEXT_MODE;
-    display_split_mode = FULL_SCREEN;
-    display_graphics_mode = LORES_MODE;
-    display_page_num = DISPLAY_PAGE_1;
-    display_page_table = &display_pages[display_page_num];
-    */
+
     flash_state = false;
     flash_counter = 0;
 
     kill_color = true;
-    vert_counter = 0;
-    horz_counter = 0;
-    hcount = 0x7F; //     HPE' H5 H4 H3 H2 H1 H0
-    vcount = 0xFF; // V5 V4 V3 V2 V1 V0 VC VB VA
+    hcount = 0x7F;
+    vcount = 0xFF;
 
     buffer = new uint8_t[BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA)];
     memset(buffer, 0, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA)); // TODO: maybe start it with apple logo?
