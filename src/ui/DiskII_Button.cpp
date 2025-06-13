@@ -50,34 +50,34 @@ void DiskII_Button_t::render(SDL_Renderer* renderer) {
     Button_t::render(renderer);
 
     // Get content area position for additional rendering
-    float content_x, content_y;
-    get_content_position(&content_x, &content_y);
+    //float content_x, content_y;
+    //get_content_position(&content_x, &content_y);
 
     // Additional rendering can be added here
     // This space intentionally left empty for manual implementation
-    if ((key & 0xFF) == 0) aa->draw(DiskII_Drive1, content_x + 4, content_y + 4);
-    else aa->draw(DiskII_Drive2, content_x + 4, content_y + 4);
+    if ((key & 0xFF) == 0) aa->draw(DiskII_Drive1, tp.x + cp.x + 4, tp.y + cp.y + 4);
+    else aa->draw(DiskII_Drive2, tp.x + cp.x + 4, tp.y + cp.y + 4);
 
-    if (status.motor_on) aa->draw(DiskII_DriveLightOn, content_x + 30, content_y + 69);
+    if (status.motor_on) aa->draw(DiskII_DriveLightOn, tp.x + cp.x + 30, tp.y + cp.y + 69);
 
     char text[32];
     snprintf(text, sizeof(text), "Slot %llu", (key >> 8));
     SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
-    SDL_RenderDebugText(renderer, content_x + 62, content_y + 84, text);
+    SDL_RenderDebugText(renderer, tp.x + cp.x + 62, tp.y + cp.y + 84, text);
     if (is_hovering && status.filename) {
         float text_width = (float)(strlen(status.filename) * 8);
         float text_x = (float)((174 - text_width) / 2);
-        SDL_FRect rect = { content_x + text_x-5, content_y + 36, text_width+10, 16};
+        SDL_FRect rect = { tp.x + cp.x + text_x-5, tp.y + cp.y + 36, text_width+10, 16};
         SDL_SetRenderDrawColor(renderer, 0x80, 0x80, 0xFF, 0x80);
         SDL_RenderFillRect(renderer, &rect);
         SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
-        SDL_RenderDebugText(renderer, content_x + text_x, content_y + 40, status.filename);
+        SDL_RenderDebugText(renderer, tp.x + cp.x + text_x, tp.y + cp.y + 40, status.filename);
     }
     if (status.is_mounted && status.motor_on) {
         // if mounted and hovering, show the track number over the drive
         char text[32];
         snprintf(text, sizeof(text), "Tr %d", status.position / 2);
         SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
-        SDL_RenderDebugText(renderer, content_x + 68, content_y + 28, text);
+        SDL_RenderDebugText(renderer, tp.x + cp.x + 68, tp.y + cp.y + 28, text);
     }
 }

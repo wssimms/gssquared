@@ -27,7 +27,7 @@ debug_window_t::debug_window_t(computer_t *computer) {
     renderer = SDL_CreateRenderer(window, nullptr);
 
     text_renderer = new TextRenderer(renderer, "/fonts/OxygenMono-Regular.ttf", 15.0f);
-    text_renderer->setColor(255, 255, 255, 255);
+    text_renderer->set_color(255, 255, 255, 255);
     font_line_height = text_renderer->font_line_height;
 
     window_id = SDL_GetWindowID(window);
@@ -44,7 +44,7 @@ debug_window_t::debug_window_t(computer_t *computer) {
 
     tab_container = new Container_t(renderer, 10, CS);  // Increased to 5 to accommodate the mouse position tile
     tab_container->set_position(25, 15);
-    tab_container->set_size(400, 35);
+    tab_container->set_tile_size(400, 35);
     containers.push_back(tab_container);
 
     Style_t SS;
@@ -57,7 +57,7 @@ debug_window_t::debug_window_t(computer_t *computer) {
     SS.border_width = 1;
     
     Button_t* s1 = new Button_t("Trace", SS);
-    s1->set_size(60, 20);
+    s1->set_tile_size(60, 20);
     s1->set_text_renderer(text_renderer); // set text renderer for the button
     s1->set_click_callback([this](const SDL_Event& event) -> bool {
         toggle_panel(DEBUG_PANEL_TRACE);
@@ -66,7 +66,7 @@ debug_window_t::debug_window_t(computer_t *computer) {
     tab_container->add_tile(s1,0);
     
     Button_t* s2 = new Button_t("Monitor", SS);
-    s2->set_size(60, 20);
+    s2->set_tile_size(60, 20);
     s2->set_text_renderer(text_renderer); // set text renderer for the button
     s2->set_click_callback([this](const SDL_Event& event) -> bool {
         toggle_panel(DEBUG_PANEL_MONITOR);
@@ -75,7 +75,7 @@ debug_window_t::debug_window_t(computer_t *computer) {
     tab_container->add_tile(s2,1);
 
     Button_t* s3 = new Button_t("Memory", SS);
-    s3->set_size(60, 20);
+    s3->set_tile_size(60, 20);
     s3->set_text_renderer(text_renderer); // set text renderer for the button
     s3->set_click_callback([this](const SDL_Event& event) -> bool {
         toggle_panel(DEBUG_PANEL_MEMORY);
@@ -89,7 +89,7 @@ debug_window_t::debug_window_t(computer_t *computer) {
     mon_textinput = new TextInput_t("help", SS);
     mon_textinput->set_text_renderer(text_renderer);
     mon_textinput->set_max_length(80);
-    mon_textinput->set_size(600, 20);
+    mon_textinput->set_tile_size(600, 20);
     mon_textinput->set_padding(2);
     mon_textinput->set_enter_handler([this](const SDL_Event& event) -> bool {
         // Call the command interpreter.
@@ -197,12 +197,12 @@ void debug_window_t::render_pane_trace() {
         step_disasm->setLinePrepend(36);
         step_disasm->setAddress(cpu->pc);
         std::vector<std::string> disasm_lines = step_disasm->disassemble(10);
-        text_renderer->setColor(0, 255, 255, 255);
+        text_renderer->set_color(0, 255, 255, 255);
         for (int i = 0; i < disasm_lines.size(); i++) {
             draw_text(DEBUG_PANEL_TRACE, x, 8 + numlines + i, disasm_lines[i].c_str());
         }
     }
-    text_renderer->setColor(255, 255, 255, 255);
+    text_renderer->set_color(255, 255, 255, 255);
     separator_line(DEBUG_PANEL_TRACE, 3);
     snprintf(buffer, sizeof(buffer), "T)race: %s  SPACE: Step  RETURN: Run  Up/Dn/PgUp/PgDn/Home/End: Scroll", cpu->trace ? "ON " : "OFF");
     draw_text(DEBUG_PANEL_TRACE, x, 3, buffer);
@@ -254,7 +254,7 @@ void debug_window_t::render_pane_monitor() {
     separator_line(DEBUG_PANEL_MONITOR, buf_area_lines);
     char buffer[256] = {' '};
     draw_text(DEBUG_PANEL_MONITOR, x, buf_area_lines, ">");
-    mon_textinput->set_position(x + 20, (buf_area_lines * font_line_height));
+    mon_textinput->set_tile_position(x + 20, (buf_area_lines * font_line_height));
     mon_textinput->render(renderer);
 
     // get number of lines in mon_display_buffer
@@ -384,7 +384,7 @@ void debug_window_t::render() {
     }
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    text_renderer->setColor(255, 255, 255, 255);
+    text_renderer->set_color(255, 255, 255, 255);
 
     if (panel_visible[DEBUG_PANEL_TRACE]) {
         render_pane_trace();

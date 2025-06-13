@@ -39,12 +39,14 @@
 #include "slots.hpp"
 #include "util/soundeffects.hpp"
 #include "devices/diskii/diskii.hpp"
-#include "devices/mockingboard/mb.hpp"
 #include "videosystem.hpp"
 #include "debugger/debugwindow.hpp"
 #include "computer.hpp"
 #include "mmus/mmu_ii.hpp"
 #include "util/EventTimer.hpp"
+#include "ui/SelectSystem.hpp"
+#include "ui/MainAtlas.hpp"
+
 
 /**
  * References: 
@@ -421,9 +423,31 @@ int main(int argc, char *argv[]) {
         std::cout << " Slot " << disk_mount.slot << " Drive " << disk_mount.drive << " - " << disk_mount.filename << std::endl;
     }
 
-    /* system_diag((char *)gs2_app_values.base_path); */
-
     computer_t *computer = new computer_t();
+
+    video_system_t *vs = computer->video_system;
+
+    AssetAtlas_t *aa = new AssetAtlas_t(vs->renderer, "img/atlas.png");
+    aa->set_elements(MainAtlas_count, asset_rects);
+
+    SelectSystem *select_system = new SelectSystem(vs->renderer, vs->window, aa);
+    
+    bool selected = false;
+    while (!selected) {
+        SDL_Event event;
+        while(SDL_PollEvent(&event)) {
+            if (select_system->event(event)) {
+                selected = true;
+            }
+        }
+        if (select_system->update()) {
+            select_system->render();
+            vs->present();
+        }
+        SDL_Delay(16);
+    }
+
+    platform_id = select_system->get_selected_system();
 
     //init_cpus();
 
@@ -483,8 +507,8 @@ int main(int argc, char *argv[]) {
         computer->mounts->mount_media(disk_mount);
     }
 
-    video_system_t *vs = computer->video_system;
-    osd = new OSD(computer, computer->cpu, vs->renderer, vs->window, slot_manager, 1120, 768);
+    //video_system_t *vs = computer->video_system;
+    osd = new OSD(computer, computer->cpu, vs->renderer, vs->window, slot_manager, 1120, 768, aa);
     // TODO: this should be handled differently. have osd save/restore?
     int error = SDL_SetRenderTarget(vs->renderer, nullptr);
     if (!error) {

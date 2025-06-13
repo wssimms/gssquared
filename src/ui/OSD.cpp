@@ -235,8 +235,8 @@ void OSD::set_raise_window() {
     event_queue->addEvent(new Event(EVENT_REFOCUS, 0, (uint64_t)0));
 }
 
-OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManager_t *slot_manager, int window_width, int window_height) 
-    : renderer(rendererp), window(windowp), window_w(window_width), window_h(window_height), computer(computer), cpu(cpu), slot_manager(slot_manager) {
+OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManager_t *slot_manager, int window_width, int window_height, AssetAtlas_t *aa) 
+    : renderer(rendererp), window(windowp), window_w(window_width), window_h(window_height), computer(computer), cpu(cpu), slot_manager(slot_manager), aa(aa) {
 
     event_queue = computer->event_queue;
 
@@ -254,8 +254,8 @@ OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Wind
     /* Setup a text renderer for this OSD */
     text_render = new TextRenderer(rendererp, "fonts/OpenSans-Regular.ttf", 15.0f);
     title_trender = new TextRenderer(rendererp, "fonts/OpenSans-Regular.ttf", 30.0f);
-    text_render->setColor(0xFF, 0xFF, 0xFF, 0xFF);
-    title_trender->setColor(0, 0, 0, 0xFF);
+    text_render->set_color(0xFF, 0xFF, 0xFF, 0xFF);
+    title_trender->set_color(0, 0, 0, 0xFF);
 
     Style_t CS;
     CS.padding = 4;
@@ -287,13 +287,10 @@ OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Wind
     HUD.border_color = 0x000000FF;
     HUD.border_width = 0;
 
-    aa = new AssetAtlas_t(renderer, "img/atlas.png");
-    aa->set_elements(MainAtlas_count, asset_rects);
-
     // Create a container for our drive buttons
     Container_t *drive_container = new Container_t(renderer, 10, CS);  // Increased to 5 to accommodate the mouse position tile
     drive_container->set_position(600, 70);
-    drive_container->set_size(415, 600);
+    drive_container->set_tile_size(415, 600);
     containers.push_back(drive_container);
 
     // TODO: create buttons based on what is in slots.
@@ -326,7 +323,7 @@ OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Wind
     // pop-up drive container when drives are spinning
     Container_t *dc2 = new Container_t(renderer, 10, HUD);  // Increased to 5 to accommodate the mouse position tile
     dc2->set_position(340, 800);
-    dc2->set_size(420, 120);
+    dc2->set_tile_size(420, 120);
     hud_diskii_1 = new DiskII_Button_t(aa, DiskII_Open, HUD); // this needs to have our disk key . or alternately use a different callback.
     hud_diskii_1->set_key(0x600);
     hud_diskii_1->set_click_callback(diskii_button_click, new diskii_callback_data_t{this, 0x600});
@@ -343,14 +340,14 @@ OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Wind
     // Create another container, this one for slots.
     Container_t *slot_container = new Container_t(renderer, 8, SC);  // Container for 8 slot buttons
     slot_container->set_position(100, 100);
-    slot_container->set_size(320, 304);
+    slot_container->set_tile_size(320, 304);
 
     for (int i = 7; i >= 0; i--) {
         char slot_text[128];
         snprintf(slot_text, sizeof(slot_text), "Slot %d: %s", i, slot_manager->get_device(static_cast<SlotType_t>(i))->name);
         Button_t* slot = new Button_t(slot_text, SS);
         slot->set_text_renderer(text_render); // set text renderer for the button
-        slot->set_size(300, 20);
+        slot->set_tile_size(300, 30);
         slot_container->add_tile(slot, 7 - i);    // Add in reverse order (7 to 0)
     }
     slot_container->layout();
@@ -358,7 +355,7 @@ OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Wind
 
     Container_t *mon_color_con = new Container_t(renderer, 5, SC);
     mon_color_con->set_position(100, 510);
-    mon_color_con->set_size(320, 65);
+    mon_color_con->set_tile_size(320, 65);
     containers.push_back(mon_color_con);
 
     Style_t CB;
@@ -386,7 +383,7 @@ OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Wind
 
     Container_t *speed_con = new Container_t(renderer, 4, SC);
     speed_con->set_position(100, 450);
-    speed_con->set_size(260, 65);
+    speed_con->set_tile_size(260, 65);
     containers.push_back(speed_con);
 
     Button_t *sp1 = new Button_t(aa, MHz1_0Button, CB);
@@ -421,7 +418,7 @@ OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Wind
 
     Container_t *gen_con = new Container_t(renderer, 10, SC);
     gen_con->set_position(5, 100);
-    gen_con->set_size(65, 300);
+    gen_con->set_tile_size(65, 300);
     Button_t *b1 = new Button_t(aa, ResetButton, CB);
     b1->set_click_callback([this,computer](const SDL_Event& event) -> bool {
         computer->reset(false);
@@ -440,7 +437,7 @@ OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Wind
     
     diskii_save_con = new ModalContainer_t(renderer, text_render, 10, "Disk Data has been modified. Save?", ModalStyle);
     diskii_save_con->set_position(300, 200);
-    diskii_save_con->set_size(500, 200);
+    diskii_save_con->set_tile_size(500, 200);
     // Create text buttons for the disk save dialog
     
     Style_t TextButtonCfg;
@@ -454,10 +451,10 @@ OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Wind
     save_as_btn = new Button_t("Save As", TextButtonCfg);
     discard_btn = new Button_t("Discard", TextButtonCfg);
     cancel_btn = new Button_t("Cancel", TextButtonCfg);
-    save_btn->set_size(100, 20);
-    save_as_btn->set_size(100, 20);
-    discard_btn->set_size(100, 20);
-    cancel_btn->set_size(100, 20);
+    save_btn->set_tile_size(100, 30);
+    save_as_btn->set_tile_size(100, 30);
+    discard_btn->set_tile_size(100, 30);
+    cancel_btn->set_tile_size(100, 30);
     save_btn->set_text_renderer(text_render);
     //save_as_btn->set_text_renderer(text_render);
     discard_btn->set_text_renderer(text_render);
@@ -475,13 +472,13 @@ OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Wind
     
     close_btn = new Button_t("<", TextButtonCfg);
     close_btn->set_click_callback(close_btn_click, this);
-    close_btn->set_size(36, 36);
-    close_btn->set_position(window_w-100, 49);
+    close_btn->set_tile_size(36, 36);
+    close_btn->set_tile_position(window_w-100, 49);
 
     open_btn = new FadeButton_t(">", TextButtonCfg);
     open_btn->set_click_callback(open_btn_click, this);
-    open_btn->set_size(36, 36);
-    open_btn->set_position(0, 50);
+    open_btn->set_tile_size(36, 36);
+    open_btn->set_tile_position(0, 50);
     open_btn->set_fade_frames(512, 4); // hold for one second, then fade out over next second. (roughly)
 
 }
@@ -562,7 +559,7 @@ void OSD::set_heads_up_message(const std::string &text, int count) {
 void OSD::render() {
 
     /** if current Status is out, don't draw. If status is in transition or IN, draw. */
-    if (currentSlideStatus == SLIDE_IN || (currentSlideStatus != slideStatus)) {
+    if (currentSlideStatus == SLIDE_IN || (slideStatus && (currentSlideStatus != slideStatus))) {
         float ox,oy;
         SDL_GetRenderScale(renderer, &ox, &oy);
         SDL_SetRenderScale(renderer, 1.0,1.0); // TODO: calculate these based on window size
@@ -630,7 +627,7 @@ void OSD::render() {
         if (headsUpMessageCount) { // set it to 512 for instance to sit at full opacity for 4 seconds then fade out over 4ish seconds.
             int opacity = headsUpMessageCount < 255 ? headsUpMessageCount : 255;
             //SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, opacity);
-            text_render->setColor(0xFF, 0xFF, 0xFF, opacity);
+            text_render->set_color(0xFF, 0xFF, 0xFF, opacity);
             text_render->render(headsUpMessageText, window_width/2, 30, TEXT_ALIGN_CENTER);
             
             headsUpMessageCount -= 3;

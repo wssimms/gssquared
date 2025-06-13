@@ -4547,5 +4547,39 @@ What's an easy way for various modules to get cpu->cycles without having to put 
 
 ha! The only thing lc wanted cycles for was debugging. Super lame.
 
-Does the MMU need the "can read / can write" flags at all any more? Or for that matter, the type? Replace the "type"s with the descr.
+Does the MMU need the "can read / can write" flags at all any more? Or for that matter, the type? Replace the "type"s with the descr. Done. Yeah, nothing was using the flags any more. Text descriptions much more useful.
 
+ok, monitor now has "map" command to query mmu page table entries. "map" by itself dumps C0-CF and D0 and E0, basically, I/O, C8, and language card status. When we get to IIe land we'll need to add 00,01, Text page 1 and hires page 1 (because these can be remapped by the aux memory stuff).
+
+I could put a pin in the debugger and start working on the Apple IIe.. let's look at the roadmap. Ah, I need to do the platform selection on boot. If the user runs with GSSquared -p xx then just boot that machine. Otherwise, offer the user a choice of machines to boot, based on the systemconfig.
+
+```
+options:
+    Draws apple color logo, then a big rectangle with the tiles in it. And make it opaque and fuzzy. yah yah.
+    click on config, it shows that machine's configuration, and has a "start" button.
+    also has an "edit" button that pops into the OSD to edit that machine config.
+    You can save as a new name.
+    When you boot a machine, it uses the nice big hires apple color logo, which fades out over a couple seconds.
+```
+Put it into UI.
+
+This can all happen in a special event loop, since none of the emulation is running. Once the main event loop exits, it can come back to this.
+
+So, F12 powers off the machine and returns to the menu.
+
+## Jun 13, 2025
+
+Hm I'm going to need a way to specify the MMU as part of the system config. Should go in platforms struct.
+
+wondering if content_rect should be relative to the tile rect. i.e., whenever we draw we add tp.x,y to cp.x,y to get the content location on screen. This feels right..
+
+usual use cases:
+new Tile_t:
+  create tile with cp.h,cp.v.  (cp.x,cp.y are relative to tp.x,y so set to 0,0 by default).
+  set_tile_pos(x,y) - sets tp.x,tp.y
+
+new button: img.
+  create tile with cp.h,cp.v
+  set_content_pos (to locate the content inside the content area)
+
+I think I might be rendering the OSD (completely off screen) when I shouldn't be.. let's debug that actually. Yes. oops.

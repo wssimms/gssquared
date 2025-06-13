@@ -43,8 +43,8 @@ void ModalContainer_t::layout() {
     printf("buttons_x: %f buttons_y: %f buttons_width: %f\n", buttons_x, buttons_y, buttons_width);
     for (size_t i = 0; i < tile_count; i++) {
         if (tiles[i] && tiles[i]->is_visible()) {
-            tiles[i]->set_position(x + buttons_x, y + buttons_y);
-            tiles[i]->set_size(90.0f, 20.0f);  // Set each tile to 100 width, 20 height
+            tiles[i]->set_tile_position(x + buttons_x, y + buttons_y);
+            tiles[i]->set_tile_size(90.0f, 20.0f);  // Set each tile to 100 width, 20 height
             buttons_x += 100.0f;  // Add some spacing between tiles
             printf("tile %zu: %f %f\n", i, x+buttons_x, y+buttons_y);
         }
@@ -63,7 +63,7 @@ void ModalContainer_t::render() {
         //printf("Modal Message: %s\n", msg_text.c_str());
         float content_x = (w - strlen(msg_text.c_str()) * SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE) / 2;
         //printf("content_x: %f X: %f Y: %f %s %08X\n", content_x, x, y, msg_text.c_str(), style.text_color);
-        text_render->setColor(style.text_color >> 24, style.text_color >> 16, style.text_color >> 8, style.text_color & 0xFF);
+        text_render->set_color(style.text_color >> 24, style.text_color >> 16, style.text_color >> 8, style.text_color & 0xFF);
         text_render->render(msg_text, x + (w / 2), y + 30, TEXT_ALIGN_CENTER );
     }
 }

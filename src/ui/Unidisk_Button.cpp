@@ -49,28 +49,28 @@ void Unidisk_Button_t::render(SDL_Renderer* renderer) {
     Button_t::render(renderer);
 
     // Get content area position for additional rendering
-    float content_x, content_y;
-    get_content_position(&content_x, &content_y);
+    //float content_x, content_y;
+    //get_content_position(&content_x, &content_y);
 
     // Additional rendering can be added here
-    if ((key & 0xFF) == 0) aa->draw(Unidisk_Drive1, content_x + 11, content_y + 31);
-    else aa->draw(Unidisk_Drive2, content_x + 11, content_y + 31);
+    if ((key & 0xFF) == 0) aa->draw(Unidisk_Drive1, tp.x + cp.x + 11, tp.y + cp.y + 31);
+    else aa->draw(Unidisk_Drive2, tp.x + cp.x + 11, tp.y + cp.y + 31);
  
-    if (status.motor_on) aa->draw(Unidisk_Light, content_x, content_y + 30);
+    if (status.motor_on) aa->draw(Unidisk_Light, tp.x + cp.x, tp.y + cp.y + 30);
 
     SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
     char text[32];
     snprintf(text, sizeof(text), "Slot %llu", (key >> 8));
-    SDL_RenderDebugText(renderer, content_x + 62, content_y + 75, text);
+    SDL_RenderDebugText(renderer, tp.x + cp.x + 62, tp.y + cp.y + 75, text);
     
     if (is_hovering && status.filename) {
         float text_width = (float)(strlen(status.filename) * 8);
         float text_x = (float)((174 - text_width) / 2);
-        SDL_FRect rect = { content_x + text_x-5, content_y + 40, text_width+10, 16};
+        SDL_FRect rect = { tp.x + cp.x + text_x-5, tp.y + cp.y + 40, text_width+10, 16};
         SDL_SetRenderDrawColor(renderer, 0x80, 0x80, 0xFF, 0x80);
         SDL_RenderFillRect(renderer, &rect);
         SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
-        SDL_RenderDebugText(renderer, content_x + text_x, content_y + 44, status.filename);
+        SDL_RenderDebugText(renderer, tp.x + cp.x + text_x, tp.y + cp.y + 44, status.filename);
     }
     // TODO: if mounted and hovering, show the disk image name over the drive
 }

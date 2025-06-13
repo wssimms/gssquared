@@ -71,13 +71,13 @@ void TextInput_t::set_edit_active(bool active) {
 }
 
 void TextInput_t::set_cursor_position_by_pixel(int pixel_pos) {
-    if ((pixel_pos < x) || (pixel_pos > x + w)) {
+    if ((pixel_pos < tp.x) || (pixel_pos > tp.x + tp.w)) {
         return;
     }
     /* if ((pixel_pos < y) || (pixel_pos > y + h)) {
         return;
     } */
-    int rel_pixel = pixel_pos - x;
+    int rel_pixel = pixel_pos - tp.x;
 
     int current_pos = 0;
     int accumulated_width = 0;
@@ -112,7 +112,7 @@ void TextInput_t::render(SDL_Renderer* renderer) {
     }
     
     // take padding, border etc into account
-    int eff_x = x + style.padding + style.border_width;
+    int eff_x = tp.x + style.padding + style.border_width;
 
     // draw the background
     int r,g,b,a;
@@ -127,17 +127,17 @@ void TextInput_t::render(SDL_Renderer* renderer) {
         //a = a * 0.4;
     }
     SDL_SetRenderDrawColor(renderer, r, g, b, a);
-    SDL_FRect eb = {x, y, w, h};
+    SDL_FRect eb = {tp.x, tp.y, tp.w, tp.h};
     SDL_RenderFillRect(renderer, &eb);
 
     // first, render what is in the text input area.    
-    text_renderer->render(text, eff_x, y + style.padding);
+    text_renderer->render(text, eff_x, tp.y + style.padding);
 
     // now, render the text input cursor.
     if (cursor_state < 30 && edit_active) {
         int cursor_x = eff_x + cursor_pixel_pos;
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-        SDL_RenderLine(renderer, cursor_x, y, cursor_x, y + font_line_height);
+        SDL_RenderLine(renderer, cursor_x, tp.y, cursor_x, tp.y + font_line_height);
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     }
 }
@@ -152,7 +152,7 @@ bool TextInput_t::handle_mouse_event(const SDL_Event& event) {
         if (event.button.button == SDL_BUTTON_LEFT) {
             int mouse_x = event.button.x;
             int mouse_y = event.button.y;
-            if (mouse_x >= x && mouse_x <= x + w && mouse_y >= y && mouse_y <= y + h) {
+            if (mouse_x >= tp.x && mouse_x <= tp.x + tp.w && mouse_y >= tp.y && mouse_y <= tp.y + tp.h) {
                 set_edit_active(true);
                 set_cursor_position_by_pixel(mouse_x);
                 return true; // if this was directed to us and we're now editing, claim the event
