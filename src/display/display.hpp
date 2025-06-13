@@ -121,6 +121,14 @@ public:
     uint8_t  video_byte;
     uint8_t  video_blanking;
     uint16_t vidbits[192][40];
+#if 1
+    uint32_t hires_bits;
+    uint32_t lores_bits;
+    uint32_t page_bits;
+    uint32_t full_bits;
+    uint32_t hcount;
+    uint32_t vcount;
+#endif
 
     uint32_t dirty_line[24];
     line_mode_t line_mode[24] = {LM_TEXT_MODE}; // 0 = TEXT, 1 = LO RES GRAPHICS, 2 = HI RES GRAPHICS

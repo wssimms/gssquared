@@ -234,11 +234,184 @@ void make_lgr_bits(void) {
 int made_bits = 0;
 int text_cycles = 0;
 
+//uint32_t hcount = 0x7F;  //     HPE' H5 H4 H3 H2 H1 H0
+//uint32_t vcount = 0xFF;  // V5 V4 V3 V2 V1 V0 VC VB VA
+
+void counter(cpu_state *cpu)
+{
+    if (!made_bits) {
+        // lazy initialization
+        make_flipped();
+        make_hgr_bits();
+        make_lgr_bits();
+        ++made_bits;
+    }
+
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+
+    cpu->cycles++;
+
+    if (ds->hcount) {
+        ds->hcount = (ds->hcount + 1) & 0x7F;
+        if (ds->hcount == 0) {
+            ds->vcount = (ds->vcount + 1) & 0x1FF;
+            if (ds->vcount == 0)
+                ds->vcount = 0xFA;
+        }
+    }
+    else {
+        ds->hcount = 0x40;
+    }
+
+    // uint32_t VBL    = ((vcount >> 3) & 1) & ((vcount >> 4) & 1);
+
+    // A2-A0 = H2-H0
+    uint32_t A2A1A0 = ds->hcount & 7;
+
+    //     1  1  0  1
+    //       H5 H4 H3
+    // +  V4 V3 V4 V3
+    // --------------
+    //    A6 A5 A4 A3
+    uint32_t V3V4V3V4 = ((ds->vcount & 0xC0) >> 1) | ((ds->vcount & 0xC0) >> 3);
+    uint32_t A6A5A4A3 = (0x68 + (ds->hcount & 0x38) + V3V4V3V4) & 0x78;
+
+    // A9-A7 = V2-V0
+    uint32_t A9A8A7 = (ds->vcount & 0x38) << 4;
+
+    // HBL = (H4' | H3') & H5'
+    uint32_t NOTH   = (ds->hcount ^ 0x7F);
+    uint32_t HBL    = (((NOTH << 9) | (NOTH << 8)) & (NOTH << 7)) & 0x1000;
+
+    // mixlines = V2 & V4 [set in lines 160-291 and 224-261]
+    uint32_t mixlines = ((ds->vcount & 0x20) << 5) & ((ds->vcount & 0x80) << 3);
+    // mixtxt = 0x1C00 in lines 160-291 and 224-261 else mixtxt = 0x0000
+    uint32_t mixtxt   = mixlines | (mixlines << 1) | (mixlines << 2);
+    // mixhgr = 0x0000 in lines 160-291 and 224-261 else mixhgr = 0x7C00
+    uint32_t mixhgr   = ((mixtxt | (mixtxt << 2)) ^ 0x07C00);
+
+    /* This is what I want:
+    if (ds->full_bits) {
+        LoresA10toA15 = ds->lores_bits & ds->page_bits & HBL;
+        HiresA10toA15 = ds->hires_bits & ds->page_bits & (vcount << 4);
+    }
+    else {
+        LoresA10toA15 = (mixtxt | ds->lores_bits) & ds->page_bits & HBL;
+        HiresA10toA15 = (mixhgr & ds->hires_bits) & ds->page_bits & (vcount << 4);
+    }
+    that is, in mixed mode, get text/lores addresses if either we're not in hires
+    or we are, but in the mixed area. and get hires address if we are both in hires
+    mode and not in the mixed area.
+    */
+
+    // if full_bits then
+    //     force mixtxt to all zeros so that (mixtxt | ds->lores_bits) == ds->lores_bits
+    //     force mixhgr to all ones so that (mixhgr & ds->hires_bits) == ds->hires_bits
+    mixtxt = mixtxt & (~ds->full_bits);
+    mixhgr = mixhgr | ds->full_bits;
+
+    uint32_t VCVBVA = ds->vcount & 7;
+    uint32_t LoresA15toA10 = (mixtxt | ds->lores_bits) & ((ds->page_bits >> 3) | HBL);
+    uint32_t HiresA15toA10 = (mixhgr & ds->hires_bits) & (ds->page_bits | (VCVBVA << 10));
+
+    uint32_t address = A2A1A0 | A6A5A4A3 | A9A8A7 | LoresA15toA10 | HiresA15toA10;
+#if 0
+    return address;
+#else
+    ds->video_byte = cpu->mmu->read_raw(address);
+
+    bool display_text = ((ds->display_mode == TEXT_MODE) || (mixtxt != 0));
+
+    if (display_text) {
+        if (text_cycles >= (192*65*2)) // 2 frames
+            ds->kill_color = true;
+        else
+            ++text_cycles;
+    }
+    else {
+        text_cycles = 0;
+        ds->kill_color = false;
+    }
+
+    ds->video_blanking = 0; // This is IIe. 0x80 for IIgs
+    if (ds->vcount >= 0x100 && ds->vcount < 0x1C0)
+    {
+        ds->video_blanking = 0x80; // This is IIe. 0 for IIgs
+        if (ds->hcount >= 0x58)
+        {
+            uint16_t vidbits = 0;
+
+            if (display_text)
+            {
+                uint8_t vbyte = (*cpu->rd->char_rom_data)[8 * ds->video_byte + VCVBVA];
+
+                // for inverse, xor the pixels with 0xFF to invert them.
+                if ((ds->video_byte & 0xC0) == 0) {  // inverse
+                    vbyte ^= 0xFF;
+                } else if (((ds->video_byte & 0xC0) == 0x40)) {  // flash
+                    vbyte ^= ds->flash_state ? 0xFF : 0;
+                }
+                for (int count = 7; count; --count) {
+                    vidbits = (vidbits << 1) | (vbyte & 1);
+                    vidbits = (vidbits << 1) | (vbyte & 1);
+                    vbyte >>= 1;
+                }
+            }
+            else if (LoresA15toA10)
+            {
+                uint8_t vbyte = ds->video_byte;
+                vbyte = (vbyte >> (VCVBVA & 4)) & 0x0F; // hi or lo nibble
+                vbyte = (vbyte << 1) | (ds->hcount & 1); // even/odd columns
+                vidbits = lgr_bits[vbyte];
+            }
+            else {
+                vidbits = hgr_bits[ds->video_byte];
+            }
+
+            //printf("col:%u, row:%u\n", ds->vcount - 0x100, ds->hcount - 0x58);
+            ds->vidbits[ds->vcount - 0x100][ds->hcount - 0x58] = vidbits;
+        }
+    }
+#endif
+}
+
+void test_counter(cpu_state *cpu)
+{
+    uint32_t address;
+    int times = 17030;
+
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+
+    while (times) {
+        --times;
+        //address = counter(cpu);
+        /*
+        if (ds->hcount == 0) {
+            printf("vcount:%4.4x hcount:%4.4x at %4.4x\n", ds->vcount, ds->hcount, address);
+            //if (vcount == 0x1FF) break;
+        }
+        */
+    }
+}
+
+void test_mega_ii_cycle(cpu_state *cpu)
+{
+    int times = 17030;
+
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+
+    while (times) {
+        --times;
+        mega_ii_cycle(cpu);
+    }
+}
+
 void mega_ii_cycle(cpu_state *cpu)
 {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
 
     if (!made_bits) {
+        // test_counter(cpu);
         // lazy initialization
         make_flipped();
         make_hgr_bits();
@@ -265,7 +438,7 @@ void mega_ii_cycle(cpu_state *cpu)
     }
 
     if (display_text) {
-        if (text_cycles >= (192*40*2)) // 2 frames
+        if (text_cycles >= (192*65*2)) // 2 frames
             ds->kill_color = true;
         else
             ++text_cycles;

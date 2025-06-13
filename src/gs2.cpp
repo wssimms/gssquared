@@ -101,6 +101,9 @@ void init_cpus() { // this is the same as a power-on event.
 }
 #endif
 
+void test_counter(cpu_state *cpu);
+void test_mega_ii_cycle(cpu_state *cpu);
+
 void run_cpus(computer_t *computer) {
     cpu_state *cpu = computer->cpu;
 
@@ -120,7 +123,7 @@ void run_cpus(computer_t *computer) {
 
     uint64_t last_time_window_start = 0;
     uint64_t last_cycle_window_start = 0;
-
+    
     while (1) {
         uint64_t cycle_window_start = cpu->cycles;
         uint64_t cycle_window_delta = cycle_window_start - last_cycle_window_start;
