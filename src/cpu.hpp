@@ -213,8 +213,8 @@ struct cpu_state {
     void set_mmu(MMU *mmu) { this->mmu = (MMU_II *) mmu; }
 
     inline uint8_t read_byte(uint16_t address) {
-        uint8_t value = mmu->read(address);
         incr_cycles(this);
+        uint8_t value = mmu->read(address);
         return value;
     }
 
@@ -232,8 +232,8 @@ struct cpu_state {
     }
 
     inline void write_byte( uint16_t address, uint8_t value) {
-        mmu->write(address, value);
         incr_cycles(this);
+        mmu->write(address, value);
     }
 
     inline void write_word(uint16_t address, uint16_t value) {

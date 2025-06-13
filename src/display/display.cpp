@@ -555,10 +555,15 @@ display_state_t::display_state_t() {
         dirty_line[i] = 0;
     }
 
+    //debug_set_level(DEBUG_DISPLAY);
+
+    display_mode = TEXT_MODE;
+    display_graphics_mode = LORES_MODE;
+
     set_display_page1(this);
-    set_display_mode(this, GRAPHICS_MODE);
-    set_graphics_mode(this, HIRES_MODE);
-    set_split_mode(this, SPLIT_SCREEN);
+    set_display_mode(this, TEXT_MODE);
+    set_graphics_mode(this, LORES_MODE);
+    set_split_mode(this, FULL_SCREEN);
 
     flash_state = false;
     flash_counter = 0;
@@ -653,6 +658,8 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     // set in CPU so we can reference later
     set_module_state(cpu, MODULE_DISPLAY, ds);
     
+    cpu->mmu->set_C0XX_read_handler(0xC019, { display_bus_read_C019, ds });
+
     cpu->mmu->set_C0XX_read_handler(0xC050, { txt_bus_read_C050, ds });
     cpu->mmu->set_C0XX_write_handler(0xC050, { txt_bus_write_C050, ds });
     cpu->mmu->set_C0XX_read_handler(0xC051, { txt_bus_read_C051, ds });
