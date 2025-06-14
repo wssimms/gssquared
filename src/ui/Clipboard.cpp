@@ -21,7 +21,7 @@ const void *clip_callback(void *userdata, const char *mime_type, size_t *size) {
     
     ClipboardImage *clip = (ClipboardImage *)userdata;
     size_t calcsize = sizeof(BMPHeader) + (clip->header->infoHeader.width * clip->header->infoHeader.height * 3);
-    printf("clip_callback: %s (%d)\n", mime_type, calcsize);
+    //printf("clip_callback: %s (%d)\n", mime_type, calcsize);
     *size = calcsize;
     return clip->clip_buffer;
 }
