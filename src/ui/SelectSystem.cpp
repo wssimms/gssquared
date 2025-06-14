@@ -61,6 +61,10 @@ SelectSystem::~SelectSystem() {
 }
 
 bool SelectSystem::event(const SDL_Event &event) {
+    if (event.type == SDL_EVENT_QUIT) {
+        selected_system = -1;
+        return true;
+    }
     container->handle_mouse_event(event);
     return (selected_system != -1);
 }
