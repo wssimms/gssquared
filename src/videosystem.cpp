@@ -25,9 +25,6 @@ video_system_t::video_system_t(computer_t *computer) {
     int window_height = (BASE_HEIGHT + border_height*2) * SCALE_Y;
     aspect_ratio = (float)window_width / (float)window_height;
 
-    /* display_fullscreen_mode = DISPLAY_WINDOWED_MODE;
-    event_queue = computer->event_queue;
- */
     window = SDL_CreateWindow(
         "GSSquared - Apple ][ Emulator", 
         (BASE_WIDTH + border_width*2) * SCALE_X, 

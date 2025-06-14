@@ -295,7 +295,6 @@ void run_cpus(computer_t *computer) {
             update_display(cpu);    
             osd->render();
             computer->debug_window->render();
-            /* display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY); */
             computer->video_system->present();
             display_time = SDL_GetTicksNS() - current_time;
             last_display_update = current_time;
@@ -312,7 +311,6 @@ void run_cpus(computer_t *computer) {
             fprintf(stdout, "PC: %04X, A: %02X, X: %02X, Y: %02X, P: %02X\n", cpu->pc, cpu->a, cpu->x, cpu->y, cpu->p);
             last_5sec_cycles = cpu->cycles;
             last_5sec_update = current_time;
-            //parallel_check_close(cpu);
         }
 
         if (cpu->halt == HLT_USER) {
@@ -420,6 +418,8 @@ int main(int argc, char *argv[]) {
         std::cout << " Slot " << disk_mount.slot << " Drive " << disk_mount.drive << " - " << disk_mount.filename << std::endl;
     }
 
+    while (1) {
+
     computer_t *computer = new computer_t();
 
     video_system_t *vs = computer->video_system;
@@ -427,26 +427,8 @@ int main(int argc, char *argv[]) {
     AssetAtlas_t *aa = new AssetAtlas_t(vs->renderer, "img/atlas.png");
     aa->set_elements(MainAtlas_count, asset_rects);
 
-    SelectSystem *select_system = new SelectSystem(vs->renderer, vs->window, aa);
-    
-    bool selected = false;
-    while (!selected) {
-        SDL_Event event;
-        while(SDL_PollEvent(&event)) {
-            if (select_system->event(event)) {
-                selected = true;
-            }
-        }
-        if (select_system->update()) {
-            select_system->render();
-            vs->present();
-        }
-        SDL_Delay(16);
-    }
-
-    platform_id = select_system->get_selected_system();
-
-    //init_cpus();
+    SelectSystem *select_system = new SelectSystem(vs, aa);
+    platform_id = select_system->select();
 
 // load platform roms - this info should get stored in the 'computer'
     platform_info* platform = get_platform(platform_id);
@@ -530,8 +512,13 @@ int main(int argc, char *argv[]) {
         getchar();
     }
 
-    //dump_full_speaker_event_log();
-
+    delete osd;
+//    delete computer->cpu;
     delete computer;
+    delete select_system;
+    delete aa;
+    }
+
+
     return 0;
 }

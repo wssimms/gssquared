@@ -78,7 +78,8 @@ void AssetAtlas_t::draw(int id, int dst_x, int dst_y) {
 }
 
 AssetAtlas_t::~AssetAtlas_t() {
-    if (elements) {
+    SDL_DestroyTexture(image);
+/*     if (elements) {
         delete[] elements;
-    }
+    } */
 }

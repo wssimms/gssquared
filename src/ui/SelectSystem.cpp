@@ -6,8 +6,8 @@
 #include "util/TextRenderer.hpp"
 #include "MainAtlas.hpp"
 
-SelectSystem::SelectSystem(SDL_Renderer *rendererp, SDL_Window *windowp, AssetAtlas_t *aa)
-    : renderer(rendererp), window(windowp), aa(aa) {
+SelectSystem::SelectSystem(video_system_t *vs, AssetAtlas_t *aa)
+    : vs(vs), aa(aa) {
 
 // create container with tiles for each system.
 // be cheap right now and do a text button.
@@ -24,13 +24,13 @@ Style_t CS;
     BS.border_width = 1;
     BS.text_color = 0xFFFFFFFF;
 
-    container = new Container_t(rendererp, 6, CS); 
+    container = new Container_t(vs->renderer, 6, CS); 
 
     container->set_tile_size(1024, 768);
-    SDL_GetWindowSize(window, &window_width, &window_height);
+    SDL_GetWindowSize(vs->window, &window_width, &window_height);
     container->set_position((window_width - 1024) / 2, (window_height - 768) / 2);
 
-    text_renderer = new TextRenderer(renderer, "fonts/OpenSans-Regular.ttf", 24);
+    text_renderer = new TextRenderer(vs->renderer, "fonts/OpenSans-Regular.ttf", 24);
     selected_system = -1;
 
     int assets[3] = {Badge_II, Badge_IIPlus, Badge_IIPlus};
@@ -55,6 +55,11 @@ Style_t CS;
     updated = true;
 }
 
+SelectSystem::~SelectSystem() {
+    delete container;
+    delete text_renderer;
+}
+
 bool SelectSystem::event(const SDL_Event &event) {
     container->handle_mouse_event(event);
     return (selected_system != -1);
@@ -71,13 +76,32 @@ bool SelectSystem::update() {
 void SelectSystem::render() {
     if (updated) {
         float scale_x, scale_y;
-        SDL_GetRenderScale(renderer, &scale_x, &scale_y);
-        SDL_SetRenderScale(renderer, 1, 1);
+        SDL_GetRenderScale(vs->renderer, &scale_x, &scale_y);
+        SDL_SetRenderScale(vs->renderer, 1, 1);
         text_renderer->set_color(255,255,255,255);
         text_renderer->render("Choose your retro experience", (window_width / 2), 50, TEXT_ALIGN_CENTER);
 
         container->render();
-        SDL_SetRenderScale(renderer, scale_x, scale_y);
+        SDL_SetRenderScale(vs->renderer, scale_x, scale_y);
         //updated = false;
     }
+}
+
+int SelectSystem::select() {
+
+    bool selected = false;
+    while (!selected) {
+        SDL_Event event;
+        while(SDL_PollEvent(&event)) {
+            if (this->event(event)) {
+                selected = true;
+            }
+        }
+        if (update()) {
+            render();
+            vs->present();
+        }
+        SDL_Delay(16);
+    }
+    return selected_system;
 }

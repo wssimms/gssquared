@@ -3,11 +3,11 @@
 #include <SDL3/SDL.h>
 #include "Container.hpp"
 #include "AssetAtlas.hpp"
+#include "videosystem.hpp"
 
 class SelectSystem {
 protected:
-    SDL_Renderer *renderer;
-    SDL_Window *window;
+    video_system_t *vs;
     Container_t *container;
     bool updated = false;
     TextRenderer *text_renderer;
@@ -25,7 +25,9 @@ public:
      * @param window_width Width of the window
      * @param window_height Height of the window
      */
-    SelectSystem(SDL_Renderer *rendererp, SDL_Window *windowp, AssetAtlas_t *aa);
+    SelectSystem(video_system_t *vs, AssetAtlas_t *aa);
+
+    ~SelectSystem();
 
     /**
      * @brief Updates the SelectSystem state
@@ -36,6 +38,11 @@ public:
      * @brief Renders the OSD and all its components.
      */
     void render();
+
+    /**
+     * @brief Selects a system from the list.
+     */
+    int select();
 
     /**
      * @brief Handles SDL events for the OSD.
