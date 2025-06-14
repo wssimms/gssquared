@@ -429,7 +429,12 @@ int main(int argc, char *argv[]) {
 
     SelectSystem *select_system = new SelectSystem(vs, aa);
     platform_id = select_system->select();
-
+    if (platform_id == -1) {
+        delete select_system;
+        delete aa;
+        delete computer;
+        break;
+    }
 // load platform roms - this info should get stored in the 'computer'
     platform_info* platform = get_platform(platform_id);
     print_platform_info(platform);
@@ -493,9 +498,11 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    update_display(computer->cpu); // check for events 60 times per second.
+#if 0
 // the first time through (maybe the first couple times?) these will take
 // considerable time. do them now before main loop.
-    update_display(computer->cpu); // check for events 60 times per second.
+// not needed any more because we do this in SelectSystem, ha!
     for (int i = 0; i < 10; i++) {
         SDL_Event event;
         while(SDL_PollEvent(&event)) {
@@ -503,14 +510,15 @@ int main(int argc, char *argv[]) {
             computer->dispatch->dispatch(event);
         }
     }
+#endif
 
     run_cpus(computer);
 
-    printf("CPU halted: %d\n", computer->cpu->halt);
+    /* printf("CPU halted: %d\n", computer->cpu->halt);
     if (computer->cpu->halt == HLT_INSTRUCTION) { // keep screen up and give user a chance to see the last state.
         printf("Press Enter to continue...");
         getchar();
-    }
+    } */
 
     delete osd;
 //    delete computer->cpu;
@@ -519,6 +527,6 @@ int main(int argc, char *argv[]) {
     delete aa;
     }
 
-
+    SDL_Delay(1000); 
     return 0;
 }
