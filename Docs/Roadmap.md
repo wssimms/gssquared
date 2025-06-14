@@ -16,9 +16,10 @@
 [x] Tracing  
 [x] Debugger  
 [x] Bring in a decent readable font for the OSD elements  
-[ ] GS2 starts in powered-off mode. have snazzy tiles showing each platform that can be booted.  
-[ ] Can select a 'platform' each of which has a default configuration.  
+[x] GS2 starts in powered-off mode. have snazzy tiles showing each platform that can be booted.  
+[x] Can select a 'platform' each of which has a default configuration.  
 [ ] Refactor CPU to be more cycle-accurate including false/phantom reads/writes  
+[x] Can power on and power off vm  
 
 ## Release 0.4
 
@@ -27,7 +28,6 @@
 
 [ ] provide a mode for Atari Joyport - use the dpad. https://lukazi.blogspot.com/2009/04/game-controller-atari-joysticks.html. Can also use gamepad.    
 
-[ ] Can power on and power off vm  
 [ ] Can edit slots / hw config when powered off.  
 [ ] "powered off" means everything is shut down and deallocated, only running event loop and OSD.  
 [ ] when we go to power off (from inside OSD), check to see if disks need writing, and throw up appropriate dialogs.  

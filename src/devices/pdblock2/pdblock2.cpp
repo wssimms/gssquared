@@ -37,7 +37,11 @@ drive_status_t pdblock2_osd_status(cpu_state *cpu, uint64_t key) {
     uint8_t slot = key >> 8;
     uint8_t drive = key & 0xFF;
     pdblock2_data * pdblock_d = (pdblock2_data *)get_slot_state(cpu, (SlotType_t)slot);
-    
+    if (pdblock_d == nullptr) { // TODO: this will stop being a problem with OSD scans MessageBus instead of hardcode calling here.
+        std::cerr << "pdblock2_osd_status: pdblock_d is nullptr" << std::endl;
+        return {false, nullptr, false, 0};
+    }
+
     media_t seldrive = pdblock_d->prodosblockdevices[slot][drive];
 
     bool motor = false;
@@ -190,7 +194,10 @@ void pdblock2_execute(cpu_state *cpu, pdblock2_data *pdblock_d) {
 
 bool mount_pdblock2(cpu_state *cpu, uint8_t slot, uint8_t drive, media_descriptor *media) {
     pdblock2_data * pdblock_d = (pdblock2_data *)get_slot_state(cpu, (SlotType_t)slot);
-
+    if (pdblock_d == nullptr) {
+        std::cerr << "pdblock2_mount: pdblock_d is nullptr" << std::endl;
+        return false;
+    }
     //if (DEBUG(DEBUG_PD_BLOCK)) printf("Mounting ProDOS block device %s slot %d drive %d\n", media->filename, slot, drive);
     if (DEBUG(DEBUG_PD_BLOCK)) std::cout << "Mounting ProDOS block device " << media->filename << " slot " << slot << " drive " << drive << std::endl;
 
