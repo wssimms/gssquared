@@ -4565,7 +4565,7 @@ Put it into UI.
 
 This can all happen in a special event loop, since none of the emulation is running. Once the main event loop exits, it can come back to this.
 
-So, F12 powers off the machine and returns to the menu.
+[ ] So, F12 powers off the machine and returns to the menu.  
 
 ## Jun 13, 2025
 
@@ -4583,3 +4583,7 @@ new button: img.
   set_content_pos (to locate the content inside the content area)
 
 I think I might be rendering the OSD (completely off screen) when I shouldn't be.. let's debug that actually. Yes. oops.
+Rendering time for a text frame is now down to 230us when scrolling a lot. When we're just flashing the cursor (only doing one line update) as low as 22uS. Yow.
+Debugger uses 440-450uS when trace is open. That's a lot lower. the unneeded OSD drawing was probably taking 100-130uS per frame. Keep eye on issue where window close to screen edge was flaking out.. I wonder if drawing OSD in negative coords all the time was causing that issue.
+
+Well, how hard could it be to do a shutdown thing with F12 now?
