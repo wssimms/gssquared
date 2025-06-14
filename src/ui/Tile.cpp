@@ -157,25 +157,29 @@ void Tile_t::set_click_callback(click_callback_t callback, void* data) {
 // padding is inside the content area.
 void Tile_t::calc_content_position() {
     switch (pos_h) {
-        case CP_LEFT:
-            cp.x = style.padding;
-            break;
+
         case CP_CENTER:
             cp.x = (tp.w / 2) - (cp.w / 2);
             break;
         case CP_RIGHT:
             cp.x = tp.w - cp.w - style.padding;
             break;
+        case CP_LEFT:
+        default:
+            cp.x = style.padding;
+            break;
     }
     switch (pos_v) {
-        case CP_TOP:
-            cp.y = style.padding;
-            break;
+
         case CP_CENTER:
             cp.y = (tp.h / 2) - (cp.h / 2);
             break;
         case CP_BOTTOM:
             cp.y = tp.h - cp.h - style.padding;
+            break;
+        case CP_TOP:
+        default:
+            cp.y = style.padding;
             break;
     }
 }
