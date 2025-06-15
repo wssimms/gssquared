@@ -23,6 +23,8 @@ class MMU_II : public MMU {
         int8_t C8xx_slot;
         C8XX_handler_t C8xx_handlers[8] = {nullptr};
 
+        void power_on_randomize(uint8_t *ram, int ram_size);
+        
     public:
         MMU_II(int page_table_size, int ram_amount, uint8_t *rom_pointer);
         ~MMU_II();
