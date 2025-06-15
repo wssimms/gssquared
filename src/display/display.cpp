@@ -436,7 +436,7 @@ void render_line_mono(cpu_state *cpu, int y) {
 uint8_t display_bus_read_C019(void *context, uint16_t address) {
     display_state_t *ds = (display_state_t *)context;
     // return Apple IIe/IIgs VBL state
-    return ds->video_blanking | (ds->video_byte & 0x7F);
+    return ds->video_vbl | (ds->video_byte & 0x7F);
 }
 
 uint8_t txt_bus_read_C050(void *context, uint16_t address) {
@@ -569,6 +569,7 @@ display_state_t::display_state_t() {
     flash_counter = 0;
 
     kill_color = true;
+    mixed_text = false;
     hcount = 0x7F;
     vcount = 0xFF;
 

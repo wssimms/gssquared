@@ -290,22 +290,75 @@ void make_lgr_bits(void) {
  * A2-A0, A6-A3, A9-A7, A15-A10.
  */
 
-int made_bits = 0;
+bool ntsc_video_lazy_init = false;
 int text_cycles = 0;
 
-void mega_ii_cycle(cpu_state *cpu)
+void ntsc_video_cycle (cpu_state *cpu)
 {
-    if (!made_bits) {
+    if (!ntsc_video_lazy_init) {
         // lazy initialization
         make_flipped();
         make_hgr_bits();
         make_lgr_bits();
-        ++made_bits;
+        ntsc_video_lazy_init = true;
     }
 
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
 
-    cpu->cycles++;
+    bool display_text = (ds->display_mode == TEXT_MODE) || (ds->mixed_text);
+
+    if (display_text) {
+        if (text_cycles >= (192*65*2)) // 2 frames
+            ds->kill_color = true;
+        else
+            ++text_cycles;
+    }
+    else {
+        text_cycles = 0;
+        ds->kill_color = false;
+    }
+
+    // don't generate video signal during horizontal and vertical blanking periods
+    if (ds->vcount < 0x100) return;
+    if (ds->vcount >= 0x1C0) return;
+    if (ds->hcount < 0x58) return;
+
+    int16_t vidbits = 0;
+
+    if (display_text)
+    {
+        uint8_t *char_rom = (*cpu->rd->char_rom_data);
+        uint8_t vbyte = char_rom[8 * ds->video_byte + (ds->vcount & 7)];
+
+        // for inverse, xor the pixels with 0xFF to invert them.
+        if ((ds->video_byte & 0xC0) == 0) {  // inverse
+            vbyte ^= 0xFF;
+        } else if (((ds->video_byte & 0xC0) == 0x40)) {  // flash
+            vbyte ^= ds->flash_state ? 0xFF : 0;
+        }
+        for (int count = 7; count; --count) {
+            vidbits = (vidbits << 1) | (vbyte & 1);
+            vidbits = (vidbits << 1) | (vbyte & 1);
+            vbyte >>= 1;
+        }
+    }
+    else if (ds->display_graphics_mode == LORES_MODE)
+    {
+        uint8_t vbyte = ds->video_byte;
+        vbyte = (vbyte >> (ds->vcount & 4)) & 0x0F;  // hi or lo nibble
+        vbyte = (vbyte << 1) | (ds->hcount & 1); // even/odd columns
+        vidbits = lgr_bits[vbyte];
+    }
+    else {
+        vidbits = hgr_bits[ds->video_byte];
+    }
+
+    ds->vidbits[ds->vcount - 0x100][ds->hcount - 0x58] = vidbits;
+}
+
+void apple_ii_video_scanner(cpu_state *cpu)
+{
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
 
     if (ds->hcount) {
         ds->hcount = (ds->hcount + 1) & 0x7F;
@@ -319,6 +372,14 @@ void mega_ii_cycle(cpu_state *cpu)
         ds->hcount = 0x40;
     }
 
+    /* This code is really Apple IIe/IIgs code and shouldn't be 
+       in the Apple II video scanner. It's here at the moment just
+       for testing purposes */
+    ds->video_vbl = 0; // This is IIe. 0x80 for IIgs
+    if (ds->vcount >= 0x100 && ds->vcount < 0x1C0)
+        ds->video_vbl = 0x80; // This is IIe. 0 for IIgs
+    /* End IIe/IIgs vbl code */
+
     // A2-A0 = H2-H0
     uint32_t A2toA0 = ds->hcount & 7;
 
@@ -330,10 +391,12 @@ void mega_ii_cycle(cpu_state *cpu)
     uint32_t A9toA7 = (ds->vcount & 0x38) << 4;
 
     // build masks for mixed mode text/lores vs. hires
+    ds->mixed_text = true;
     uint32_t mixed_lores_mask = 0x1C00;
     uint32_t mixed_hires_mask = 0;
     if (ds->display_split_mode == FULL_SCREEN || (ds->vcount & 0xA0) != 0xA0)
     {
+        ds->mixed_text = false;
         mixed_lores_mask = 0;
         mixed_hires_mask = 0x7C00;
     }
@@ -350,63 +413,21 @@ void mega_ii_cycle(cpu_state *cpu)
     uint32_t HiresA15toA10 = (combined_hires_mask) & (ds->page_bit | (VCVBVA << 10));
     uint32_t A15toA10 = LoresA15toA10 | HiresA15toA10;
 
-    uint32_t address = A2toA0 | A6toA3 | A9toA7 | A15toA10;
+    ds->video_address = A2toA0 | A6toA3 | A9toA7 | A15toA10;
 
-    ds->video_byte = cpu->mmu->read_raw(address);
-
-    bool display_text = (ds->display_mode == TEXT_MODE) || (mixed_lores_mask != 0);
-
-    if (display_text) {
-        if (text_cycles >= (192*65*2)) // 2 frames
-            ds->kill_color = true;
-        else
-            ++text_cycles;
-    }
-    else {
-        text_cycles = 0;
-        ds->kill_color = false;
-    }
-
-    ds->video_blanking = 0; // This is IIe. 0x80 for IIgs
-    if (ds->vcount >= 0x100 && ds->vcount < 0x1C0)
-    {
-        ds->video_blanking = 0x80; // This is IIe. 0 for IIgs
-        if (ds->hcount >= 0x58)
-        {
-            uint16_t vidbits = 0;
-
-            if (display_text)
-            {
-                uint8_t vbyte = (*cpu->rd->char_rom_data)[8 * ds->video_byte + VCVBVA];
-
-                // for inverse, xor the pixels with 0xFF to invert them.
-                if ((ds->video_byte & 0xC0) == 0) {  // inverse
-                    vbyte ^= 0xFF;
-                } else if (((ds->video_byte & 0xC0) == 0x40)) {  // flash
-                    vbyte ^= ds->flash_state ? 0xFF : 0;
-                }
-                for (int count = 7; count; --count) {
-                    vidbits = (vidbits << 1) | (vbyte & 1);
-                    vidbits = (vidbits << 1) | (vbyte & 1);
-                    vbyte >>= 1;
-                }
-            }
-            else if (LoresA15toA10)
-            {
-                uint8_t vbyte = ds->video_byte;
-                vbyte = (vbyte >> (VCVBVA & 4)) & 0x0F; // hi or lo nibble
-                vbyte = (vbyte << 1) | (ds->hcount & 1); // even/odd columns
-                vidbits = lgr_bits[vbyte];
-            }
-            else {
-                vidbits = hgr_bits[ds->video_byte];
-            }
-
-            //printf("col:%u, row:%u\n", ds->vcount - 0x100, ds->hcount - 0x58);
-            ds->vidbits[ds->vcount - 0x100][ds->hcount - 0x58] = vidbits;
-        }
-    }
+    ds->video_byte = cpu->mmu->read_raw(ds->video_address);
 }
+
+void incr_cycles(cpu_state *cpu)
+{
+    cpu->cycles++;
+    cpu->ns_since_bus_cycle += cpu->cycle_duration_ns;
+    if (cpu->ns_since_bus_cycle >= clock_mode_info[CLOCK_1_024MHZ].cycle_duration_ns) {
+        cpu->ns_since_bus_cycle -= clock_mode_info[CLOCK_1_024MHZ].cycle_duration_ns;
+        apple_ii_video_scanner(cpu);
+        ntsc_video_cycle(cpu);
+    }
+};
 
 #if 0
 void test_mega_ii_cycle(cpu_state *cpu)

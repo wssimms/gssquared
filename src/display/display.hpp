@@ -116,8 +116,10 @@ public:
     int flash_counter;
 
     bool     kill_color;
+    bool     mixed_text;
+    uint8_t  video_vbl;
     uint8_t  video_byte;
-    uint8_t  video_blanking;
+    uint16_t video_address;
     uint16_t vidbits[192][40];
     uint32_t hcount;
     uint32_t vcount;

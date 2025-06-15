@@ -192,6 +192,8 @@ struct cpu_state {
     uint64_t HZ_RATE;
     clock_mode_t clock_mode = CLOCK_FREE_RUN;
     float e_mhz = 0;
+
+    uint64_t ns_since_bus_cycle = 0;
     
     execute_next_fn execute_next;
 
