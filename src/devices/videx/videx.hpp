@@ -117,6 +117,7 @@ typedef struct videx_data: public SlotData {
 } videx_data;
 
 void init_slot_videx(computer_t *computer, SlotType_t slot);
+void deinit_slot_videx(videx_data *videx_d);
 void videx_set_line_dirty_by_addr(videx_data * videx_d, uint16_t addr);
 void videx_set_line_dirty(videx_data * videx_d, int line);
 void update_videx_screen_memory(cpu_state *cpu, videx_data * videx_d);

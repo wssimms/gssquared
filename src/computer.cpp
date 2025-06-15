@@ -62,12 +62,25 @@ computer_t::computer_t() {
 }
 
 computer_t::~computer_t() {
+    // TODO: call shutdown() handlers on all devices that registered one.
+    for (auto& handler : shutdown_handlers) {
+        handler();
+    }
     delete cpu;
     delete video_system;
+    delete debug_window;
+    delete event_timer;
+    delete sys_event;
+    delete dispatch;
+    delete device_frame_dispatcher;
 }
 
 void computer_t::register_reset_handler(ResetHandler handler) {
     reset_handlers.push_back(handler);
+}
+
+void computer_t::register_shutdown_handler(ShutdownHandler handler) {
+    shutdown_handlers.push_back(handler);
 }
 
 void computer_t::reset(bool cold_start) {

@@ -36,3 +36,7 @@ void init_displayng() {
     uint64_t end = SDL_GetTicksNS();
     std::cout << "init_hgr_LUT took " << (end - start) / 1000.0 << " microseconds" << std::endl;
 }
+
+void deinit_displayng() {
+    delete[] frameBuffer;
+}

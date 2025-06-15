@@ -42,8 +42,8 @@ struct debug_window_t {
     Container_t *tab_container;
     MemoryWatch memory_watches;
     MemoryWatch breaks;
-    Disassembler *disasm;
-    Disassembler *step_disasm;
+    Disassembler *disasm = nullptr;
+    Disassembler *step_disasm = nullptr;
 
     int panel_visible[DEBUG_PANEL_COUNT] = {0};
     SDL_Rect pane_area[DEBUG_PANEL_COUNT];
@@ -54,7 +54,8 @@ struct debug_window_t {
     int mon_history_position = 0;
 
     debug_window_t(computer_t *computer);
-    //void init(cpu_state *cpu);
+    ~debug_window_t();
+
     void render();
     bool handle_event(SDL_Event &event);
     bool is_open();
