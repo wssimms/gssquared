@@ -33,20 +33,22 @@ Style_t CS;
     text_renderer = new TextRenderer(vs->renderer, "fonts/OpenSans-Regular.ttf", 24);
     selected_system = -1;
 
-    int assets[3] = {Badge_II, Badge_IIPlus, Badge_IIPlus};
-
     // add a text button for each system.
-    for (int i = 0; i < 2; i++) {
-        //Button_t *button = new Button_t(BuiltinSystemConfigs[i].name, BS, 0);
-        Button_t *button = new Button_t(aa, assets[i], BS, 0);
+    for (int i = 0; i < 3; i++) {
+        Button_t *button = new Button_t(aa, BuiltinSystemConfigs[i].image_id, BS, 0);
         button->set_tile_size(200, 200);
         button->position_content(CP_CENTER, CP_CENTER);
         button->set_text_renderer(text_renderer);
-        //button->set_position(100 + (i * 200), 100 + (i % 3) * 200);
-        button->set_click_callback([this,i](const SDL_Event& event) -> bool {
-            selected_system = i;
-            return true;
-        });
+        if (i == 2) {
+            button->set_opacity(0.5);
+            button->set_background_color(0xC0C0C0FF);
+            button->set_hover_color(0xC0C0C0FF);
+        } else {
+            button->set_click_callback([this,i](const SDL_Event& event) -> bool {
+                selected_system = i;
+                return true;
+            });
+        }
         container->add_tile(button, i);
     }
 
