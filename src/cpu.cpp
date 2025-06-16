@@ -101,6 +101,27 @@ void set_slot_irq(cpu_state *cpu, uint8_t slot, bool irq) {
     }
 }
 
+void cpu_state::add_bus_cycle_item (bus_cycle_item_t bci)
+{
+    if (num_bus_cycle_items < MAX_NUM_BUS_CYCLE_ITEMS) {
+        bus_cycle_item[num_bus_cycle_items++] = bci;
+    }
+}
+
+void cpu_state::remove_bus_cycle_item (bus_cycle_item_t bci)
+{
+    for (int i = 0; i < num_bus_cycle_items; ++i) {
+        if (bus_cycle_item[i] == bci) {
+            while (i+1 < num_bus_cycle_items) {
+                bus_cycle_item[i] = bus_cycle_item[i+1];
+                i = i+1;
+            }
+            --num_bus_cycle_items;
+            return;
+        }
+    }
+}
+
 void cpu_state::init() {
     pc = 0x0400;
     sp = rand() & 0xFF; // simulate a random stack pointer

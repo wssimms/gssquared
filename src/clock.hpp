@@ -42,4 +42,6 @@ void emulate_clock_cycle(cpu_state *cpu) ;
 //#define incr_cycles(cpu) cpu->cycles++;
 
 void incr_cycles(cpu_state *cpu);
-void mega_ii_cycle(cpu_state *cpu);
+void rgb_video_cycle (cpu_state *cpu);
+void mono_video_cycle (cpu_state *cpu);
+void ntsc_video_cycle (cpu_state *cpu);

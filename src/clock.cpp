@@ -305,9 +305,7 @@ void ntsc_video_cycle (cpu_state *cpu)
 
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
 
-    bool display_text = (ds->display_mode == TEXT_MODE) || (ds->mixed_text);
-
-    if (display_text) {
+    if (ds->display_text) {
         if (text_cycles >= (192*65*2)) // 2 frames
             ds->kill_color = true;
         else
@@ -319,13 +317,11 @@ void ntsc_video_cycle (cpu_state *cpu)
     }
 
     // don't generate video signal during horizontal and vertical blanking periods
-    if (ds->vcount < 0x100) return;
-    if (ds->vcount >= 0x1C0) return;
-    if (ds->hcount < 0x58) return;
+    if (ds->video_vbl || ds->video_hbl) return;
 
     int16_t vidbits = 0;
 
-    if (display_text)
+    if (ds->display_text)
     {
         uint8_t *char_rom = (*cpu->rd->char_rom_data);
         uint8_t vbyte = char_rom[8 * ds->video_byte + (ds->vcount & 7)];
@@ -356,9 +352,98 @@ void ntsc_video_cycle (cpu_state *cpu)
     ds->vidbits[ds->vcount - 0x100][ds->hcount - 0x58] = vidbits;
 }
 
+void mono_video_cycle (cpu_state *cpu)
+{
+    ntsc_video_cycle(cpu);
+}
+
+void rgb_video_cycle (cpu_state *cpu)
+{
+    static uint8_t last_byte = 0;
+
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+
+    // don't generate video signal during horizontal and vertical blanking periods
+    if (ds->video_vbl || ds->video_hbl) return;
+
+    int x = 14 * (ds->hcount - 0x58);
+    int y = ds->vcount - 0x100;
+
+    if (ds->display_text)
+    {
+        uint8_t *char_rom = (*cpu->rd->char_rom_data);
+        uint8_t vbyte = char_rom[8 * ds->video_byte + (ds->vcount & 7)];
+
+        // for inverse, xor the pixels with 0xFF to invert them.
+        if ((ds->video_byte & 0xC0) == 0) {  // inverse
+            vbyte ^= 0xFF;
+        } else if (((ds->video_byte & 0xC0) == 0x40)) {  // flash
+            vbyte ^= ds->flash_state ? 0xFF : 0;
+        }
+        for (int i = 7; i; --i) {
+            ds->rgbpixels[y][x++] = (vbyte & 0x40) ? 15 : 0;
+            ds->rgbpixels[y][x++] = (vbyte & 0x40) ? 15 : 0;
+            vbyte <<= 1;
+        }
+    }
+    else if (ds->display_graphics_mode == LORES_MODE)
+    {
+        uint8_t vbyte = ds->video_byte;
+        vbyte = (vbyte >> (ds->vcount & 4)) & 0x0F;  // hi or lo nibble
+        for (int i = 14; i; --i)
+            ds->rgbpixels[y][x++] = vbyte;
+    }
+    else
+    {
+        uint8_t color = 0;
+        uint8_t count = 3;
+        uint8_t vbyte = ds->video_byte;
+        uint8_t shift = vbyte & 0x80;
+
+        if (ds->hcount & 1) {
+            vbyte = (vbyte << 1) | (last_byte >> 6);
+            count = 4;
+            x -= 2; // only did 12 pixels last time, will do 16 this time.
+        }
+
+        if (shift) {
+            for (int i = count; i; --i) {
+                switch (vbyte & 3) {
+                    case 0: color = 0;  break; /* black */
+                    case 1: color = 6;  break; /* orange */
+                    case 2: color = 9;  break; /* blue */
+                    case 3: color = 15; break; /* white */
+                }
+                vbyte >>= 2;
+                for (int j = 4; j; --j)
+                    ds->rgbpixels[y][x++] = color;
+            }
+        }
+        else {
+            for (int i = count; i; --i) {
+                switch (vbyte & 3) {
+                    case 0: color = 0;  break; /* black */
+                    case 1: color = 3;  break; /* green */
+                    case 2: color = 12; break; /* purple */
+                    case 3: color = 15; break; /* white */
+                }
+                vbyte >>= 2;
+                for (int j = 4; j; --j)
+                    ds->rgbpixels[y][x++] = color;
+            }
+        }
+
+        last_byte = ds->video_byte & 0x7F;
+    }
+}
+
 void apple_ii_video_scanner(cpu_state *cpu)
 {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+
+    if (cpu->num_bus_cycle_items == 0) {
+        cpu->add_bus_cycle_item(ntsc_video_cycle);
+    }
 
     if (ds->hcount) {
         ds->hcount = (ds->hcount + 1) & 0x7F;
@@ -372,13 +457,8 @@ void apple_ii_video_scanner(cpu_state *cpu)
         ds->hcount = 0x40;
     }
 
-    /* This code is really Apple IIe/IIgs code and shouldn't be 
-       in the Apple II video scanner. It's here at the moment just
-       for testing purposes */
-    ds->video_vbl = 0; // This is IIe. 0x80 for IIgs
-    if (ds->vcount >= 0x100 && ds->vcount < 0x1C0)
-        ds->video_vbl = 0x80; // This is IIe. 0 for IIgs
-    /* End IIe/IIgs vbl code */
+    ds->video_vbl = ds->vcount < 0x100 || ds->vcount >= 0x1C0;
+    ds->video_hbl = ds->hcount < 0x58;
 
     // A2-A0 = H2-H0
     uint32_t A2toA0 = ds->hcount & 7;
@@ -391,12 +471,12 @@ void apple_ii_video_scanner(cpu_state *cpu)
     uint32_t A9toA7 = (ds->vcount & 0x38) << 4;
 
     // build masks for mixed mode text/lores vs. hires
-    ds->mixed_text = true;
+    ds->display_text = true;
     uint32_t mixed_lores_mask = 0x1C00;
     uint32_t mixed_hires_mask = 0;
     if (ds->display_split_mode == FULL_SCREEN || (ds->vcount & 0xA0) != 0xA0)
     {
-        ds->mixed_text = false;
+        ds->display_text = (ds->display_mode == TEXT_MODE);
         mixed_lores_mask = 0;
         mixed_hires_mask = 0x7C00;
     }
@@ -425,7 +505,9 @@ void incr_cycles(cpu_state *cpu)
     if (cpu->ns_since_bus_cycle >= clock_mode_info[CLOCK_1_024MHZ].cycle_duration_ns) {
         cpu->ns_since_bus_cycle -= clock_mode_info[CLOCK_1_024MHZ].cycle_duration_ns;
         apple_ii_video_scanner(cpu);
-        ntsc_video_cycle(cpu);
+        for (int i = 0; i < cpu->num_bus_cycle_items; ++i)
+            cpu->bus_cycle_item[i](cpu);
+        ntsc_video_cycle(cpu); // should be a bus_cycle_item
     }
 };
 

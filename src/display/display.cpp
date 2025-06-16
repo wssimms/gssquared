@@ -235,10 +235,7 @@ void new_update_display_apple2(cpu_state *cpu) {
                 newProcessAppleIIFrame_LUT(cpu, (RGBA *)(ds->buffer));
             break;
         case DM_ENGINE_RGB:               
-            if (ds->kill_color)
-                newProcessAppleIIFrame_Mono(cpu, (RGBA *)(ds->buffer), p_white);
-            else
-                newProcessAppleIIFrame_RGB(cpu, (RGBA *)(ds->buffer));               
+            newProcessAppleIIFrame_RGB(cpu, (RGBA *)(ds->buffer));               
             break;
         default:
             newProcessAppleIIFrame_Mono(cpu, (RGBA *)(ds->buffer), vs->get_mono_color());
@@ -435,8 +432,9 @@ void render_line_mono(cpu_state *cpu, int y) {
 
 uint8_t display_bus_read_C019(void *context, uint16_t address) {
     display_state_t *ds = (display_state_t *)context;
-    // return Apple IIe/IIgs VBL state
-    return ds->video_vbl | (ds->video_byte & 0x7F);
+    // This is IIe. IIgs is opposite
+    uint8_t vblbit = ds->video_vbl ? 0 : 0x80;
+    return vblbit | (ds->video_byte & 0x7F);
 }
 
 uint8_t txt_bus_read_C050(void *context, uint16_t address) {
@@ -569,7 +567,7 @@ display_state_t::display_state_t() {
     flash_counter = 0;
 
     kill_color = true;
-    mixed_text = false;
+    display_text = true;
     hcount = 0x7F;
     vcount = 0xFF;
 

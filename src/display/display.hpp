@@ -115,14 +115,23 @@ public:
     bool flash_state;
     int flash_counter;
 
-    bool     kill_color;
-    bool     mixed_text;
-    uint8_t  video_vbl;
+    // variables set by apple_ii_video_scanner()
+    bool     video_vbl;
+    bool     video_hbl;
+    bool     display_text;
     uint8_t  video_byte;
     uint16_t video_address;
-    uint16_t vidbits[192][40];
     uint32_t hcount;
     uint32_t vcount;
+
+    // variables set by ntsc_video_cycle()
+    bool     kill_color;
+    uint16_t vidbits[192][40];
+
+    // variables set by rgb_video_cycle()
+    uint8_t  rgbpixels[192][560];
+
+    // variables set by soft switches and used by apple_ii_video_scanner()
     uint32_t page_bit;
     uint32_t lores_mode_mask;
     uint32_t hires_mode_mask;

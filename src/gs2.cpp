@@ -103,9 +103,6 @@ void init_cpus() { // this is the same as a power-on event.
 }
 #endif
 
-void test_counter(cpu_state *cpu);
-void test_mega_ii_cycle(cpu_state *cpu);
-
 void run_cpus(computer_t *computer) {
     cpu_state *cpu = computer->cpu;
 

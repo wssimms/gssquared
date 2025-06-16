@@ -32,6 +32,7 @@
 #include "Module_ID.hpp"
 
 #define MAX_CPUS 1
+#define MAX_NUM_BUS_CYCLE_ITEMS 4
 
 #define BRK_VECTOR 0xFFFE
 #define IRQ_VECTOR 0xFFFE
@@ -84,6 +85,8 @@ namespace cpu_65c02 {
 }
 
 struct rom_data;
+
+typedef void (*bus_cycle_item_t)(cpu_state *);
 
 struct cpu_state {
     union {
@@ -194,6 +197,10 @@ struct cpu_state {
     float e_mhz = 0;
 
     uint64_t ns_since_bus_cycle = 0;
+    int num_bus_cycle_items = 0;
+    bus_cycle_item_t bus_cycle_item[MAX_NUM_BUS_CYCLE_ITEMS];
+    void add_bus_cycle_item (bus_cycle_item_t bci);
+    void remove_bus_cycle_item (bus_cycle_item_t bci);
     
     execute_next_fn execute_next;
 
