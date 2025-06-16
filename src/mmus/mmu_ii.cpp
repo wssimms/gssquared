@@ -21,9 +21,20 @@ void MMU_II::init_map() {
     }   
 }
 
+void MMU_II::power_on_randomize(uint8_t *ram, int ram_size) {
+    for (int i = 0; i < ram_size; i+=4) {
+        ram[i] = 0xFF;
+        ram[i+1] = 0xFF;
+        ram[i+2] = 0x00;
+        ram[i+3] = 0x00;
+    }
+}
+
 MMU_II::MMU_II(int page_table_size, int ram_amount, uint8_t *rom_pointer) : MMU(256) {
     ram_pages = ram_amount / GS2_PAGE_SIZE;
     main_ram_64 = new uint8_t[ram_amount];
+    power_on_randomize(main_ram_64, ram_amount);
+    
     main_io_4 = new uint8_t[IO_KB]; // TODO: we're not using this..
     main_rom_D0 = rom_pointer;
 

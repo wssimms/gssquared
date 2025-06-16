@@ -482,7 +482,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    bool result = soundeffects_init(computer->cpu);
+    bool result = soundeffects_init(computer);
 
     computer->cpu->reset();
 
@@ -504,34 +504,19 @@ int main(int argc, char *argv[]) {
     }
 
     update_display(computer->cpu); // check for events 60 times per second.
-#if 0
-// the first time through (maybe the first couple times?) these will take
-// considerable time. do them now before main loop.
-// not needed any more because we do this in SelectSystem, ha!
-    for (int i = 0; i < 10; i++) {
-        SDL_Event event;
-        while(SDL_PollEvent(&event)) {
-            //event_poll(computer, event); // call first time to get things started.
-            computer->dispatch->dispatch(event);
-        }
-    }
-#endif
 
     run_cpus(computer);
 
-    /* printf("CPU halted: %d\n", computer->cpu->halt);
-    if (computer->cpu->halt == HLT_INSTRUCTION) { // keep screen up and give user a chance to see the last state.
-        printf("Press Enter to continue...");
-        getchar();
-    } */
+    // deallocate stuff.
+    // TODO: call shutdown() handlers on all devices from the systemconfig.
 
     delete osd;
-//    delete computer->cpu;
     delete computer;
+    delete mmu;
     delete select_system;
     delete aa;
     }
-
     SDL_Delay(1000); 
+    SDL_Quit();
     return 0;
 }

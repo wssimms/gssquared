@@ -110,7 +110,8 @@ public:
      * @param window_height Height of the window
      */
     OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Window *windowp, SlotManager_t *slot_manager, int window_width, int window_height, AssetAtlas_t *aa);
-
+    ~OSD();
+    
     /**
      * @brief Gets the SDL window associated with this OSD.
      * @return Pointer to the SDL window

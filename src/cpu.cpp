@@ -125,3 +125,9 @@ void cpu_state::reset() {
     halt = 0; // if we were STPed etc.
     pc = read_word(RESET_VECTOR);
 }
+
+cpu_state::~cpu_state() {
+    if (trace_buffer) {
+        delete trace_buffer;
+    }
+}

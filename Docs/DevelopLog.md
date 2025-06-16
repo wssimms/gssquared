@@ -4565,7 +4565,7 @@ Put it into UI.
 
 This can all happen in a special event loop, since none of the emulation is running. Once the main event loop exits, it can come back to this.
 
-[ ] So, F12 powers off the machine and returns to the menu.  
+[x] So, F12 powers off the machine and returns to the menu.  
 
 ## Jun 13, 2025
 
@@ -4587,3 +4587,50 @@ Rendering time for a text frame is now down to 230us when scrolling a lot. When 
 Debugger uses 440-450uS when trace is open. That's a lot lower. the unneeded OSD drawing was probably taking 100-130uS per frame. Keep eye on issue where window close to screen edge was flaking out.. I wonder if drawing OSD in negative coords all the time was causing that issue.
 
 Well, how hard could it be to do a shutdown thing with F12 now?
+
+[ ] all the text buttons need padding respected again.  
+[ ] Work from the linux build machine, to clean up memory allocation on VM shutdown.  
+[ ] pull sdl init / deinit out of the loop. that can't be good. but the screen textures are probably taking up a lot of space.
+
+We leak about 100-150MB per power on / power off iteration on the Mac.
+
+## Jun 14, 2025
+
+checking out the code that William Simms did, to generate video per emulated cycle. It works! I'm not 100% sure about some of the colors being right - hard to tell, I could have typed my program in wrong :-) 
+It does limit the CPU to 135MHz or so. It does also work at higher clock rates, which makes sense, because if he's timing the virtual scanlines based on virtual clocks, that's fine, he's just generating many more FPS than a 1MHz machine. It does slow down the maximum speed, but, it is still pretty darn fast.
+
+So, can we have this as a separate display module, and if so, how? Calling a different frame-generator is no big deal. Let's see how he is creating the output.. maybe there are optimizations.
+
+First thought - skip all this and use current video if not in 1mhz mode. second - there is a lot of math going on here. masks, bit shifting, and a fair number of conditionals. a call to get_module_state.
+
+It uses vcount/hcount to generate a memory address based on the video mode. Instead of that, how about a lookup table? Precalculate the memory addresses for each possible hcount/vcount on the display. Different table of course for each possible combination of "normal" video mode. if we switch video mode in the middle of a scanline, it's no big deal, we automagically switch to a different LUT. Maybe don't need to do that.
+
+He's doing small LUTs to convert each video memory value to "bits". Which the current code does though it converts to bytes.
+
+What if we did this as a separate thread? We'd have to synchronize the threads. Could get hairy. Scratch that.
+
+These things are cool (and accurate) though they have limited (no?) practical application.
+incr_cycle: a macro: increment cycles; if incr_handler is non null call it. inline.
+So William's code (the cycle-accurate) would only kick in when the system is in 1MHz mode. In faster modes the current approach is used.
+
+Switch the frame processors to read from an array of bits, like I've wanted. Then those bits can be constructed in one of two ways:
+* William's code
+* a frame pre-processor - as we have it now, except we generate a bit stream instead of a byte stream.
+
+And maybe take this opportunity to handle dhgr which can start 7 pixels early. So the buffer is not 560 pixels, but.. 567 ?
+
+Now, let's contrast this with the approach I had been considering, which is to store cycle times of display mode changes and consider those when rendering out frames. This feels like special-casing and doing a lot of work. It would require a special frame pre-processor. Which is ok. Instead of "hires", "lores", etc. it would be "any mode" and would operate very similarly to the math in William's code except instead of doing it in incr_cycle interleaved with CPU execution, it is done in a tight loop by itself. In fact we can have the function pointer point to a function specialized for the video mode we're in. A lot fewer IF's.
+
+He suggests RGB might be hard with just a bitwise approach but isn't that what I'm doing now? I just go back and cheat and fill in spaces between pixels.
+
+Oops. Just sitting at the retro experience menu, we're leaking memory. Whoopsie!
+
+there is no leak running with the VM on. started VM, then stopped. now 138MB. start: 193, then 145MB. now 150MB. ok, definitely some leakage.. Hmm, we need to shut down the audio system.
+
+[ ] sometimes after a stop vm and start new vm it's like reset got hit right away.  
+
+now I am leaking while just running the drive at boot. HMM. tracing? turn off tracing.
+once I open the debug window, it uses and does not free up memory. maybe I should destroy the debug window and renderer..
+leaking just sitting at basic prompt. Hm, audio routines?
+
+pretty dramatic leak in OSD. Ah, but maybe only when built with debug, asan, etc.

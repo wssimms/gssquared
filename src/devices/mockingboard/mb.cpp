@@ -1304,4 +1304,10 @@ void init_slot_mockingboard(computer_t *computer, SlotType_t slot) {
         generate_mockingboard_frame(mb_d);
         return true;
     });
+
+    computer->register_shutdown_handler([mb_d, dev_id]() {
+        SDL_DestroyAudioStream(mb_d->stream);
+        delete mb_d;
+        return true;
+    });
 }

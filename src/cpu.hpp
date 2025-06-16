@@ -207,6 +207,8 @@ struct cpu_state {
     uint64_t instructions_left = 0;
 
     void init();
+    ~cpu_state();
+    
     void set_processor(int processor_type);
     void reset();
     

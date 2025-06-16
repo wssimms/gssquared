@@ -36,6 +36,7 @@ class ExecuteCommand {
 
     public:
         ExecuteCommand(MMU *mmu, MonitorCommand *cmd, MemoryWatch *watches, MemoryWatch *breaks, Disassembler *disasm);
+        ~ExecuteCommand();
         const std::vector<std::string>& getOutput() const;
         void clearOutput();
         void execute();
