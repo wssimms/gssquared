@@ -522,6 +522,18 @@ OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Wind
 
 }
 
+OSD::~OSD() {
+    SDL_DestroyTexture(cpTexture);
+    delete text_render;
+    delete title_trender;
+    for (Container_t* container : containers) {
+        delete container;
+    }
+    delete diskii_save_con;
+    delete close_btn;
+    delete open_btn;
+}
+
 void OSD::update() {
 
     /** Control panel slide in/out logic */ 

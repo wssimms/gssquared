@@ -33,7 +33,7 @@ struct Device_t {
     const char *name;
     bool multipleInstances = false;
     void (*power_on)(computer_t *computer, SlotType_t slot_number);
-    void (*power_off)(computer_t *computer, SlotType_t slot_number);
+    void (*power_off)(void *context);
 };
 
 Device_t *get_device(device_id id);

@@ -25,6 +25,7 @@ struct reset_handler_rec {
 struct computer_t {
 
     using ResetHandler = std::function<bool ()>;
+    using ShutdownHandler = std::function<bool ()>;
 
     cpu_state *cpu = nullptr;
     MMU_II *mmu = nullptr;
@@ -44,7 +45,8 @@ struct computer_t {
     Mounts *mounts = nullptr;
 
     std::vector<ResetHandler> reset_handlers;
-
+    std::vector<ShutdownHandler> shutdown_handlers;
+    
     void *module_store[MODULE_NUM_MODULES];
     SlotData *slot_store[NUM_SLOTS];
 
@@ -54,6 +56,7 @@ struct computer_t {
     void reset(bool cold_start);
 
     void register_reset_handler(ResetHandler handler);
+    void register_shutdown_handler(ShutdownHandler handler);
 
     void *get_module_state( module_id_t module_id);
     void set_module_state( module_id_t module_id, void *state);

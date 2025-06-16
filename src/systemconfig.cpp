@@ -17,7 +17,7 @@
 
 #include "gs2.hpp"
 #include "systemconfig.hpp"
-
+#include "ui/MainAtlas.hpp"
 
 DeviceMap_t DeviceMap_II[] = {
     {DEVICE_ID_KEYBOARD_IIPLUS, SLOT_NONE},
@@ -59,18 +59,21 @@ SystemConfig_t BuiltinSystemConfigs[] = {
         "Apple ][", 
         PLATFORM_APPLE_II, 
         DeviceMap_II,
+        Badge_II,
         true
     },
     {
         "Apple ][+", 
         PLATFORM_APPLE_II_PLUS, 
         DeviceMap_IIPLUS,
+        Badge_IIPlus,
         true
     },
     {
         "Apple IIe",
         PLATFORM_APPLE_IIE,
         DeviceMap_IIE,
+        Badge_IIE,
         true
     },
 /*     {

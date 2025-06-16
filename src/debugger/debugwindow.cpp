@@ -99,6 +99,16 @@ debug_window_t::debug_window_t(computer_t *computer) {
     resize_window(); // first time we need to calculate the pane locations and window size.
 }
 
+debug_window_t::~debug_window_t() {
+    SDL_DestroyWindow(window);
+    SDL_DestroyRenderer(renderer);
+    delete text_renderer;
+    delete tab_container;
+    delete mon_textinput;
+    if (disasm) delete disasm;
+    if (step_disasm) delete step_disasm;
+}
+
 bool debug_window_t::check_breakpoint(system_trace_entry_t *entry) {
     for (MemoryWatch::iterator watch = breaks.begin(); watch != breaks.end(); ++watch) {
         if ((entry->pc >= watch->start && entry->pc <= watch->end) ||

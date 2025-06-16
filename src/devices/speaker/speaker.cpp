@@ -155,6 +155,35 @@ void speaker_memory_write(void *context, uint16_t address, uint8_t value) {
     log_speaker_blip((cpu_state *)context);
 }
 
+
+void speaker_start(cpu_state *cpu) {
+    speaker_state_t *speaker_state = (speaker_state_t *)get_module_state(cpu, MODULE_SPEAKER);
+    int16_t *working_buffer = speaker_state->working_buffer;
+
+    // Start audio playback
+    // put a frame of blank audio into the buffer to prime the pump.
+
+    if (!SDL_ResumeAudioDevice(speaker_state->device_id)) {
+        std::cerr << "Error resuming audio device: " << SDL_GetError() << std::endl;
+    }
+    memset(working_buffer, 0, SAMPLE_BUFFER_SIZE * sizeof(int16_t));
+    SDL_PutAudioStreamData(speaker_state->stream, working_buffer, SAMPLES_PER_FRAME*sizeof(int16_t));
+
+    speaker_state->device_started = 1;
+}
+
+void speaker_stop(cpu_state *cpu) {
+    speaker_state_t *speaker_state = (speaker_state_t *)get_module_state(cpu, MODULE_SPEAKER);
+    int16_t *working_buffer = speaker_state->working_buffer;
+
+    // Stop audio playback
+    memset(working_buffer, 0, SAMPLE_BUFFER_SIZE * sizeof(int16_t));
+    SDL_PutAudioStreamData(speaker_state->stream, working_buffer, SAMPLE_BUFFER_SIZE*sizeof(int16_t));
+
+    SDL_PauseAudioDevice(speaker_state->device_id);  // 1 means pause
+    speaker_state->device_started = 0;
+}
+
 void init_mb_speaker(computer_t *computer,  SlotType_t slot) {
     cpu_state *cpu = computer->cpu;
 
@@ -198,42 +227,22 @@ void init_mb_speaker(computer_t *computer,  SlotType_t slot) {
     for (uint16_t addr = 0xC030; addr <= 0xC03F; addr++) {
         cpu->mmu->set_C0XX_read_handler(addr, { speaker_memory_read, cpu });
         cpu->mmu->set_C0XX_write_handler(addr, { speaker_memory_write, cpu });
-        //register_C0xx_memory_read_handler(addr, speaker_memory_read);
-        //register_C0xx_memory_write_handler(addr, speaker_memory_write);
     }
     speaker_state->preFilter = new LowPassFilter();
     speaker_state->preFilter->setCoefficients(8000.0f, (double)1020500); // 1020500 is actual possible sample rate of input toggles.
     speaker_state->postFilter = new LowPassFilter();
     speaker_state->postFilter->setCoefficients(8000.0f, (double)SAMPLE_RATE);
+
+    computer->register_shutdown_handler([speaker_state, cpu]() {
+        speaker_stop(cpu);
+        SDL_DestroyAudioStream(speaker_state->stream);
+        //SDL_CloseAudioDevice(speaker_state->device_id);
+        //SDL_QuitSubSystem(SDL_INIT_AUDIO);
+        delete speaker_state;
+        return true;
+    });
 }
 
-void speaker_start(cpu_state *cpu) {
-    speaker_state_t *speaker_state = (speaker_state_t *)get_module_state(cpu, MODULE_SPEAKER);
-    int16_t *working_buffer = speaker_state->working_buffer;
-
-    // Start audio playback
-    // put a frame of blank audio into the buffer to prime the pump.
-
-    if (!SDL_ResumeAudioDevice(speaker_state->device_id)) {
-        std::cerr << "Error resuming audio device: " << SDL_GetError() << std::endl;
-    }
-    memset(working_buffer, 0, SAMPLE_BUFFER_SIZE * sizeof(int16_t));
-    SDL_PutAudioStreamData(speaker_state->stream, working_buffer, SAMPLES_PER_FRAME*sizeof(int16_t));
-
-    speaker_state->device_started = 1;
-}
-
-void speaker_stop(cpu_state *cpu) {
-    speaker_state_t *speaker_state = (speaker_state_t *)get_module_state(cpu, MODULE_SPEAKER);
-    int16_t *working_buffer = speaker_state->working_buffer;
-
-    // Stop audio playback
-    memset(working_buffer, 0, SAMPLE_BUFFER_SIZE * sizeof(int16_t));
-    SDL_PutAudioStreamData(speaker_state->stream, working_buffer, SAMPLE_BUFFER_SIZE*sizeof(int16_t));
-
-    SDL_PauseAudioDevice(speaker_state->device_id);  // 1 means pause
-    speaker_state->device_started = 0;
-}
 
 /**
  * this is for debugging. This will write a log file with the following data:

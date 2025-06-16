@@ -22,3 +22,4 @@
 extern uint8_t *frameBuffer;
 
 void init_displayng();
+void deinit_displayng();

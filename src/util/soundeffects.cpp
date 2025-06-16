@@ -73,9 +73,9 @@ static bool load_soundeffect(SDL_AudioDeviceID audio_device, const char *fname, 
 }
 
 /* This function runs once at startup. */
-bool soundeffects_init(cpu_state *cpu)
+bool soundeffects_init(computer_t *computer)
 {
-    speaker_state_t *speaker_state = (speaker_state_t *)get_module_state(cpu, MODULE_SPEAKER);
+    speaker_state_t *speaker_state = (speaker_state_t *)get_module_state(computer->cpu, MODULE_SPEAKER);
 
     SDL_SetAppMetadata("Example Audio Multiple Streams", "1.0", "com.example.audio-multiple-streams");
 
@@ -85,6 +85,13 @@ bool soundeffects_init(cpu_state *cpu)
             return false;
         }
     }
+    computer->register_shutdown_handler([]() {
+        for (int i = 0; i < SDL_arraysize(soundeffects); i++) {
+            SDL_DestroyAudioStream(soundeffects[i].stream);
+            SDL_free(soundeffects[i].wav_data);
+        }
+        return true;
+    });
     return true;
 }
 

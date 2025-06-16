@@ -687,6 +687,13 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
         return handle_display_event(ds, event);
     });
 
+    computer->register_shutdown_handler([ds]() {
+        SDL_DestroyTexture(ds->screenTexture);
+        deinit_displayng();
+        delete ds;
+        return true;
+    });
+
 }
 
 void display_dump_file(cpu_state *cpu, const char *filename, uint16_t base_addr, uint16_t sizer) {

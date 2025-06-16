@@ -40,6 +40,7 @@ enum MainAtlas {
     RGBDisplayButton,
     Badge_IIPlus,
     Badge_II,
+    Badge_IIE,
     MainAtlas_count
 };
 

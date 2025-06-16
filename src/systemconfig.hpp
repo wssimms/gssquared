@@ -28,6 +28,7 @@ struct SystemConfig_t {
     const char *name;
     PlatformId_t platform_id;
     DeviceMap_t *device_map;
+    int image_id;
     bool builtin;
 };
 

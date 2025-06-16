@@ -134,6 +134,19 @@ void videx_write_C0xx(void *context, uint16_t addr, uint8_t data) {
     }
 }
 
+void deinit_slot_videx(videx_data *videx_d) {
+    delete videx_d->rom;
+    for (int i = 0; i < VIDEX_CHAR_SET_COUNT; i++) {
+        if (videx_d->char_sets[i] != nullptr) {
+            delete videx_d->char_sets[i];
+        }
+    }
+    delete videx_d->screen_memory;
+    delete videx_d->char_memory;
+    delete videx_d->buffer;
+    delete videx_d;
+}
+
 void init_slot_videx(computer_t *computer, SlotType_t slot) {
     cpu_state *cpu = computer->cpu;
     
@@ -222,4 +235,9 @@ void init_slot_videx(computer_t *computer, SlotType_t slot) {
 
     computer->mmu->set_C8xx_handler(slot, map_rom_videx, videx_d );
 
+    computer->register_shutdown_handler([videx_d]() {
+        SDL_DestroyTexture(videx_d->videx_texture);
+        deinit_slot_videx(videx_d);
+        return true;
+    });
 }
