@@ -25,7 +25,7 @@ computer_t::computer_t() {
     device_frame_dispatcher = new DeviceFrameDispatcher();
 
     cpu = new cpu_state();
-    cpu->init();
+    //cpu->init();
 
     mounts = new Mounts(cpu);
 

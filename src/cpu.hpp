@@ -197,14 +197,15 @@ struct cpu_state {
     /* Tracing & Debug */
     /* These are CPU controls, leave them here */
     bool trace = false;
-    system_trace_buffer *trace_buffer;
+    system_trace_buffer *trace_buffer = nullptr;
     system_trace_entry_t trace_entry;
     execution_modes_t execution_mode = EXEC_NORMAL;
     uint64_t instructions_left = 0;
 
-    void init();
+    //void init();
+    cpu_state();
     ~cpu_state();
-    
+
     void set_processor(int processor_type);
     void reset();
     

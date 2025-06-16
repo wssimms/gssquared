@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
 
     cpu_state *cpu = new cpu_state();
     cpu->set_processor(PROCESSOR_6502);
-    cpu->init();
+    //cpu->init();
     cpu->trace = trace_on;
     cpu->set_mmu(mmu);
 

@@ -4627,10 +4627,92 @@ Oops. Just sitting at the retro experience menu, we're leaking memory. Whoopsie!
 
 there is no leak running with the VM on. started VM, then stopped. now 138MB. start: 193, then 145MB. now 150MB. ok, definitely some leakage.. Hmm, we need to shut down the audio system.
 
-[ ] sometimes after a stop vm and start new vm it's like reset got hit right away.  
+[ ] sometimes after a stop vm and start new vm it's like reset got hit but the vm starts right back up where it left off. Whaa? I should erase all of RAM on MMU init.  
 
 now I am leaking while just running the drive at boot. HMM. tracing? turn off tracing.
 once I open the debug window, it uses and does not free up memory. maybe I should destroy the debug window and renderer..
 leaking just sitting at basic prompt. Hm, audio routines?
 
 pretty dramatic leak in OSD. Ah, but maybe only when built with debug, asan, etc.
+
+## Jun 15, 2025
+
+so, this has some ugly:
+```
+void update_display(cpu_state *cpu) {
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    annunciator_state_t * anc_d = (annunciator_state_t *)get_module_state(cpu, MODULE_ANNUNCIATOR);
+    videx_data * videx_d = (videx_data *)get_slot_state_by_id(cpu, DEVICE_ID_VIDEX);
+
+    // the backbuffer must be cleared each frame. The docs state this clearly
+    // but I didn't know what the backbuffer was. Also, I assumed doing it once
+    // at startup was enough. NOPE.
+    ds->video_system->clear();
+
+    if (videx_d && ds->display_mode == TEXT_MODE && anc_d && anc_d->annunciators[0] ) {
+        update_display_videx(cpu, videx_d ); 
+    } else {
+        update_display_apple2(cpu);
+    }
+    // TODO: IIgs will need a hook here too - do same video update callback function.
+}
+```
+
+This functionality should get pushed down into videosystem. And video devices should register their frame processor (FP) routines for videosystem to select which ones get executed at any given time, using the sort of priority system noted earlier. if a FP returns true it means it is active and handled it. Otherwise we go to the next priority routine.
+
+So what that looks like:
+
+mb_display registers with priority 0. videx registers with priority 1.
+videx in its FP looks up the annunciator state. (This should be done with MessageBus)
+
+## Jun 16, 2025
+
+I think the approach of reading video memory --as it is in a given cycle-- is correct. The memory could change between when the "beam" is at a given location, and the end of the frame. If we read the memory only at the end of the frame, we could display the "wrong" data. So let's consider optimizations again.
+
+He's got H and V counters already.
+First, additionally keep a cycle counter - a count of where we are in this frame. I believe, the counter can be up to H * V.
+Second, use that as an index into lookup table. VAddr, video address lookup.
+Have a VAddr LUT for each mode. Text, Lores, Hires; DText (80-col), DLGR, DHGR. Of course have to switch from graphics to text in mixed mode, which is based on the line counter. Each LUT is 15360 bytes (40 x 192 x 2 bytes) - bigger really since we track cycles outside the visible area. But you get the idea.
+
+Each LUT entry is the video memory address we fetch OR it's zero for "no video output this cycle" (i.e. outside the display area).
+We put the video data into a buffer, and also put the current mode into a buffer.
+Then, at the per-frame render stage, we process that buffer into bitstream.
+So we don't need H/V inside incr_cycle or any of the math.
+
+So incr_cycles looks like this:
+
+```
+inputs:
+ int mode; // // text, 80text; lgr, dlgr; hgr, dhgr; some flag also for mixed mode?
+ int cycle_in_frame; (0 - 17000ish)
+
+mega_ii_cycle() {
+  uint16_t vaddr = clut[mode][cycle_in_frame];
+  
+  if (vaddr) {
+    uint8_t video_data = mmu->video_read(vaddr) // also store internally for floating bus value
+    *vdata++ = video_data;
+    *vmode++ = video_mode
+  }
+}
+```
+
+for double hi-res and 80-column we have to read and emit two bytes into this buffer. The buffer is at most 3 bytes x 80 x 192 = 15360 bytes consumed.
+
+Lookup tables are initialized at boot time.
+
+composite bitmap: 560 / 64 is not even. we may need a slightly bigger buffer anyway to account for 80-mode shifting. 64 bits x 9 is 576. To process a scanline then we only do 9 64-bit reads. bit 63 = leftmost - using MSB here simplifies. We don't have to mask in at a high bit; we can just |= 0 or 1. Well it's the reverse on the other end, so it's six of one.
+
+OK let's do this for 0.4. I feel like I can put a pin in 0.3.5, the primary goal of which was refactoring to get things ready to start implementing IIe stuff.
+
+And I think we can start working on IIe Rev A as soon as I cut this. IIe rev a gives you: 80 column text but not dhgr or dlgr. This is actually a fun little step from II+. So:
+* 80-column card
+* extended 80-column card (128k)
+* IIe MMU (This integrates lang card stuff in a sort of new way, it has to also map to aux / etc., so new module)
+* 80-column text.
+
+Then IIe Rev B adds:
+* DLGR
+* DHGR
+
+We want to do Wm. code integration first.

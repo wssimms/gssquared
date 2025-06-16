@@ -109,6 +109,7 @@ video_system_t::video_system_t(computer_t *computer) {
 video_system_t::~video_system_t() {
     if (renderer) SDL_DestroyRenderer(renderer);
     if (window) SDL_DestroyWindow(window);
+    if (clip) delete clip;
     SDL_Quit();
 }
 
@@ -275,4 +276,18 @@ void video_system_t::flip_display_scale_mode() {
         scale_mode = SDL_SCALEMODE_LINEAR;
     }
     set_full_frame_redraw();
+}
+
+void video_system_t::register_frame_processor(int weight, FrameHandler handler) {
+    frame_handlers.insert({weight, handler});
+}
+
+void video_system_t::update_display() {
+    clear(); // clear the backbuffer.
+
+    for (const auto& pair : frame_handlers) {
+        if (pair.second()) {
+            break; // Stop processing if handler returns true
+        }
+    }
 }
