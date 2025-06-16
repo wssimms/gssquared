@@ -395,41 +395,75 @@ void rgb_video_cycle (cpu_state *cpu)
     }
     else
     {
-        uint8_t color = 0;
-        uint8_t count = 3;
-        uint8_t vbyte = ds->video_byte;
-        uint8_t shift = vbyte & 0x80;
+        uint8_t  col1 = 0;
+        uint8_t  col2 = 0;
+        uint8_t  count = 3;
+        uint8_t  shift = ds->video_byte & 0x80;
+        uint16_t vbyte = ds->video_byte;
 
         if (ds->hcount & 1) {
-            vbyte = (vbyte << 1) | (last_byte >> 6);
+            vbyte = (vbyte << 3) | (last_byte >> 4);
+            count = 5;
+            x -= 3;
+        }
+        else {
+            vbyte = (vbyte << 2) | (last_byte >> 5);
             count = 4;
-            x -= 2; // only did 12 pixels last time, will do 16 this time.
+            x -= 1;
         }
 
         if (shift) {
             for (int i = count; i; --i) {
-                switch (vbyte & 3) {
-                    case 0: color = 0;  break; /* black */
-                    case 1: color = 6;  break; /* orange */
-                    case 2: color = 9;  break; /* blue */
-                    case 3: color = 15; break; /* white */
+                switch (vbyte & 15) {
+                    case 0:  col1 = col2 = 0;  break; /* black */
+                    case 1:  col1 = col2 = 0;  break; /* black */
+                    case 2:  col1 = col2 = 9;  break; /* orange */
+                    case 3:  col1 = 15; col2 = 0; break; /* white, black */
+                    case 4:  col1 = col2 = 6;  break; /* blue */
+                    case 5:  col1 = col2 = 6;  break; /* blue */
+                    case 6:  col1 = col2 = 15; break; /* white */
+                    case 7:  col1 = col2 = 15; break; /* white */
+                    case 8:  col1 = col2 = 0;  break; /* black */
+                    case 9:  col1 = col2 = 0;  break; /* black */
+                    case 10: col1 = col2 = 9;  break; /* orange */
+                    case 11: col1 = 15; col2 = 0;  break; /* white, black */
+                    case 12: col1 = 0;  col2 = 15; break; /* black, white */
+                    case 13: col1 = 0;  col2 = 15; break; /* black, white */
+                    case 14: col1 = col2 = 15; break; /* white */
+                    case 15: col1 = col2 = 15; break; /* white */
                 }
                 vbyte >>= 2;
-                for (int j = 4; j; --j)
-                    ds->rgbpixels[y][x++] = color;
+                ds->rgbpixels[y][x++] = col1;
+                ds->rgbpixels[y][x++] = col1;
+                ds->rgbpixels[y][x++] = col2;
+                ds->rgbpixels[y][x++] = col2;
             }
         }
         else {
             for (int i = count; i; --i) {
-                switch (vbyte & 3) {
-                    case 0: color = 0;  break; /* black */
-                    case 1: color = 3;  break; /* green */
-                    case 2: color = 12; break; /* purple */
-                    case 3: color = 15; break; /* white */
+                switch (vbyte & 15) {
+                    case 0:  col1 = col2 = 0;  break; /* black */
+                    case 1:  col1 = col2 = 0;  break; /* black */
+                    case 2:  col1 = col2 = 12; break; /* green */
+                    case 3:  col1 = 15; col2 = 0; break; /* white, black */
+                    case 4:  col1 = col2 = 3;  break; /* purple */
+                    case 5:  col1 = col2 = 3;  break; /* purple */
+                    case 6:  col1 = col2 = 15; break; /* white */
+                    case 7:  col1 = col2 = 15; break; /* white */
+                    case 8:  col1 = col2 = 0;  break; /* black */
+                    case 9:  col1 = col2 = 0;  break; /* black */
+                    case 10: col1 = col2 = 12; break; /* green */
+                    case 11: col1 = 15; col2 = 0;  break; /* white, black */
+                    case 12: col1 = 0;  col2 = 15; break; /* black, white */
+                    case 13: col1 = 0;  col2 = 15; break; /* black, white */
+                    case 14: col1 = col2 = 15; break; /* white */
+                    case 15: col1 = col2 = 15; break; /* white */
                 }
                 vbyte >>= 2;
-                for (int j = 4; j; --j)
-                    ds->rgbpixels[y][x++] = color;
+                ds->rgbpixels[y][x++] = col1;
+                ds->rgbpixels[y][x++] = col1;
+                ds->rgbpixels[y][x++] = col2;
+                ds->rgbpixels[y][x++] = col2;
             }
         }
 
@@ -507,7 +541,6 @@ void incr_cycles(cpu_state *cpu)
         apple_ii_video_scanner(cpu);
         for (int i = 0; i < cpu->num_bus_cycle_items; ++i)
             cpu->bus_cycle_item[i](cpu);
-        ntsc_video_cycle(cpu); // should be a bus_cycle_item
     }
 };
 
