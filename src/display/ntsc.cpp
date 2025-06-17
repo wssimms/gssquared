@@ -338,14 +338,158 @@ void processAppleIIFrame_Mono (
 }
 #endif
 
-/** Generate a 'frame' (i.e., a group of 8 scanlines) of video output data using the lookup table.  */
-void newProcessAppleIIFrame_LUT (
+extern uint16_t text40_bits[256];
+extern uint16_t hgr_bits[256];
+extern uint16_t lgr_bits[32];
+
+void old_ntsc_video_cycle (cpu_state *cpu)
+{
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+
+    // don't generate video signal during horizontal and vertical blanking periods
+    if (ds->video_vbl || ds->video_hbl) return;
+
+    int16_t vidbits = 0;
+
+    if (ds->display_mode == TEXT_MODE) // need to also do mixed
+    {
+        uint8_t *char_rom = (*cpu->rd->char_rom_data);
+        uint8_t vbyte = char_rom[8 * ds->video_byte + (ds->vcount & 7)];
+
+        // for inverse, xor the pixels with 0xFF to invert them.
+        if ((ds->video_byte & 0xC0) == 0) {  // inverse
+            vbyte ^= 0xFF;
+        } else if (((ds->video_byte & 0xC0) == 0x40)) {  // flash
+            vbyte ^= ds->flash_state ? 0xFF : 0;
+        }
+        for (int count = 7; count; --count) {
+            vidbits = (vidbits << 1) | (vbyte & 1);
+            vidbits = (vidbits << 1) | (vbyte & 1);
+            vbyte >>= 1;
+        }
+    }
+    else if (ds->display_graphics_mode == LORES_MODE)
+    {
+        uint8_t vbyte = ds->video_byte;
+        vbyte = (vbyte >> (ds->vcount & 4)) & 0x0F;  // hi or lo nibble
+        vbyte = (vbyte << 1) | (ds->hcount & 1); // even/odd columns
+        vidbits = lgr_bits[vbyte];
+    }
+    else {
+        vidbits = hgr_bits[ds->video_byte];
+    }
+
+    ds->vidbits[ds->vcount - 0x100][ds->hcount - 0x58] = vidbits;
+}
+
+void newProcessAppleIIFrame_NTSC (
     cpu_state *cpu,             // access to cpu->vidbits
     RGBA* outputImage           // Will be filled with 560x192 RGBA pixels
 )
 {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
 
+    uint8_t  video_idx;
+    uint16_t video_bits;
+    uint16_t rawbits = 0;
+    uint32_t ntscbits = 0;
+    uint32_t vcount = 0;
+    uint32_t hcount = 0;
+    uint32_t phase = 0;
+    uint32_t count = 0;
+
+    for (int i = 0; i < ds->video_data_size; i++)
+    {
+        video_mode_t video_mode = (video_mode_t)(ds->video_data[i++]);
+        uint8_t video_byte = ds->video_data[i++];
+
+        switch (video_mode)
+        {
+        default:
+        case VM_TEXT40:
+        output_text:
+            video_idx = (*cpu->rd->char_rom_data)[8 * video_byte + (vcount & 7)];
+
+            // for inverse, xor the pixels with 0xFF to invert them.
+            if ((video_byte & 0xC0) == 0) {  // inverse
+                video_idx ^= 0xFF;
+            } else if (((video_byte & 0xC0) == 0x40)) {  // flash
+                video_idx ^= ds->flash_state ? 0xFF : 0;
+            }
+
+            video_bits = text40_bits[video_idx];
+            break;
+
+        case VM_LORES:
+        output_lores:
+            video_idx = video_byte;
+            video_idx = (video_idx >> (ds->vcount & 4)) & 0x0F;  // hi or lo nibble
+            video_idx = (video_idx << 1) | (ds->hcount & 1); // even/odd columns
+            video_bits = lgr_bits[video_idx];
+            break;
+
+        case VM_HIRES:
+        output_hires:
+            video_idx = video_byte;
+            video_bits = hgr_bits[video_idx];
+            break;
+
+        case VM_LORES_MIXED:
+            if ((vcount >= 160 && vcount < 192) || (vcount >= 224 && vcount < 256))
+                goto output_text;
+            goto output_lores;
+
+        case VM_HIRES_MIXED:
+            if ((vcount >= 160 && vcount < 192) || (vcount >= 224 && vcount < 256))
+                goto output_text;
+            goto output_hires;
+        }
+
+        if (hcount == 0) {
+            count = 14;
+            rawbits = rawbits | video_bits;
+
+            for (int i = NUM_TAPS; i; --i)
+            {
+                ntscbits = ntscbits >> 1;
+                if (rawbits & 1)
+                    ntscbits = ntscbits | (1 << ((NUM_TAPS*2)));
+                rawbits = rawbits >> 1;
+                --count;
+            }
+        }
+
+        for ( ; count; --count)
+        {
+            ntscbits = ntscbits >> 1;
+            if (rawbits & 1)
+                ntscbits = ntscbits | (1 << ((NUM_TAPS*2)));
+            rawbits = rawbits >> 1;
+
+            //  Use the phase and the bits as the index
+            outputImage[0] = g_hgr_LUT[phase][ntscbits];
+            outputImage++;
+            phase = (phase+1) & 3;
+        }
+
+        if (++hcount == 40) {
+            for (int count = NUM_TAPS; count; --count) {
+                ntscbits = ntscbits >> 1;
+                outputImage[0] = g_hgr_LUT[phase][ntscbits];
+                outputImage++;
+                phase = (phase+1) & 3;
+            }
+
+            hcount = 0;
+            rawbits = 0;
+            ntscbits = 0;
+
+            ++vcount;
+        }
+    }
+}
+
+void myOldNTSC(display_state_t *ds, RGBA* outputImage) {
     // Process each scanline
     for (int line = 0; line < 192; line++)
     {

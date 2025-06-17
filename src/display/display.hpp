@@ -53,6 +53,21 @@ typedef enum {
     LM_HIRES_MODE   = 2
 } line_mode_t;
 
+typedef enum {
+    VM_TEXT40 = 0,
+    VM_TEXT80,
+    VM_LORES,
+    VM_DLORES,
+    VM_HIRES,
+    VM_DHIRES,
+    VM_SHR320,
+    VM_SHR640,
+    VM_LORES_MIXED,
+    VM_DLORES_MIXED,
+    VM_HIRES_MIXED,
+    VM_DHIRES_MIXED
+} video_mode_t;
+
 /** Display Modes */
 /* 
 typedef enum {
@@ -115,14 +130,27 @@ public:
     bool flash_state;
     int flash_counter;
 
-    // variables set by apple_ii_video_scanner()
-    bool     video_vbl;
-    bool     video_hbl;
-    bool     display_text;
-    uint8_t  video_byte;
-    uint16_t video_address;
-    uint32_t hcount;
-    uint32_t vcount;
+    // LUTs for video addresses
+    uint16_t apple_ii_lores_p1_addresses[65*262];
+    uint16_t apple_ii_lores_p2_addresses[65*262];
+    uint16_t apple_ii_hires_p1_addresses[65*262];
+    uint16_t apple_ii_hires_p2_addresses[65*262];
+    uint16_t apple_ii_mixed_p1_addresses[65*262];
+    uint16_t apple_ii_mixed_p2_addresses[65*262];
+    uint16_t (*video_addresses)[65*262];
+
+    // video mode/memory data
+    // 1 byte of mode and up to 2 bytes of memory data for each cycle.
+    uint8_t video_data[3*65*262];
+    int video_data_size;
+
+    bool         video_vbl;
+    bool         video_hbl;
+    uint8_t      video_byte;
+
+    uint32_t     hcount;       // use separate hcount and vcount in order
+    uint32_t     vcount;       // to simplify IIgs scanline interrupts
+    video_mode_t video_mode;
 
     // variables set by ntsc_video_cycle()
     bool     kill_color;
@@ -130,16 +158,6 @@ public:
 
     // variables set by rgb_video_cycle()
     uint8_t  rgbpixels[192][560];
-
-    // variables set by soft switches and used by apple_ii_video_scanner()
-    uint32_t page_bit;
-    uint32_t lores_mode_mask;
-    uint32_t hires_mode_mask;
-
-    /*
-    uint32_t dirty_line[24];
-    line_mode_t line_mode[24] = {LM_TEXT_MODE}; // 0 = TEXT, 1 = LO RES GRAPHICS, 2 = HI RES GRAPHICS
-    */
 
     uint8_t *buffer = nullptr;
     EventQueue *event_queue;

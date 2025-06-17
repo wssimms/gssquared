@@ -230,15 +230,18 @@ bool new_update_display_apple2(cpu_state *cpu) {
     switch (vs->display_color_engine) {
         case DM_ENGINE_NTSC:
             if (ds->kill_color)
-                newProcessAppleIIFrame_Mono(cpu, (RGBA *)(ds->buffer), p_white);
+                //newProcessAppleIIFrame_Mono(cpu, (RGBA *)(ds->buffer), p_white);
+                newProcessAppleIIFrame_NTSC(cpu, (RGBA *)(ds->buffer));
             else
-                newProcessAppleIIFrame_LUT(cpu, (RGBA *)(ds->buffer));
+                newProcessAppleIIFrame_NTSC(cpu, (RGBA *)(ds->buffer));
             break;
         case DM_ENGINE_RGB:               
             newProcessAppleIIFrame_RGB(cpu, (RGBA *)(ds->buffer));               
             break;
+
         default:
-            newProcessAppleIIFrame_Mono(cpu, (RGBA *)(ds->buffer), vs->get_mono_color());
+            //newProcessAppleIIFrame_Mono(cpu, (RGBA *)(ds->buffer), vs->get_mono_color());
+            newProcessAppleIIFrame_NTSC(cpu, (RGBA *)(ds->buffer));
             break;
     }
 
@@ -330,56 +333,84 @@ void update_line_mode(display_state_t *ds) {
 }
 #endif
 
+void set_video_mode(display_state_t *ds)
+{
+    // Set combined mode
+    if (ds->display_mode == TEXT_MODE) {
+        ds->video_mode = VM_TEXT40;
+    }
+    else if (ds->display_graphics_mode == LORES_MODE) {
+        if (ds->display_split_mode == FULL_SCREEN)
+            ds->video_mode = VM_LORES;
+        else
+            ds->video_mode = VM_LORES_MIXED;
+    }
+    else if (ds->display_split_mode == FULL_SCREEN) {
+        ds->video_mode = VM_HIRES;
+    }
+    else {
+        ds->video_mode = VM_HIRES_MIXED;
+    }
+
+    // Set corresponding video address LUT
+    if (ds->display_mode == TEXT_MODE || ds->display_graphics_mode == LORES_MODE) {
+        if (ds->display_page_num == DISPLAY_PAGE_1)
+            ds->video_addresses = &(ds->apple_ii_lores_p1_addresses);
+        else
+            ds->video_addresses = &(ds->apple_ii_lores_p2_addresses);
+    }
+    else if (ds->display_split_mode == FULL_SCREEN) {
+        if (ds->display_page_num == DISPLAY_PAGE_1)
+            ds->video_addresses = &(ds->apple_ii_hires_p1_addresses);
+        else
+            ds->video_addresses = &(ds->apple_ii_hires_p2_addresses);
+    }
+    else {
+        if (ds->display_page_num == DISPLAY_PAGE_1)
+            ds->video_addresses = &(ds->apple_ii_mixed_p1_addresses);
+        else
+            ds->video_addresses = &(ds->apple_ii_mixed_p2_addresses);
+    }
+}
+
 // TODO: These should be set from an array of parameters.
 void set_display_page(display_state_t *ds, display_page_number_t page) {
-    //ds->display_page_table = &display_pages[page];
     ds->display_page_num = page;
+    set_video_mode(ds);
 }
 
 void set_display_page1(display_state_t *ds) {
     set_display_page(ds, DISPLAY_PAGE_1);
-    ds->page_bit = 0x2000;
 }
 
 void set_display_page2(display_state_t *ds) {
     set_display_page(ds, DISPLAY_PAGE_2);
-    ds->page_bit = 0x4000;
 }
 
 void set_display_mode(display_state_t *ds, display_mode_t mode)
 {
     ds->display_mode = mode;
-    //update_line_mode(ds);
-
-    if (mode == TEXT_MODE || ds->display_graphics_mode == LORES_MODE) {
-        ds->lores_mode_mask = 0x1C00;
-        ds->hires_mode_mask = 0;
-    }
-    else {
-        ds->lores_mode_mask = 0;
-        ds->hires_mode_mask = 0x7C00;
-    }
+    set_video_mode(ds);
 }
 
 void set_graphics_mode(display_state_t *ds, display_graphics_mode_t mode) {
 
     ds->display_graphics_mode = mode;
-    //update_line_mode(ds);
-
-    if (mode == LORES_MODE || ds->display_mode == TEXT_MODE) {
-        ds->lores_mode_mask = 0x1C00;
-        ds->hires_mode_mask = 0;
-    }
-    else {
-        ds->lores_mode_mask = 0;
-        ds->hires_mode_mask = 0x7C00;
-    }
+    set_video_mode(ds);
 }
 
 void set_split_mode(display_state_t *ds, display_split_mode_t mode) {
 
     ds->display_split_mode = mode;
-    //update_line_mode(ds);
+    set_video_mode(ds);
+}
+
+void set_display_full(display_state_t *ds) {
+    set_split_mode(ds, FULL_SCREEN);
+}
+
+void set_display_split(display_state_t *ds) {
+    set_split_mode(ds, SPLIT_SCREEN);
 }
 
 #ifdef BAZYAR
@@ -482,7 +513,7 @@ uint8_t txt_bus_read_C052(void *context, uint16_t address) {
     display_state_t *ds = (display_state_t *)context;
     // set full screen
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Full Screen\n");
-    set_split_mode(ds, FULL_SCREEN);
+    set_display_full(ds);
     //ds->video_system->set_full_frame_redraw();
     return ds->video_byte;
 }
@@ -496,7 +527,7 @@ uint8_t txt_bus_read_C053(void *context, uint16_t address) {
     display_state_t *ds = (display_state_t *)context;
     // set split screen
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Split Screen\n");
-    set_split_mode(ds, SPLIT_SCREEN);
+    set_display_split(ds);
     //ds->video_system->set_full_frame_redraw();
     return ds->video_byte;
 }
@@ -582,9 +613,10 @@ display_state_t::display_state_t() {
     flash_counter = 0;
 
     kill_color = true;
-    display_text = true;
-    hcount = 0x7F;
-    vcount = 0xFF;
+    hcount = 0;
+    vcount = 0;
+    video_mode = VM_TEXT40;
+    video_addresses = &apple_ii_lores_p1_addresses;
 
     buffer = new uint8_t[BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA)];
     memset(buffer, 0, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA)); // TODO: maybe start it with apple logo?

@@ -90,6 +90,21 @@ void make_flipped(void) {
     }
 }
 
+
+uint16_t text40_bits[256];
+void make_text40_bits(void) {
+    uint16_t vidbits;
+    for (uint16_t n = 0; n < 256; ++n) {
+        for (int count = 7; count; --count) {
+            uint16_t textbits = n;
+            vidbits = (vidbits << 1) | (textbits & 1);
+            vidbits = (vidbits << 1) | (textbits & 1);
+            textbits >>= 1;
+        }
+        text40_bits[n] = vidbits;
+    }   
+}
+
 uint16_t hgr_bits[256];
 void make_hgr_bits(void) {
     for (uint16_t n = 0; n < 256; ++n) {
@@ -290,71 +305,12 @@ void make_lgr_bits(void) {
  * A2-A0, A6-A3, A9-A7, A15-A10.
  */
 
-bool ntsc_video_lazy_init = false;
+bool video_lazy_init = false;
 int text_cycles = 0;
-
-void ntsc_video_cycle (cpu_state *cpu)
-{
-    if (!ntsc_video_lazy_init) {
-        // lazy initialization
-        make_flipped();
-        make_hgr_bits();
-        make_lgr_bits();
-        ntsc_video_lazy_init = true;
-    }
-
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-
-    if (ds->display_text) {
-        if (text_cycles >= (192*65*2)) // 2 frames
-            ds->kill_color = true;
-        else
-            ++text_cycles;
-    }
-    else {
-        text_cycles = 0;
-        ds->kill_color = false;
-    }
-
-    // don't generate video signal during horizontal and vertical blanking periods
-    if (ds->video_vbl || ds->video_hbl) return;
-
-    int16_t vidbits = 0;
-
-    if (ds->display_text)
-    {
-        uint8_t *char_rom = (*cpu->rd->char_rom_data);
-        uint8_t vbyte = char_rom[8 * ds->video_byte + (ds->vcount & 7)];
-
-        // for inverse, xor the pixels with 0xFF to invert them.
-        if ((ds->video_byte & 0xC0) == 0) {  // inverse
-            vbyte ^= 0xFF;
-        } else if (((ds->video_byte & 0xC0) == 0x40)) {  // flash
-            vbyte ^= ds->flash_state ? 0xFF : 0;
-        }
-        for (int count = 7; count; --count) {
-            vidbits = (vidbits << 1) | (vbyte & 1);
-            vidbits = (vidbits << 1) | (vbyte & 1);
-            vbyte >>= 1;
-        }
-    }
-    else if (ds->display_graphics_mode == LORES_MODE)
-    {
-        uint8_t vbyte = ds->video_byte;
-        vbyte = (vbyte >> (ds->vcount & 4)) & 0x0F;  // hi or lo nibble
-        vbyte = (vbyte << 1) | (ds->hcount & 1); // even/odd columns
-        vidbits = lgr_bits[vbyte];
-    }
-    else {
-        vidbits = hgr_bits[ds->video_byte];
-    }
-
-    ds->vidbits[ds->vcount - 0x100][ds->hcount - 0x58] = vidbits;
-}
 
 void mono_video_cycle (cpu_state *cpu)
 {
-    ntsc_video_cycle(cpu);
+    //ntsc_video_cycle(cpu);
 }
 
 void rgb_video_cycle (cpu_state *cpu)
@@ -369,7 +325,7 @@ void rgb_video_cycle (cpu_state *cpu)
     int x = 14 * (ds->hcount - 0x58);
     int y = ds->vcount - 0x100;
 
-    if (ds->display_text)
+    if (ds->display_mode == TEXT_MODE) // need to also do mixed
     {
         uint8_t *char_rom = (*cpu->rd->char_rom_data);
         uint8_t vbyte = char_rom[8 * ds->video_byte + (ds->vcount & 7)];
@@ -471,61 +427,106 @@ void rgb_video_cycle (cpu_state *cpu)
     }
 }
 
+void init_apple_ii_video_addresses(display_state_t *ds)
+{
+    uint32_t hcount = 0;     // beginning of right border
+    uint32_t vcount = 0x100; // first scanline at top of screen
+
+    for (int idx = 0; idx < 62*262; ++idx)
+    {
+        // A2-A0 = H2-H0
+        uint32_t A2toA0 = hcount & 7;
+
+        // A6-A3
+        uint32_t V3V4V3V4 = ((vcount & 0xC0) >> 1) | ((vcount & 0xC0) >> 3);
+        uint32_t A6toA3 = (0x68 + (hcount & 0x38) + V3V4V3V4) & 0x78;
+
+        // A9-A7 = V2-V0
+        uint32_t A9toA7 = (vcount & 0x38) << 4;
+
+        // A15-A10
+        uint32_t HBL = (hcount < 0x58);
+        uint32_t LoresA15toA10 = 0x400 | (HBL << 12);
+        uint32_t HiresA15toA10 = (0x2000 | ((vcount & 7) << 10));
+
+        uint32_t lores_address = A2toA0 | A6toA3 | A9toA7 | LoresA15toA10;
+        uint32_t hires_address = A2toA0 | A6toA3 | A9toA7 | HiresA15toA10;
+
+        bool mixed_mode_text = (vcount >= 0x1A0 && vcount < 0x1C0) || (vcount >= 0x1E0);
+
+        ds->apple_ii_lores_p1_addresses[idx] = lores_address;
+        ds->apple_ii_lores_p2_addresses[idx] = lores_address + 0x400;
+
+        ds->apple_ii_hires_p1_addresses[idx] = hires_address;
+        ds->apple_ii_hires_p2_addresses[idx] = hires_address + 0x2000;
+
+        if (mixed_mode_text) {
+            ds->apple_ii_mixed_p1_addresses[idx] = lores_address;
+            ds->apple_ii_mixed_p2_addresses[idx] = lores_address + 0x400;
+        }
+        else {
+            ds->apple_ii_mixed_p1_addresses[idx] = hires_address;
+            ds->apple_ii_mixed_p2_addresses[idx] = hires_address + 0x2000;
+        }
+
+        if (hcount) {
+            hcount = (hcount + 1) & 0x7F;
+            if (hcount == 0) {
+                vcount = (vcount + 1) & 0x1FF;
+                if (vcount == 0)
+                    vcount = 0xFA;
+            }
+        }
+        else {
+            hcount = 0x40;
+        }
+    }
+}
+
 void apple_ii_video_scanner(cpu_state *cpu)
 {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
 
-    if (ds->hcount) {
-        ds->hcount = (ds->hcount + 1) & 0x7F;
-        if (ds->hcount == 0) {
-            ds->vcount = (ds->vcount + 1) & 0x1FF;
-            if (ds->vcount == 0)
-                ds->vcount = 0xFA;
-        }
+    if (!video_lazy_init) {
+        // lazy initialization
+        make_flipped();
+        make_hgr_bits();
+        make_lgr_bits();
+        make_text40_bits();
+        init_apple_ii_video_addresses(ds);
+        video_lazy_init = true;
+    }
+
+    if (ds->hcount++ == 65) {
+        ds->hcount = 0;
+        if (ds->vcount++ == 262)
+            ds->vcount = 0;
+    }
+
+    // color killer (maybe can be done in per-frame rendering)
+    if (ds->video_mode == VM_TEXT40) {
+        if (text_cycles >= (192*65*2)) // 2 frames
+            ds->kill_color = true;
+        else
+            ++text_cycles;
     }
     else {
-        ds->hcount = 0x40;
+        text_cycles = 0;
+        ds->kill_color = false;
     }
 
-    ds->video_vbl = ds->vcount < 0x100 || ds->vcount >= 0x1C0;
-    ds->video_hbl = ds->hcount < 0x58;
+    uint16_t address = (*(ds->video_addresses))[65*ds->vcount+ds->hcount];
 
-    // A2-A0 = H2-H0
-    uint32_t A2toA0 = ds->hcount & 7;
+    ds->video_byte = cpu->mmu->read_raw(address);
 
-    // A6-A3
-    uint32_t V3V4V3V4 = ((ds->vcount & 0xC0) >> 1) | ((ds->vcount & 0xC0) >> 3);
-    uint32_t A6toA3 = (0x68 + (ds->hcount & 0x38) + V3V4V3V4) & 0x78;
+    ds->video_hbl = (ds->hcount < 25);
+    ds->video_vbl = (ds->vcount >= 192);
 
-    // A9-A7 = V2-V0
-    uint32_t A9toA7 = (ds->vcount & 0x38) << 4;
+    if (ds->video_vbl || ds->video_hbl)
+        return;
 
-    // build masks for mixed mode text/lores vs. hires
-    ds->display_text = true;
-    uint32_t mixed_lores_mask = 0x1C00;
-    uint32_t mixed_hires_mask = 0;
-    if (ds->display_split_mode == FULL_SCREEN || (ds->vcount & 0xA0) != 0xA0)
-    {
-        ds->display_text = (ds->display_mode == TEXT_MODE);
-        mixed_lores_mask = 0;
-        mixed_hires_mask = 0x7C00;
-    }
-
-    // text/lores addresses if text/lores mode OR mixed mode text scanlines
-    uint32_t combined_lores_mask = mixed_lores_mask | ds->lores_mode_mask;
-    // hires addresses if hires mode AND mixed mode hires scanlines
-    uint32_t combined_hires_mask = mixed_hires_mask & ds->hires_mode_mask;
-
-    // A15-A10
-    uint32_t HBL = (ds->hcount < 0x58) << 12;
-    uint32_t VCVBVA = ds->vcount & 7;
-    uint32_t LoresA15toA10 = (combined_lores_mask) & (HBL | (ds->page_bit >> 3));
-    uint32_t HiresA15toA10 = (combined_hires_mask) & (ds->page_bit | (VCVBVA << 10));
-    uint32_t A15toA10 = LoresA15toA10 | HiresA15toA10;
-
-    ds->video_address = A2toA0 | A6toA3 | A9toA7 | A15toA10;
-
-    ds->video_byte = cpu->mmu->read_raw(ds->video_address);
+    ds->video_data[ds->video_data_size++] = (uint8_t)ds->video_mode;
+    ds->video_data[ds->video_data_size++] = ds->video_byte;
 }
 
 void incr_cycles(cpu_state *cpu)
@@ -538,23 +539,3 @@ void incr_cycles(cpu_state *cpu)
     }
 };
 
-#if 0
-void test_mega_ii_cycle(cpu_state *cpu)
-{
-    uint32_t address;
-    int times = 17030;
-
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-
-    while (times) {
-        --times;
-        //address = mega_ii_cycle(cpu);
-        /*
-        if (ds->hcount == 0) {
-            printf("vcount:%4.4x hcount:%4.4x at %4.4x\n", ds->vcount, ds->hcount, address);
-            //if (vcount == 0x1FF) break;
-        }
-        */
-    }
-}
-#endif
