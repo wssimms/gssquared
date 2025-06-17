@@ -141,56 +141,19 @@ void unidisk_button_click(void *userdata) {
 void set_color_display_ntsc(void *data) {
     cpu_state *cpu = (cpu_state *)data;
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    switch (ds->video_system->display_color_engine) {
-        case DM_ENGINE_RGB:
-            cpu->remove_bus_cycle_item(rgb_video_cycle);
-            break;
-        case DM_ENGINE_MONO:
-            cpu->remove_bus_cycle_item(mono_video_cycle);
-            break;
-        default:
-            return;
-    }
     //printf("set_color_display_ntsc %p\n", data);
-    cpu->add_bus_cycle_item(ntsc_video_cycle);
     ds->video_system->set_display_engine(DM_ENGINE_NTSC);
 }
 
 void set_color_display_rgb(void *data) {
     cpu_state *cpu = (cpu_state *)data;
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    switch (ds->video_system->display_color_engine) {
-        case DM_ENGINE_NTSC:
-            cpu->remove_bus_cycle_item(rgb_video_cycle);
-            break;
-        case DM_ENGINE_MONO:
-            cpu->remove_bus_cycle_item(mono_video_cycle);
-            break;
-        default:
-            return;
-    }
     //printf("set_color_display_rgb %p\n", data);
-    cpu->add_bus_cycle_item(rgb_video_cycle);
     ds->video_system->set_display_engine(DM_ENGINE_RGB);
 }
 
 void set_mono_display(cpu_state *cpu, display_mono_color_t mono_color) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    switch (ds->video_system->display_color_engine) {
-        case DM_ENGINE_NTSC:
-            cpu->remove_bus_cycle_item(ntsc_video_cycle);
-            break;
-        case DM_ENGINE_RGB:
-            cpu->remove_bus_cycle_item(rgb_video_cycle);
-            break;
-        case DM_ENGINE_MONO:
-            if (ds->video_system->display_mono_color != mono_color)
-                ds->video_system->set_display_mono_color(mono_color);
-            return;
-        default:
-            return;
-    }
-    cpu->add_bus_cycle_item(mono_video_cycle);
     ds->video_system->set_display_engine(DM_ENGINE_MONO);
     ds->video_system->set_display_mono_color(mono_color);
 }

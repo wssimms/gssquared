@@ -197,10 +197,6 @@ struct cpu_state {
     float e_mhz = 0;
 
     uint64_t ns_since_bus_cycle = 0;
-    int num_bus_cycle_items = 0;
-    bus_cycle_item_t bus_cycle_item[MAX_NUM_BUS_CYCLE_ITEMS];
-    void add_bus_cycle_item (bus_cycle_item_t bci);
-    void remove_bus_cycle_item (bus_cycle_item_t bci);
     
     execute_next_fn execute_next;
 

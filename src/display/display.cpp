@@ -221,7 +221,7 @@ bool update_display_apple2(cpu_state *cpu) {
  * This is effectively a "redraw the entire screen each frame" method now.
  * With an optimization only update dirty lines.
  */
-void new_update_display_apple2(cpu_state *cpu) {
+bool new_update_display_apple2(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     video_system_t *vs = ds->video_system;
 
@@ -247,12 +247,26 @@ void new_update_display_apple2(cpu_state *cpu) {
 
     if (!SDL_LockTexture(ds->screenTexture, NULL, &pixels, &pitch)) {
         fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
-        return;
+        return false;
     }
     memcpy(pixels, ds->buffer, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA)); // load all buffer into texture
     SDL_UnlockTexture(ds->screenTexture);
 
     vs->render_frame(ds->screenTexture);
+
+    return true;
+}
+
+void update_flash_state(cpu_state *cpu) {
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+
+    // 2 times per second (every 30 frames), the state of flashing characters (those matching 0b01xxxxxx) must be reversed.
+    
+    if (++(ds->flash_counter) < 15) {
+        return;
+    }
+    ds->flash_counter = 0;
+    ds->flash_state = !ds->flash_state;
 }
 
 /* void update_display(cpu_state *cpu) {
@@ -698,7 +712,7 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     });
 
     vs->register_frame_processor(0, [cpu]() -> bool {
-        return update_display_apple2(cpu);
+        return new_update_display_apple2(cpu);
     });
 
 }

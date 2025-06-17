@@ -475,10 +475,6 @@ void apple_ii_video_scanner(cpu_state *cpu)
 {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
 
-    if (cpu->num_bus_cycle_items == 0) {
-        cpu->add_bus_cycle_item(ntsc_video_cycle);
-    }
-
     if (ds->hcount) {
         ds->hcount = (ds->hcount + 1) & 0x7F;
         if (ds->hcount == 0) {
@@ -539,8 +535,6 @@ void incr_cycles(cpu_state *cpu)
     if (cpu->ns_since_bus_cycle >= clock_mode_info[CLOCK_1_024MHZ].cycle_duration_ns) {
         cpu->ns_since_bus_cycle -= clock_mode_info[CLOCK_1_024MHZ].cycle_duration_ns;
         apple_ii_video_scanner(cpu);
-        for (int i = 0; i < cpu->num_bus_cycle_items; ++i)
-            cpu->bus_cycle_item[i](cpu);
     }
 };
 
