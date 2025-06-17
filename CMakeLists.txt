@@ -244,6 +244,8 @@ add_library(gs2_ui src/ui/AssetAtlas.cpp src/ui/Container.cpp src/ui/DiskII_Butt
     src/ui/FadeButton.cpp src/ui/Clipboard.cpp src/ui/TextInput.cpp src/ui/SelectSystem.cpp
 )
 
+add_library(gs2_displaypp src/devices/displaypp/frame/frame_bit.cpp src/devices/displaypp/frame/frame_byte.cpp)
+
 add_library(gs2_message_bus src/mbus/MessageBus.cpp)
 
 #add_library(gs2_oldmmu src/memory.cpp src/bus.cpp )
@@ -315,6 +317,8 @@ add_subdirectory(apps/cputest)
 add_subdirectory(apps/montest)
 
 add_subdirectory(apps/cycletest)
+
+add_subdirectory(apps/dpp)
 
 ################################################################################
 #### Packaging targets per platform
