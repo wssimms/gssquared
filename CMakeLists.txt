@@ -251,7 +251,7 @@ add_library(gs2_message_bus src/mbus/MessageBus.cpp)
 #add_library(gs2_oldmmu src/memory.cpp src/bus.cpp )
 
 target_link_libraries(gs2_ui SDL3_image::SDL3_image-shared SDL3_ttf::SDL3_ttf-shared)
-target_link_libraries(gs2_debugger SDL3_ttf::SDL3_ttf-shared)
+target_link_libraries(gs2_debugger gs2_util SDL3_ttf::SDL3_ttf-shared)
 target_link_libraries(gs2_util SDL3_ttf::SDL3_ttf-shared)
 target_link_libraries(gs2_computer SDL3_ttf::SDL3_ttf-shared)
 
