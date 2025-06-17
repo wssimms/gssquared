@@ -31,10 +31,12 @@ void init_displayng() {
     setupConfig();
     generate_filters(NUM_TAPS);
 
+    /*
     uint64_t start = SDL_GetTicksNS();
     init_hgr_LUT();
     uint64_t end = SDL_GetTicksNS();
     std::cout << "init_hgr_LUT took " << (end - start) / 1000.0 << " microseconds" << std::endl;
+    */
 }
 
 void deinit_displayng() {
