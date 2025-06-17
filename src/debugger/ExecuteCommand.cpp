@@ -283,6 +283,26 @@ void ExecuteCommand::execute() {
                 addFormattedOutput( "$%02X: %10s | %10s", i, mmu->get_read_d(i), mmu->get_write_d(i));
             }
         }
-        
+    }
+    if ((node0.type == MON_NODE_TYPE_COMMAND) && (node0.val_cmd == MON_CMD_MOVE)) {
+        if (cmd->nodes.size() < 3) {
+            addOutput("Usage: move lo.hi address");
+            return;
+        }
+        // move memory from range to address
+        auto &node1 = cmd->nodes[1];
+        if (node1.type != MON_NODE_TYPE_RANGE) {
+            addOutput("Error: expected range as first argument");
+            return;
+        }
+        auto &node2 = cmd->nodes[2];
+        if (node2.type != MON_NODE_TYPE_NUMBER) {
+            addOutput("Error: expected address as second argument");
+            return;
+        }
+        for (int i = node1.val_range.lo; i <= node1.val_range.hi; i++) {
+            mmu->write(node2.val_number + (i - node1.val_range.lo), mmu->read(i));
+        }
+        addFormattedOutput("Moved %d bytes from %04X to %04X", node1.val_range.hi - node1.val_range.lo + 1, node1.val_range.lo, node2.val_number);
     }
 }
