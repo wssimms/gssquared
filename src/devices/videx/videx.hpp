@@ -91,6 +91,7 @@ const videx_char_set_file_t videx_char_roms[VIDEX_CHAR_SET_COUNT] = {
 typedef struct videx_data: public SlotData {
     video_system_t *video_system = nullptr;
     MMU *mmu = nullptr;
+    cpu_state *cpu = nullptr;
     
     SDL_Texture *videx_texture = nullptr;
     uint8_t *buffer = nullptr; // 640x216x4

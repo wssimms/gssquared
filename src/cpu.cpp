@@ -101,28 +101,7 @@ void set_slot_irq(cpu_state *cpu, uint8_t slot, bool irq) {
     }
 }
 
-void cpu_state::add_bus_cycle_item (bus_cycle_item_t bci)
-{
-    if (num_bus_cycle_items < MAX_NUM_BUS_CYCLE_ITEMS) {
-        bus_cycle_item[num_bus_cycle_items++] = bci;
-    }
-}
-
-void cpu_state::remove_bus_cycle_item (bus_cycle_item_t bci)
-{
-    for (int i = 0; i < num_bus_cycle_items; ++i) {
-        if (bus_cycle_item[i] == bci) {
-            while (i+1 < num_bus_cycle_items) {
-                bus_cycle_item[i] = bus_cycle_item[i+1];
-                i = i+1;
-            }
-            --num_bus_cycle_items;
-            return;
-        }
-    }
-}
-
-void cpu_state::init() {
+cpu_state::cpu_state() {
     pc = 0x0400;
     sp = rand() & 0xFF; // simulate a random stack pointer
     a = 0;
@@ -136,6 +115,14 @@ void cpu_state::init() {
     trace_buffer = new system_trace_buffer(100000);
 
     set_clock_mode(this, CLOCK_1_024MHZ);
+
+    // initialize these things
+    for (int i = 0; i < NUM_SLOTS; i++) {
+        slot_store[i] = nullptr;
+    }
+    for (int i = 0; i < MODULE_NUM_MODULES; i++) {
+        module_store[i] = nullptr;
+    }
 }
 
 void cpu_state::set_processor(int processor_type) {
@@ -148,7 +135,7 @@ void cpu_state::reset() {
 }
 
 cpu_state::~cpu_state() {
-    if (trace_buffer) {
+    if (trace_buffer != nullptr) {
         delete trace_buffer;
     }
 }

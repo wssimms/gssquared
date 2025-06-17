@@ -1,6 +1,8 @@
 #pragma once
 
 #include <SDL3/SDL.h>
+#include <functional>
+#include <map>
 #include "computer.hpp"
 #include "util/EventQueue.hpp"
 #include "display/types.hpp"
@@ -40,6 +42,10 @@ typedef enum {
 
 
 struct video_system_t {
+    using FrameHandler = std::function<bool()>;
+
+    std::multimap<int, FrameHandler, std::greater<int>> frame_handlers;
+
     SDL_Window *window; // primary emulated display window
     SDL_Renderer* renderer;
 
@@ -89,6 +95,8 @@ struct video_system_t {
     void set_display_engine(display_color_engine_t mode);
     void set_display_mono_color(display_mono_color_t mode);
     void flip_display_scale_mode();
+    void register_frame_processor(int weight, FrameHandler handler);
+    void update_display();
     RGBA get_mono_color() { return mono_color_table[display_mono_color]; };
     uint32_t get_mono_color_u() { return mono_color_table_u[display_mono_color]; };
 };

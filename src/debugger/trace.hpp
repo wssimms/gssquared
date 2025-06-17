@@ -38,6 +38,7 @@ struct system_trace_buffer {
     size_t count;
 
     system_trace_buffer(size_t capacity);
+    ~system_trace_buffer();
 
     void add_entry(const system_trace_entry_t &entry);
 

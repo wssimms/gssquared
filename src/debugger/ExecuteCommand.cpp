@@ -16,7 +16,6 @@ ExecuteCommand::ExecuteCommand(MMU *mmu, MonitorCommand *cmd, MemoryWatch *watch
 
 ExecuteCommand::~ExecuteCommand() {
     clearOutput();
-    if (disasm) delete disasm;
 }
 
 const std::vector<std::string>& ExecuteCommand::getOutput() const {

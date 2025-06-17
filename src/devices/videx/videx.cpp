@@ -23,6 +23,7 @@
 #include "display/types.hpp"
 #include "videx_80x24.hpp"
 #include "videosystem.hpp"
+#include "devices/annunciator/annunciator.hpp"
 
 void videx_set_line_dirty(videx_data * videx_d, int line) {
     if (line>=0 && line<24) {
@@ -147,6 +148,23 @@ void deinit_slot_videx(videx_data *videx_d) {
     delete videx_d;
 }
 
+bool videx_frame(videx_data *videx_d) {
+    cpu_state *cpu = videx_d->cpu;
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    annunciator_state_t * anc_d = (annunciator_state_t *)get_module_state(cpu, MODULE_ANNUNCIATOR);
+
+    // the backbuffer must be cleared each frame. The docs state this clearly
+    // but I didn't know what the backbuffer was. Also, I assumed doing it once
+    // at startup was enough. NOPE.
+    videx_d->video_system->clear();
+
+    if (videx_d && ds->display_mode == TEXT_MODE && anc_d && anc_d->annunciators[0] ) {
+        update_display_videx(cpu, videx_d ); 
+        return true;
+    }
+    return false;
+}
+
 void init_slot_videx(computer_t *computer, SlotType_t slot) {
     cpu_state *cpu = computer->cpu;
     
@@ -154,6 +172,7 @@ void init_slot_videx(computer_t *computer, SlotType_t slot) {
     videx_data * videx_d = new videx_data;
     videx_d->video_system = vs;
     videx_d->mmu = computer->mmu;
+    videx_d->cpu = cpu;
 
     videx_d->id = DEVICE_ID_VIDEX;
     // set in CPU so we can reference later
@@ -239,5 +258,9 @@ void init_slot_videx(computer_t *computer, SlotType_t slot) {
         SDL_DestroyTexture(videx_d->videx_texture);
         deinit_slot_videx(videx_d);
         return true;
+    });
+
+    computer->video_system->register_frame_processor(1, [videx_d]() {
+        return videx_frame(videx_d);
     });
 }

@@ -174,7 +174,7 @@ void init_display_font(rom_data *rd) {
  * This is effectively a "redraw the entire screen each frame" method now.
  * With an optimization only update dirty lines.
  */
-void update_display_apple2(cpu_state *cpu) {
+bool update_display_apple2(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     video_system_t *vs = ds->video_system;
 
@@ -206,13 +206,14 @@ void update_display_apple2(cpu_state *cpu) {
         int pitch;
         if (!SDL_LockTexture(ds->screenTexture, NULL, &pixels, &pitch)) {
             fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
-            return;
+            return true;
         }
         memcpy(pixels, ds->buffer, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA)); // load all buffer into texture
         SDL_UnlockTexture(ds->screenTexture);
     }
     vs->force_full_frame_redraw = false;
     vs->render_frame(ds->screenTexture);
+    return true;
 }
 #endif
 
@@ -254,7 +255,7 @@ void new_update_display_apple2(cpu_state *cpu) {
     vs->render_frame(ds->screenTexture);
 }
 
-void update_display(cpu_state *cpu) {
+/* void update_display(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     annunciator_state_t * anc_d = (annunciator_state_t *)get_module_state(cpu, MODULE_ANNUNCIATOR);
     videx_data * videx_d = (videx_data *)get_slot_state_by_id(cpu, DEVICE_ID_VIDEX);
@@ -268,7 +269,7 @@ void update_display(cpu_state *cpu) {
     // the backbuffer must be cleared each frame. The docs state this clearly
     // but I didn't know what the backbuffer was. Also, I assumed doing it once
     // at startup was enough. NOPE.
-    ds->video_system->clear(); // TODO: this should probably go down into videosystem.
+    ds->video_system->clear();
 
     if (videx_d && ds->display_mode == TEXT_MODE && anc_d && anc_d->annunciators[0] ) {
         update_display_videx(cpu, videx_d ); 
@@ -277,7 +278,7 @@ void update_display(cpu_state *cpu) {
         new_update_display_apple2(cpu);
     }
     // TODO: IIgs will need a hook here too - do same video update callback function.
-}
+} */
 
 #ifdef BAZYAR
 void force_display_update(display_state_t *ds) {
@@ -694,6 +695,10 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
         deinit_displayng();
         delete ds;
         return true;
+    });
+
+    vs->register_frame_processor(0, [cpu]() -> bool {
+        return update_display_apple2(cpu);
     });
 
 }

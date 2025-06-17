@@ -14,6 +14,12 @@
         count = 0;
     }
 
+    system_trace_buffer::~system_trace_buffer() {
+        if (entries != nullptr) {
+            delete[] entries;
+        }
+    }
+
     void system_trace_buffer::add_entry(const system_trace_entry_t &entry) {
         memcpy(&entries[head], &entry, sizeof(system_trace_entry_t));
         head++;

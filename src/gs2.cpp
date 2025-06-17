@@ -291,8 +291,8 @@ void run_cpus(computer_t *computer) {
         current_time = SDL_GetTicksNS();
         if ((this_free_run) && (current_time - last_display_update > 16667000)
             || (!this_free_run)) {
-            //update_flash_state(cpu);
-            update_display(cpu);    
+            update_flash_state(cpu); // TODO: this goes into display.cpp frame handler.
+            computer->video_system->update_display();    
             osd->render();
             computer->debug_window->render();
             computer->video_system->present();
@@ -314,7 +314,7 @@ void run_cpus(computer_t *computer) {
         }
 
         if (cpu->halt == HLT_USER) {
-            update_display(cpu); // update one last time to show the last state.
+            computer->video_system->update_display(); // update one last time to show the last state.
             break;
         }
 
@@ -500,12 +500,11 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    update_display(computer->cpu); // check for events 60 times per second.
+    computer->video_system->update_display(); // check for events 60 times per second.
 
     run_cpus(computer);
 
     // deallocate stuff.
-    // TODO: call shutdown() handlers on all devices from the systemconfig.
 
     delete osd;
     delete computer;
