@@ -9,7 +9,7 @@
 #include "Clipboard.hpp"
 
 #define MAX_CLIP_WIDTH (640)
-#define MAX_CLIP_HEIGHT (216)
+#define MAX_CLIP_HEIGHT (216*2)
 
 ClipboardImage::ClipboardImage( ) {
     clip_buffer = new uint8_t[sizeof(BMPHeader) + (MAX_CLIP_WIDTH * MAX_CLIP_HEIGHT * 3)];
@@ -20,7 +20,7 @@ const void *clip_callback(void *userdata, const char *mime_type, size_t *size) {
     // TODO: for now just assume BMP only
     
     ClipboardImage *clip = (ClipboardImage *)userdata;
-    size_t calcsize = sizeof(BMPHeader) + (clip->header->infoHeader.width * clip->header->infoHeader.height * 3);
+    size_t calcsize = sizeof(BMPHeader) + (clip->header->infoHeader.width * (clip->header->infoHeader.height * 2) * 3);
     //printf("clip_callback: %s (%d)\n", mime_type, calcsize);
     *size = calcsize;
     return clip->clip_buffer;
