@@ -15,6 +15,9 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#undef BAZYAR
+#ifdef BAZYAR
+
 #include <cstdio>
 #include <unistd.h>
 #include <cstdlib>
@@ -314,3 +317,5 @@ void txt_memory_write(void *context, uint16_t address, uint8_t value) {
 uint8_t txt_bus_read(cpu_state *cpu, uint16_t address) {
     return 0;
 }
+
+#endif

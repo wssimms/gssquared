@@ -110,7 +110,7 @@ public:
     display_split_mode_t display_split_mode;
     display_graphics_mode_t display_graphics_mode;
     display_page_number_t display_page_num;
-    display_page_t *display_page_table;
+    //display_page_t *display_page_table;
 
     bool flash_state;
     int flash_counter;
@@ -136,8 +136,10 @@ public:
     uint32_t lores_mode_mask;
     uint32_t hires_mode_mask;
 
+    /*
     uint32_t dirty_line[24];
     line_mode_t line_mode[24] = {LM_TEXT_MODE}; // 0 = TEXT, 1 = LO RES GRAPHICS, 2 = HI RES GRAPHICS
+    */
 
     uint8_t *buffer = nullptr;
     EventQueue *event_queue;

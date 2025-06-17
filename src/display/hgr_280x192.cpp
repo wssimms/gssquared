@@ -15,6 +15,8 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#undef BAZYAR
+#ifdef BAZYAR
 
 #include "gs2.hpp"
 #include "hgr_280x192.hpp"
@@ -144,3 +146,5 @@ void hgr_memory_write(void *context, uint16_t address, uint8_t value) {
 
     ds->dirty_line[y_loc] = 1;
 }
+
+#endif

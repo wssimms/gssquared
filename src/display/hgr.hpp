@@ -15,6 +15,9 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#undef BAZYAR
+#ifdef BAZYAR
+
 #pragma once
 
 #include <vector>
@@ -34,3 +37,5 @@ typedef enum {
 
 void render_hgrng_scanline(cpu_state *cpu, int y, uint8_t *pixels);
 void emitBitSignalHGR(uint8_t *hiresData, uint8_t *bitSignalOut, size_t outputOffset, int y);
+
+#endif

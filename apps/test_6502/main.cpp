@@ -180,7 +180,7 @@ void run_cpus(void) {
 #if 0
         if (current_time - last_display_update > 16667) {
             event_poll(cpu); // they say call "once per frame"
-            update_flash_state(cpu);
+            //update_flash_state(cpu);
             update_display(cpu); // check for events 60 times per second.
             last_display_update = current_time;
         }

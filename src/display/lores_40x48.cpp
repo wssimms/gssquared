@@ -16,6 +16,9 @@
  */
 
 
+#undef BAZYAR
+#ifdef BAZYAR
+
 #include "gs2.hpp"
 #include "cpu.hpp"
 #include "display.hpp"
@@ -95,3 +98,5 @@ void render_lores_scanline(cpu_state *cpu, int y, void *pixels, int pitch) {
         }    
     }
 }
+
+#endif

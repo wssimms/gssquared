@@ -15,9 +15,14 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#undef BAZYAR
+#ifdef BAZYAR
+
 #pragma once
 
 #include <cstdint>
 #include "cpu.hpp"
 
 void render_lores_scanline(cpu_state *cpu, int y, void *pixels, int pitch);
+
+#endif

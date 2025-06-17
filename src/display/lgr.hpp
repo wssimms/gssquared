@@ -15,9 +15,14 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#undef BAZYAR
+#ifdef BAZYAR
+
 #pragma once
 
 #include "cpu.hpp"
 
 #define CELL_WIDTH 14
 void render_lgrng_scanline(cpu_state *cpu, int y);
+
+#endif

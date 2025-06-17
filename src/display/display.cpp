@@ -38,7 +38,7 @@
 #include "videosystem.hpp"
 
 #undef BAZYAR
-
+#ifdef BAZYAR
 display_page_t display_pages[NUM_DISPLAY_PAGES] = {
     {
         0x0400,
@@ -169,7 +169,6 @@ display_page_t display_pages[NUM_DISPLAY_PAGES] = {
 void init_display_font(rom_data *rd) {
     pre_calculate_font(rd);
 }
-#ifdef BAZYAR
 
 /**
  * This is effectively a "redraw the entire screen each frame" method now.
@@ -260,6 +259,12 @@ void update_display(cpu_state *cpu) {
     annunciator_state_t * anc_d = (annunciator_state_t *)get_module_state(cpu, MODULE_ANNUNCIATOR);
     videx_data * videx_d = (videx_data *)get_slot_state_by_id(cpu, DEVICE_ID_VIDEX);
 
+    if (++(ds->flash_counter) < 15) {
+        return;
+    }
+    ds->flash_counter = 0;
+    ds->flash_state = !ds->flash_state;
+
     // the backbuffer must be cleared each frame. The docs state this clearly
     // but I didn't know what the backbuffer was. Also, I assumed doing it once
     // at startup was enough. NOPE.
@@ -312,29 +317,25 @@ void update_line_mode(display_state_t *ds) {
 
 // TODO: These should be set from an array of parameters.
 void set_display_page(display_state_t *ds, display_page_number_t page) {
-    ds->display_page_table = &display_pages[page];
+    //ds->display_page_table = &display_pages[page];
     ds->display_page_num = page;
 }
 
 void set_display_page1(display_state_t *ds) {
     set_display_page(ds, DISPLAY_PAGE_1);
-#if 1
     ds->page_bit = 0x2000;
-#endif
 }
 
 void set_display_page2(display_state_t *ds) {
     set_display_page(ds, DISPLAY_PAGE_2);
-#if 1
     ds->page_bit = 0x4000;
-#endif
 }
 
 void set_display_mode(display_state_t *ds, display_mode_t mode)
 {
     ds->display_mode = mode;
     //update_line_mode(ds);
-#if 1
+
     if (mode == TEXT_MODE || ds->display_graphics_mode == LORES_MODE) {
         ds->lores_mode_mask = 0x1C00;
         ds->hires_mode_mask = 0;
@@ -343,14 +344,13 @@ void set_display_mode(display_state_t *ds, display_mode_t mode)
         ds->lores_mode_mask = 0;
         ds->hires_mode_mask = 0x7C00;
     }
-#endif
 }
 
 void set_graphics_mode(display_state_t *ds, display_graphics_mode_t mode) {
 
     ds->display_graphics_mode = mode;
     //update_line_mode(ds);
-#if 1
+
     if (mode == LORES_MODE || ds->display_mode == TEXT_MODE) {
         ds->lores_mode_mask = 0x1C00;
         ds->hires_mode_mask = 0;
@@ -359,7 +359,6 @@ void set_graphics_mode(display_state_t *ds, display_graphics_mode_t mode) {
         ds->lores_mode_mask = 0;
         ds->hires_mode_mask = 0x7C00;
     }
-#endif
 }
 
 void set_split_mode(display_state_t *ds, display_split_mode_t mode) {
@@ -442,7 +441,7 @@ uint8_t txt_bus_read_C050(void *context, uint16_t address) {
     // set graphics mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Graphics Mode\n");
     set_display_mode(ds, GRAPHICS_MODE);
-    ds->video_system->set_full_frame_redraw();
+    //ds->video_system->set_full_frame_redraw();
     return ds->video_byte;
 }
 
@@ -455,7 +454,7 @@ uint8_t txt_bus_read_C051(void *context, uint16_t address) {
 // set text mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Text Mode\n");
     set_display_mode(ds, TEXT_MODE);
-    ds->video_system->set_full_frame_redraw();
+    //ds->video_system->set_full_frame_redraw();
     return ds->video_byte;
 }
 
@@ -469,7 +468,7 @@ uint8_t txt_bus_read_C052(void *context, uint16_t address) {
     // set full screen
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Full Screen\n");
     set_split_mode(ds, FULL_SCREEN);
-    ds->video_system->set_full_frame_redraw();
+    //ds->video_system->set_full_frame_redraw();
     return ds->video_byte;
 }
 
@@ -483,7 +482,7 @@ uint8_t txt_bus_read_C053(void *context, uint16_t address) {
     // set split screen
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Split Screen\n");
     set_split_mode(ds, SPLIT_SCREEN);
-    ds->video_system->set_full_frame_redraw();
+    //ds->video_system->set_full_frame_redraw();
     return ds->video_byte;
 }
 void txt_bus_write_C053(void *context, uint16_t address, uint8_t value) {
@@ -496,7 +495,7 @@ uint8_t txt_bus_read_C054(void *context, uint16_t address) {
     // switch to screen 1
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Switching to screen 1\n");
     set_display_page1(ds);
-    ds->video_system->set_full_frame_redraw();
+    //ds->video_system->set_full_frame_redraw();
     return ds->video_byte;
 }
 void txt_bus_write_C054(void *context, uint16_t address, uint8_t value) {
@@ -509,7 +508,7 @@ uint8_t txt_bus_read_C055(void *context, uint16_t address) {
     // switch to screen 2
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Switching to screen 2\n");
     set_display_page2(ds);
-    ds->video_system->set_full_frame_redraw();
+    //ds->video_system->set_full_frame_redraw();
     return ds->video_byte;
 }
 
@@ -523,7 +522,7 @@ uint8_t txt_bus_read_C056(void *context, uint16_t address) {
     // set lo-res (graphics) mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Lo-Res Mode\n");
     set_graphics_mode(ds, LORES_MODE);
-    ds->video_system->set_full_frame_redraw();
+    //ds->video_system->set_full_frame_redraw();
     return ds->video_byte;
 }
 
@@ -536,7 +535,7 @@ uint8_t txt_bus_read_C057(void *context, uint16_t address) {
     // set hi-res (graphics) mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Hi-Res Mode\n");
     set_graphics_mode(ds, HIRES_MODE);
-    ds->video_system->set_full_frame_redraw();
+    //ds->video_system->set_full_frame_redraw();
     return ds->video_byte;
 }
 
@@ -548,10 +547,11 @@ void txt_bus_write_C057(void *context, uint16_t address, uint8_t value) {
  * display_state_t Class Implementation
  */
 display_state_t::display_state_t() {
-
+    /*
     for (int i = 0; i < 24; i++) {
         dirty_line[i] = 0;
     }
+    */
 
     //debug_set_level(DEBUG_DISPLAY);
 
@@ -596,9 +596,9 @@ bool handle_display_event(display_state_t *ds, const SDL_Event &event) {
             if (config.videoSaturation < 0.0f) config.videoSaturation = 0.0f;
             if (config.videoSaturation > 1.0f) config.videoSaturation = 1.0f;
         }
-        init_hgr_LUT();
+        //init_hgr_LUT();
         //force_display_update(ds);
-        ds->video_system->set_full_frame_redraw();
+        //ds->video_system->set_full_frame_redraw();
         static char msgbuf[256];
         snprintf(msgbuf, sizeof(msgbuf), "Hue set to: %f, Saturation to: %f\n", config.videoHue, config.videoSaturation);
         ds->event_queue->addEvent(new Event(EVENT_SHOW_MESSAGE, 0, msgbuf));
@@ -676,12 +676,14 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     cpu->mmu->set_C0XX_read_handler(0xC057, { txt_bus_read_C057, ds });
     cpu->mmu->set_C0XX_write_handler(0xC057, { txt_bus_write_C057, ds });
 
+    /*
     for (int i = 0x04; i <= 0x0B; i++) {
         cpu->mmu->set_page_shadow(i, { txt_memory_write, cpu });
     }
     for (int i = 0x20; i <= 0x5F; i++) {
         cpu->mmu->set_page_shadow(i, { hgr_memory_write, cpu });
     }
+    */
 
     computer->sys_event->registerHandler(SDL_EVENT_KEY_DOWN, [ds](const SDL_Event &event) {
         return handle_display_event(ds, event);
