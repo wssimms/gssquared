@@ -82,3 +82,13 @@ stream.cpp is what handles cycle-based video streaming for emulating cycle-accur
 
 Then generate/cyclestream.cpp reads that and renders a whole frame to a Frame_Bitstream. Then rendering stage as usual.
 
+# Pixel Encoding
+
+Pixels with the new Frame concept are 1 or 0. However, I think the NTSC code expects 0xFF or 0.
+Monochrome seems like the easist place to start, and, from the bottom up.
+I wonder if I should have a little bit more formal pixelmap class. Yes.
+ok I created a template version of the class that will take any old value, 0, 1, 0xFF. But I should decide if there is a reason I want to keep using 0xFF.
+
+PIXELFORMAT_ABGR_8888 is twice as fast as PIXELFORMAT_RGBA! Well now that's special. I still seem to be going way slower than gs2 itself..
+
+differences are that I'm using rectangles. I could try that..

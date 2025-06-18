@@ -2,19 +2,20 @@
 
 #include <cstdint>
 
-#define MAX_BITSTREAM_WIDTH 640
-#define MAX_BITSTREAM_WIDTH_WORDS ((MAX_BITSTREAM_WIDTH / 64)+1)
-#define MAX_BITSTREAM_HEIGHT 200
+#define FB_BITSTREAM_WIDTH 560
+#define FB_BITSTREAM_WIDTH_WORDS ((FB_BITSTREAM_WIDTH / 64)+1)
+#define FB_BITSTREAM_HEIGHT 192
 
 class Frame_Bitstream {
 private:
-    int f_width; // purely informational, for consumers
-    int f_height;
-    int scanline;
+    uint64_t display_bitstream[FB_BITSTREAM_HEIGHT][FB_BITSTREAM_WIDTH_WORDS];
+
     uint64_t working;
-    int hpos; // bit position in working
-    int hloc;
-    uint64_t display_bitstream[MAX_BITSTREAM_HEIGHT][MAX_BITSTREAM_WIDTH_WORDS];
+    uint16_t f_width; // purely informational, for consumers
+    uint16_t f_height;
+    uint16_t scanline;
+    uint16_t hpos; // bit position in working
+    uint64_t *hloc;
 
 public:
     Frame_Bitstream(uint16_t width, uint16_t height);  // pixels
@@ -22,15 +23,17 @@ public:
     void print();
 
     inline void close_line() {
+        if (hpos == 0) return;
         working <<= (64 - hpos); // shift last bits into place for read
-        display_bitstream[scanline][hloc] = working;
+        *hloc = working;
+        hloc++;
     };
 
     inline void push(bool bit) { 
         working = (working << 1) | bit;
         hpos++;
         if (hpos>=64) { 
-            display_bitstream[scanline][hloc] = working; 
+            *hloc = working; 
             hloc++;
             hpos = 0;
             working = 0;
@@ -41,7 +44,7 @@ public:
         bool bit = (working & ((uint64_t)1 << 63)) == 1; 
         hpos++; 
         if (hpos>=64) { 
-            working = display_bitstream[scanline][hloc];
+            working = *hloc;
             hloc++;
             hpos = 0;
         }
@@ -51,14 +54,15 @@ public:
     inline void read_line(int line) { 
         scanline = line; 
         hpos = 0;
-        hloc = 1;
-        working = display_bitstream[scanline][0]; // preload first word
+        hloc = &display_bitstream[scanline][0];
+        working = *hloc; // preload first word
+        hloc++;
     };
 
     inline void write_line(int line) { 
         scanline = line; 
         hpos = 0;
-        hloc = 0;
+        hloc = &display_bitstream[scanline][0];
         working = 0;
     };
 
