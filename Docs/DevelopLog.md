@@ -4716,3 +4716,5 @@ Then IIe Rev B adds:
 * DHGR
 
 We want to do Wm. code integration first.
+
+And I think switch to bit stream instead of bytestream. Need to relearn how that's done.

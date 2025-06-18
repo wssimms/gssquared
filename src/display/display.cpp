@@ -654,16 +654,25 @@ bool handle_display_event(display_state_t *ds, const SDL_Event &event) {
     return false;
 }
 
+/** Called by Clipboard to return current display buffer.
+ * doubles scanlines and returns 2* the "native" height. */
+ 
 void display_engine_get_buffer(computer_t *computer, uint8_t *buffer, uint32_t *width, uint32_t *height) {
     display_state_t *ds = (display_state_t *)get_module_state(computer->cpu, MODULE_DISPLAY);
     // pass back the size.
     *width = BASE_WIDTH;
-    *height = BASE_HEIGHT;
+    *height = BASE_HEIGHT * 2;
     // BMP files have the last scanline first. What? 
     // Copy RGB values without alpha channel
     RGBA *src = (RGBA *)ds->buffer;
     uint8_t *dst = buffer;
     for (int scanline = BASE_HEIGHT - 1; scanline >= 0; scanline--) {
+        for (int i = 0; i < BASE_WIDTH; i++) {
+            *dst++ = src[scanline * BASE_WIDTH + i].b;
+            *dst++ = src[scanline * BASE_WIDTH + i].g;
+            *dst++ = src[scanline * BASE_WIDTH + i].r;
+        }
+        // do it again - scanline double
         for (int i = 0; i < BASE_WIDTH; i++) {
             *dst++ = src[scanline * BASE_WIDTH + i].b;
             *dst++ = src[scanline * BASE_WIDTH + i].g;

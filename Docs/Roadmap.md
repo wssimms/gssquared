@@ -22,6 +22,7 @@
 
 ## Release 0.4
 
+[ ] put common controls in hover-over on main page - reset, restart, power-off, open debugger
 [ ] Refactor CPU to be more cycle-accurate including false/phantom reads/writes  
 [ ] Implement new optimized audio code  
 [ ] Implement cycle-accurate video display to support apps that switch video mode by counting cycles  
