@@ -11,6 +11,20 @@
 
 typedef uint32_t RGBA_t;
 
+uint8_t *load_char_rom(const char *filename) {
+    uint8_t *char_rom = new uint8_t[2048];
+
+    FILE *f = fopen(filename, "rb");
+    if (!f) {
+        printf("Failed to open char_rom.bin\n");
+        return nullptr;
+    }
+    fread(char_rom, 1, 2048, f);
+    fclose(f);
+    return char_rom;
+}
+
+
 int main(int argc, char **argv) {
     uint64_t start = 0, end = 0;
 
@@ -22,7 +36,7 @@ int main(int argc, char **argv) {
         printf("Failed to create window\n");
         return 1;
     }
-    SDL_Renderer *renderer = SDL_CreateRenderer(window, "software");
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, NULL);
     if (!renderer) {
         printf("Failed to create renderer\n");
         return 1;
@@ -33,10 +47,9 @@ int main(int argc, char **argv) {
         printf("SDL Error: %s\n", SDL_GetError());
         return 1;
     }
-    if (!SDL_SetRenderVSync(renderer, 0)) {
+    if (!SDL_SetRenderVSync(renderer, SDL_RENDERER_VSYNC_DISABLED)) {
         printf("Failed to set render vsync\n");
-                printf("SDL Error: %s\n", SDL_GetError());
-
+        printf("SDL Error: %s\n", SDL_GetError());
         return 1;
     }
 
@@ -48,10 +61,8 @@ int main(int argc, char **argv) {
     SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_NONE); 
     int error = SDL_SetRenderTarget(renderer, nullptr);
 
-
     int testiterations = 10000;
 
-#if 0
     printf("Testing bitstream\n");
 
     start = SDL_GetTicksNS();
@@ -88,12 +99,12 @@ int main(int argc, char **argv) {
     printf("read Time taken: %llu microseconds per frame\n", (end - start) / 1000 / testiterations);
 
     printf("Testing bytestream\n");
-#endif 
+
 
     const uint16_t f_w = 560, f_h = 192;
     Frame560 *frame_byte = new(std::align_val_t(64)) Frame560(f_w, f_h);
 
-#if 0
+
     start = SDL_GetTicksNS();
     for (int numframes = 0; numframes < testiterations; numframes++) {
         for (int i = 0; i < 192; i++) {
@@ -123,7 +134,6 @@ int main(int argc, char **argv) {
     //printf("Size of bytestream entries: %zu bytes\n", sizeof(bs_t));
     printf("c: %d\n", c);
     frame_byte->print();
-#endif
 
     uint8_t text_page[1024];
     uint8_t alt_text_page[1024];
@@ -131,23 +141,22 @@ int main(int argc, char **argv) {
         text_page[i] = i & 0xFF;
         alt_text_page[i] = (i+1) & 0xFF;
     }
-    uint8_t char_rom[2048];
-    FILE *f = fopen("assets/roms/apple2e/char.rom", "rb");
-    if (!f) {
-        printf("Failed to open char_rom.bin\n");
+
+    uint8_t *iiplus_rom = load_char_rom("assets/roms/apple2_plus/char.rom");
+    uint8_t *iie_rom = load_char_rom("assets/roms/apple2e/char.rom");
+    if (!iiplus_rom || !iie_rom) {
+        printf("Failed to load char roms\n");
         return 1;
     }
-    fread(char_rom, 1, 2048, f);
-    fclose(f);
 
     FrameRGBA *frame_rgba = new(std::align_val_t(64)) FrameRGBA(f_w, f_h);
 
-    AppleII_Display display(char_rom);
+    AppleII_Display display(iiplus_rom);
     start = SDL_GetTicksNS();
     for (int numframes = 0; numframes < testiterations; numframes++) {
         for (int l = 0; l < 24; l++) {
-            //display.generate_text40(text_page, frame_byte, l);
-            display.generate_text80(text_page, alt_text_page, frame_byte, l);
+            display.generate_text40(text_page, frame_byte, l);
+            //display.generate_text80(text_page, alt_text_page, frame_byte, l);
         }
 
         for (int l = 0; l < 192; l++) {
@@ -159,7 +168,7 @@ int main(int argc, char **argv) {
         }
     }
     end = SDL_GetTicksNS();
-    printf("text40 Time taken: %llu ns per frame\n", (end - start) / testiterations);
+    printf("text Time taken: %llu ns per frame\n", (end - start) / testiterations);
 
     SDL_FRect dstrect = {
         (float)0.0,
@@ -190,7 +199,7 @@ int main(int argc, char **argv) {
                 return 0;
             }
         }
-        //SDL_DelayNS(12500000);
+
         start = SDL_GetTicksNS();
       
         // update the texture - approx 300us
@@ -204,13 +213,8 @@ int main(int argc, char **argv) {
         end = SDL_GetTicksNS();
         SDL_RenderPresent(renderer);      
 
-/*         if (framecnt % 300 == 0) {
-            printf("Frame time: %llu ns\n", (end-start));
-        }
- */
         cumulative += (end-start);
         times[i] = (end-start);
-        //SDL_DelayNS(13000000);
     }
     
     printf("Render Time taken:%llu  %llu ns per frame\n", cumulative, cumulative / 300);
