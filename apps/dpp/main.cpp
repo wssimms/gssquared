@@ -158,7 +158,8 @@ int main(int argc, char **argv) {
     start = SDL_GetTicksNS();
     for (int numframes = 0; numframes < testiterations; numframes++) {
         for (int l = 0; l < 24; l++) {
-            display.generate_text40(text_page, frame_byte, l);
+            //display.generate_text40(text_page, frame_byte, l);
+            display.generate_lores40(text_page, frame_byte, l);
             //display.generate_text80(text_page, alt_text_page, frame_byte, l);
         }
 
@@ -190,14 +191,14 @@ int main(int argc, char **argv) {
 
     int pitch;
     void *pixels;
-         SDL_LockTexture(texture, NULL, &pixels, &pitch);
-        std::memcpy(pixels, frame_rgba->data(), 560 * 192 * sizeof(RGBA_t));
-        SDL_UnlockTexture(texture);
+    SDL_LockTexture(texture, NULL, &pixels, &pitch);
+    std::memcpy(pixels, frame_rgba->data(), 560 * 192 * sizeof(RGBA_t));
+    SDL_UnlockTexture(texture);
 
     uint64_t cumulative = 0;
     uint64_t times[900];
     uint64_t framecnt = 0;
-    for (int i = 0; i < 300; i++) {
+    for (int i = 0; i < 900; i++) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_EVENT_QUIT) {
@@ -222,7 +223,7 @@ int main(int argc, char **argv) {
         times[i] = (end-start);
     }
     
-    printf("Render Time taken:%llu  %llu ns per frame\n", cumulative, cumulative / 300);
+    printf("Render Time taken:%llu  %llu ns per frame\n", cumulative, cumulative / 900);
     for (int i = 0; i < 300; i++) {
         printf("%llu ", times[i]);
     }

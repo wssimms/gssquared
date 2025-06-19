@@ -131,4 +131,33 @@ void generate_text80(uint8_t *textpage, uint8_t *alttextpage, Frame560 *f, uint1
             scanline++;
         }
     }
+
+    void generate_lores40(uint8_t *textpage, Frame560 *f, uint16_t linegroup) {
+        uint16_t scanline = linegroup * 8;
+        uint16_t x = 0;
+        bool pixel_on = 1;
+        bool pixel_off = 0;
+
+        for (int y = 0; y < 8; y++) {
+            uint16_t char_addr = textMap[linegroup];
+            f->set_line(scanline);
+            
+            for (x = 0; x <= 39; x++) {
+                uint8_t tchar = textpage[char_addr];
+                
+                if (y & 4) { // if we're in the second half of the scanline, shift the byte right 4 bits to get the other nibble
+                    tchar = tchar >> 4;
+                }
+                int pixeloff = (x * 14) % 4;
+
+                for (int bits = 0; bits < 14; bits++) {
+                    uint8_t bit = ((tchar >> pixeloff) & 0x01);
+                    f->push(bit);
+                    pixeloff = (pixeloff + 1) % 4;
+                }
+                char_addr++;
+            }
+            scanline++;
+        }
+    }
 };
