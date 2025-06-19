@@ -244,7 +244,7 @@ add_library(gs2_ui src/ui/AssetAtlas.cpp src/ui/Container.cpp src/ui/DiskII_Butt
     src/ui/FadeButton.cpp src/ui/Clipboard.cpp src/ui/TextInput.cpp src/ui/SelectSystem.cpp
 )
 
-add_library(gs2_displaypp src/devices/displaypp/frame/frame_bit.cpp src/devices/displaypp/frame/frame_byte.cpp)
+add_library(gs2_displaypp src/devices/displaypp/frame/frame_bit.cpp src/devices/displaypp/frame/frame_byte.cpp src/devices/displaypp/CharRom.cpp)
 
 add_library(gs2_message_bus src/mbus/MessageBus.cpp)
 
