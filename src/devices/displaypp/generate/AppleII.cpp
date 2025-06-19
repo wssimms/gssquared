@@ -1,7 +1,7 @@
 #include <cstdint>
 #include <cstring>
 #include "devices/displaypp/frame/frame.hpp"
-
+#include "devices/displaypp/CharRom.hpp"
 
 alignas(64) uint16_t textMap[24] =
   {   // text page 1 line addresses
@@ -38,12 +38,18 @@ using Frame560 = Frame<uint8_t, 192, 560>;
 class AppleII_Display {
 
 private: 
-    uint8_t char_rom[2048];
+    //uint8_t char_rom[4096];
+    CharRom &char_rom;
     bool flash_state = false;
+    bool alt_char_set = false;
+    uint16_t altbase = 0x0000;
 
 public:
-    AppleII_Display(uint8_t *char_rom_data) {
-        memcpy(char_rom, char_rom_data, 2048);
+    AppleII_Display(CharRom &char_rom) : char_rom(char_rom) { }
+
+    void set_char_set(bool alt_char_set) {
+        this->alt_char_set = alt_char_set;
+        this->altbase = alt_char_set ? 2048 : 0;
     }
 
 /** Call with: pointer to text memory; pointer to frame; linegroup number */
@@ -52,7 +58,6 @@ public:
         uint16_t x = 0;
         bool pixel_on = 1;
         bool pixel_off = 0;
-
 
         for (int y = 0; y < 8; y++) {
             uint16_t char_addr = textMap[linegroup];
@@ -69,22 +74,28 @@ public:
                      pixel_off = !flash_state;
                 }
 
-                uint8_t cdata = char_rom[tchar * 8 + y];
+                uint8_t cdata = char_rom.get_char_scanline(tchar, y + altbase);
 
-                f->push(cdata & 0b1000000 ? pixel_on : pixel_off);
-                f->push(cdata & 0b1000000 ? pixel_on : pixel_off);
-                f->push(cdata & 0b0100000 ? pixel_on : pixel_off);
-                f->push(cdata & 0b0100000 ? pixel_on : pixel_off);
-                f->push(cdata & 0b0010000 ? pixel_on : pixel_off);
-                f->push(cdata & 0b0010000 ? pixel_on : pixel_off);
-                f->push(cdata & 0b0001000 ? pixel_on : pixel_off);
-                f->push(cdata & 0b0001000 ? pixel_on : pixel_off);
-                f->push(cdata & 0b0000100 ? pixel_on : pixel_off);
-                f->push(cdata & 0b0000100 ? pixel_on : pixel_off);
-                f->push(cdata & 0b0000010 ? pixel_on : pixel_off);
-                f->push(cdata & 0b0000010 ? pixel_on : pixel_off);
-                f->push(cdata & 0b0000001 ? pixel_on : pixel_off);
-                f->push(cdata & 0b0000001 ? pixel_on : pixel_off);
+                f->push(cdata & 1 ? pixel_on : pixel_off); 
+                f->push(cdata & 1 ? pixel_on : pixel_off); 
+                cdata>>=1;
+                f->push(cdata & 1 ? pixel_on : pixel_off); 
+                f->push(cdata & 1 ? pixel_on : pixel_off); 
+                cdata>>=1;
+                f->push(cdata & 1 ? pixel_on : pixel_off); 
+                f->push(cdata & 1 ? pixel_on : pixel_off); 
+                cdata>>=1;
+                f->push(cdata & 1 ? pixel_on : pixel_off); 
+                f->push(cdata & 1 ? pixel_on : pixel_off); 
+                cdata>>=1;
+                f->push(cdata & 1 ? pixel_on : pixel_off); 
+                f->push(cdata & 1 ? pixel_on : pixel_off); 
+                cdata>>=1;
+                f->push(cdata & 1 ? pixel_on : pixel_off); 
+                f->push(cdata & 1 ? pixel_on : pixel_off); 
+                cdata>>=1;
+                f->push(cdata & 1 ? pixel_on : pixel_off); 
+                f->push(cdata & 1 ? pixel_on : pixel_off); 
 
                 char_addr++;
             }
@@ -105,7 +116,7 @@ void generate_text80(uint8_t *textpage, uint8_t *alttextpage, Frame560 *f, uint1
             for (x = 0; x <= 39; x++) {
                 uint8_t tchar = alttextpage[char_addr];
 
-                uint8_t cdata = char_rom[tchar * 8 + y];
+                uint8_t cdata = char_rom.get_char_scanline(tchar, y + altbase);
 
                 f->push(cdata & 1 ? pixel_on : pixel_off); cdata>>=1;
                 f->push(cdata & 1 ? pixel_on : pixel_off); cdata>>=1;
@@ -116,7 +127,7 @@ void generate_text80(uint8_t *textpage, uint8_t *alttextpage, Frame560 *f, uint1
                 f->push(cdata & 1 ? pixel_on : pixel_off); cdata>>=1;
 
                 tchar = textpage[char_addr];
-                cdata = char_rom[tchar * 8 + y];
+                cdata = char_rom.get_char_scanline(tchar, y + altbase);
 
                 f->push(cdata & 1 ? pixel_on : pixel_off); cdata>>=1;
                 f->push(cdata & 1 ? pixel_on : pixel_off); cdata>>=1;
