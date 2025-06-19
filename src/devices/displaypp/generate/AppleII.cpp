@@ -1,9 +1,9 @@
 #include <cstdint>
 #include <cstring>
-#include "frame/frame.hpp"
+#include "devices/displaypp/frame/frame.hpp"
 
 
-int textMap[24] =
+alignas(64) uint16_t textMap[24] =
   {   // text page 1 line addresses
             0x0000,
             0x0080,

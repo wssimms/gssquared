@@ -5,11 +5,10 @@
 
 #include <SDL3/SDL.h>
 
-#include "devices/displaypp/frame/frame_bit.hpp"
+//#include "devices/displaypp/frame/frame_bit.hpp"
 #include "devices/displaypp/frame/Frames.hpp"
-#include "devices/displaypp/text40.cpp"
-
-typedef uint32_t RGBA_t;
+#include "devices/displaypp/generate/AppleII.cpp"
+#include "devices/displaypp/render/Monochrome560.hpp"
 
 uint8_t *load_char_rom(const char *filename) {
     uint8_t *char_rom = new uint8_t[2048];
@@ -57,12 +56,14 @@ int main(int argc, char **argv) {
     printf("Renderer: %s\n", rname);
     //SDL_SetHint(SDL_HINT_RENDER_VSYNC, "0");
     SDL_SetRenderScale(renderer, 2.0f, 4.0f);
-    SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_LINEAR);
     SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_NONE); 
     int error = SDL_SetRenderTarget(renderer, nullptr);
 
     int testiterations = 10000;
 
+#if 0
+    // bitstream test. This performs worse than the bytestream.
     printf("Testing bitstream\n");
 
     start = SDL_GetTicksNS();
@@ -99,7 +100,7 @@ int main(int argc, char **argv) {
     printf("read Time taken: %llu microseconds per frame\n", (end - start) / 1000 / testiterations);
 
     printf("Testing bytestream\n");
-
+#endif
 
     const uint16_t f_w = 560, f_h = 192;
     Frame560 *frame_byte = new(std::align_val_t(64)) Frame560(f_w, f_h);
@@ -133,7 +134,7 @@ int main(int argc, char **argv) {
     printf("read Time taken: %llu ns per frame\n", (end - start) / testiterations);
     //printf("Size of bytestream entries: %zu bytes\n", sizeof(bs_t));
     printf("c: %d\n", c);
-    frame_byte->print();
+    //frame_byte->print();
 
     uint8_t text_page[1024];
     uint8_t alt_text_page[1024];
@@ -149,7 +150,9 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    FrameRGBA *frame_rgba = new(std::align_val_t(64)) FrameRGBA(f_w, f_h);
+    Frame560RGBA *frame_rgba = new(std::align_val_t(64)) Frame560RGBA(f_w, f_h);
+
+    Monochrome560 monochrome;
 
     AppleII_Display display(iiplus_rom);
     start = SDL_GetTicksNS();
@@ -159,13 +162,15 @@ int main(int argc, char **argv) {
             //display.generate_text80(text_page, alt_text_page, frame_byte, l);
         }
 
-        for (int l = 0; l < 192; l++) {
+        monochrome.render(frame_byte, frame_rgba, (RGBA_t){.a = 0xFF, .b = 0x00, .g = 0xFF, .r = 0x00});
+
+        /* for (int l = 0; l < 192; l++) {
             frame_rgba->set_line(l);
             frame_byte->set_line(l);
             for (int i = 0; i < 560; i++) {
                 frame_rgba->push(frame_byte->pull() ? 0xffffffff : 0x00000000);
             }
-        }
+        } */
     }
     end = SDL_GetTicksNS();
     printf("text Time taken: %llu ns per frame\n", (end - start) / testiterations);
