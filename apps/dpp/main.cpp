@@ -9,20 +9,7 @@
 #include "devices/displaypp/frame/Frames.hpp"
 #include "devices/displaypp/generate/AppleII.cpp"
 #include "devices/displaypp/render/Monochrome560.hpp"
-
-uint8_t *load_char_rom(const char *filename) {
-    uint8_t *char_rom = new uint8_t[2048];
-
-    FILE *f = fopen(filename, "rb");
-    if (!f) {
-        printf("Failed to open char_rom.bin\n");
-        return nullptr;
-    }
-    fread(char_rom, 1, 2048, f);
-    fclose(f);
-    return char_rom;
-}
-
+#include "devices/displaypp/CharRom.hpp"
 
 int main(int argc, char **argv) {
     uint64_t start = 0, end = 0;
@@ -143,9 +130,10 @@ int main(int argc, char **argv) {
         alt_text_page[i] = (i+1) & 0xFF;
     }
 
-    uint8_t *iiplus_rom = load_char_rom("assets/roms/apple2_plus/char.rom");
-    uint8_t *iie_rom = load_char_rom("assets/roms/apple2e/char.rom");
-    if (!iiplus_rom || !iie_rom) {
+    CharRom iiplus_rom("assets/roms/apple2_plus/char.rom");
+    CharRom iie_rom("assets/roms/apple2e_enh/char.rom");
+
+    if (!iiplus_rom.is_valid() || !iie_rom.is_valid()) {
         printf("Failed to load char roms\n");
         return 1;
     }
@@ -154,25 +142,19 @@ int main(int argc, char **argv) {
 
     Monochrome560 monochrome;
 
-    AppleII_Display display(iiplus_rom);
+    AppleII_Display display_iie(iie_rom);
+    iie_rom.print_matrix(0x40);
+    AppleII_Display display_iiplus(iiplus_rom);
+    iiplus_rom.print_matrix(0x40);
+    //display.set_char_set(true);
     start = SDL_GetTicksNS();
     for (int numframes = 0; numframes < testiterations; numframes++) {
         for (int l = 0; l < 24; l++) {
-            //display.generate_text40(text_page, frame_byte, l);
-            display.generate_lores40(text_page, frame_byte, l);
-            //display.generate_text80(text_page, alt_text_page, frame_byte, l);
+            display_iiplus.generate_text40(text_page, frame_byte, l);
         }
-
         monochrome.render(frame_byte, frame_rgba, (RGBA_t){.a = 0xFF, .b = 0x00, .g = 0xFF, .r = 0x00});
-
-        /* for (int l = 0; l < 192; l++) {
-            frame_rgba->set_line(l);
-            frame_byte->set_line(l);
-            for (int i = 0; i < 560; i++) {
-                frame_rgba->push(frame_byte->pull() ? 0xffffffff : 0x00000000);
-            }
-        } */
     }
+
     end = SDL_GetTicksNS();
     printf("text Time taken: %llu ns per frame\n", (end - start) / testiterations);
 
@@ -198,16 +180,47 @@ int main(int argc, char **argv) {
     uint64_t cumulative = 0;
     uint64_t times[900];
     uint64_t framecnt = 0;
-    for (int i = 0; i < 900; i++) {
+
+    int mode = 1;
+    bool exiting = false;
+
+    while (++framecnt && !exiting)  {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_EVENT_QUIT) {
-                return 0;
+                exiting = true;
+            }
+            if (event.type == SDL_EVENT_KEY_DOWN) {
+                if (event.key.key == SDLK_1) {
+                    mode = 1;
+                }
+                if (event.key.key == SDLK_2) {
+                    mode = 2;
+                }
+                if (event.key.key == SDLK_3) {
+                    mode = 3;
+                }
             }
         }
 
         start = SDL_GetTicksNS();
       
+        for (int l = 0; l < 24; l++) {
+            switch (mode) {
+                case 1:
+                    display_iiplus.generate_text40(text_page, frame_byte, l);
+                    break;
+                case 2:
+                    display_iie.generate_text80(text_page, alt_text_page, frame_byte, l);
+                    break;
+                case 3:
+                    display_iie.generate_lores40(text_page, frame_byte, l);
+                    break;
+            }
+        }
+
+        monochrome.render(frame_byte, frame_rgba, (RGBA_t){.a = 0xFF, .b = 0x00, .g = 0xFF, .r = 0x00});
+
         // update the texture - approx 300us
         SDL_LockTexture(texture, NULL, &pixels, &pitch);
         std::memcpy(pixels, frame_rgba->data(), 560 * 192 * sizeof(RGBA_t));
@@ -220,11 +233,11 @@ int main(int argc, char **argv) {
         SDL_RenderPresent(renderer);      
 
         cumulative += (end-start);
-        times[i] = (end-start);
+        if (framecnt < 300) times[framecnt] = (end-start);
     }
     
     printf("Render Time taken:%llu  %llu ns per frame\n", cumulative, cumulative / 900);
-    for (int i = 0; i < 300; i++) {
+    for (int i = 0; i < (framecnt > 300 ? 300 : framecnt); i++) {
         printf("%llu ", times[i]);
     }
     printf("\n");
