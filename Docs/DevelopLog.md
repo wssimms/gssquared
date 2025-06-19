@@ -4718,3 +4718,16 @@ Then IIe Rev B adds:
 We want to do Wm. code integration first.
 
 And I think switch to bit stream instead of bytestream. Need to relearn how that's done.
+
+## Jun 19, 2025
+
+Pixel Format
+
+Optimal pixel format for these platforms:
+
+* on linux, RGBA
+* windows, BGRA
+* mac, ABGR
+
+What the actual! LOL. We're going to want to identify the optimal pixel format per platform. Will have to be compile-time since we need to change our byte order depending on platform.
+
