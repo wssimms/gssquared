@@ -200,6 +200,9 @@ int main(int argc, char **argv) {
                 if (event.key.key == SDLK_3) {
                     mode = 3;
                 }
+                if (event.key.key == SDLK_4) {
+                    mode = 4;
+                }
             }
         }
 
@@ -216,6 +219,9 @@ int main(int argc, char **argv) {
                 case 3:
                     display_iie.generate_lores40(text_page, frame_byte, l);
                     break;
+                case 4:
+                    display_iie.generate_lores80(text_page, alt_text_page, frame_byte, l);
+                    break;        
             }
         }
 
