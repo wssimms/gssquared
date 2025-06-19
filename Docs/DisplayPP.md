@@ -92,3 +92,33 @@ ok I created a template version of the class that will take any old value, 0, 1,
 PIXELFORMAT_ABGR_8888 is twice as fast as PIXELFORMAT_RGBA! Well now that's special. I still seem to be going way slower than gs2 itself..
 
 differences are that I'm using rectangles. I could try that..
+
+## Character ROMs
+
+So, the IIe character ROMs are 4K for US, and 8K for foreign.
+The first 2K seems to be characters as usual.
+The next 2K seems to be related to the character index. Feels graphics-related in some way.. maybe they feed bits into hires / double hires with this?
+
+```
+Character 0x1FD (offset 0x0FE8):
+*.....*.  
+*.....*.  
+..*...*.  
+*...*...
+*.....*.
+*.....*.
+........
+........
+
+Character 0x17D (offset 0x0BE8):
+*.....*.
+*.....*.
+..*...*.
+*...*...
+*.....*.
+*.....*.
+*...*...
+..*...*.
+```
+
+The bit order is reversed compared to II+. Also, the meaning of bits may be reversed here too (i.e., 1 means "pixel off"). So we need to decide whether to reverse the ROM file. I could have different code modules for each, but, it seems like a smart ROM loader that would mangle the bits the way we need so the same routine could draw ii+, iie, what have you would be the way to go. I think we want to reverse the II+ one, and shift out the right. 
