@@ -122,3 +122,13 @@ Character 0x17D (offset 0x0BE8):
 ```
 
 The bit order is reversed compared to II+. Also, the meaning of bits may be reversed here too (i.e., 1 means "pixel off"). So we need to decide whether to reverse the ROM file. I could have different code modules for each, but, it seems like a smart ROM loader that would mangle the bits the way we need so the same routine could draw ii+, iie, what have you would be the way to go. I think we want to reverse the II+ one, and shift out the right. 
+
+## Quick entry into Double Hi-Res
+
+If you know how to write to the iie 80 column text screen directly, it should be easy enough.
+The cleanest sample I have seen to turn it on is
+10 D$=CHR$(4)
+20 PRINT D$;"PR#3" : REM 80-column mode
+30 POKE 49246,0 : REM $C05E - enable double resolution graphics
+40 GR : REM Turn on double lo-res mode
+Once in this mode, data stored to the 80 column screen will show up as double low res. On the iigs you can just use the plot command in AppleSoft. I think on the iie you have to do it with pokes.
