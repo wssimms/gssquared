@@ -179,6 +179,7 @@ struct cpu_state {
     };
     uint8_t halt = 0; /* == 1 is HLT instruction halt; == 2 is user halt */
     uint64_t cycles; /* Number of cycles since reset */
+    uint32_t bus_cycles; /* Number of 1Mhz bus cycles. Reset to 0 every 1/60 second */
 
     rom_data *rd;
 
@@ -191,12 +192,12 @@ struct cpu_state {
     uint64_t clock_slip = 0;
     uint64_t clock_busy = 0;
     uint64_t clock_sleep = 0;
-    uint64_t cycle_duration_ns;
+    double cycle_duration_ns;
     uint64_t HZ_RATE;
     clock_mode_t clock_mode = CLOCK_FREE_RUN;
     float e_mhz = 0;
 
-    uint64_t ns_since_bus_cycle = 0;
+    double ns_since_bus_cycle = 0;
     
     execute_next_fn execute_next;
 

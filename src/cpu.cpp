@@ -22,11 +22,27 @@
 
 #include "cpu.hpp"
 
+// 59.9227434
+#define CLK_28MHZ 28.63636E6
+#define NUM_1MHZ_CYCLES_PER_SCANLINE 65
+#define NUM_SCANLINES_PER_FRAME 262
+#define CLK_14MHZ (CLK_28MHZ / 2)
+#define NUM_1MHZ_CYCLES_PER_FRAME (NUM_1MHZ_CYCLES_PER_SCANLINE * NUM_SCANLINES_PER_FRAME)
+#define NS_PER_14MHZ_CYCLE (1.0E9 / CLK_14MHZ)
+#define NS_PER_STANDARD_1MHZ_CYCLE (14 * NS_PER_14MHZ_CYCLE)
+#define NS_PER_LONG_1MHZ_CYCLE (16 * NS_PER_14MHZ_CYCLE)
+#define NS_PER_SCANLINE (64 * NS_PER_STANDARD_1MHZ_CYCLE + NS_PER_LONG_1MHZ_CYCLE)
+#define NS_PER_FRAME (262 * NS_PER_SCANLINE)
+#define FRAME_RATE (1.0E9 / NS_PER_FRAME)
+#define CLK_1MHZ (NUM_1MHZ_CYCLES_PER_FRAME * FRAME_RATE)
+#define CLK_IIGS (CLK_28MHZ / 10)
+#define CLK_4MHZ (4 *CLK_1MHZ)
+
 clock_mode_info_t clock_mode_info[NUM_CLOCK_MODES] = {
-    { 0, 0, 17008 },
-    { 1020500, (1000000000 / 1020500)+1, 17008 },
-    { 2800000, (1000000000 / 2800000), 46666 },
-    { 4000000, (1000000000 / 4000000), 66665 }
+    { CLK_4MHZ, (1.0E9 / CLK_4MHZ), 4*NUM_1MHZ_CYCLES_PER_FRAME },
+    { CLK_1MHZ, (1.0E9 / CLK_1MHZ), NUM_1MHZ_CYCLES_PER_FRAME },
+    { CLK_IIGS, (1.0E9 / CLK_IIGS), (uint64_t)(NUM_1MHZ_CYCLES_PER_FRAME*CLK_IIGS/CLK_1MHZ) },
+    { CLK_4MHZ, (1.0E9 / CLK_4MHZ), 4*NUM_1MHZ_CYCLES_PER_FRAME }
 };
 
 void set_clock_mode(cpu_state *cpu, clock_mode_t mode) {
@@ -39,7 +55,7 @@ void set_clock_mode(cpu_state *cpu, clock_mode_t mode) {
     cpu->cycle_duration_ns = clock_mode_info[mode].cycle_duration_ns;
 
     cpu->clock_mode = mode;
-    fprintf(stdout, "Clock mode: %d HZ_RATE: %llu cycle_duration_ns: %llu \n", cpu->clock_mode, cpu->HZ_RATE, cpu->cycle_duration_ns);
+    fprintf(stdout, "Clock mode: %d HZ_RATE: %llu cycle_duration_ns: %g \n", cpu->clock_mode, cpu->HZ_RATE, cpu->cycle_duration_ns);
 }
 
 void toggle_clock_mode(cpu_state *cpu) {
@@ -110,6 +126,7 @@ cpu_state::cpu_state() {
     p = 0;
     cycles = 0;
     last_tick = 0;
+    bus_cycles = 0;
     
     trace = true;
     trace_buffer = new system_trace_buffer(100000);

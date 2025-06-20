@@ -30,8 +30,8 @@ typedef enum {
 } clock_mode_t;
 
 typedef struct {
-    uint64_t hz_rate;
-    uint64_t cycle_duration_ns;
+    double hz_rate;
+    double cycle_duration_ns;
     uint64_t cycles_per_burst;
 } clock_mode_info_t;
 

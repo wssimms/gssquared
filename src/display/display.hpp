@@ -115,17 +115,24 @@ public:
     display_state_t();
     ~display_state_t();
 
+    void make_flipped();
+    void make_text40_bits();
+    void make_hgr_bits();
+    void make_lgr_bits();
+    void init_apple_ii_video_addresses();
+
     SDL_Texture* screenTexture;
 
-   /*  display_color_engine_t display_color_engine;
+    /*
+    display_color_engine_t display_color_engine;
     display_mono_color_t display_mono_color;
-    display_pixel_mode_t display_pixel_mode; */
+    display_pixel_mode_t display_pixel_mode;
+    */
 
     display_mode_t display_mode;
     display_split_mode_t display_split_mode;
     display_graphics_mode_t display_graphics_mode;
     display_page_number_t display_page_num;
-    //display_page_t *display_page_table;
 
     bool flash_state;
     int flash_counter;
@@ -138,6 +145,12 @@ public:
     uint16_t apple_ii_mixed_p1_addresses[65*262];
     uint16_t apple_ii_mixed_p2_addresses[65*262];
     uint16_t (*video_addresses)[65*262];
+
+    // LUTs mapping video data bytes to video signal bits
+    uint8_t flipped[256];
+    uint16_t lgr_bits[32];
+    uint16_t hgr_bits[256];
+    uint16_t text40_bits[256];
 
     // video mode/memory data
     // 1 byte of mode and up to 2 bytes of memory data for each cycle.
@@ -153,11 +166,10 @@ public:
     video_mode_t video_mode;
 
     // variables set by ntsc_video_cycle()
-    bool     kill_color;
-    uint16_t vidbits[192][40];
+    bool kill_color;
 
     // variables set by rgb_video_cycle()
-    uint8_t  rgbpixels[192][560];
+    uint8_t rgbpixels[192][560];
 
     uint8_t *buffer = nullptr;
     EventQueue *event_queue;

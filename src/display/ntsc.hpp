@@ -62,8 +62,8 @@ extern ntsc_config config ;
 /* extern RGBA mono_color_table[DM_NUM_MONO_MODES]; */
 
 void setupConfig();
-/*
 void init_hgr_LUT();
+/*
 void processAppleIIFrame_LUT(uint8_t* frameData, RGBA* outputImage, int y_start, int y_end);
 void processAppleIIFrame_Mono(uint8_t* frameData, RGBA* outputImage, int y_start, int y_end, RGBA color_value);
 */

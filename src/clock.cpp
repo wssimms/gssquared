@@ -77,78 +77,6 @@ void incr_cycles(cpu_state *cpu) {
 #include "platforms.hpp"
 #include "display/display.hpp"
 
-uint8_t flipped[256];
-void make_flipped(void) {
-    for (int n = 0; n < 256; ++n) {
-        uint8_t byte = (uint8_t)n;
-        uint8_t flipped_byte = byte >> 7; // leave high bit as high bit
-        for (int i = 7; i; --i) {
-            flipped_byte = (flipped_byte << 1) | (byte & 1);
-            byte >>= 1;
-        }
-        flipped[n] = flipped_byte;
-    }
-}
-
-
-uint16_t text40_bits[256];
-void make_text40_bits(void) {
-    uint16_t vidbits;
-    for (uint16_t n = 0; n < 256; ++n) {
-        for (int count = 7; count; --count) {
-            uint16_t textbits = n;
-            vidbits = (vidbits << 1) | (textbits & 1);
-            vidbits = (vidbits << 1) | (textbits & 1);
-            textbits >>= 1;
-        }
-        text40_bits[n] = vidbits;
-    }   
-}
-
-uint16_t hgr_bits[256];
-void make_hgr_bits(void) {
-    for (uint16_t n = 0; n < 256; ++n) {
-        uint8_t  byte = flipped[n];
-        uint16_t hgrbits = 0;
-        for (int i = 7; i; --i) {
-            hgrbits = (hgrbits << 1) | (byte & 1);
-            hgrbits = (hgrbits << 1) | (byte & 1);
-            byte >>= 1;
-        }
-        hgrbits = hgrbits << (byte & 1);
-        hgr_bits[n] = hgrbits;
-        //printf("%4.4x\n", hgrbits);
-    }
-}
-
-uint16_t lgr_bits[32];
-void make_lgr_bits(void) {
-    for (int n = 0; n < 16; ++n) {
-
-        uint8_t pattern = flipped[n];
-        pattern >>= 3;
-
-        //uint8_t pattern = (uint8_t)n;
-
-        // form even column pattern
-        uint16_t evnbits = 0;
-        for (int i = 14; i; --i) {
-            evnbits = (evnbits << 1) | (pattern & 1);
-            pattern = ((pattern & 1) << 3) | (pattern >> 1); // rotate
-        }
-
-        // form odd column pattern
-        uint16_t oddbits = 0;
-        for (int i = 14; i; --i) {
-            oddbits = (oddbits << 1) | (pattern & 1);
-            pattern = ((pattern & 1) << 3) | (pattern >> 1); // rotate
-        }
-
-        lgr_bits[2*n]   = ((evnbits >> 2) | (oddbits << 12)) & 0x3FFF;
-        lgr_bits[2*n+1] = ((oddbits >> 2) | (evnbits << 12)) & 0x3FFF;
-    }
-}
-
 /*
  * Here's what's going on in the function mega_ii_cycle()
  *
@@ -305,214 +233,16 @@ void make_lgr_bits(void) {
  * A2-A0, A6-A3, A9-A7, A15-A10.
  */
 
-bool video_lazy_init = false;
-int text_cycles = 0;
-
-void mono_video_cycle (cpu_state *cpu)
-{
-    //ntsc_video_cycle(cpu);
-}
-
-void rgb_video_cycle (cpu_state *cpu)
-{
-    static uint8_t last_byte = 0;
-
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-
-    // don't generate video signal during horizontal and vertical blanking periods
-    if (ds->video_vbl || ds->video_hbl) return;
-
-    int x = 14 * (ds->hcount - 0x58);
-    int y = ds->vcount - 0x100;
-
-    if (ds->display_mode == TEXT_MODE) // need to also do mixed
-    {
-        uint8_t *char_rom = (*cpu->rd->char_rom_data);
-        uint8_t vbyte = char_rom[8 * ds->video_byte + (ds->vcount & 7)];
-
-        // for inverse, xor the pixels with 0xFF to invert them.
-        if ((ds->video_byte & 0xC0) == 0) {  // inverse
-            vbyte ^= 0xFF;
-        } else if (((ds->video_byte & 0xC0) == 0x40)) {  // flash
-            vbyte ^= ds->flash_state ? 0xFF : 0;
-        }
-        for (int i = 7; i; --i) {
-            ds->rgbpixels[y][x++] = (vbyte & 0x40) ? 15 : 0;
-            ds->rgbpixels[y][x++] = (vbyte & 0x40) ? 15 : 0;
-            vbyte <<= 1;
-        }
-    }
-    else if (ds->display_graphics_mode == LORES_MODE)
-    {
-        uint8_t vbyte = ds->video_byte;
-        vbyte = (vbyte >> (ds->vcount & 4)) & 0x0F;  // hi or lo nibble
-        for (int i = 14; i; --i)
-            ds->rgbpixels[y][x++] = vbyte;
-    }
-    else
-    {
-        uint8_t  col1 = 0;
-        uint8_t  col2 = 0;
-        uint8_t  count = 3;
-        uint8_t  shift = ds->video_byte & 0x80;
-        uint16_t vbyte = ds->video_byte;
-
-        if (ds->hcount & 1) {
-            vbyte = (vbyte << 3) | (last_byte >> 4);
-            count = 5;
-            x -= 3;
-        }
-        else {
-            vbyte = (vbyte << 2) | (last_byte >> 5);
-            count = 4;
-            x -= 1;
-        }
-
-        if (shift) {
-            for (int i = count; i; --i) {
-                switch (vbyte & 15) {
-                    case 0:  col1 = col2 = 0;  break; /* black */
-                    case 1:  col1 = col2 = 0;  break; /* black */
-                    case 2:  col1 = col2 = 9;  break; /* orange */
-                    case 3:  col1 = 15; col2 = 0; break; /* white, black */
-                    case 4:  col1 = col2 = 6;  break; /* blue */
-                    case 5:  col1 = col2 = 6;  break; /* blue */
-                    case 6:  col1 = col2 = 15; break; /* white */
-                    case 7:  col1 = col2 = 15; break; /* white */
-                    case 8:  col1 = col2 = 0;  break; /* black */
-                    case 9:  col1 = col2 = 0;  break; /* black */
-                    case 10: col1 = col2 = 9;  break; /* orange */
-                    case 11: col1 = 15; col2 = 0;  break; /* white, black */
-                    case 12: col1 = 0;  col2 = 15; break; /* black, white */
-                    case 13: col1 = 0;  col2 = 15; break; /* black, white */
-                    case 14: col1 = col2 = 15; break; /* white */
-                    case 15: col1 = col2 = 15; break; /* white */
-                }
-                vbyte >>= 2;
-                ds->rgbpixels[y][x++] = col1;
-                ds->rgbpixels[y][x++] = col1;
-                ds->rgbpixels[y][x++] = col2;
-                ds->rgbpixels[y][x++] = col2;
-            }
-        }
-        else {
-            for (int i = count; i; --i) {
-                switch (vbyte & 15) {
-                    case 0:  col1 = col2 = 0;  break; /* black */
-                    case 1:  col1 = col2 = 0;  break; /* black */
-                    case 2:  col1 = col2 = 12; break; /* green */
-                    case 3:  col1 = 15; col2 = 0; break; /* white, black */
-                    case 4:  col1 = col2 = 3;  break; /* purple */
-                    case 5:  col1 = col2 = 3;  break; /* purple */
-                    case 6:  col1 = col2 = 15; break; /* white */
-                    case 7:  col1 = col2 = 15; break; /* white */
-                    case 8:  col1 = col2 = 0;  break; /* black */
-                    case 9:  col1 = col2 = 0;  break; /* black */
-                    case 10: col1 = col2 = 12; break; /* green */
-                    case 11: col1 = 15; col2 = 0;  break; /* white, black */
-                    case 12: col1 = 0;  col2 = 15; break; /* black, white */
-                    case 13: col1 = 0;  col2 = 15; break; /* black, white */
-                    case 14: col1 = col2 = 15; break; /* white */
-                    case 15: col1 = col2 = 15; break; /* white */
-                }
-                vbyte >>= 2;
-                ds->rgbpixels[y][x++] = col1;
-                ds->rgbpixels[y][x++] = col1;
-                ds->rgbpixels[y][x++] = col2;
-                ds->rgbpixels[y][x++] = col2;
-            }
-        }
-
-        last_byte = ds->video_byte & 0x7F;
-    }
-}
-
-void init_apple_ii_video_addresses(display_state_t *ds)
-{
-    uint32_t hcount = 0;     // beginning of right border
-    uint32_t vcount = 0x100; // first scanline at top of screen
-
-    for (int idx = 0; idx < 62*262; ++idx)
-    {
-        // A2-A0 = H2-H0
-        uint32_t A2toA0 = hcount & 7;
-
-        // A6-A3
-        uint32_t V3V4V3V4 = ((vcount & 0xC0) >> 1) | ((vcount & 0xC0) >> 3);
-        uint32_t A6toA3 = (0x68 + (hcount & 0x38) + V3V4V3V4) & 0x78;
-
-        // A9-A7 = V2-V0
-        uint32_t A9toA7 = (vcount & 0x38) << 4;
-
-        // A15-A10
-        uint32_t HBL = (hcount < 0x58);
-        uint32_t LoresA15toA10 = 0x400 | (HBL << 12);
-        uint32_t HiresA15toA10 = (0x2000 | ((vcount & 7) << 10));
-
-        uint32_t lores_address = A2toA0 | A6toA3 | A9toA7 | LoresA15toA10;
-        uint32_t hires_address = A2toA0 | A6toA3 | A9toA7 | HiresA15toA10;
-
-        bool mixed_mode_text = (vcount >= 0x1A0 && vcount < 0x1C0) || (vcount >= 0x1E0);
-
-        ds->apple_ii_lores_p1_addresses[idx] = lores_address;
-        ds->apple_ii_lores_p2_addresses[idx] = lores_address + 0x400;
-
-        ds->apple_ii_hires_p1_addresses[idx] = hires_address;
-        ds->apple_ii_hires_p2_addresses[idx] = hires_address + 0x2000;
-
-        if (mixed_mode_text) {
-            ds->apple_ii_mixed_p1_addresses[idx] = lores_address;
-            ds->apple_ii_mixed_p2_addresses[idx] = lores_address + 0x400;
-        }
-        else {
-            ds->apple_ii_mixed_p1_addresses[idx] = hires_address;
-            ds->apple_ii_mixed_p2_addresses[idx] = hires_address + 0x2000;
-        }
-
-        if (hcount) {
-            hcount = (hcount + 1) & 0x7F;
-            if (hcount == 0) {
-                vcount = (vcount + 1) & 0x1FF;
-                if (vcount == 0)
-                    vcount = 0xFA;
-            }
-        }
-        else {
-            hcount = 0x40;
-        }
-    }
-}
-
 void apple_ii_video_scanner(cpu_state *cpu)
 {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
 
-    if (!video_lazy_init) {
-        // lazy initialization
-        make_flipped();
-        make_hgr_bits();
-        make_lgr_bits();
-        make_text40_bits();
-        init_apple_ii_video_addresses(ds);
-        video_lazy_init = true;
-    }
-
-    if (ds->hcount++ == 65) {
+    ds->hcount += 1;
+    if (ds->hcount == 65) {
         ds->hcount = 0;
-        if (ds->vcount++ == 262)
+        ds->vcount += 1;
+        if (ds->vcount == 262)
             ds->vcount = 0;
-    }
-
-    // color killer (maybe can be done in per-frame rendering)
-    if (ds->video_mode == VM_TEXT40) {
-        if (text_cycles >= (192*65*2)) // 2 frames
-            ds->kill_color = true;
-        else
-            ++text_cycles;
-    }
-    else {
-        text_cycles = 0;
-        ds->kill_color = false;
     }
 
     uint16_t address = (*(ds->video_addresses))[65*ds->vcount+ds->hcount];
@@ -536,6 +266,7 @@ void incr_cycles(cpu_state *cpu)
     if (cpu->ns_since_bus_cycle >= clock_mode_info[CLOCK_1_024MHZ].cycle_duration_ns) {
         cpu->ns_since_bus_cycle -= clock_mode_info[CLOCK_1_024MHZ].cycle_duration_ns;
         apple_ii_video_scanner(cpu);
+        cpu->bus_cycles++;
     }
 };
 

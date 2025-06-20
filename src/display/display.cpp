@@ -219,7 +219,6 @@ bool update_display_apple2(cpu_state *cpu) {
 
 /**
  * This is effectively a "redraw the entire screen each frame" method now.
- * With an optimization only update dirty lines.
  */
 bool new_update_display_apple2(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
@@ -229,19 +228,20 @@ bool new_update_display_apple2(cpu_state *cpu) {
 
     switch (vs->display_color_engine) {
         case DM_ENGINE_NTSC:
-            if (ds->kill_color)
-                //newProcessAppleIIFrame_Mono(cpu, (RGBA *)(ds->buffer), p_white);
+            if (ds->kill_color) {
+                newProcessAppleIIFrame_Mono(cpu, (RGBA *)(ds->buffer), p_white);
+            }
+            else {
                 newProcessAppleIIFrame_NTSC(cpu, (RGBA *)(ds->buffer));
-            else
-                newProcessAppleIIFrame_NTSC(cpu, (RGBA *)(ds->buffer));
+            }
             break;
-        case DM_ENGINE_RGB:               
+
+        case DM_ENGINE_RGB:         
             newProcessAppleIIFrame_RGB(cpu, (RGBA *)(ds->buffer));               
             break;
 
         default:
-            //newProcessAppleIIFrame_Mono(cpu, (RGBA *)(ds->buffer), vs->get_mono_color());
-            newProcessAppleIIFrame_NTSC(cpu, (RGBA *)(ds->buffer));
+            newProcessAppleIIFrame_Mono(cpu, (RGBA *)(ds->buffer), vs->get_mono_color());
             break;
     }
 
@@ -589,17 +589,140 @@ void txt_bus_write_C057(void *context, uint16_t address, uint8_t value) {
     txt_bus_read_C057(context, address);
 }
 
+void display_state_t::make_flipped() {
+    for (int n = 0; n < 256; ++n) {
+        uint8_t byte = (uint8_t)n;
+        uint8_t flipped_byte = byte >> 7; // leave high bit as high bit
+        for (int i = 7; i; --i) {
+            flipped_byte = (flipped_byte << 1) | (byte & 1);
+            byte >>= 1;
+        }
+        flipped[n] = flipped_byte;
+    }
+}
+
+void display_state_t::make_text40_bits() {
+    for (uint16_t n = 0; n < 256; ++n) {
+        uint16_t textbits = n;
+        uint16_t video_bits = 0;
+        for (int count = 7; count; --count) {
+            video_bits = (video_bits << 1) | (textbits & 1);
+            video_bits = (video_bits << 1) | (textbits & 1);
+            textbits >>= 1;
+        }
+        text40_bits[n] = video_bits;
+    }   
+}
+
+void display_state_t::make_hgr_bits() {
+    for (uint16_t n = 0; n < 256; ++n) {
+        uint8_t  byte = flipped[n];
+        uint16_t hgrbits = 0;
+        for (int i = 7; i; --i) {
+            hgrbits = (hgrbits << 1) | (byte & 1);
+            hgrbits = (hgrbits << 1) | (byte & 1);
+            byte >>= 1;
+        }
+        hgrbits = hgrbits << (byte & 1);
+        hgr_bits[n] = hgrbits;
+        //printf("%4.4x\n", hgrbits);
+    }
+}
+
+void display_state_t::make_lgr_bits() {
+    for (int n = 0; n < 16; ++n) {
+
+        uint8_t pattern = flipped[n];
+        pattern >>= 3;
+
+        //uint8_t pattern = (uint8_t)n;
+
+        // form even column pattern
+        uint16_t evnbits = 0;
+        for (int i = 14; i; --i) {
+            evnbits = (evnbits << 1) | (pattern & 1);
+            pattern = ((pattern & 1) << 3) | (pattern >> 1); // rotate
+        }
+
+        // form odd column pattern
+        uint16_t oddbits = 0;
+        for (int i = 14; i; --i) {
+            oddbits = (oddbits << 1) | (pattern & 1);
+            pattern = ((pattern & 1) << 3) | (pattern >> 1); // rotate
+        }
+
+        lgr_bits[2*n]   = ((evnbits >> 2) | (oddbits << 12)) & 0x3FFF;
+        lgr_bits[2*n+1] = ((oddbits >> 2) | (evnbits << 12)) & 0x3FFF;
+    }
+}
+
+void display_state_t::init_apple_ii_video_addresses()
+{
+    uint32_t hcount = 0;     // beginning of right border
+    uint32_t vcount = 0x100; // first scanline at top of screen
+
+    for (int idx = 0; idx < 65*262; ++idx)
+    {
+        // A2-A0 = H2-H0
+        uint32_t A2toA0 = hcount & 7;
+
+        // A6-A3
+        uint32_t V3V4V3V4 = ((vcount & 0xC0) >> 1) | ((vcount & 0xC0) >> 3);
+        uint32_t A6toA3 = (0x68 + (hcount & 0x38) + V3V4V3V4) & 0x78;
+
+        // A9-A7 = V2-V0
+        uint32_t A9toA7 = (vcount & 0x38) << 4;
+
+        // A15-A10
+        uint32_t HBL = (hcount < 0x58);
+        uint32_t LoresA15toA10 = 0x400 | (HBL << 12);
+        uint32_t HiresA15toA10 = (0x2000 | ((vcount & 7) << 10));
+
+        uint32_t lores_address = A2toA0 | A6toA3 | A9toA7 | LoresA15toA10;
+        uint32_t hires_address = A2toA0 | A6toA3 | A9toA7 | HiresA15toA10;
+
+        bool mixed_mode_text = (vcount >= 0x1A0 && vcount < 0x1C0) || (vcount >= 0x1E0);
+
+        apple_ii_lores_p1_addresses[idx] = lores_address;
+        apple_ii_lores_p2_addresses[idx] = lores_address + 0x400;
+
+        apple_ii_hires_p1_addresses[idx] = hires_address;
+        apple_ii_hires_p2_addresses[idx] = hires_address + 0x2000;
+
+        if (mixed_mode_text) {
+            apple_ii_mixed_p1_addresses[idx] = lores_address;
+            apple_ii_mixed_p2_addresses[idx] = lores_address + 0x400;
+        }
+        else {
+            apple_ii_mixed_p1_addresses[idx] = hires_address;
+            apple_ii_mixed_p2_addresses[idx] = hires_address + 0x2000;
+        }
+
+        if (hcount) {
+            hcount = (hcount + 1) & 0x7F;
+            if (hcount == 0) {
+                vcount = (vcount + 1) & 0x1FF;
+                if (vcount == 0)
+                    vcount = 0xFA;
+            }
+        }
+        else {
+            hcount = 0x40;
+        }
+    }
+}
+
 /**
  * display_state_t Class Implementation
  */
 display_state_t::display_state_t() {
-    /*
-    for (int i = 0; i < 24; i++) {
-        dirty_line[i] = 0;
-    }
-    */
-
     //debug_set_level(DEBUG_DISPLAY);
+
+    make_flipped();
+    make_hgr_bits();
+    make_lgr_bits();
+    make_text40_bits();
+    init_apple_ii_video_addresses();
 
     display_mode = TEXT_MODE;
     display_graphics_mode = LORES_MODE;
@@ -612,11 +735,29 @@ display_state_t::display_state_t() {
     flash_state = false;
     flash_counter = 0;
 
-    kill_color = true;
-    hcount = 0;
-    vcount = 0;
+    kill_color = false;
+    hcount = 64;   // will increment to zero on first video scan
+    vcount = 242;  // will increment to 243 on first video scan
+    video_data_size = 0;
     video_mode = VM_TEXT40;
     video_addresses = &apple_ii_lores_p1_addresses;
+
+    /*
+    ** Explanation of hcount and vcount initialization **
+    The lines of the video display that display video data are conceptually lines
+    0-191 (legacy modes) or 0-199 (SHR modes). The lines after that, up to and
+    including line 220 are the bottom colored border on the IIgs. Lines 221-242
+    are undisplayed lines including the vertical sync. Lines 243-261 are the top
+    colored border on the IIgs. Each line is considered to begin (with hcount == 0)
+    at the beginning of the right border of the screen. hcount values 0-6 are the
+    right colored border of the IIgs. hcount values 7-18 are undisplayed states
+    including the horizontal sync. hcount values 19-24 are the left colored border
+    of the IIgs. hcount values 25-64 are used to display video data.
+    The hcount and vcount initialization values above are chosen so that the video
+    scanner (which does not produce data for undisplayed hcount/vcount values)
+    will produce video data for the current frame starting at the beginning of the
+    top border.
+    */
 
     buffer = new uint8_t[BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA)];
     memset(buffer, 0, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA)); // TODO: maybe start it with apple logo?
@@ -691,6 +832,7 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     display_state_t *ds = new display_state_t;
     video_system_t *vs = computer->video_system;
     ds->video_system = vs;
+    printf("ds->video_system:%p\n", ds->video_system); fflush(stdout);
     ds->event_queue = computer->event_queue;
 
     // Create the screen texture

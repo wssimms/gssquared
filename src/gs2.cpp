@@ -131,6 +131,7 @@ void run_cpus(computer_t *computer) {
         uint64_t last_cycle_time = SDL_GetTicksNS();
 
         uint64_t cycles_for_this_burst = clock_mode_info[cpu->clock_mode].cycles_per_burst;
+        uint64_t execution_time = 0;
 
         if (! cpu->halt) {
             switch (cpu->execution_mode) {
@@ -157,6 +158,7 @@ void run_cpus(computer_t *computer) {
                                 }
                             }
                         } else { // skip all debug checks if the window is not open - this may seem repetitioius but it saves all kinds of cycles where every cycle counts (GO FAST MODE)
+/*                            
                             uint64_t end_frame_cycles = cpu->cycles + cycles_for_this_burst;
                             while (cpu->cycles < end_frame_cycles) { // 1/60th second.
                                 if (computer->event_timer->isEventPassed(cpu->cycles)) {
@@ -164,9 +166,34 @@ void run_cpus(computer_t *computer) {
                                 }
                                 (cpu->execute_next)(cpu);
                             }
+*/
+                            // set this because it is used in incr_cycle()
+                            cpu->cycle_duration_ns = clock_mode_info[cpu->clock_mode].cycle_duration_ns;
+
+                            uint64_t before_cycles = cpu->cycles;
+                            uint64_t before_ns = SDL_GetTicksNS();
+
+                            // 17030 bus cycles == 1 video frame == 1/59.9227434 sec.
+                            while (cpu->bus_cycles < 17030) {
+                                if (computer->event_timer->isEventPassed(cpu->cycles)) {
+                                    computer->event_timer->processEvents(cpu->cycles);
+                                }
+                                (cpu->execute_next)(cpu);
+                            }
+                            cpu->bus_cycles -= 17030;
+
+                            uint64_t total_cycles = cpu->cycles - before_cycles;
+                            execution_time = SDL_GetTicksNS() - before_ns;
+
+                            if (cpu->clock_mode == CLOCK_FREE_RUN) {
+                                double new_cycle_duration_ns = (double)execution_time / (double)total_cycles;
+                                clock_mode_info[CLOCK_FREE_RUN].cycle_duration_ns = new_cycle_duration_ns;
+                                clock_mode_info[CLOCK_FREE_RUN].cycles_per_burst = total_cycles;
+                            }
                         }
                         }
                         break;
+
                     case EXEC_STEP_INTO:
                         while (cpu->instructions_left) {
                             if (computer->event_timer->isEventPassed(cpu->cycles)) {
@@ -325,8 +352,15 @@ void run_cpus(computer_t *computer) {
             uint64_t sleep_loops = 0;
             uint64_t current_time = SDL_GetTicksNS();
             if (current_time > wakeup_time) {
+                printf("  last_cycle_time:%llu\n", last_cycle_time);
+                printf("     # CPU cycles:%llu\n", (cpu->cycles - last_cycle_count));
+                printf("cycle_duration_ns:%g\n", cpu->cycle_duration_ns);
+                printf("      wakeup_time:%llu\n", wakeup_time);
+                printf("     current_time:%llu\n", current_time);
                 cpu->clock_slip++;
-                printf("Clock slip: event_time: %10llu, audio_time: %10llu, display_time: %10llu, app_event_time: %10llu, total: %10llu\n", event_time, audio_time, display_time, app_event_time, event_time + audio_time + display_time + app_event_time);
+                printf("Clock slip: execution_time: %10llu, event_time: %10llu, audio_time: %10llu, display_time: %10llu, app_event_time: %10llu, total: %10llu\n",
+                    execution_time, event_time, audio_time, display_time, app_event_time, event_time + audio_time + display_time + app_event_time);
+                fflush(stdout);
             } else {
                 if (gs2_app_values.sleep_mode) {
                     SDL_DelayPrecise(wakeup_time - SDL_GetTicksNS());
@@ -469,6 +503,8 @@ int main(int argc, char *argv[]) {
 
     SlotManager_t *slot_manager = new SlotManager_t();
 
+    printf("computer->video_system:%p\n", computer->video_system); fflush(stdout);
+
     for (int i = 0; system_config->device_map[i].id != DEVICE_ID_END; i++) {
         DeviceMap_t dm = system_config->device_map[i];
 
@@ -481,7 +517,11 @@ int main(int argc, char *argv[]) {
 
     bool result = soundeffects_init(computer);
 
+    printf("Before reset\n"); fflush(stdout);
+
     computer->cpu->reset();
+
+    printf("After reset\n"); fflush(stdout);
 
     // mount disks - AFTER device init.
     while (!disks_to_mount.empty()) {
