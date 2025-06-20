@@ -9,6 +9,7 @@
 #include "devices/displaypp/frame/Frames.hpp"
 #include "devices/displaypp/generate/AppleII.cpp"
 #include "devices/displaypp/render/Monochrome560.hpp"
+#include "devices/displaypp/render/NTSC560.hpp"
 #include "devices/displaypp/CharRom.hpp"
 
 int main(int argc, char **argv) {
@@ -27,7 +28,8 @@ int main(int argc, char **argv) {
         printf("Failed to create renderer\n");
         return 1;
     }
-    SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, 560, 192);
+    //SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, 560, 192);
+    SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, 560, 192);
     if (!texture) {
         printf("Failed to create texture\n");
         printf("SDL Error: %s\n", SDL_GetError());
@@ -141,6 +143,7 @@ int main(int argc, char **argv) {
     Frame560RGBA *frame_rgba = new(std::align_val_t(64)) Frame560RGBA(f_w, f_h);
 
     Monochrome560 monochrome;
+    NTSC560 ntsc_render;
 
     AppleII_Display display_iie(iie_rom);
     iie_rom.print_matrix(0x40);
@@ -181,7 +184,9 @@ int main(int argc, char **argv) {
     uint64_t times[900];
     uint64_t framecnt = 0;
 
-    int mode = 1;
+    int generate_mode = 1;
+    int render_mode = 1;
+    int sharpness = 0;
     bool exiting = false;
 
     while (++framecnt && !exiting)  {
@@ -192,16 +197,26 @@ int main(int argc, char **argv) {
             }
             if (event.type == SDL_EVENT_KEY_DOWN) {
                 if (event.key.key == SDLK_1) {
-                    mode = 1;
+                    generate_mode = 1;
                 }
                 if (event.key.key == SDLK_2) {
-                    mode = 2;
+                    generate_mode = 2;
                 }
                 if (event.key.key == SDLK_3) {
-                    mode = 3;
+                    generate_mode = 3;
                 }
                 if (event.key.key == SDLK_4) {
-                    mode = 4;
+                    generate_mode = 4;
+                }
+                if (event.key.key == SDLK_N) {
+                    render_mode = 2;
+                }
+                if (event.key.key == SDLK_M) {
+                    render_mode = 1;
+                }
+                if (event.key.key == SDLK_P) {
+                    sharpness = 1 - sharpness;
+                    SDL_SetTextureScaleMode(texture, sharpness ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST);
                 }
             }
         }
@@ -209,7 +224,7 @@ int main(int argc, char **argv) {
         start = SDL_GetTicksNS();
       
         for (int l = 0; l < 24; l++) {
-            switch (mode) {
+            switch (generate_mode) {
                 case 1:
                     display_iiplus.generate_text40(text_page, frame_byte, l);
                     break;
@@ -224,8 +239,14 @@ int main(int argc, char **argv) {
                     break;        
             }
         }
-
-        monochrome.render(frame_byte, frame_rgba, (RGBA_t){.a = 0xFF, .b = 0x00, .g = 0xFF, .r = 0x00});
+        switch (render_mode) {
+            case 1:
+                monochrome.render(frame_byte, frame_rgba, (RGBA_t){.a = 0xFF, .b = 0x00, .g = 0xFF, .r = 0x00});
+                break;
+            case 2:
+                ntsc_render.render(frame_byte, frame_rgba, (RGBA_t){.a = 0xFF, .b = 0x00, .g = 0xFF, .r = 0x00});
+                break;
+        }
 
         // update the texture - approx 300us
         SDL_LockTexture(texture, NULL, &pixels, &pitch);

@@ -158,7 +158,7 @@ void setupConfig() {
 /** 
  * the Lookup table - 4 phases, 2 ^ (num_taps * 2) bits.
  */
-RGBA g_hgr_LUT[4][(1 << ((NUM_TAPS * 2) + 1))];
+alignas(64) RGBA g_hgr_LUT[4][(1 << ((NUM_TAPS * 2) + 1))];
 
 
 // Process a single scanline of Apple II video data
