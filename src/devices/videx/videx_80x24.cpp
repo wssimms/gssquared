@@ -21,6 +21,7 @@
 #include "display/display.hpp"
 #include "display/types.hpp"
 #include "videosystem.hpp"
+#include "devices/displaypp/RGBA.hpp"
 
 void render_videx_scanline_80x24(cpu_state *cpu, videx_data * videx_d, int y, void *pixels, int pitch) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
@@ -139,7 +140,7 @@ void update_display_videx(cpu_state *cpu, /* SlotType_t slot */ videx_data * vid
             fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
             return;
         }
-        memcpy(pixels, videx_d->buffer, VIDEX_SCREEN_WIDTH * VIDEX_SCREEN_HEIGHT * sizeof(RGBA));
+        memcpy(pixels, videx_d->buffer, VIDEX_SCREEN_WIDTH * VIDEX_SCREEN_HEIGHT * sizeof(RGBA_t));
         SDL_UnlockTexture(videx_d->videx_texture);
     }
     vs->force_full_frame_redraw = false;

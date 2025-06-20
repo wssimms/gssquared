@@ -241,7 +241,7 @@ OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Wind
     event_queue = computer->event_queue;
 
     cpTexture = SDL_CreateTexture(renderer,
-        SDL_PIXELFORMAT_RGBA8888,
+        PIXEL_FORMAT,
         SDL_TEXTUREACCESS_TARGET,
         window_w, 
         window_h

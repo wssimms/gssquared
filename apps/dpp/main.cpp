@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
         return 1;
     }
     //SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, 560, 192);
-    SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, 560, 192);
+    SDL_Texture *texture = SDL_CreateTexture(renderer, PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING, 560, 192);
     if (!texture) {
         printf("Failed to create texture\n");
         printf("SDL Error: %s\n", SDL_GetError());

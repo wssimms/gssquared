@@ -24,6 +24,7 @@
 #include "videx_80x24.hpp"
 #include "videosystem.hpp"
 #include "devices/annunciator/annunciator.hpp"
+#include "devices/displaypp/RGBA.hpp"
 
 void videx_set_line_dirty(videx_data * videx_d, int line) {
     if (line>=0 && line<24) {
@@ -182,8 +183,8 @@ void init_slot_videx(computer_t *computer, SlotType_t slot) {
 
     videx_d->char_memory = new uint8_t[VIDEX_CHAR_SET_COUNT * VIDEX_CHARSET_SIZE];
 
-    videx_d->buffer = new uint8_t[VIDEX_SCREEN_WIDTH * VIDEX_SCREEN_HEIGHT * sizeof(RGBA)];
-    memset(videx_d->buffer, 0, VIDEX_SCREEN_WIDTH * VIDEX_SCREEN_HEIGHT * sizeof(RGBA));
+    videx_d->buffer = new uint8_t[VIDEX_SCREEN_WIDTH * VIDEX_SCREEN_HEIGHT * sizeof(RGBA_t)];
+    memset(videx_d->buffer, 0, VIDEX_SCREEN_WIDTH * VIDEX_SCREEN_HEIGHT * sizeof(RGBA_t));
     
     uint8_t registers_init[18] = {
         0x7B,         0x50,        0x62,        0x29,        0x1B,
@@ -198,7 +199,7 @@ void init_slot_videx(computer_t *computer, SlotType_t slot) {
 
     // Create the screen texture for Videx
     videx_d->videx_texture = SDL_CreateTexture(vs->renderer,
-        SDL_PIXELFORMAT_RGBA8888,
+        PIXEL_FORMAT,
         SDL_TEXTUREACCESS_STREAMING,
         VIDEX_SCREEN_WIDTH, VIDEX_SCREEN_HEIGHT);
 

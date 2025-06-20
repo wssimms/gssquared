@@ -142,5 +142,5 @@ void render_hgrng_scanline(cpu_state *cpu, int y, uint8_t *pixels)
         //printf("yy: %d\n", yy);
         emitBitSignalHGR(hgrdata, frameBuffer, yy * 560, yy);
     }
-    processAppleIIFrame_LUT(frameBuffer + (y * 8 * 560), (RGBA *)pixels, y * 8, (y + 1) * 8);
+    processAppleIIFrame_LUT(frameBuffer + (y * 8 * 560), (RGBA_t *)pixels, y * 8, (y + 1) * 8);
 }

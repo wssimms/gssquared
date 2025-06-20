@@ -22,6 +22,7 @@
 //#include "display.hpp"
 #include "display/types.hpp"
 //#include "videosystem.hpp"
+#include "devices/displaypp/RGBA.hpp"
 
 // Define types
 
@@ -62,5 +63,5 @@ extern ntsc_config config ;
 
 void setupConfig();
 void init_hgr_LUT();
-void processAppleIIFrame_LUT(uint8_t* frameData, RGBA* outputImage, int y_start, int y_end);
-void processAppleIIFrame_Mono(uint8_t* frameData, RGBA* outputImage, int y_start, int y_end, RGBA color_value);
+void processAppleIIFrame_LUT(uint8_t* frameData, RGBA_t * outputImage, int y_start, int y_end);
+void processAppleIIFrame_Mono(uint8_t* frameData, RGBA_t * outputImage, int y_start, int y_end, RGBA_t color_value);

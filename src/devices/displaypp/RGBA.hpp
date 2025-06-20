@@ -4,18 +4,25 @@
 
 #pragma pack(push, 1)
 
-#ifdef __LITTLE_ENDIAN__
+/**
+ * different platforms have different 'preferred' pixel formats.
+ * we will select at compile time the best data structure.
+ * This likely needs to be more like 'Mac' etc.
+ */
+
+#ifdef __APPLE__
+// Apple - ABGR 
 struct RGBA_t {
     union {
         struct {
-//            uint8_t r, g, b, a;
-            uint8_t a, b, g, r; // to match current inefficient pixel format.
-
+            uint8_t r, g, b, a;
         };
         uint32_t rgba;
     };
 };
-#else
+#define PIXEL_FORMAT SDL_PIXELFORMAT_ABGR8888
+#elif defined(__LINUX__)
+// Linux - RGBA
 struct RGBA_t {
     union {
         struct {
@@ -24,6 +31,20 @@ struct RGBA_t {
         uint32_t rgba;
     };
 };
+#define PIXEL_FORMAT SDL_PIXELFORMAT_RGBA8888
+#elif defined(__WINDOWS__)
+// Windows - BGRA
+struct RGBA_t {
+    union {
+        struct {
+            uint8_t a, r, g, b;
+        }   
+        uint32_t rgba;
+    };
+};
+#define PIXEL_FORMAT SDL_PIXELFORMAT_BGRA8888
+#else
+#error "Unsupported platform"
 #endif
 
 #pragma pack(pop)

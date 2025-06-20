@@ -20,6 +20,8 @@
 #include <SDL3_image/SDL_image.h>
 #include <stdexcept>
 
+#include "devices/displaypp/RGBA.hpp"
+
 /**
  * @brief A class that manages SDL textures loaded from image files.
  * 
@@ -55,7 +57,7 @@ public:
         }
         
         if (target_w > 0 && target_h > 0) {
-            SDL_Surface* scaled = SDL_CreateSurface(target_w, target_h, SDL_PIXELFORMAT_RGBA8888);
+            SDL_Surface* scaled = SDL_CreateSurface(target_w, target_h, PIXEL_FORMAT);
             SDL_BlitSurfaceScaled(original, NULL, scaled, NULL, SDL_SCALEMODE_LINEAR);
             image = SDL_CreateTextureFromSurface(renderer, scaled);
             SDL_DestroySurface(scaled);
