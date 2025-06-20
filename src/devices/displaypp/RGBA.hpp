@@ -21,13 +21,13 @@ struct RGBA_t {
     };
 };
 #define PIXEL_FORMAT SDL_PIXELFORMAT_ABGR8888
-#elif defined(__LINUX__)
+#elif defined(__linux__)
 // Linux - RGBA
 struct RGBA_t {
     union {
         struct {
             uint8_t a, b, g, r;
-        }
+        };
         uint32_t rgba;
     };
 };
@@ -38,7 +38,7 @@ struct RGBA_t {
     union {
         struct {
             uint8_t a, r, g, b;
-        }   
+        };   
         uint32_t rgba;
     };
 };
