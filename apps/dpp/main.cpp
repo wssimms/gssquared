@@ -12,6 +12,68 @@
 #include "devices/displaypp/render/NTSC560.hpp"
 #include "devices/displaypp/CharRom.hpp"
 
+int text_addrs[24] =
+  {   // text page 1 line addresses
+            0x0000,
+            0x0080,
+            0x0100,
+            0x0180,
+            0x0200,
+            0x0280,
+            0x0300,
+            0x0380,
+
+            0x0028,
+            0x00A8,
+            0x0128,
+            0x01A8,
+            0x0228,
+            0x02A8,
+            0x0328,
+            0x03A8,
+
+            0x0050,
+            0x00D0,
+            0x0150,
+            0x01D0,
+            0x0250,
+            0x02D0,
+            0x0350,
+            0x03D0,
+        };
+
+void generate_dlgr_test_pattern(uint8_t *textpage, uint8_t *altpage) {
+
+    int c = 0;
+
+    for (int x = 0; x <= 79; x++) {
+        
+        // if x is even, use altpage.
+        // if x is odd, use textpage.
+        // basic program does:
+        // poke C054 + (x is odd)
+        uint8_t *addr = (x % 2) ? altpage : textpage;
+
+        for (int y = 0; y < 24; y ++) {
+
+            uint8_t *laddr = addr + text_addrs[y] + (x/2);
+            uint8_t val = 0;
+
+            // if y is even, modify bottom nibble.
+            val = (c & 0x0F);
+            if (++c > 15) c = 0;
+            
+            // if y is odd, modify top nibble.
+            val |= (c << 4);
+            if (++c > 15) c = 0;
+
+            // store it
+            *laddr = val;
+            
+        }
+    }
+}
+
 int main(int argc, char **argv) {
     uint64_t start = 0, end = 0;
 
@@ -132,6 +194,11 @@ int main(int argc, char **argv) {
         alt_text_page[i] = (i+1) & 0xFF;
     }
 
+    uint8_t *lores_page = new uint8_t[1024];
+    uint8_t *alt_lores_page = new uint8_t[1024];
+    generate_dlgr_test_pattern(lores_page, alt_lores_page);
+
+
     CharRom iiplus_rom("assets/roms/apple2_plus/char.rom");
     CharRom iie_rom("assets/roms/apple2e_enh/char.rom");
 
@@ -222,7 +289,8 @@ int main(int argc, char **argv) {
         }
 
         start = SDL_GetTicksNS();
-      
+        int phaseoffset = 0;
+
         for (int l = 0; l < 24; l++) {
             switch (generate_mode) {
                 case 1:
@@ -230,12 +298,14 @@ int main(int argc, char **argv) {
                     break;
                 case 2:
                     display_iie.generate_text80(text_page, alt_text_page, frame_byte, l);
+                    phaseoffset = 1;
                     break;
                 case 3:
                     display_iie.generate_lores40(text_page, frame_byte, l);
                     break;
                 case 4:
-                    display_iie.generate_lores80(text_page, alt_text_page, frame_byte, l);
+                    display_iie.generate_lores80(lores_page, alt_lores_page, frame_byte, l);
+                    phaseoffset = 1;
                     break;        
             }
         }
@@ -244,7 +314,7 @@ int main(int argc, char **argv) {
                 monochrome.render(frame_byte, frame_rgba, (RGBA_t){.a = 0xFF, .b = 0x00, .g = 0xFF, .r = 0x00});
                 break;
             case 2:
-                ntsc_render.render(frame_byte, frame_rgba, (RGBA_t){.a = 0xFF, .b = 0x00, .g = 0xFF, .r = 0x00});
+                ntsc_render.render(frame_byte, frame_rgba, (RGBA_t){.a = 0xFF, .b = 0x00, .g = 0xFF, .r = 0x00}, phaseoffset);
                 break;
         }
 

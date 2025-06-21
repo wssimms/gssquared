@@ -132,3 +132,8 @@ The cleanest sample I have seen to turn it on is
 30 POKE 49246,0 : REM $C05E - enable double resolution graphics
 40 GR : REM Turn on double lo-res mode
 Once in this mode, data stored to the 80 column screen will show up as double low res. On the iigs you can just use the plot command in AppleSoft. I think on the iie you have to do it with pokes.
+
+ok have this cool program to generate a lores test pattern. (it's potest.po : GR80TEST)
+
+however my lo80 of course starts with the wrong phase. All the 80-column stuff needs to start 180 degrees off.
+So we need to know what phase to start on.

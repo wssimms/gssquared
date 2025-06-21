@@ -16,7 +16,7 @@ public:
     };
     ~NTSC560() {};
 
-    void render(Frame560 *frame_byte, Frame560RGBA *frame_rgba, RGBA_t color) {
+    void render(Frame560 *frame_byte, Frame560RGBA *frame_rgba, RGBA_t color, uint16_t phaseoffset) {
         // Process each scanline
         for (uint16_t y = 0; y < 192; y++)
         {
@@ -42,7 +42,7 @@ public:
                 if ((x < config.width-NUM_TAPS) && (frame_byte->pull() != 0)) // at end of line insert 0s
                     bits = bits | (1 << ((NUM_TAPS*2)));
 
-                uint32_t phase = x % 4;
+                uint32_t phase = (phaseoffset + x) % 4;
 
                 //  Use the phase and the bits as the index
                 frame_rgba->push( g_hgr_LUT[phase][bits] );
