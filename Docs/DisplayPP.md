@@ -137,3 +137,123 @@ ok have this cool program to generate a lores test pattern. (it's potest.po : GR
 
 however my lo80 of course starts with the wrong phase. All the 80-column stuff needs to start 180 degrees off.
 So we need to know what phase to start on.
+
+## RGB Algorithm from Patent 4,786,893.
+
+This appears to be related to how the IIgs converts the hires bitstream into RGB signals.
+
+Block 20: Detect Change in Color Pattern
+
+Block 21: Examine Last four bits for each new bit in bit stream
+
+Block 22: As shown by block 21, the last four bits in the bit stream are examined and as shown by block 22, this is done to determine the color. For instance, if the color is contained in bits ABCD, the color is determined from these bits when in this order. When the next bit A arrives, the bit stream appears as BCDA. The bits are rearranged to again read ABCD to determine the color.
+
+If a change in color is detected from block 20 the pattern that existed before the change is used until a certain or predetermined condition is met (block 23). Thus if from the bit stream DABC a color change is detected the pattern that existed before this detected change (CDAB) after being reordered to ABCD is used as the color. After the predetermined condition is met, the color then being detected is used. This in effect eliminates the transition color. The predetermined condition can be an algorithm such as implemented in Fig 4, or simply the passage of a predetermined number of bits.
+
+BUT the preferred embodiment of the present invention is Fig 4.
+
+So the first step here is: bits in, rearrange.
+
+11001100
+
+We start by reading bit A, then B, C, D in that order, and view them like so:
+
+ABCD = 1100
+
+the next bit we read is back to A, and we have:
+
+BCDA = 1001
+
+But then we reorder to ABCD, and get:
+ABCD = 1100
+
+ok, that's cool.
+
+The next bit we read is B = 1, and we have
+
+CDAB = 0011
+
+Again, rearrange to get:
+
+ABCD = 1100
+
+So let's call where we're at the "phase".
+
+ABCD - phase 0
+BCDA - phase 1
+CDAB - phase 2
+DABC - phase 3
+
+We can use a set of four 16-entry lookup tables in lieu of the barrel shifter 31. So we're going to have:
+
+* phase
+* ShiftReg
+* ReordVal
+* LatchedColor
+* JK43
+* JK44
+
+43 and 44 are flip-flops with J/K inputs. 
+
+| J | K | Qnext | Comment |
+|---|---|-------|---------|
+| 0 | 0 | Q | No change |
+| 0 | 1 | 0 | Reset |
+| 1 | 0 | 1 | Set |
+| 1 | 1 | !Q | Toggle |
+
+where Q is the current value.
+
+then for control signals:
+
+These are flip-flops, so they latch the last value and will change *after* our virtual cycle.
+
+43:
+!SR3 & INP -> J
+SR2 -> K
+
+44:
+SR3 & !INP -> J
+!SR2 -> K
+
+OR of flip-flop outputs then selects either the LATCH data or BS data as coded RGB output.
+
+Then we look up the RGB color we want from a 16-entry LUT that converts our 4-bit index into RGB.
+
+https://archive.org/details/IIgs_2523063_Master_Color_Values
+
+This is a IIGS technical note mapping the color values on the IIGS to RGB.
+
+| Color Name | Color Register Value | Master Color Value |
+|-|-|-|
+| Black | $0 | $0000 |
+| Deep Red | $1 | $0D03 |
+| Dark Blue | $2 | $0009 |
+| Purple | $3 | $0D2D |
+| Dark Green | $4 | $0072 |
+| Dark Gray | $5 | $0555 |
+| Medium Blue | $6 | $022F |
+| Light Blue | $7 | $06AF |
+| Brown | $8 | $0850 |
+| Orange | $9 | $0F60 |
+| Light Gray | $A | $0AAA |
+| Pink | $B | $0F98 |
+| Light Green | $C | $01DO |
+| Yellow  | $D | $0FF0 |
+| Aquamarine | $E | $04F9 |
+| White | $F | $0FFF |
+
+Andy McFadden in this post:
+
+https://comp.sys.apple2.narkive.com/lTSrj2ZI/apple-ii-colour-rgb
+
+says:
+
+See Apple IIgs tech note #63:
+
+http://www.gno.org/pub/apple2/doc/apple/technotes/iigs/tn.iigs.063
+
+I believe the "border color" table entries correspond to the lo-res and double hi-res colors. The purple, orange, medium blue, and light green correspond to the hi-res colors.
+
+"Assume the embodiment of Fig 6 is in use. the counter 51 counts, for example, 3 counts or cycles. After the third count, the color 0010 is used as shown in Fig 5. Thus the fringe colors are not displayed."
+

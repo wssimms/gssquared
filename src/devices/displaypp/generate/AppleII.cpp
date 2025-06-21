@@ -203,8 +203,8 @@ void generate_text80(uint8_t *textpage, uint8_t *alttextpage, Frame560 *f, uint1
                 if (y & 4) { // if we're in the second half of the scanline, shift the byte right 4 bits to get the other nibble
                     tchar = tchar >> 4;
                 }
-                // TODO: we might need to continue pixeloff from the previous loop rather than reset it here?
-                //pixeloff = (x * 14) % 4;
+                // this is correct.
+                pixeloff = (x * 14) % 4;
 
                 for (uint16_t bits = 0; bits < 7; bits++) {
                     uint8_t bit = ((tchar >> pixeloff) & 0x01);

@@ -10,6 +10,7 @@
 #include "devices/displaypp/generate/AppleII.cpp"
 #include "devices/displaypp/render/Monochrome560.hpp"
 #include "devices/displaypp/render/NTSC560.hpp"
+#include "devices/displaypp/render/GSRGB560.hpp"
 #include "devices/displaypp/CharRom.hpp"
 
 int text_addrs[24] =
@@ -211,6 +212,7 @@ int main(int argc, char **argv) {
 
     Monochrome560 monochrome;
     NTSC560 ntsc_render;
+    GSRGB560 rgb_render;
 
     AppleII_Display display_iie(iie_rom);
     iie_rom.print_matrix(0x40);
@@ -281,6 +283,9 @@ int main(int argc, char **argv) {
                 if (event.key.key == SDLK_M) {
                     render_mode = 1;
                 }
+                if (event.key.key == SDLK_R) {
+                    render_mode = 3;
+                }
                 if (event.key.key == SDLK_P) {
                     sharpness = 1 - sharpness;
                     SDL_SetTextureScaleMode(texture, sharpness ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST);
@@ -315,6 +320,9 @@ int main(int argc, char **argv) {
                 break;
             case 2:
                 ntsc_render.render(frame_byte, frame_rgba, (RGBA_t){.a = 0xFF, .b = 0x00, .g = 0xFF, .r = 0x00}, phaseoffset);
+                break;
+            case 3:
+                rgb_render.render2(frame_byte, frame_rgba, (RGBA_t){.a = 0xFF, .b = 0x00, .g = 0xFF, .r = 0x00}, phaseoffset);
                 break;
         }
 
