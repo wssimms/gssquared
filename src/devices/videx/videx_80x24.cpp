@@ -26,9 +26,9 @@
 void render_videx_scanline_80x24(cpu_state *cpu, videx_data * videx_d, int y, void *pixels, int pitch) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     //videx_data * videx_d = (videx_data *)get_module_state(cpu, MODULE_VIDEX);
-    uint32_t *texturePixels = (uint32_t *)pixels;
+    RGBA_t *texturePixels = (RGBA_t *)pixels;
 
-    uint32_t color_value = ds->video_system->get_mono_color_u();
+    RGBA_t color_value = ds->video_system->get_mono_color();
 
     /**
      * calculate memory address of start of line:
@@ -72,9 +72,9 @@ void render_videx_scanline_80x24(cpu_state *cpu, videx_data * videx_d, int y, vo
 
             for (int px = 0; px < 8; px++) {
                 if (cursor_this_char) {
-                    *texturePixels = (cmap & 0x80) ? 0x00000000 : color_value;
+                    *texturePixels = (cmap & 0x80) ? RGBA_t{0,0,0,0} : color_value;
                 } else {
-                    *texturePixels = (cmap & 0x80) ? color_value : 0x00000000;
+                    *texturePixels = (cmap & 0x80) ? color_value : RGBA_t{0,0,0,0};
                 }
                 cmap <<= 1;
                 texturePixels++;

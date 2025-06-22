@@ -21,24 +21,25 @@
 #include "display.hpp"
 #include "text_40x24.hpp"
 #include "lores_40x48.hpp"
+#include "devices/displaypp/RGBA.hpp"
 
-uint32_t lores_color_table[16] = {
-    0x00000000,
-    0x8A2140FF,
-    0x3C22A5FF,
-    0xC847E4FF,
-    0x07653EFF,
-    0x7B7E80FF,
-    0x308EF3FF,
-    0xB9A9FDFF,
-    0x3B5107FF,
-    0xC77028FF,
-    0x7B7E80FF,
-    0xF39AC2FF,
-    0x2FB81FFF,
-    0xB9D060FF,
-    0x6EE1C0FF,
-    0xFFFFFFFF
+RGBA_t lores_color_table[16] = {
+    {0x00, 0x00, 0x00, 0xFF},
+    {0x8A, 0x21, 0x40, 0xFF},
+    {0x3C, 0x22, 0xA5, 0xFF},
+    {0xC8, 0x47, 0xE4, 0xFF},
+    {0x07, 0x65, 0x3E, 0xFF},
+    {0x7B, 0x7E, 0x80, 0xFF},
+    {0x30, 0x8E, 0xF3, 0xFF},
+    {0xB9, 0xA9, 0xFD, 0xFF},
+    {0x3B, 0x51, 0x07, 0xFF},
+    {0xC7, 0x70, 0x28, 0xFF},
+    {0x7B, 0x7E, 0x80, 0xFF},
+    {0xF3, 0x9A, 0xC2, 0xFF},
+    {0x2F, 0xB8, 0x1F, 0xFF},
+    {0xB9, 0xD0, 0x60, 0xFF},
+    {0x6E, 0xE1, 0xC0, 0xFF},
+    {0xFF, 0xFF, 0xFF, 0xFF}
     };
 
 void render_lores_scanline(cpu_state *cpu, int y, void *pixels, int pitch) {
@@ -51,13 +52,13 @@ void render_lores_scanline(cpu_state *cpu, int y, void *pixels, int pitch) {
         uint8_t character = cpu->mmu->read_raw(TEXT_PAGE_TABLE[y] + x);
 
         // look up color key for top and bottom block
-        uint32_t color_top = lores_color_table[character & 0x0F];
-        uint32_t color_bottom = lores_color_table[(character & 0xF0) >> 4];
+        RGBA_t color_top = lores_color_table[character & 0x0F];
+        RGBA_t color_bottom = lores_color_table[(character & 0xF0) >> 4];
 
         int pitchoff = pitch / 4;
         int charoff = x * 14;
         // Draw the character bitmap into the texture
-        uint32_t* texturePixels = (uint32_t*)pixels;
+        RGBA_t * texturePixels = (RGBA_t *)pixels;
         for (int row = 0; row < 4; row++) {
             uint32_t base = row * pitchoff;
             texturePixels[base + charoff ] = color_top;

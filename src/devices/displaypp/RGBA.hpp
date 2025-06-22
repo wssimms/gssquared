@@ -19,6 +19,15 @@ struct RGBA_t {
         };
         uint32_t rgba;
     };
+
+    bool operator==(const RGBA_t& other) const {
+        return rgba == other.rgba;
+    }
+    
+    bool operator!=(const RGBA_t& other) const {
+        return rgba != other.rgba;
+    }
+
 };
 #define PIXEL_FORMAT SDL_PIXELFORMAT_ABGR8888
 #elif defined(__linux__)
@@ -30,6 +39,13 @@ struct RGBA_t {
         };
         uint32_t rgba;
     };
+    bool operator==(const RGBA_t& other) const {
+        return rgba == other.rgba;
+    }
+    
+    bool operator!=(const RGBA_t& other) const {
+        return rgba != other.rgba;
+    }
 };
 #define PIXEL_FORMAT SDL_PIXELFORMAT_RGBA8888
 #elif defined(__WINDOWS__)
@@ -41,6 +57,13 @@ struct RGBA_t {
         };   
         uint32_t rgba;
     };
+    bool operator==(const RGBA_t& other) const {
+        return rgba == other.rgba;
+    }
+    
+    bool operator!=(const RGBA_t& other) const {
+        return rgba != other.rgba;
+    }
 };
 #define PIXEL_FORMAT SDL_PIXELFORMAT_BGRA8888
 #else
