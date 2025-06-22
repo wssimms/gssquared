@@ -37,186 +37,6 @@
 #include "devices/annunciator/annunciator.hpp"
 #include "videosystem.hpp"
 
-#undef BAZYAR
-#ifdef BAZYAR
-display_page_t display_pages[NUM_DISPLAY_PAGES] = {
-    {
-        0x0400,
-        0x07FF,
-        {   // text page 1 line addresses
-            0x0400,
-            0x0480,
-            0x0500,
-            0x0580,
-            0x0600,
-            0x0680,
-            0x0700,
-            0x0780,
-
-            0x0428,
-            0x04A8,
-            0x0528,
-            0x05A8,
-            0x0628,
-            0x06A8,
-            0x0728,
-            0x07A8,
-
-            0x0450,
-            0x04D0,
-            0x0550,
-            0x05D0,
-            0x0650,
-            0x06D0,
-            0x0750,
-            0x07D0,
-        },
-        0x2000,
-        0x3FFF,
-        { // HGR page 1 line addresses
-            0x2000,
-            0x2080,
-            0x2100,
-            0x2180,
-            0x2200,
-            0x2280,
-            0x2300,
-            0x2380,
-
-            0x2028,
-            0x20A8,
-            0x2128,
-            0x21A8,
-            0x2228,
-            0x22A8,
-            0x2328,
-            0x23A8,
-
-            0x2050,
-            0x20D0,
-            0x2150,
-            0x21D0,
-            0x2250,
-            0x22D0,
-            0x2350,
-            0x23D0,
-        },
-    },
-    {
-        0x0800,
-        0x0BFF,
-        {       // text page 2 line addresses
-            0x0800,
-            0x0880,
-            0x0900,
-            0x0980,
-            0x0A00,
-            0x0A80,
-            0x0B00,
-            0x0B80,
-
-            0x0828,
-            0x08A8,
-            0x0928,
-            0x09A8,
-            0x0A28,
-            0x0AA8,
-            0x0B28,
-            0x0BA8,
-
-            0x0850,
-            0x08D0,
-            0x0950,
-            0x09D0,
-            0x0A50,
-            0x0AD0,
-            0x0B50,
-            0x0BD0,
-        },
-        0x4000,
-        0x5FFF,
-        {       // HGR page 2 line addresses
-            0x4000,
-            0x4080,
-            0x4100,
-            0x4180,
-            0x4200,
-            0x4280,
-            0x4300,
-            0x4380,
-
-            0x4028,
-            0x40A8,
-            0x4128,
-            0x41A8,
-            0x4228,
-            0x42A8,
-            0x4328,
-            0x43A8,
-
-            0x4050,
-            0x40D0,
-            0x4150,
-            0x41D0,
-            0x4250,
-            0x42D0,
-            0x4350,
-            0x43D0,
-        },
-    },
-};
-
-void init_display_font(rom_data *rd) {
-    pre_calculate_font(rd);
-}
-
-/**
- * This is effectively a "redraw the entire screen each frame" method now.
- * With an optimization only update dirty lines.
- */
-bool update_display_apple2(cpu_state *cpu) {
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    video_system_t *vs = ds->video_system;
-
-    // the backbuffer must be cleared each frame. The docs state this clearly
-    // but I didn't know what the backbuffer was. Also, I assumed doing it once
-    // at startup was enough. NOPE. (oh, it's buffer flipping).
-
-    int updated = 0;
-    for (int line = 0; line < 24; line++) {
-        if (vs->force_full_frame_redraw || ds->dirty_line[line]) {
-            switch (vs->display_color_engine) {
-                case DM_ENGINE_NTSC:
-                    render_line_ntsc(cpu, line);
-                    break;
-                case DM_ENGINE_RGB:
-                    render_line_rgb(cpu, line);
-                    break;
-                default:
-                    render_line_mono(cpu, line);
-                    break;
-            }
-            ds->dirty_line[line] = 0;
-            updated = 1;
-        }
-    }
-
-    if (updated) { // only reload texture if we updated any lines.
-        void* pixels;
-        int pitch;
-        if (!SDL_LockTexture(ds->screenTexture, NULL, &pixels, &pitch)) {
-            fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
-            return true;
-        }
-        memcpy(pixels, ds->buffer, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA_t)); // load all buffer into texture
-        SDL_UnlockTexture(ds->screenTexture);
-    }
-    vs->force_full_frame_redraw = false;
-    vs->render_frame(ds->screenTexture);
-    return true;
-}
-#endif
-
 /**
  * This is effectively a "redraw the entire screen each frame" method now.
  */
@@ -271,67 +91,6 @@ void update_flash_state(cpu_state *cpu) {
     ds->flash_counter = 0;
     ds->flash_state = !ds->flash_state;
 }
-
-/* void update_display(cpu_state *cpu) {
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    annunciator_state_t * anc_d = (annunciator_state_t *)get_module_state(cpu, MODULE_ANNUNCIATOR);
-    videx_data * videx_d = (videx_data *)get_slot_state_by_id(cpu, DEVICE_ID_VIDEX);
-
-    if (++(ds->flash_counter) < 15) {
-        return;
-    }
-    ds->flash_counter = 0;
-    ds->flash_state = !ds->flash_state;
-
-    // the backbuffer must be cleared each frame. The docs state this clearly
-    // but I didn't know what the backbuffer was. Also, I assumed doing it once
-    // at startup was enough. NOPE.
-    ds->video_system->clear();
-
-    if (videx_d && ds->display_mode == TEXT_MODE && anc_d && anc_d->annunciators[0] ) {
-        update_display_videx(cpu, videx_d ); 
-    } else {
-        //update_display_apple2(cpu);
-        new_update_display_apple2(cpu);
-    }
-    // TODO: IIgs will need a hook here too - do same video update callback function.
-} */
-
-#ifdef BAZYAR
-void force_display_update(display_state_t *ds) {
-    for (int y = 0; y < 24; y++) {
-        ds->dirty_line[y] = 1;
-    }
-}
-
-void update_line_mode(display_state_t *ds) {
-    line_mode_t top_mode;
-    line_mode_t bottom_mode;
-
-    if (ds->display_mode == TEXT_MODE) {
-        top_mode = LM_TEXT_MODE;
-    } else {
-        if (ds->display_graphics_mode == LORES_MODE) {
-            top_mode = LM_LORES_MODE;
-        } else {
-            top_mode = LM_HIRES_MODE;
-        }
-    }
-
-    if (ds->display_split_mode == SPLIT_SCREEN) {
-        bottom_mode = LM_TEXT_MODE;
-    } else {
-        bottom_mode = top_mode;
-    }
-
-    for (int y = 0; y < 20; y++) {
-        ds->line_mode[y] = top_mode;
-    }
-    for (int y = 20; y < 24; y++) {
-        ds->line_mode[y] = bottom_mode;
-    }
-}
-#endif
 
 void set_video_mode(display_state_t *ds)
 {
@@ -413,68 +172,6 @@ void set_display_split(display_state_t *ds) {
     set_split_mode(ds, SPLIT_SCREEN);
 }
 
-#ifdef BAZYAR
-// anything we lock we have to completely replace.
-void render_line_ntsc(cpu_state *cpu, int y) {
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    video_system_t *vs = ds->video_system;
-    // this writes into texture - do not put border stuff here.
-
-    void* pixels = ds->buffer + (y * 8 * BASE_WIDTH * sizeof(RGBA_t));
-    int pitch = BASE_WIDTH * sizeof(RGBA_t);
-
-    line_mode_t mode = ds->line_mode[y];
-
-    if (mode == LM_LORES_MODE) render_lgrng_scanline(cpu, y);
-    else if (mode == LM_HIRES_MODE) render_hgrng_scanline(cpu, y, (uint8_t *)pixels);
-    else render_text_scanline_ng(cpu, y);
-
-    RGBA_t mono_color_value = { 0xFF, 0xFF, 0xFF, 0xFF }; // override mono color to white when we're in color mode
-
-    if (ds->display_mode == TEXT_MODE) {
-        processAppleIIFrame_Mono(frameBuffer + (y * 8 * BASE_WIDTH), (RGBA_t *)pixels, y * 8, (y + 1) * 8, mono_color_value);
-    } else {
-        processAppleIIFrame_LUT(frameBuffer + (y * 8 * BASE_WIDTH), (RGBA_t *)pixels, y * 8, (y + 1) * 8);
-    }
-
-}
-
-void render_line_rgb(cpu_state *cpu, int y) {
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    video_system_t *vs = ds->video_system;
-
-    void* pixels = ds->buffer + (y * 8 * BASE_WIDTH * sizeof(RGBA_t));
-    int pitch = BASE_WIDTH * sizeof(RGBA_t);
-
-    line_mode_t mode = ds->line_mode[y];
-
-    if (mode == LM_LORES_MODE) render_lores_scanline(cpu, y, pixels, pitch);
-    else if (mode == LM_HIRES_MODE) render_hgr_scanline(cpu, y, pixels, pitch);
-    else render_text_scanline(cpu, y, pixels, pitch);
-
-}
-
-void render_line_mono(cpu_state *cpu, int y) {
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    video_system_t *vs = ds->video_system;
-
-    RGBA_t mono_color_value ;
-
-    void* pixels = ds->buffer + (y * 8 * BASE_WIDTH * sizeof(RGBA_t));
-    int pitch = BASE_WIDTH * sizeof(RGBA_t);
-
-    line_mode_t mode = ds->line_mode[y];
-
-    if (mode == LM_LORES_MODE) render_lgrng_scanline(cpu, y);
-    else if (mode == LM_HIRES_MODE) render_hgrng_scanline(cpu, y, (uint8_t *)pixels);
-    else render_text_scanline_ng(cpu, y);
-
-    mono_color_value = vs->get_mono_color();
-
-    processAppleIIFrame_Mono(frameBuffer + (y * 8 * BASE_WIDTH), (RGBA_t *)pixels, y * 8, (y + 1) * 8, mono_color_value);
-}
-#endif
-
 uint8_t display_bus_read_C019(void *context, uint16_t address) {
     display_state_t *ds = (display_state_t *)context;
     // This is IIe. IIgs is opposite
@@ -487,7 +184,6 @@ uint8_t txt_bus_read_C050(void *context, uint16_t address) {
     // set graphics mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Graphics Mode\n");
     set_display_mode(ds, GRAPHICS_MODE);
-    //ds->video_system->set_full_frame_redraw();
     return ds->video_byte;
 }
 
@@ -500,7 +196,6 @@ uint8_t txt_bus_read_C051(void *context, uint16_t address) {
 // set text mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Text Mode\n");
     set_display_mode(ds, TEXT_MODE);
-    //ds->video_system->set_full_frame_redraw();
     return ds->video_byte;
 }
 
@@ -514,7 +209,6 @@ uint8_t txt_bus_read_C052(void *context, uint16_t address) {
     // set full screen
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Full Screen\n");
     set_display_full(ds);
-    //ds->video_system->set_full_frame_redraw();
     return ds->video_byte;
 }
 
@@ -528,7 +222,6 @@ uint8_t txt_bus_read_C053(void *context, uint16_t address) {
     // set split screen
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Split Screen\n");
     set_display_split(ds);
-    //ds->video_system->set_full_frame_redraw();
     return ds->video_byte;
 }
 void txt_bus_write_C053(void *context, uint16_t address, uint8_t value) {
@@ -541,7 +234,6 @@ uint8_t txt_bus_read_C054(void *context, uint16_t address) {
     // switch to screen 1
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Switching to screen 1\n");
     set_display_page1(ds);
-    //ds->video_system->set_full_frame_redraw();
     return ds->video_byte;
 }
 void txt_bus_write_C054(void *context, uint16_t address, uint8_t value) {
@@ -554,7 +246,6 @@ uint8_t txt_bus_read_C055(void *context, uint16_t address) {
     // switch to screen 2
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Switching to screen 2\n");
     set_display_page2(ds);
-    //ds->video_system->set_full_frame_redraw();
     return ds->video_byte;
 }
 
@@ -562,13 +253,11 @@ void txt_bus_write_C055(void *context, uint16_t address, uint8_t value) {
     txt_bus_read_C055(context, address);
 }
 
-
 uint8_t txt_bus_read_C056(void *context, uint16_t address) {
     display_state_t *ds = (display_state_t *)context;
     // set lo-res (graphics) mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Lo-Res Mode\n");
     set_graphics_mode(ds, LORES_MODE);
-    //ds->video_system->set_full_frame_redraw();
     return ds->video_byte;
 }
 
@@ -581,7 +270,6 @@ uint8_t txt_bus_read_C057(void *context, uint16_t address) {
     // set hi-res (graphics) mode
     if (DEBUG(DEBUG_DISPLAY)) fprintf(stdout, "Set Hi-Res Mode\n");
     set_graphics_mode(ds, HIRES_MODE);
-    //ds->video_system->set_full_frame_redraw();
     return ds->video_byte;
 }
 
