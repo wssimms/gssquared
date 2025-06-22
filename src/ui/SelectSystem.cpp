@@ -97,6 +97,9 @@ int SelectSystem::select() {
 
     bool selected = false;
     while (!selected) {
+        SDL_SetRenderDrawColor(vs->renderer, 0, 0, 0, 255);
+        vs->clear();
+
         SDL_Event event;
         while(SDL_PollEvent(&event)) {
             if (this->event(event)) {

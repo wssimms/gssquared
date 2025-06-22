@@ -29,6 +29,7 @@
 #include "Matrix3x3.hpp"
 #include "display/types.hpp"
 #include "display/ntsc.hpp"
+#include "devices/displaypp/RGBA.hpp"
 
 ntsc_config config ;
 
@@ -63,7 +64,7 @@ inline void processPixel(uint8_t input, float phase, float phaseAlternation, flo
 }
 
 // Function to convert YIQ to RGB using a decoding matrix
-inline void yiqToRgb(const float yiq[3], /* const Matrix3x3& matrix,  */ /* const float offset[3], */ RGBA &rgba) {
+inline void yiqToRgb(const float yiq[3], /* const Matrix3x3& matrix,  */ /* const float offset[3], */ RGBA_t &rgba) {
     float rgb[3];
     
     // Apply matrix and offset (matrix is 3x3, stored in row-major format)
@@ -158,11 +159,11 @@ void setupConfig() {
 /** 
  * the Lookup table - 4 phases, 2 ^ (num_taps * 2) bits.
  */
-RGBA g_hgr_LUT[4][(1 << ((NUM_TAPS * 2) + 1))];
+alignas(64) RGBA_t g_hgr_LUT[4][(1 << ((NUM_TAPS * 2) + 1))];
 
 
 // Process a single scanline of Apple II video data
-RGBA  processAppleIIScanline_lut3(
+RGBA_t  processAppleIIScanline_lut3(
     uint32_t inputBits,         // Input width bytes of luminance data
     int pixelposition
 ) 
@@ -197,7 +198,7 @@ RGBA  processAppleIIScanline_lut3(
     float g = config.decoderMatrix[3] * oy + config.decoderMatrix[4] * oi + config.decoderMatrix[5] * oq /* + offset[1] */;
     float b = config.decoderMatrix[6] * oy + config.decoderMatrix[7] * oi + config.decoderMatrix[8] * oq /* + offset[2] */;
     
-    RGBA emit;
+    RGBA_t emit;
     // Clamp values and convert to 8-bit
     emit.r = std::clamp(static_cast<int>(r * 255), 0, 255);
     emit.g = std::clamp(static_cast<int>(g * 255), 0, 255);
@@ -258,13 +259,13 @@ void init_hgr_LUT()
 
             int center = (16 + phaseCount);
 
-            RGBA rval = processAppleIIScanline_lut3(bitCount,/*  outputImage, */ center /* , width, yiqBuffer, filteredYiq */);
+            RGBA_t rval = processAppleIIScanline_lut3(bitCount,/*  outputImage, */ center /* , width, yiqBuffer, filteredYiq */);
             g_hgr_LUT[phaseCount][bitCount] = rval;  //  Pull out the center pixel and save it.
         }
     }
 }
 
-RGBA standard_iigs_color_table[16] = {
+RGBA_t standard_iigs_color_table[16] = {
     { 0xFF, 0x00, 0x00, 0x00 },
     { 0xFF, 0x30, 0x00, 0xD0 },
     { 0xFF, 0x90, 0x00, 0x00 },
@@ -285,7 +286,7 @@ RGBA standard_iigs_color_table[16] = {
 
 void newProcessAppleIIFrame_NTSC (
     cpu_state *cpu,             // access to display_state_t
-    RGBA* outputImage           // Will be filled with 560x192 RGBA pixels
+    RGBA_t* outputImage           // Will be filled with 560x192 RGBA pixels
 )
 {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
@@ -407,11 +408,11 @@ void newProcessAppleIIFrame_NTSC (
  */
 void newProcessAppleIIFrame_Mono (
     cpu_state *cpu,             // access to cpu->vidbits
-    RGBA* outputImage,          // Will be filled with 560x192 RGBA pixels
-    RGBA color_value
+    RGBA_t* outputImage,          // Will be filled with 560x192 RGBA pixels
+    RGBA_t color_value
 )
 {
-    static RGBA p_black = { 0xFF, 0x00, 0x00, 0x00 };
+    static RGBA_t p_black = { 0xFF, 0x00, 0x00, 0x00 };
 
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     ds->kill_color = true;
@@ -500,7 +501,7 @@ void newProcessAppleIIFrame_Mono (
  */
 void my_old_ProcessAppleIIFrame_RGB (
     cpu_state *cpu,             // access to cpu->vidbits
-    RGBA* outputImage           // Will be filled with 560x192 RGBA pixels
+    RGBA_t* outputImage           // Will be filled with 560x192 RGBA pixels
 )
 {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
@@ -517,7 +518,7 @@ void my_old_ProcessAppleIIFrame_RGB (
     }
 }
 
-void RGB_shift_color (uint16_t vbits, RGBA* outputImage)
+void RGB_shift_color (uint16_t vbits, RGBA_t* outputImage)
 {
     int col1 = 0;
     int col2 = 0;
@@ -545,7 +546,7 @@ void RGB_shift_color (uint16_t vbits, RGBA* outputImage)
     *outputImage++ = standard_iigs_color_table[col2];
 }
 
-void RGB_noshift_color (uint16_t vbits, RGBA* outputImage)
+void RGB_noshift_color (uint16_t vbits, RGBA_t* outputImage)
 {
     int col1 = 0;
     int col2 = 0;
@@ -575,10 +576,10 @@ void RGB_noshift_color (uint16_t vbits, RGBA* outputImage)
 
 void newProcessAppleIIFrame_RGB (
     cpu_state *cpu,             // access to cpu->vidbits
-    RGBA* outputImage           // Will be filled with 560x192 RGBA pixels
+    RGBA_t* outputImage           // Will be filled with 560x192 RGBA pixels
 )
 {
-    static RGBA p_black = { 0xFF, 0x00, 0x00, 0x00 };
+    static RGBA_t p_black = { 0xFF, 0x00, 0x00, 0x00 };
 
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     ds->kill_color = true;

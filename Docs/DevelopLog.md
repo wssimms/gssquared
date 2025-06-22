@@ -4718,3 +4718,27 @@ Then IIe Rev B adds:
 We want to do Wm. code integration first.
 
 And I think switch to bit stream instead of bytestream. Need to relearn how that's done.
+
+## Jun 19, 2025
+
+Pixel Format
+
+Optimal pixel format for these platforms:
+
+* on linux, RGBA
+* windows, BGRA
+* mac, ABGR
+
+What the actual! LOL. We're going to want to identify the optimal pixel format per platform. Will have to be compile-time since we need to change our byte order depending on platform.
+
+OK, that's been hooked in.
+
+## Jun 20, 2025
+
+'dpp' the little display-plus-plus test harness continues to be fun! right now you can select 1 of 4 generators - text40, text80, lores40, lores80 - and one of two renderers, monochrome and ntsc. We will add of course hires and hires80, as well as an RGB renderer. I think the RGB renderer we'll try implementing according to what appears to be the IIgs RGB patent #US4786893. If it can be translated into English, ha!
+
+## Jun 21, 2025
+
+https://retrocomputing.stackexchange.com/questions/13960/how-is-the-apple-ii-text-flash-mode-timed
+
+According to that, the II flash rate is 2.182Hz. That is 0.458. What ratio is that out of 60.. 27.49. We can't do fractional frames. So let's say, it's 28. That then is 14 frames per portion of the flash cycle. 

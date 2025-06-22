@@ -208,7 +208,7 @@ bool update_display_apple2(cpu_state *cpu) {
             fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
             return true;
         }
-        memcpy(pixels, ds->buffer, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA)); // load all buffer into texture
+        memcpy(pixels, ds->buffer, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA_t)); // load all buffer into texture
         SDL_UnlockTexture(ds->screenTexture);
     }
     vs->force_full_frame_redraw = false;
@@ -224,24 +224,24 @@ bool new_update_display_apple2(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     video_system_t *vs = ds->video_system;
 
-    static RGBA p_white = { 0xFF, 0xFF, 0xFF, 0xFF };
+    static RGBA_t p_white = { 0xFF, 0xFF, 0xFF, 0xFF };
 
     switch (vs->display_color_engine) {
         case DM_ENGINE_NTSC:
             if (ds->kill_color) {
-                newProcessAppleIIFrame_Mono(cpu, (RGBA *)(ds->buffer), p_white);
+                newProcessAppleIIFrame_Mono(cpu, (RGBA_t *)(ds->buffer), p_white);
             }
             else {
-                newProcessAppleIIFrame_NTSC(cpu, (RGBA *)(ds->buffer));
+                newProcessAppleIIFrame_NTSC(cpu, (RGBA_t *)(ds->buffer));
             }
             break;
 
         case DM_ENGINE_RGB:         
-            newProcessAppleIIFrame_RGB(cpu, (RGBA *)(ds->buffer));               
+            newProcessAppleIIFrame_RGB(cpu, (RGBA_t *)(ds->buffer));               
             break;
 
         default:
-            newProcessAppleIIFrame_Mono(cpu, (RGBA *)(ds->buffer), vs->get_mono_color());
+            newProcessAppleIIFrame_Mono(cpu, (RGBA_t *)(ds->buffer), vs->get_mono_color());
             break;
     }
 
@@ -252,7 +252,7 @@ bool new_update_display_apple2(cpu_state *cpu) {
         fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
         return false;
     }
-    memcpy(pixels, ds->buffer, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA)); // load all buffer into texture
+    memcpy(pixels, ds->buffer, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA_t)); // load all buffer into texture
     SDL_UnlockTexture(ds->screenTexture);
 
     vs->render_frame(ds->screenTexture);
@@ -420,8 +420,8 @@ void render_line_ntsc(cpu_state *cpu, int y) {
     video_system_t *vs = ds->video_system;
     // this writes into texture - do not put border stuff here.
 
-    void* pixels = ds->buffer + (y * 8 * BASE_WIDTH * sizeof(RGBA));
-    int pitch = BASE_WIDTH * sizeof(RGBA);
+    void* pixels = ds->buffer + (y * 8 * BASE_WIDTH * sizeof(RGBA_t));
+    int pitch = BASE_WIDTH * sizeof(RGBA_t);
 
     line_mode_t mode = ds->line_mode[y];
 
@@ -429,12 +429,12 @@ void render_line_ntsc(cpu_state *cpu, int y) {
     else if (mode == LM_HIRES_MODE) render_hgrng_scanline(cpu, y, (uint8_t *)pixels);
     else render_text_scanline_ng(cpu, y);
 
-    RGBA mono_color_value = { 0xFF, 0xFF, 0xFF, 0xFF }; // override mono color to white when we're in color mode
+    RGBA_t mono_color_value = { 0xFF, 0xFF, 0xFF, 0xFF }; // override mono color to white when we're in color mode
 
     if (ds->display_mode == TEXT_MODE) {
-        processAppleIIFrame_Mono(frameBuffer + (y * 8 * BASE_WIDTH), (RGBA *)pixels, y * 8, (y + 1) * 8, mono_color_value);
+        processAppleIIFrame_Mono(frameBuffer + (y * 8 * BASE_WIDTH), (RGBA_t *)pixels, y * 8, (y + 1) * 8, mono_color_value);
     } else {
-        processAppleIIFrame_LUT(frameBuffer + (y * 8 * BASE_WIDTH), (RGBA *)pixels, y * 8, (y + 1) * 8);
+        processAppleIIFrame_LUT(frameBuffer + (y * 8 * BASE_WIDTH), (RGBA_t *)pixels, y * 8, (y + 1) * 8);
     }
 
 }
@@ -443,8 +443,8 @@ void render_line_rgb(cpu_state *cpu, int y) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     video_system_t *vs = ds->video_system;
 
-    void* pixels = ds->buffer + (y * 8 * BASE_WIDTH * sizeof(RGBA));
-    int pitch = BASE_WIDTH * sizeof(RGBA);
+    void* pixels = ds->buffer + (y * 8 * BASE_WIDTH * sizeof(RGBA_t));
+    int pitch = BASE_WIDTH * sizeof(RGBA_t);
 
     line_mode_t mode = ds->line_mode[y];
 
@@ -458,10 +458,10 @@ void render_line_mono(cpu_state *cpu, int y) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     video_system_t *vs = ds->video_system;
 
-    RGBA mono_color_value ;
+    RGBA_t mono_color_value ;
 
-    void* pixels = ds->buffer + (y * 8 * BASE_WIDTH * sizeof(RGBA));
-    int pitch = BASE_WIDTH * sizeof(RGBA);
+    void* pixels = ds->buffer + (y * 8 * BASE_WIDTH * sizeof(RGBA_t));
+    int pitch = BASE_WIDTH * sizeof(RGBA_t);
 
     line_mode_t mode = ds->line_mode[y];
 
@@ -471,7 +471,7 @@ void render_line_mono(cpu_state *cpu, int y) {
 
     mono_color_value = vs->get_mono_color();
 
-    processAppleIIFrame_Mono(frameBuffer + (y * 8 * BASE_WIDTH), (RGBA *)pixels, y * 8, (y + 1) * 8, mono_color_value);
+    processAppleIIFrame_Mono(frameBuffer + (y * 8 * BASE_WIDTH), (RGBA_t *)pixels, y * 8, (y + 1) * 8, mono_color_value);
 }
 #endif
 
@@ -759,8 +759,8 @@ display_state_t::display_state_t() {
     top border.
     */
 
-    buffer = new uint8_t[BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA)];
-    memset(buffer, 0, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA)); // TODO: maybe start it with apple logo?
+    buffer = new uint8_t[BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA_t)];
+    memset(buffer, 0, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA_t)); // TODO: maybe start it with apple logo?
 }
 
 display_state_t::~display_state_t() {
@@ -805,7 +805,7 @@ void display_engine_get_buffer(computer_t *computer, uint8_t *buffer, uint32_t *
     *height = BASE_HEIGHT * 2;
     // BMP files have the last scanline first. What? 
     // Copy RGB values without alpha channel
-    RGBA *src = (RGBA *)ds->buffer;
+    RGBA_t *src = (RGBA_t *)ds->buffer;
     uint8_t *dst = buffer;
     for (int scanline = BASE_HEIGHT - 1; scanline >= 0; scanline--) {
         for (int i = 0; i < BASE_WIDTH; i++) {
@@ -837,7 +837,7 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
 
     // Create the screen texture
     ds->screenTexture = SDL_CreateTexture(vs->renderer,
-        SDL_PIXELFORMAT_RGBA8888,
+        PIXEL_FORMAT,
         SDL_TEXTUREACCESS_STREAMING,
         BASE_WIDTH, BASE_HEIGHT);
 

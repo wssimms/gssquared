@@ -18,8 +18,8 @@ Frame_Bitstream::~Frame_Bitstream() {
 }
 
 void Frame_Bitstream::print() {
-    for (int i = 0; i < MAX_BITSTREAM_HEIGHT; i++) {
-        for (int j = 0; j < MAX_BITSTREAM_WIDTH_WORDS; j++) {
+    for (int i = 0; i < FB_BITSTREAM_HEIGHT; i++) {
+        for (int j = 0; j < FB_BITSTREAM_WIDTH_WORDS; j++) {
             printf("%016llx ", display_bitstream[i][j]);
         }
         printf("\n");

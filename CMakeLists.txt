@@ -246,7 +246,9 @@ add_library(gs2_ui src/ui/AssetAtlas.cpp src/ui/Container.cpp src/ui/DiskII_Butt
     src/ui/FadeButton.cpp src/ui/Clipboard.cpp src/ui/TextInput.cpp src/ui/SelectSystem.cpp
 )
 
-add_library(gs2_displaypp src/devices/displaypp/frame/frame_bit.cpp src/devices/displaypp/frame/frame_byte.cpp)
+add_library(gs2_displaypp src/devices/displaypp/frame/frame_bit.cpp src/devices/displaypp/frame/frame_byte.cpp src/devices/displaypp/CharRom.cpp)
+
+add_library(gs2_ntsc src/display/ntsc.cpp src/display/Matrix3x3.cpp src/display/OEVector.cpp src/display/filters.cpp )
 
 add_library(gs2_message_bus src/mbus/MessageBus.cpp)
 
@@ -260,8 +262,7 @@ target_link_libraries(gs2_computer SDL3_ttf::SDL3_ttf-shared)
 # Add the executable
 add_executable(GSSquared src/gs2.cpp src/clock.cpp src/debug.cpp  src/opcodes.cpp 
     src/display/text_40x24.cpp src/display/lores_40x48.cpp src/display/hgr_280x192.cpp src/display/display.cpp
-    src/display/displayng.cpp src/display/ntsc.cpp src/display/font.cpp src/display/hgr.cpp src/display/Matrix3x3.cpp src/display/lgr.cpp
-    src/display/OEVector.cpp src/display/filters.cpp
+    src/display/displayng.cpp src/display/font.cpp src/display/hgr.cpp src/display/lgr.cpp
     src/devices/diskii/diskii.cpp
     src/platforms.cpp
     src/event_poll.cpp
@@ -283,6 +284,7 @@ target_link_libraries(GSSquared
     gs2_computer
     gs2_mmu
     #gs2_oldmmu
+    gs2_ntsc
     gs2_devices_tcp 
     gs2_devices_keyboard 
     gs2_devices_diskii_fmt 

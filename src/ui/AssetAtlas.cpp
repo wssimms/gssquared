@@ -24,6 +24,7 @@
 #include "gs2.hpp"
 #include "AssetAtlas.hpp"
 #include "util/dialog.hpp"
+#include "devices/displaypp/RGBA.hpp"
 
 AssetAtlas_t::AssetAtlas_t(SDL_Renderer *renderer, const char *path, int target_w, int target_h) : renderer(renderer)
 {
@@ -42,7 +43,7 @@ AssetAtlas_t::AssetAtlas_t(SDL_Renderer *renderer, const char *path, int target_
     }
     
     if (target_w > 0 && target_h > 0) {
-        SDL_Surface* scaled = SDL_CreateSurface(target_w, target_h, SDL_PIXELFORMAT_RGBA8888);
+        SDL_Surface* scaled = SDL_CreateSurface(target_w, target_h, PIXEL_FORMAT);
         SDL_BlitSurfaceScaled(original, NULL, scaled, NULL, SDL_SCALEMODE_LINEAR);
         image = SDL_CreateTextureFromSurface(renderer, scaled);
         SDL_DestroySurface(scaled);
