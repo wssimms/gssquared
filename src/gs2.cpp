@@ -138,6 +138,7 @@ void run_cpus(computer_t *computer) {
                     case EXEC_NORMAL:
                         {
                         if (computer->debug_window->window_open) {
+/*
                             uint64_t end_frame_cycles = cpu->cycles + cycles_for_this_burst;
                             while (cpu->cycles < end_frame_cycles) { // 1/60th second.
                                 if (computer->event_timer->isEventPassed(cpu->cycles)) {
@@ -156,6 +157,42 @@ void run_cpus(computer_t *computer) {
                                         break;
                                     }
                                 }
+                            }
+*/
+                            cpu->cycle_duration_ns = clock_mode_info[cpu->clock_mode].cycle_duration_ns;
+
+                            uint64_t before_cycles = cpu->cycles;
+                            uint64_t before_ns = SDL_GetTicksNS();
+
+                            // 17030 bus cycles == 1 video frame == 1/59.9227434 sec.
+                            while (cpu->bus_cycles < 17030) {
+                                if (computer->event_timer->isEventPassed(cpu->cycles)) {
+                                    computer->event_timer->processEvents(cpu->cycles);
+                                }
+                                (cpu->execute_next)(cpu);
+                                if (computer->debug_window->window_open) {
+                                    if (computer->debug_window->check_breakpoint(&cpu->trace_entry)) {
+                                        cpu->execution_mode = EXEC_STEP_INTO;
+                                        cpu->instructions_left = 0;
+                                        break;
+                                    }
+                                    if (cpu->trace_entry.opcode == 0x00) { // catch a BRK and stop execution.
+                                        cpu->execution_mode = EXEC_STEP_INTO;
+                                        cpu->instructions_left = 0;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (cpu->bus_cycles >= 17030)
+                                cpu->bus_cycles -= 17030;
+
+                            uint64_t total_cycles = cpu->cycles - before_cycles;
+                            execution_time = SDL_GetTicksNS() - before_ns;
+
+                            if (cpu->clock_mode == CLOCK_FREE_RUN) {
+                                double new_cycle_duration_ns = (double)execution_time / (double)total_cycles * 1.1;
+                                clock_mode_info[CLOCK_FREE_RUN].cycle_duration_ns = new_cycle_duration_ns;
+                                clock_mode_info[CLOCK_FREE_RUN].cycles_per_burst = total_cycles;
                             }
                         } else { // skip all debug checks if the window is not open - this may seem repetitioius but it saves all kinds of cycles where every cycle counts (GO FAST MODE)
 /*                            
@@ -186,7 +223,7 @@ void run_cpus(computer_t *computer) {
                             execution_time = SDL_GetTicksNS() - before_ns;
 
                             if (cpu->clock_mode == CLOCK_FREE_RUN) {
-                                double new_cycle_duration_ns = (double)execution_time / (double)total_cycles;
+                                double new_cycle_duration_ns = (double)execution_time / (double)total_cycles * 1.1;
                                 clock_mode_info[CLOCK_FREE_RUN].cycle_duration_ns = new_cycle_duration_ns;
                                 clock_mode_info[CLOCK_FREE_RUN].cycles_per_burst = total_cycles;
                             }
@@ -218,10 +255,11 @@ void run_cpus(computer_t *computer) {
         uint64_t event_time;
         uint64_t app_event_time;
 
-        bool this_free_run = (cpu->clock_mode == CLOCK_FREE_RUN) || (cpu->execution_mode == EXEC_STEP_INTO || (gs2_app_values.disk_accelerator && (any_diskii_motor_on(cpu))));
+        // bool this_free_run = (cpu->clock_mode == CLOCK_FREE_RUN) || (cpu->execution_mode == EXEC_STEP_INTO || (gs2_app_values.disk_accelerator && (any_diskii_motor_on(cpu))));
+        bool must_check_time = (cpu->execution_mode == EXEC_STEP_INTO || (gs2_app_values.disk_accelerator && (any_diskii_motor_on(cpu))));
 
-        if ((this_free_run) && (current_time - last_event_update > 16667000)
-            || (!this_free_run)) {
+        if (must_check_time == false || (current_time - last_event_update > 16667000))
+        {
             current_time = SDL_GetTicksNS();
 
             //computer->dispatch->processEvents();
@@ -250,8 +288,8 @@ void run_cpus(computer_t *computer) {
 
         /* Emit Audio Frame */
         current_time = SDL_GetTicksNS();
-        if ((this_free_run) && (current_time - last_audio_update > 16667000)
-            || (!this_free_run)) {            
+        if (must_check_time == false || (current_time - last_event_update > 16667000))
+        {
             audio_generate_frame(cpu, last_cycle_window_start, cycle_window_start);
             audio_time = SDL_GetTicksNS() - current_time;
             last_audio_update = current_time;
@@ -259,8 +297,8 @@ void run_cpus(computer_t *computer) {
 
         /* Process Internal Event Queue */
         current_time = SDL_GetTicksNS();
-        if ((this_free_run) && (current_time - last_app_event_update > 16667000)
-            || (!this_free_run)) {
+        if (must_check_time == false || (current_time - last_event_update > 16667000))
+        {
             Event *event = computer->event_queue->getNextEvent();
             if (event) {
                 switch (event->getEventType()) {
@@ -308,16 +346,16 @@ void run_cpus(computer_t *computer) {
 
         /* Execute Device Frames - 60 fps */
         current_time = SDL_GetTicksNS();
-        if ((this_free_run) && (current_time - last_frame_update > 16667000)
-            || (!this_free_run)) {
+        if (must_check_time == false || (current_time - last_event_update > 16667000))
+        {
             computer->device_frame_dispatcher->dispatch();
             last_frame_update = current_time;
         }
 
         /* Emit Video Frame */
         current_time = SDL_GetTicksNS();
-        if ((this_free_run) && (current_time - last_display_update > 16667000)
-            || (!this_free_run)) {
+        if (must_check_time == false || (current_time - last_event_update > 16667000))
+        {
             update_flash_state(cpu); // TODO: this goes into display.cpp frame handler.
             computer->video_system->update_display();    
             osd->render();
@@ -348,7 +386,7 @@ void run_cpus(computer_t *computer) {
         // calculate what sleep-until time should be.
         uint64_t wakeup_time = last_cycle_time + (cpu->cycles - last_cycle_count) * cpu->cycle_duration_ns;
 
-        if (!this_free_run)  {
+        if (must_check_time == false)  {
             uint64_t sleep_loops = 0;
             uint64_t current_time = SDL_GetTicksNS();
             if (current_time > wakeup_time) {
