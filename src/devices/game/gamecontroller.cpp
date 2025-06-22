@@ -373,15 +373,15 @@ void init_mb_game_controller(computer_t *computer, SlotType_t slot) {
 
     if (DEBUG(DEBUG_GAME)) fprintf(stdout, "Initializing game controller\n");
 
-    cpu->mmu->set_C0XX_read_handler(GAME_ANALOG_0, { read_game_input_0, cpu });
-    cpu->mmu->set_C0XX_read_handler(GAME_ANALOG_1, { read_game_input_1, cpu });
-    cpu->mmu->set_C0XX_read_handler(GAME_ANALOG_2, { read_game_input_2, cpu });
-    cpu->mmu->set_C0XX_read_handler(GAME_ANALOG_3, { read_game_input_3, cpu });
-    cpu->mmu->set_C0XX_read_handler(GAME_ANALOG_RESET, { strobe_game_inputs, cpu });
-    cpu->mmu->set_C0XX_write_handler(GAME_ANALOG_RESET, { strobe_game_inputs_w, cpu });
-    cpu->mmu->set_C0XX_read_handler(GAME_SWITCH_0, { read_game_switch_0, cpu });
-    cpu->mmu->set_C0XX_read_handler(GAME_SWITCH_1, { read_game_switch_1, cpu });
-    cpu->mmu->set_C0XX_read_handler(GAME_SWITCH_2, { read_game_switch_2, cpu }); 
+    computer->mmu->set_C0XX_read_handler(GAME_ANALOG_0, { read_game_input_0, cpu });
+    computer->mmu->set_C0XX_read_handler(GAME_ANALOG_1, { read_game_input_1, cpu });
+    computer->mmu->set_C0XX_read_handler(GAME_ANALOG_2, { read_game_input_2, cpu });
+    computer->mmu->set_C0XX_read_handler(GAME_ANALOG_3, { read_game_input_3, cpu });
+    computer->mmu->set_C0XX_read_handler(GAME_ANALOG_RESET, { strobe_game_inputs, cpu });
+    computer->mmu->set_C0XX_write_handler(GAME_ANALOG_RESET, { strobe_game_inputs_w, cpu });
+    computer->mmu->set_C0XX_read_handler(GAME_SWITCH_0, { read_game_switch_0, cpu });
+    computer->mmu->set_C0XX_read_handler(GAME_SWITCH_1, { read_game_switch_1, cpu });
+    computer->mmu->set_C0XX_read_handler(GAME_SWITCH_2, { read_game_switch_2, cpu }); 
 
     // we need to compute on init! Otherwise we will only catch changes after boot.
     recompute_gamepads(ds);

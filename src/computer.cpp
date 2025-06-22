@@ -93,7 +93,8 @@ void computer_t::reset(bool cold_start) {
     }
 
     cpu->reset();
-    mmu->init_map();
+    mmu->reset();
+//    mmu->init_map(); // changed to reset() above.
 
     /* for (reset_handler_rec rec : reset_handlers) {
         rec.handler(rec.context);

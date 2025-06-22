@@ -131,7 +131,6 @@ void handle_keydown_iiplus(const SDL_Event &event, keyboard_state_t *kb_state) {
             kb_key_pressed(kb_state, mapped);
         }
     }
-
 }
 
 void init_mb_iiplus_keyboard(computer_t *computer, SlotType_t slot) {
@@ -154,6 +153,66 @@ void init_mb_iiplus_keyboard(computer_t *computer, SlotType_t slot) {
             return true;
         }
         handle_keydown_iiplus(event, kb_state);
+        return false;
+    });
+}
+
+void handle_keydown_iie(const SDL_Event &event, keyboard_state_t *kb_state) {
+    //keyboard_state_t *kb_state = (keyboard_state_t *)get_module_state(cpu, MODULE_KEYBOARD);
+
+    // Ignore if only shift is pressed
+    SDL_Keymod mod = event.key.mod;
+    SDL_Keycode key = event.key.key;
+
+    if (DEBUG(DEBUG_KEYBOARD))  decode_key_mod(key, mod);
+
+    if (mod & SDL_KMOD_CTRL) { // still have to handle control this way..
+        // Convert lowercase to control code (0x01-0x1A)
+        if (key >= 'a' && key <= 'z') {
+            key = key - 'a' + 1;
+            kb_key_pressed(kb_state, key);
+            /* if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "control key pressed: %08X\n", key); */
+        }
+    }  else {
+        // map the scancode + mods to a sensible keycode
+        SDL_Keycode mapped = SDL_GetKeyFromScancode(event.key.scancode, event.key.mod, false);
+        if (DEBUG(DEBUG_KEYBOARD)) printf("mapped key: %08X\n", mapped);
+
+        if (mapped == SDLK_LEFT) { kb_key_pressed(kb_state, 0x08); return; }
+        if (mapped == SDLK_RIGHT) { kb_key_pressed(kb_state, 0x15); return; }
+        //if (mapped >= 'a' && mapped <= 'z') mapped = mapped - 'a' + 'A'; IIe allows lowercase!
+        if (mapped < 128) {
+            kb_key_pressed(kb_state, mapped);
+        }
+    }
+}
+
+void init_mb_iie_keyboard(computer_t *computer, SlotType_t slot) {
+    if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "init_keyboard\n");
+    keyboard_state_t *kb_state = new keyboard_state_t;
+    computer->set_module_state(MODULE_KEYBOARD, kb_state);
+
+    /** Sather P31: 'The keyboard read addres sis $C00X and the strobe flip-flop reset address is $C01X. */
+    // IIe Read C000-C00F - same as II+.
+    // Write C010 - C01F: same as II+
+    // Write C000-C00F: new softswitches for memory management.
+    // Read C010 - C01F: new softswitch status flags.
+
+    for (int i = 0; i < 16; i++) {
+        computer->mmu->set_C0XX_read_handler(0xC000+i, { kb_read_C00X, kb_state });
+
+        /* on //e, writes to C010 - C01F still clear KBDSTRB but reads are different. */
+        //computer->mmu->set_C0XX_read_handler(0xC010+i, { kb_read_C01X, kb_state });
+        computer->mmu->set_C0XX_write_handler(0xC010+i, { kb_write_C01X, kb_state });
+    }
+    computer->mmu->set_C0XX_read_handler(0xC010, { kb_read_C01X, kb_state });
+
+    computer->dispatch->registerHandler(SDL_EVENT_KEY_DOWN, [kb_state](const SDL_Event &event) {
+        if (event.key.key == SDLK_INSERT && event.key.mod & SDL_KMOD_SHIFT) {
+            handle_paste(kb_state,event);
+            return true;
+        }
+        handle_keydown_iie(event, kb_state);
         return false;
     });
 }

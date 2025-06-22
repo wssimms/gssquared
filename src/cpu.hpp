@@ -177,7 +177,8 @@ struct cpu_state {
 
     uint64_t irq_asserted = 0; /** bits 0-7 correspond to slot IRQ lines slots 0-7. */
 
-    MMU_II *mmu = nullptr;
+    //MMU_II *mmu = nullptr;
+    MMU *mmu = nullptr; // cpu only needs to know about base interface with read() and write().
 
     uint64_t last_tick;
     uint64_t next_tick;
@@ -209,7 +210,7 @@ struct cpu_state {
     void set_processor(int processor_type);
     void reset();
     
-    void set_mmu(MMU *mmu) { this->mmu = (MMU_II *) mmu; }
+    void set_mmu(MMU *mmu) { this->mmu = mmu; }
 
     inline uint8_t read_byte(uint16_t address) {
         uint8_t value = mmu->read(address);

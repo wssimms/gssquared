@@ -145,16 +145,16 @@ void init_slot_memexp(computer_t *computer, SlotType_t slot) {
 
     uint16_t slot_base = 0xC080 + (slot * 0x10);
 
-    cpu->mmu->set_C0XX_write_handler(slot_base + MEMEXP_ADDR_LOW, { memexp_write_C0x0, cpu });
-    cpu->mmu->set_C0XX_write_handler(slot_base + MEMEXP_ADDR_MED, { memexp_write_C0x1, cpu });
-    cpu->mmu->set_C0XX_write_handler(slot_base + MEMEXP_ADDR_HIGH, { memexp_write_C0x2, cpu });
+    computer->mmu->set_C0XX_write_handler(slot_base + MEMEXP_ADDR_LOW, { memexp_write_C0x0, cpu });
+    computer->mmu->set_C0XX_write_handler(slot_base + MEMEXP_ADDR_MED, { memexp_write_C0x1, cpu });
+    computer->mmu->set_C0XX_write_handler(slot_base + MEMEXP_ADDR_HIGH, { memexp_write_C0x2, cpu });
     
-    cpu->mmu->set_C0XX_read_handler(slot_base + MEMEXP_ADDR_LOW, { memexp_read_C0x0, cpu });
-    cpu->mmu->set_C0XX_read_handler(slot_base + MEMEXP_ADDR_MED, { memexp_read_C0x1, cpu });
-    cpu->mmu->set_C0XX_read_handler(slot_base + MEMEXP_ADDR_HIGH, { memexp_read_C0x2, cpu });
+    computer->mmu->set_C0XX_read_handler(slot_base + MEMEXP_ADDR_LOW, { memexp_read_C0x0, cpu });
+    computer->mmu->set_C0XX_read_handler(slot_base + MEMEXP_ADDR_MED, { memexp_read_C0x1, cpu });
+    computer->mmu->set_C0XX_read_handler(slot_base + MEMEXP_ADDR_HIGH, { memexp_read_C0x2, cpu });
     
-    cpu->mmu->set_C0XX_write_handler(slot_base + MEMEXP_DATA, { memexp_write_C0x3, cpu });
-    cpu->mmu->set_C0XX_read_handler(slot_base + MEMEXP_DATA, { memexp_read_C0x3, cpu });
+    computer->mmu->set_C0XX_write_handler(slot_base + MEMEXP_DATA, { memexp_write_C0x3, cpu });
+    computer->mmu->set_C0XX_read_handler(slot_base + MEMEXP_DATA, { memexp_read_C0x3, cpu });
 
     /* register_C0xx_memory_write_handler(slot_base + MEMEXP_ADDR_LOW, memexp_write_C0x0);
     register_C0xx_memory_write_handler(slot_base + MEMEXP_ADDR_MED, memexp_write_C0x1);
@@ -171,7 +171,7 @@ void init_slot_memexp(computer_t *computer, SlotType_t slot) {
     uint8_t *rom_data = memexp_d->rom->get_data();
     /* memory_map_page_both(cpu, slot + 0xC0, rom_data + (slot*GS2_PAGE_SIZE), MEM_ROM); */
 
-    cpu->mmu->set_slot_rom(slot, rom_data+(slot * 0x0100), "MEMX_ROM");
+    computer->mmu->set_slot_rom(slot, rom_data+(slot * 0x0100), "MEMX_ROM");
 
     // load the firmware into the slot memory -- refactor this
 /*     for (int i = 0; i < 256; i++) {
@@ -179,5 +179,5 @@ void init_slot_memexp(computer_t *computer, SlotType_t slot) {
     }
  */
     /* register_C8xx_handler(cpu, slot, map_rom_memexp); */
-    cpu->mmu->set_C8xx_handler(slot, map_rom_memexp, cpu);
+    computer->mmu->set_C8xx_handler(slot, map_rom_memexp, cpu);
 }

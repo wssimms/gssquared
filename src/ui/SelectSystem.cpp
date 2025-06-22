@@ -39,16 +39,16 @@ Style_t CS;
         button->set_tile_size(200, 200);
         button->position_content(CP_CENTER, CP_CENTER);
         button->set_text_renderer(text_renderer);
-        if (i == 2) {
+       /*  if (i == 2) {
             button->set_opacity(0.5);
             button->set_background_color(0xC0C0C0FF);
             button->set_hover_color(0xC0C0C0FF);
-        } else {
+        } else { */
             button->set_click_callback([this,i](const SDL_Event& event) -> bool {
                 selected_system = i;
                 return true;
             });
-        }
+     /*    } */
         container->add_tile(button, i);
     }
 

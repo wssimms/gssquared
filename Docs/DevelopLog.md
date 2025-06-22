@@ -4742,3 +4742,66 @@ OK, that's been hooked in.
 https://retrocomputing.stackexchange.com/questions/13960/how-is-the-apple-ii-text-flash-mode-timed
 
 According to that, the II flash rate is 2.182Hz. That is 0.458. What ratio is that out of 60.. 27.49. We can't do fractional frames. So let's say, it's 28. That then is 14 frames per portion of the flash cycle. 
+
+## Jun 22, 2025
+
+I think the MMU_IIe needs a concept of "default setting". But let's explore the softswitches.
+
+Aside from the Language card switches, which work like they do now except they also need to work in the alternate memory bank, there are these:
+
+activated on writes:
+
+| Switch | Name | Description |
+|-|-|-|
+| $C000 | 80STOREOFF | Allow page2 to switch video page1 / page 2 |
+| $C001 | 80STOREON | Allow page2 to switch between main & aux video memory |
+| $C002 | RAMRDOFF | Read enable main memory from $0200 - $BFFF |
+| $C003 | RAMRDON | Read enable aux memory from $0200 - $BFFF |
+| $C004 | RAMWRTOFF | Write enable main memory from $0200 - $BFFF |
+| $C005 | RAMWRTON | Write enable aux memory from $0200 - $BFFF |
+| $C006 | INTCXROMOFF | Enable Slot ROM from $C100 - $CFFF |
+| $C007 | INTCXROMON | Enable main ROM from $C100 - $CFFF |
+| $C008 | ALTZPOFF | Enable Main Memory from $0000 - $01FF & avl BSR |
+| $C009 | ALTZPON | Enable Aux Memory from $0000 - $01FF & avl BSR |
+| $C00A | SLOTC3ROMOFF | Enable Main ROM from $C300 - $C3FF |
+| $C00B | SLOTC3ROMON | Enable Slot ROM from $C300 - $C3FF |
+
+* 80STOREOFF/ON
+
+$C000 is normal Apple II behavior. $C001 means any access to the page2 switch (C054?) will toggle the banks between main and aux memory, i.e. it will swap $0400-$07FF, and $2000-$3FFF between main and aux memory. It is unclear what happens if aux is swapped in and I do C000. Does main swap back in?
+
+* RAMRDOFF/ON
+
+This is fairly straightforward. However, the overall behavior probably depends on 80STOREON.
+
+* RAMWRTOFF/ON
+
+Same.
+
+* INTCXROMOFF/ON
+
+This seems straightforward. However, we need a way to RESTORE the slot rom. I.E., we need to store the Slot ROM / Write Handler routines in a parallel data structure and be able to "restore" them when needed. I.e. a slot card registers itself with say $C6, we need to record that also in the backup slot config. When INTCXROMOFF is hit then $C1 - $C7 is restored from that.
+I would assume with this ON, the normal $C800 behavior also is suspended?
+
+let's say we have a ROM device. it registers INTCXROMON. when called it will set the map for itself.
+Who would own INTCXROMOFF then?
+
+Alternatively we can have a IIe_Memory device that handles all the memory management. It could even be built into the IIe_MMU. 
+
+* ALTZPOFF/ON
+
+Pages 0 and 1 pretty self-explanatory. BSR I think refers to the language-card ram, and this switches in and out with pages 0 and 1. Which means we need to be able to apply one additional parameter to the language card address calculation - add a base address of $0/0000 or $1/0000 to the calculation.
+
+So, yes. When a ROM connects, we need to be able to "revert to default ROM mapping".
+
+Maybe what we need is a main ROM device instead of special-case handling of ROM. when "ROM device" starts up it hooks itself into memory map like any other device, but it flags that it is main rom / default rom. This is permanently recorded and can be "reverted" to.
+
+The heart, the key difference, between all these 6502 based systems is memory management / mapping. The Apple II, Plus, E, and /// can all take disk II controller cards. That card needs to map its ROM into address space. Apple I does it differently, uses D000 for I/O, doesn't have C800. the /// doesn't have C800 (or does it, it must for Apple II compatibility?)
+
+The GS encapsulates an Apple IIe (or IIc?) memory management inside its much bigger memory space.
+
+[x] oops. Videx isn't taking over screen any more. (not an mmu issue. had not accounted for changed color value scheme)
+[x] HGR doesn't clear (or, doesn't shadow update) the video screen? between 3000-3FFF. (there was no memory being mapped!)
+[x] trying to boot applepanic.dsk results in crash at memory c014  
+
+ok, back to the work at hand. on a reset we pretty much immediately hit INTCXROMON. So I need a plan for handling that.

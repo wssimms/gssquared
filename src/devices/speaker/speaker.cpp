@@ -225,8 +225,8 @@ void init_mb_speaker(computer_t *computer,  SlotType_t slot) {
 
     if (DEBUG(DEBUG_SPEAKER)) fprintf(stdout, "init_speaker\n");
     for (uint16_t addr = 0xC030; addr <= 0xC03F; addr++) {
-        cpu->mmu->set_C0XX_read_handler(addr, { speaker_memory_read, cpu });
-        cpu->mmu->set_C0XX_write_handler(addr, { speaker_memory_write, cpu });
+        computer->mmu->set_C0XX_read_handler(addr, { speaker_memory_read, cpu });
+        computer->mmu->set_C0XX_write_handler(addr, { speaker_memory_write, cpu });
     }
     speaker_state->preFilter = new LowPassFilter();
     speaker_state->preFilter->setCoefficients(8000.0f, (double)1020500); // 1020500 is actual possible sample rate of input toggles.

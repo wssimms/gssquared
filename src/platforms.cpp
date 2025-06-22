@@ -33,7 +33,8 @@ static  platform_info platforms[] = {
         "apple2", 
         0xD000, 
         PROCESSOR_6502, 
-        CLOCK_1_024MHZ 
+        CLOCK_1_024MHZ ,
+        MMU_MMU_II,
     },
     { 
         PLATFORM_APPLE_II_PLUS, 
@@ -41,15 +42,17 @@ static  platform_info platforms[] = {
         "apple2_plus", 
         0xD000, 
         PROCESSOR_6502, 
-        CLOCK_1_024MHZ 
+        CLOCK_1_024MHZ, 
+        MMU_MMU_II,
         },
     { 
         PLATFORM_APPLE_IIE, 
         "Apple IIe", 
         "apple2e", 
-        0xD000, 
+        0xC000,
         PROCESSOR_6502, 
-        CLOCK_1_024MHZ 
+        CLOCK_1_024MHZ, 
+        MMU_MMU_IIE,
     },
     { 
         PLATFORM_APPLE_IIE_ENHANCED, 
@@ -57,7 +60,8 @@ static  platform_info platforms[] = {
         "apple2e_enhanced", 
         0xD000, 
         PROCESSOR_65C02, 
-        CLOCK_1_024MHZ
+        CLOCK_1_024MHZ,
+        MMU_MMU_IIE
      },
     // Add more platforms as needed:
     // { "Apple IIc",         "apple2c" },

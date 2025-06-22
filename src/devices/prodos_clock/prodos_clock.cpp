@@ -123,7 +123,7 @@ void init_slot_prodosclock(computer_t *computer, SlotType_t slot) {
         rom_data[i] = 0x60;
         //raw_memory_write(cpu, 0xC000 + (slot * 0x0100) + i, 0x60);
     }
-    cpu->mmu->set_slot_rom(slot, rom_data, "PDCLK_ROM");
-    cpu->mmu->set_C0XX_write_handler(0xC000 + slx, { prodos_clock_write_register, cpu });
+    computer->mmu->set_slot_rom(slot, rom_data, "PDCLK_ROM");
+    computer->mmu->set_C0XX_write_handler(0xC000 + slx, { prodos_clock_write_register, cpu });
 
 }
