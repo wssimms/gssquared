@@ -11,10 +11,10 @@ struct C8XX_handler_t {
 };
 
 class MMU_II : public MMU {
-    private:
+    protected:
         int ram_pages;
-        uint8_t *main_ram_64 = nullptr;
-        uint8_t *main_io_4 = nullptr;
+        uint8_t *main_ram = nullptr;
+        //uint8_t *main_io_4 = nullptr;
         uint8_t *main_rom_D0 = nullptr;
 
         read_handler_t C0xx_memory_read_handlers[C0X0_SIZE] = { nullptr };          // Table of memory read handlers
@@ -27,20 +27,21 @@ class MMU_II : public MMU {
         
     public:
         MMU_II(int page_table_size, int ram_amount, uint8_t *rom_pointer);
-        ~MMU_II();
+        MMU_II();
+        virtual ~MMU_II();
         uint8_t read(uint32_t address) override;
         uint8_t floating_bus_read() override;
         void write(uint32_t address, uint8_t value) override;
         
-        void set_C8xx_handler(SlotType_t slot, void (*handler)(void *context, SlotType_t slot), void *context);
-        void set_C0XX_read_handler(uint16_t address, read_handler_t handler);
-        void set_C0XX_write_handler(uint16_t address, write_handler_t handler);
-        void call_C8xx_handler(SlotType_t slot);
-        uint8_t *get_rom_base();
-        void init_map();
-        void set_default_C8xx_map();
-        void set_slot_rom(SlotType_t slot, uint8_t *rom, const char *name);
-        void reset();
-        void dump_C0XX_handlers();
+        virtual void set_C8xx_handler(SlotType_t slot, void (*handler)(void *context, SlotType_t slot), void *context);
+        virtual void set_C0XX_read_handler(uint16_t address, read_handler_t handler);
+        virtual void set_C0XX_write_handler(uint16_t address, write_handler_t handler);
+        virtual void call_C8xx_handler(SlotType_t slot);
+        virtual uint8_t *get_rom_base();
+        virtual void init_map();
+        virtual void set_default_C8xx_map();
+        virtual void set_slot_rom(SlotType_t slot, uint8_t *rom, const char *name);
+        virtual void reset();
+        virtual void dump_C0XX_handlers();
 };
 

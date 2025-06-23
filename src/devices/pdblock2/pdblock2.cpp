@@ -293,7 +293,7 @@ void init_pdblock2(computer_t *computer, SlotType_t slot)
     // memory-map the page. Refactor to have a method to get and set memory map.
     uint8_t *rom_data = (uint8_t *)(rom->get_data());
 
-    cpu->mmu->set_slot_rom(slot, rom_data, "PDBLK_ROM");
+    computer->mmu->set_slot_rom(slot, rom_data, "PDBLK_ROM");
 
     // load the firmware into the slot memory -- refactor this
     /* for (int i = 0; i < 256; i++) {
@@ -301,12 +301,12 @@ void init_pdblock2(computer_t *computer, SlotType_t slot)
     } */
 
     // register.. uh, registers.
-    cpu->mmu->set_C0XX_write_handler((slot * 0x10) + PD_CMD_RESET, { pdblock2_write_C0x0, cpu });
-    cpu->mmu->set_C0XX_write_handler((slot * 0x10) + PD_CMD_PUT, { pdblock2_write_C0x0, cpu });
-    cpu->mmu->set_C0XX_write_handler((slot * 0x10) + PD_CMD_EXECUTE, { pdblock2_write_C0x0, cpu });
-    cpu->mmu->set_C0XX_read_handler((slot * 0x10) + PD_ERROR_GET, { pdblock2_read_C0x0, cpu });
-    cpu->mmu->set_C0XX_read_handler((slot * 0x10) + PD_STATUS1_GET, { pdblock2_read_C0x0, cpu });
-    cpu->mmu->set_C0XX_read_handler((slot * 0x10) + PD_STATUS2_GET, { pdblock2_read_C0x0, cpu });
+    computer->mmu->set_C0XX_write_handler((slot * 0x10) + PD_CMD_RESET, { pdblock2_write_C0x0, cpu });
+    computer->mmu->set_C0XX_write_handler((slot * 0x10) + PD_CMD_PUT, { pdblock2_write_C0x0, cpu });
+    computer->mmu->set_C0XX_write_handler((slot * 0x10) + PD_CMD_EXECUTE, { pdblock2_write_C0x0, cpu });
+    computer->mmu->set_C0XX_read_handler((slot * 0x10) + PD_ERROR_GET, { pdblock2_read_C0x0, cpu });
+    computer->mmu->set_C0XX_read_handler((slot * 0x10) + PD_STATUS1_GET, { pdblock2_read_C0x0, cpu });
+    computer->mmu->set_C0XX_read_handler((slot * 0x10) + PD_STATUS2_GET, { pdblock2_read_C0x0, cpu });
 
 /* register_C0xx_memory_write_handler((slot * 0x10) + PD_CMD_RESET, pdblock2_write_C0x0);
     register_C0xx_memory_write_handler((slot * 0x10) + PD_CMD_PUT, pdblock2_write_C0x0);

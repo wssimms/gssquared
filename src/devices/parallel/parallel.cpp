@@ -52,11 +52,11 @@ void init_slot_parallel(computer_t *computer, SlotType_t slot) {
     uint16_t slot_base = 0xC080 + (slot * 0x10);
 
     //register_C0xx_memory_write_handler(slot_base + PARALLEL_DEV, parallel_write_C0x0);
-    cpu->mmu->set_C0XX_write_handler(slot_base + PARALLEL_DEV, { parallel_write_C0x0, cpu });
+    computer->mmu->set_C0XX_write_handler(slot_base + PARALLEL_DEV, { parallel_write_C0x0, cpu });
     
     // memory-map the page. Refactor to have a method to get and set memory map.
     uint8_t *rom_data = parallel_d->rom->get_data();
-    cpu->mmu->set_slot_rom(slot, rom_data, "PARL_ROM");
+    computer->mmu->set_slot_rom(slot, rom_data, "PARL_ROM");
 
     // load the firmware into the slot memory -- refactor this
     /* for (int i = 0; i < 256; i++) {

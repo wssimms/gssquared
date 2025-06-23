@@ -70,11 +70,11 @@ struct video_system_t {
         {.a=0xFF, .b=0x4A, .g=0xFF, .r=0x00 }, // green (was 55) chosen from measuring @ 549nm and https://academo.org/demos/wavelength-to-colour-relationship/
         {.a=0xFF, .b=0x00, .g=0xBF, .r=0xFF }  // amber
     };
-    uint32_t mono_color_table_u[DM_NUM_MONO_MODES] = {
+   /*  uint32_t mono_color_table_u[DM_NUM_MONO_MODES] = { // NO LONGER USED
         0xFFFFFFFF, // white
         0x00FF4AFF, // green (was 55) chosen from measuring @ 549nm and https://academo.org/demos/wavelength-to-colour-relationship/
         0xFFBF00FF, // amber
-    };
+    }; */
     video_system_t(computer_t *computer);
     ~video_system_t();
     void window_resize(const SDL_Event &event);
@@ -99,5 +99,4 @@ struct video_system_t {
     void register_frame_processor(int weight, FrameHandler handler);
     void update_display();
     RGBA_t get_mono_color() { return mono_color_table[display_mono_color]; };
-    uint32_t get_mono_color_u() { return mono_color_table_u[display_mono_color]; };
 };

@@ -31,6 +31,11 @@ typedef enum PlatformId_t {
     PLATFORM_END
 } PlatformId_t;
 
+typedef enum MMU_Type_t {
+    MMU_MMU_II,
+    MMU_MMU_IIE,
+} MMU_Type_t;
+
 struct platform_info {
     const PlatformId_t id;               // Human readable name
     const char* name;           // Human readable name
@@ -38,6 +43,7 @@ struct platform_info {
     uint16_t rom_base_addr;    // Base address for the roms
     const int processor_type;   // processor type
     const clock_mode_t default_clock_mode; // default clock mode for this platform at startup.
+    const MMU_Type_t mmu_type;
 };
 
 typedef uint8_t char_rom_t[256 * 8];

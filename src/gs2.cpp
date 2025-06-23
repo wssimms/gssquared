@@ -43,6 +43,7 @@
 #include "debugger/debugwindow.hpp"
 #include "computer.hpp"
 #include "mmus/mmu_ii.hpp"
+#include "mmus/mmu_iie.hpp"
 #include "util/EventTimer.hpp"
 #include "ui/SelectSystem.hpp"
 #include "ui/MainAtlas.hpp"
@@ -521,10 +522,27 @@ int main(int argc, char *argv[]) {
     // II can have 4k, 8k, 12k; or 16k, 32k, 48k.
     // II Plus can have 16k, 32K, or 48k RAM. 16K more BUT IN THE LANGUAGE CARD MODULE.
     // always 12k rom, but not necessarily always the same ROM.
-    MMU_II *mmu = new MMU_II(256, 48*1024, (uint8_t *) rd->main_rom_data);
-    computer->cpu->set_mmu(mmu);
-    computer->set_mmu(mmu);
-    mmu->set_cpu(computer->cpu);
+    MMU_II *mmu_ii = nullptr;
+    MMU_IIe *mmu_iie = nullptr;
+
+    switch (platform->mmu_type) {
+        case MMU_MMU_II:
+            mmu_ii = new MMU_II(256, 48*1024, (uint8_t *) rd->main_rom_data);
+            computer->cpu->set_mmu(mmu_ii);
+            computer->set_mmu(mmu_ii); // TODO: this is ugly. Should use an interface or something like that. This may not even work if I add methods..
+            break;
+        case MMU_MMU_IIE:
+            mmu_iie = new MMU_IIe(256, 128*1024, (uint8_t *) rd->main_rom_data);
+            computer->cpu->set_mmu(mmu_iie);
+            computer->set_mmu(mmu_iie); // TODO: this is ugly. Should use an interface or something like that. This may not even work if I add methods..
+            break;
+        default:
+            printf("Unknown MMU type: %d\n", platform->mmu_type);
+            break;
+    }
+
+    //computer->cpu->set_mmu(mmu);
+    //computer->set_mmu(mmu); // TODO: this is ugly. Should use an interface or something like that. This may not even work if I add methods..
 
     // need to tell the MMU about our ROM somehow.
     // need a function in MMU to "reset page to default".
@@ -547,6 +565,10 @@ int main(int argc, char *argv[]) {
         DeviceMap_t dm = system_config->device_map[i];
 
         Device_t *device = get_device(dm.id);
+        if (device->power_on == nullptr) {
+            printf("Device has no poweron, not found: %d", dm.id);
+            continue;
+        } 
         device->power_on(computer, dm.slot);
         if (dm.slot != SLOT_NONE) {
             slot_manager->register_slot(device, dm.slot);
@@ -586,7 +608,14 @@ int main(int argc, char *argv[]) {
 
     delete osd;
     delete computer;
-    delete mmu;
+    switch (platform->mmu_type) {
+        case MMU_MMU_II:
+            delete mmu_ii;
+            break;
+        case MMU_MMU_IIE:
+            delete mmu_iie;
+            break;
+    }
     delete select_system;
     delete aa;
     }

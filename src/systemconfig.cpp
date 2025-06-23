@@ -51,6 +51,11 @@ DeviceMap_t DeviceMap_IIPLUS[] = {
 
 DeviceMap_t DeviceMap_IIE[] = {
     {DEVICE_ID_KEYBOARD_IIE, SLOT_NONE},
+    {DEVICE_ID_SPEAKER, SLOT_NONE},
+    {DEVICE_ID_DISPLAY, SLOT_NONE},
+    {DEVICE_ID_PD_BLOCK2, SLOT_5},
+    {DEVICE_ID_DISK_II, SLOT_6},
+
     {DEVICE_ID_END, SLOT_NONE}
 };
 

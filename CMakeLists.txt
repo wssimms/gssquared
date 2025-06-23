@@ -226,7 +226,7 @@ add_library(gs2_devices_annunciator     src/devices/annunciator/annunciator.cpp 
 add_library(gs2_debugger src/debugger/trace.cpp src/debugger/trace_opcodes.cpp src/debugger/debugwindow.cpp src/debugger/MonitorCommand.cpp 
     src/debugger/ExecuteCommand.cpp src/debugger/MemoryWatch.cpp src/debugger/disasm.cpp)
 
-add_library(gs2_mmu src/mmus/mmu.cpp src/mmus/mmu_ii.cpp )
+add_library(gs2_mmu src/mmus/mmu.cpp src/mmus/mmu_ii.cpp src/mmus/mmu_iie.cpp)
 
 #add_library(gs2_cpu src/cpus/cpu_6502.cpp src/cpus/cpu_65c02.cpp src/cpu.cpp )
 add_library(gs2_cpu src/cpus/core_6502.cpp src/cpu.cpp )

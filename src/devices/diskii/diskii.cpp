@@ -712,33 +712,33 @@ void init_slot_diskII(computer_t *computer, SlotType_t slot) {
 
     uint16_t slot_base = 0xC080 + (slot * 0x10);
 
-    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Ph0_Off, { diskII_read_C0xx, diskII_d });
-    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Ph0_On, { diskII_read_C0xx, diskII_d });
-    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Ph1_Off, { diskII_read_C0xx, diskII_d });
-    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Ph1_On, { diskII_read_C0xx, diskII_d });
-    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Ph2_Off, { diskII_read_C0xx, diskII_d });
-    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Ph2_On, { diskII_read_C0xx, diskII_d });
-    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Ph3_Off, { diskII_read_C0xx, diskII_d });
-    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Ph3_On, { diskII_read_C0xx, diskII_d });
-    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Motor_Off, { diskII_read_C0xx, diskII_d });
-    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Motor_On, { diskII_read_C0xx, diskII_d });
-    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Drive1_Select, { diskII_read_C0xx, diskII_d });
-    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Drive2_Select, { diskII_read_C0xx, diskII_d });
-    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Q6L, { diskII_read_C0xx, diskII_d });
-    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Q6H, { diskII_read_C0xx, diskII_d });
-    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Q7L, { diskII_read_C0xx, diskII_d });
-    cpu->mmu->set_C0XX_read_handler(slot_base + DiskII_Q7H, { diskII_read_C0xx, diskII_d });
+    computer->mmu->set_C0XX_read_handler(slot_base + DiskII_Ph0_Off, { diskII_read_C0xx, diskII_d });
+    computer->mmu->set_C0XX_read_handler(slot_base + DiskII_Ph0_On, { diskII_read_C0xx, diskII_d });
+    computer->mmu->set_C0XX_read_handler(slot_base + DiskII_Ph1_Off, { diskII_read_C0xx, diskII_d });
+    computer->mmu->set_C0XX_read_handler(slot_base + DiskII_Ph1_On, { diskII_read_C0xx, diskII_d });
+    computer->mmu->set_C0XX_read_handler(slot_base + DiskII_Ph2_Off, { diskII_read_C0xx, diskII_d });
+    computer->mmu->set_C0XX_read_handler(slot_base + DiskII_Ph2_On, { diskII_read_C0xx, diskII_d });
+    computer->mmu->set_C0XX_read_handler(slot_base + DiskII_Ph3_Off, { diskII_read_C0xx, diskII_d });
+    computer->mmu->set_C0XX_read_handler(slot_base + DiskII_Ph3_On, { diskII_read_C0xx, diskII_d });
+    computer->mmu->set_C0XX_read_handler(slot_base + DiskII_Motor_Off, { diskII_read_C0xx, diskII_d });
+    computer->mmu->set_C0XX_read_handler(slot_base + DiskII_Motor_On, { diskII_read_C0xx, diskII_d });
+    computer->mmu->set_C0XX_read_handler(slot_base + DiskII_Drive1_Select, { diskII_read_C0xx, diskII_d });
+    computer->mmu->set_C0XX_read_handler(slot_base + DiskII_Drive2_Select, { diskII_read_C0xx, diskII_d });
+    computer->mmu->set_C0XX_read_handler(slot_base + DiskII_Q6L, { diskII_read_C0xx, diskII_d });
+    computer->mmu->set_C0XX_read_handler(slot_base + DiskII_Q6H, { diskII_read_C0xx, diskII_d });
+    computer->mmu->set_C0XX_read_handler(slot_base + DiskII_Q7L, { diskII_read_C0xx, diskII_d });
+    computer->mmu->set_C0XX_read_handler(slot_base + DiskII_Q7H, { diskII_read_C0xx, diskII_d });
 
-    cpu->mmu->set_C0XX_write_handler(slot_base + DiskII_Motor_Off, { diskII_write_C0xx, diskII_d });
-    cpu->mmu->set_C0XX_write_handler(slot_base + DiskII_Motor_On, { diskII_write_C0xx, diskII_d });
-    cpu->mmu->set_C0XX_write_handler(slot_base + DiskII_Drive1_Select, { diskII_write_C0xx, diskII_d });
-    cpu->mmu->set_C0XX_write_handler(slot_base + DiskII_Drive2_Select, { diskII_write_C0xx, diskII_d });
-    cpu->mmu->set_C0XX_write_handler(slot_base + DiskII_Q6L, { diskII_write_C0xx, diskII_d });
-    cpu->mmu->set_C0XX_write_handler(slot_base + DiskII_Q6H, { diskII_write_C0xx, diskII_d });
-    cpu->mmu->set_C0XX_write_handler(slot_base + DiskII_Q7L, { diskII_write_C0xx, diskII_d });
-    cpu->mmu->set_C0XX_write_handler(slot_base + DiskII_Q7H, { diskII_write_C0xx, diskII_d });
+    computer->mmu->set_C0XX_write_handler(slot_base + DiskII_Motor_Off, { diskII_write_C0xx, diskII_d });
+    computer->mmu->set_C0XX_write_handler(slot_base + DiskII_Motor_On, { diskII_write_C0xx, diskII_d });
+    computer->mmu->set_C0XX_write_handler(slot_base + DiskII_Drive1_Select, { diskII_write_C0xx, diskII_d });
+    computer->mmu->set_C0XX_write_handler(slot_base + DiskII_Drive2_Select, { diskII_write_C0xx, diskII_d });
+    computer->mmu->set_C0XX_write_handler(slot_base + DiskII_Q6L, { diskII_write_C0xx, diskII_d });
+    computer->mmu->set_C0XX_write_handler(slot_base + DiskII_Q6H, { diskII_write_C0xx, diskII_d });
+    computer->mmu->set_C0XX_write_handler(slot_base + DiskII_Q7L, { diskII_write_C0xx, diskII_d });
+    computer->mmu->set_C0XX_write_handler(slot_base + DiskII_Q7H, { diskII_write_C0xx, diskII_d });
 
-    cpu->mmu->set_slot_rom(slot, rom_data, "DISK2_ROM");
+    computer->mmu->set_slot_rom(slot, rom_data, "DISK2_ROM");
 
     // register drives with mounts for status reporting
     uint64_t key = (slot << 8) | 0;

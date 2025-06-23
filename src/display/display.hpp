@@ -178,7 +178,7 @@ public:
 } display_state_t;
 
 
-extern uint32_t lores_color_table[16]; 
+extern RGBA_t lores_color_table[16]; 
 
 /* void update_display(cpu_state *cpu); */
 

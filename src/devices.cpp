@@ -52,7 +52,7 @@ Device_t Devices[NUM_DEVICE_IDS] = {
         DEVICE_ID_KEYBOARD_IIE,
         "Apple IIe Keyboard",
         false,
-        NULL /* init_mb_keyboard, */,
+        init_mb_iie_keyboard,
         NULL
     },
     {
