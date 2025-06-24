@@ -258,6 +258,7 @@ void init_mb_video_scanner(computer_t *computer, SlotType_t slot)
     // alloc and init video scanner
     VideoScannerII * vs = new VideoScannerII(computer->mmu);
     computer->video_scanner = vs;
+    printf("Allocated video scanner: %p\n", vs);
     
     computer->mmu->set_C0XX_read_handler(0xC050, { vs_bus_read_C050, vs });
     computer->mmu->set_C0XX_write_handler(0xC050, { vs_bus_write_C050, vs });

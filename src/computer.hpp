@@ -14,6 +14,7 @@ struct debug_window_t; // don't bring in debugwindow.hpp, it would create a depe
 struct video_system_t; // same.
 class Mounts;
 class EventTimer;
+class VideoScannerII;
 
 /* typedef void (*reset_handler_t)(void *context);
 
@@ -29,6 +30,7 @@ struct computer_t {
 
     cpu_state *cpu = nullptr;
     MMU_II *mmu = nullptr;
+    VideoScannerII *video_scanner = nullptr;
 
     EventDispatcher *sys_event = nullptr;
     EventDispatcher *dispatch = nullptr;
