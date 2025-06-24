@@ -27,7 +27,7 @@
 #include <stdio.h>
 #include "display.hpp"
 #include "Matrix3x3.hpp"
-#include "display/types.hpp"
+//#include "display/types.hpp"
 #include "display/ntsc.hpp"
 #include "devices/displaypp/RGBA.hpp"
 
@@ -289,6 +289,7 @@ void newProcessAppleIIFrame_NTSC (
     RGBA_t* outputImage           // Will be filled with 560x192 RGBA pixels
 )
 {
+    VideoScannerII *vs = cpu->get_video_scanner();
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     ds->kill_color = true;
 
@@ -301,14 +302,17 @@ void newProcessAppleIIFrame_NTSC (
     uint32_t phase = 0;
     uint32_t count = 0;
 
+    uint8_t * video_data = vs->get_video_data();
+    int video_data_size = vs->get_video_data_size();
     int i = 0;
-    while (i < ds->video_data_size)
+
+    while (i < video_data_size)
     {
         // This section builds a 14/15 bit wide video_bits for each byte of
         // video memory, based on the video_mode associated with each byte
 
-        video_mode_t video_mode = (video_mode_t)(ds->video_data[i++]);
-        uint8_t video_byte = ds->video_data[i++];
+        video_mode_t video_mode = (video_mode_t)(video_data[i++]);
+        uint8_t video_byte = video_data[i++];
 
         switch (video_mode)
         {
@@ -400,7 +404,7 @@ void newProcessAppleIIFrame_NTSC (
         }
     }
 
-    ds->video_data_size = 0;
+    vs->end_video_cycle();
 }
 
 /**
@@ -414,6 +418,7 @@ void newProcessAppleIIFrame_Mono (
 {
     static RGBA_t p_black = { .a=0xFF, .b=0x00, .g=0x00, .r=0x00 };
 
+    VideoScannerII *vs = cpu->get_video_scanner();
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     ds->kill_color = true;
 
@@ -423,14 +428,17 @@ void newProcessAppleIIFrame_Mono (
     uint32_t vcount = 0;
     uint32_t hcount = 0;
 
+    uint8_t * video_data = vs->get_video_data();
+    int video_data_size = vs->get_video_data_size();
     int i = 0;
-    while (i < ds->video_data_size)
+
+    while (i < video_data_size)
     {
         // This section builds a 14/15 bit wide video_bits for each byte of
         // video memory, based on the video_mode associated with each byte
 
-        video_mode_t video_mode = (video_mode_t)(ds->video_data[i++]);
-        uint8_t video_byte = ds->video_data[i++];
+        video_mode_t video_mode = (video_mode_t)(video_data[i++]);
+        uint8_t video_byte = video_data[i++];
 
         switch (video_mode)
         {
@@ -493,7 +501,7 @@ void newProcessAppleIIFrame_Mono (
         }
     }
 
-    ds->video_data_size = 0;
+    vs->end_video_cycle();
 }
 
 void RGB_shift_color (uint16_t vbits, RGBA_t* outputImage)
@@ -557,6 +565,7 @@ void newProcessAppleIIFrame_RGB (
     RGBA_t* outputImage         // Will be filled with 560x192 RGBA pixels
 )
 {
+    VideoScannerII *vs = cpu->get_video_scanner();
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     ds->kill_color = true;
 
@@ -568,14 +577,17 @@ void newProcessAppleIIFrame_RGB (
     uint8_t  last_byte = 0;
     uint8_t  last_shift = 0;
 
+    uint8_t * video_data = vs->get_video_data();
+    int video_data_size = vs->get_video_data_size();
     int i = 0;
-    while (i < ds->video_data_size)
+
+    while (i < video_data_size)
     {
         // This section builds a 14/15 bit wide video_bits for each byte of
         // video memory, based on the video_mode associated with each byte
 
-        video_mode_t video_mode = (video_mode_t)(ds->video_data[i++]);
-        uint8_t video_byte = ds->video_data[i++];
+        video_mode_t video_mode = (video_mode_t)(video_data[i++]);
+        uint8_t video_byte = video_data[i++];
 
         switch (video_mode)
         {
@@ -681,6 +693,6 @@ void newProcessAppleIIFrame_RGB (
         }
     }
 
-    ds->video_data_size = 0;
+    vs->end_video_cycle();
 }
 

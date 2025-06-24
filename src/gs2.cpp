@@ -530,11 +530,13 @@ int main(int argc, char *argv[]) {
             mmu_ii = new MMU_II(256, 48*1024, (uint8_t *) rd->main_rom_data);
             computer->cpu->set_mmu(mmu_ii);
             computer->set_mmu(mmu_ii); // TODO: this is ugly. Should use an interface or something like that. This may not even work if I add methods..
+            mmu_ii->set_cpu(computer->cpu);
             break;
         case MMU_MMU_IIE:
             mmu_iie = new MMU_IIe(256, 128*1024, (uint8_t *) rd->main_rom_data);
             computer->cpu->set_mmu(mmu_iie);
             computer->set_mmu(mmu_iie); // TODO: this is ugly. Should use an interface or something like that. This may not even work if I add methods..
+            mmu_iie->set_cpu(computer->cpu);
             break;
         default:
             printf("Unknown MMU type: %d\n", platform->mmu_type);
@@ -562,6 +564,7 @@ int main(int argc, char *argv[]) {
     printf("computer->video_system:%p\n", computer->video_system); fflush(stdout);
 
     for (int i = 0; system_config->device_map[i].id != DEVICE_ID_END; i++) {
+        printf("initialize ID %d\n", i);
         DeviceMap_t dm = system_config->device_map[i];
 
         Device_t *device = get_device(dm.id);
@@ -575,6 +578,9 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // video scanner should be available here
+    computer->cpu->set_video_scanner(computer->video_scanner);
+
     bool result = soundeffects_init(computer);
 
     printf("Before reset\n"); fflush(stdout);
@@ -582,6 +588,8 @@ int main(int argc, char *argv[]) {
     computer->cpu->reset();
 
     printf("After reset\n"); fflush(stdout);
+
+    printf("in gs2 cpu->video scanner: %p\n", computer->cpu->video_scanner); fflush(stdout);
 
     // mount disks - AFTER device init.
     while (!disks_to_mount.empty()) {

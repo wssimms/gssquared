@@ -20,6 +20,7 @@
 #include "devices/keyboard/keyboard.hpp"
 #include "devices/speaker/speaker.hpp"
 #include "display/display.hpp"
+#include "display/VideoScannerII.hpp"
 #include "devices/game/gamecontroller.hpp"
 #include "devices/languagecard/languagecard.hpp"
 #include "devices/prodos_clock/prodos_clock.hpp"
@@ -151,6 +152,13 @@ Device_t Devices[NUM_DEVICE_IDS] = {
         "Annunciator",
         false,
         init_annunciator,
+        NULL
+    },
+    {
+        DEVICE_ID_VIDEO_SCANNER,
+        "Video Scanner",
+        false,
+        init_mb_video_scanner,
         NULL
     }
 };

@@ -1,4 +1,5 @@
 #include "mmu_ii.hpp"
+#include "display/VideoScannerII.hpp"
 #include "display/display.hpp"
 
 /**
@@ -19,6 +20,13 @@ void MMU_II::init_map() {
     for (int i = 0; i < (ROM_KB / GS2_PAGE_SIZE); i++) {
         map_page_read_only(i + 0xD0, main_rom_D0 + i * GS2_PAGE_SIZE, "SYS_ROM");
     }   
+}
+
+void MMU_II::set_slot_rom(SlotType_t slot, uint8_t *rom, const char *name) {
+    if (slot < 1 || slot >= 8) {
+        return;
+    }
+    map_page_read_only(0xC0 + slot, rom, name);
 }
 
 void MMU_II::power_on_randomize(uint8_t *ram, int ram_size) {
@@ -64,8 +72,10 @@ void MMU_II::set_default_C8xx_map() {
 }
 
 uint8_t MMU_II::floating_bus_read() {
-    display_state_t *ds = (display_state_t *)get_module_state(this->cpu, MODULE_DISPLAY);
-    return ds->video_byte;
+    //printf("fbr: cpu: %p\n", cpu); fflush(stdout);
+    VideoScannerII *video_scanner = cpu->get_video_scanner();
+    //printf("fbr: video scanner: %p\n", video_scanner); fflush(stdout);
+    return video_scanner->get_video_byte();
 }
 
 /**
@@ -163,14 +173,6 @@ void MMU_II::set_C0XX_write_handler(uint16_t address, write_handler_t handler) {
 
 uint8_t *MMU_II::get_rom_base() {
     return main_rom_D0;
-}
-
- // TODO: determine if we should use this, and if so take a read_d here.
-void MMU_II::set_slot_rom(SlotType_t slot, uint8_t *rom, const char *name) {
-    if (slot < 1 || slot >= 8) {
-        return;
-    }
-    map_page_read_only(0xC0 + slot, rom, name);
 }
 
 void MMU_II::reset() {

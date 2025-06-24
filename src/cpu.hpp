@@ -29,6 +29,7 @@
 #include "SlotData.hpp"
 #include "debugger/trace.hpp"
 #include "mmus/mmu_ii.hpp"
+#include "display/VideoScannerII.hpp"
 #include "Module_ID.hpp"
 
 #define MAX_CPUS 1
@@ -187,6 +188,7 @@ struct cpu_state {
 
     //MMU_II *mmu = nullptr;
     MMU *mmu = nullptr; // cpu only needs to know about base interface with read() and write().
+    VideoScannerII *video_scanner = nullptr;
 
     uint64_t last_tick;
     uint64_t next_tick;
@@ -221,9 +223,22 @@ struct cpu_state {
     void reset();
     
     void set_mmu(MMU *mmu) { this->mmu = mmu; }
+    void set_video_scanner(VideoScannerII *video_scanner) { this->video_scanner = video_scanner; }
+    VideoScannerII * get_video_scanner() { return this->video_scanner; }
+
+    inline void incr_cycles()
+    {
+        cycles++;
+        ns_since_bus_cycle += cycle_duration_ns;
+        if (ns_since_bus_cycle >= clock_mode_info[CLOCK_1_024MHZ].cycle_duration_ns) {
+            ns_since_bus_cycle -= clock_mode_info[CLOCK_1_024MHZ].cycle_duration_ns;
+            video_scanner->video_cycle();
+            bus_cycles++;
+        }
+    }
 
     inline uint8_t read_byte(uint16_t address) {
-        incr_cycles(this);
+        incr_cycles();
         uint8_t value = mmu->read(address);
         return value;
     }
@@ -242,7 +257,7 @@ struct cpu_state {
     }
 
     inline void write_byte( uint16_t address, uint8_t value) {
-        incr_cycles(this);
+        incr_cycles();
         mmu->write(address, value);
     }
 

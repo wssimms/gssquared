@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <assert.h>
 
+#include "gs2.hpp"
 #include "memoryspecs.hpp"
 
 #define C0X0_BASE 0xC000
