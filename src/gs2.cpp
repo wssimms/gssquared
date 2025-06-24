@@ -28,7 +28,6 @@
 #include "cpu.hpp"
 #include "clock.hpp"
 #include "display/display.hpp"
-#include "display/text_40x24.hpp"
 #include "event_poll.hpp"
 #include "devices/speaker/speaker.hpp"
 #include "platforms.hpp"
