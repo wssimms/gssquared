@@ -78,6 +78,15 @@ public:
     inline void set_hires()  { hires = true;  set_video_mode(); }
     inline void set_text()   { graf  = false; set_video_mode(); }
     inline void set_graf()   { graf  = true;  set_video_mode(); }
+
+    inline bool is_page_1() { return !page2; }
+    inline bool is_page_2() { return page2; }
+    inline bool is_full()   { return !mixed; }
+    inline bool is_mixed()  { return mixed; }
+    inline bool is_lores()  { return !hires; }
+    inline bool is_hires()  { return hires; }
+    inline bool is_text()   { return !graf; }
+    inline bool is_graf()   { return graf; }
 };
 
 void init_mb_video_scanner(computer_t *computer, SlotType_t slot);

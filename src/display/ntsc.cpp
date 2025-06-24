@@ -27,7 +27,6 @@
 #include <stdio.h>
 #include "display.hpp"
 #include "Matrix3x3.hpp"
-//#include "display/types.hpp"
 #include "display/ntsc.hpp"
 #include "devices/displaypp/RGBA.hpp"
 

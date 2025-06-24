@@ -20,7 +20,6 @@
 #include "videx.hpp"
 #include "debug.hpp"
 #include "display/display.hpp"
-#include "display/types.hpp"
 #include "videx_80x24.hpp"
 #include "videosystem.hpp"
 #include "devices/annunciator/annunciator.hpp"
@@ -151,7 +150,8 @@ void deinit_slot_videx(videx_data *videx_d) {
 
 bool videx_frame(videx_data *videx_d) {
     cpu_state *cpu = videx_d->cpu;
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    VideoScannerII *video_scanner = cpu->get_video_scanner();
+    //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     annunciator_state_t * anc_d = (annunciator_state_t *)get_module_state(cpu, MODULE_ANNUNCIATOR);
 
     // the backbuffer must be cleared each frame. The docs state this clearly
@@ -159,7 +159,8 @@ bool videx_frame(videx_data *videx_d) {
     // at startup was enough. NOPE.
     videx_d->video_system->clear();
 
-    if (videx_d && ds->display_mode == TEXT_MODE && anc_d && anc_d->annunciators[0] ) {
+    //if (videx_d && ds->display_mode == TEXT_MODE && anc_d && anc_d->annunciators[0] ) {
+    if (videx_d && video_scanner->is_text() && anc_d && anc_d->annunciators[0] ) {
         update_display_videx(cpu, videx_d ); 
         return true;
     }

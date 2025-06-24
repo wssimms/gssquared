@@ -21,7 +21,6 @@
 #include "cpu.hpp"
 #include "Matrix3x3.hpp"
 //#include "display.hpp"
-#include "display/types.hpp"
 //#include "videosystem.hpp"
 #include "devices/displaypp/RGBA.hpp"
 

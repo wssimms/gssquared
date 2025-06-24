@@ -23,12 +23,13 @@
 
 #include <SDL3/SDL.h>
 
-#include "memoryspecs.hpp"
+//#include "memoryspecs.hpp"
 #include "clock.hpp"
-#include "devices.hpp"
+#include "platforms.hpp"
+//#include "devices.hpp"
 #include "SlotData.hpp"
 #include "debugger/trace.hpp"
-#include "mmus/mmu_ii.hpp"
+//#include "mmus/mmu_ii.hpp"
 #include "display/VideoScannerII.hpp"
 #include "Module_ID.hpp"
 
