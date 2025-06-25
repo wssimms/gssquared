@@ -23,11 +23,17 @@ class MMU_IIe : public MMU_II {
         //int8_t C8xx_slot;
 //        C8XX_handler_t C8xx_handlers[8] = {nullptr};
 
- //       void power_on_randomize(uint8_t *ram, int ram_size);
-        
+        virtual void power_on_randomize(uint8_t *ram, int ram_size) override;
+
     public:
+        bool f_intcxrom = false;
+        bool f_slotc3rom = false;
+
         MMU_IIe(int page_table_size, int ram_amount, uint8_t *rom_pointer);
         virtual ~MMU_IIe();
+        void set_default_C8xx_map() override;
+        void compose_c1cf() override;
+
         /* uint8_t read(uint32_t address) override;
         void write(uint32_t address, uint8_t value) override; */
         
@@ -43,3 +49,5 @@ class MMU_IIe : public MMU_II {
         void dump_C0XX_handlers(); */
 };
 
+void iie_mmu_handle_C00X_write(void *context, uint16_t address, uint8_t value);
+uint8_t iie_mmu_handle_C01X_read(void *context, uint16_t address);

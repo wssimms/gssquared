@@ -111,6 +111,9 @@ public:
     display_graphics_mode_t display_graphics_mode;
     display_page_number_t display_page_num;
     display_page_t *display_page_table;
+    
+    // for iie
+    bool display_alt_charset;
 
     bool flash_state;
     int flash_counter;
@@ -142,3 +145,12 @@ void display_dump_hires_page(cpu_state *cpu, int page);
 void display_dump_text_page(cpu_state *cpu, int page);
 
 void display_engine_get_buffer(computer_t *computer, uint8_t *buffer, uint32_t *width, uint32_t *height);
+
+uint8_t txt_bus_read_C050(void *context, uint16_t address);
+uint8_t txt_bus_read_C051(void *context, uint16_t address);
+uint8_t txt_bus_read_C052(void *context, uint16_t address);
+uint8_t txt_bus_read_C053(void *context, uint16_t address);
+uint8_t txt_bus_read_C054(void *context, uint16_t address);
+uint8_t txt_bus_read_C055(void *context, uint16_t address);
+uint8_t txt_bus_read_C056(void *context, uint16_t address);
+uint8_t txt_bus_read_C057(void *context, uint16_t address);

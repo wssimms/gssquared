@@ -550,6 +550,24 @@ void display_engine_get_buffer(computer_t *computer, uint8_t *buffer, uint32_t *
     computer->event_queue->addEvent(new Event(EVENT_SHOW_MESSAGE, 0, msgbuf));
 }
 
+// Implement the switch, but text display doesn't use it yet.
+void display_write_switches(void *context, uint16_t address, uint8_t value) {
+    display_state_t *ds = (display_state_t *)context;
+    switch (address) {
+        case 0xC00E:
+            ds->display_alt_charset = false;
+            break;
+        case 0xC00F:
+            ds->display_alt_charset = true;
+            break;
+    }
+}
+
+uint8_t display_read_C01E(void *context, uint16_t address) {
+    display_state_t *ds = (display_state_t *)context;
+    return (ds->display_alt_charset) ? 0x80 : 0x00;
+}
+
 void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     cpu_state *cpu = computer->cpu;
     
@@ -618,6 +636,12 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
         return update_display_apple2(cpu);
     });
 
+    if (computer->platform->id == PLATFORM_APPLE_IIE) {
+        ds->display_alt_charset = false;
+        computer->mmu->set_C0XX_write_handler(0xC00E, { display_write_switches, ds });
+        computer->mmu->set_C0XX_write_handler(0xC00F, { display_write_switches, ds });
+        computer->mmu->set_C0XX_read_handler(0xC01E, { display_read_C01E, ds });
+    }
 }
 
 void display_dump_file(cpu_state *cpu, const char *filename, uint16_t base_addr, uint16_t sizer) {

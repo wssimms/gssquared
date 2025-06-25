@@ -53,17 +53,37 @@ void pre_calculate_font (rom_data *rd) {
 
     uint32_t pos_index = 0;
 
-    for (int row = 0; row < 256 * 8; row++) {
-        uint8_t rowBits = (*rd->char_rom_data)[row];
-        for (int col = 0; col < 7; col++) {
-            bool pixel = rowBits & (1 << (6 - col));
-            uint32_t color = pixel ? fg_color : bg_color;
-            APPLE2_FONT_32[pos_index] = color;
-            APPLE2_FONT_8[pos_index] = pixel ? 0xFF : 0x00; // calculate both fonts
-            pos_index++;
-            if (pos_index > CHAR_GLYPHS_COUNT * CHAR_GLYPHS_SIZE * 8 ) {
-                fprintf(stderr, "pos_index out of bounds: %d\n", pos_index);
-                exit(1);
+    // TODO: temporary hack to handle IIe font. dpp handles it better.
+    if (rd->char_rom_file->size() == 4096) {
+        for (int row = 0; row < 256 * 8; row++) {
+            uint8_t rowBits = (*rd->char_rom_data)[row];
+            for (int col = 0; col < 7; col++) {
+                bool pixel = rowBits & (1 << col);
+                pixel = !pixel;
+                uint32_t color = pixel ? fg_color : bg_color;
+                APPLE2_FONT_32[pos_index] = color;
+                APPLE2_FONT_8[pos_index] = pixel ? 0xFF : 0x00; // calculate both fonts
+                pos_index++;
+                if (pos_index > CHAR_GLYPHS_COUNT * CHAR_GLYPHS_SIZE * 8 ) {
+                    fprintf(stderr, "pos_index out of bounds: %d\n", pos_index);
+                    exit(1);
+                }
+            }
+        }
+    } else {
+
+        for (int row = 0; row < 256 * 8; row++) {
+            uint8_t rowBits = (*rd->char_rom_data)[row];
+            for (int col = 0; col < 7; col++) {
+                bool pixel = rowBits & (1 << (6 - col));
+                uint32_t color = pixel ? fg_color : bg_color;
+                APPLE2_FONT_32[pos_index] = color;
+                APPLE2_FONT_8[pos_index] = pixel ? 0xFF : 0x00; // calculate both fonts
+                pos_index++;
+                if (pos_index > CHAR_GLYPHS_COUNT * CHAR_GLYPHS_SIZE * 8 ) {
+                    fprintf(stderr, "pos_index out of bounds: %d\n", pos_index);
+                    exit(1);
+                }
             }
         }
     }

@@ -4805,3 +4805,172 @@ The GS encapsulates an Apple IIe (or IIc?) memory management inside its much big
 [x] trying to boot applepanic.dsk results in crash at memory c014  
 
 ok, back to the work at hand. on a reset we pretty much immediately hit INTCXROMON. So I need a plan for handling that.
+
+This is a document explaining what the startup MMU / IOU errors are:
+http://absurdengineering.org/library/MASTER%20Tech%20Info%20Library/Apple%20II%20Hardware/Apple%20IIe%20Hardware%20Issues/TIL00297%20-%20Apple%20IIe%20-%20Component%20diagnostics%20(1%20of%202).pdf
+
+## Jun 23, 2025
+
+I got rid of the IOU errors by having display set up switches that provide status of hires, etc. But that really belongs in the MMU. So there is this interplay between the IIe MMU and the display stuff. Toggling various display switches can have an impact on the memory map. So, thinking about this:
+
+have IIe_Memory register the display softswitches. It configures memory map. Then, it calls into display to feed display the display mode changes. This is instead of display directly registering the display mode switches. We do already have routines to set the display mode stuff. For simplicity maybe have a single routine inside display to accept the call then it dispatches to the correct internal routine.
+
+Pages that are switched:
+
+* $00, $01, $D0 - $FF - ALTZP
+   * inside $D0 - $FF, map is controlled using $C080 - $C08F "language card" registers.
+* $02 - $BF - switch between "auxiliary" and "main"
+
+On RESET, bank switch area is set to: READ ROM, write RAM, 2nd bank. (on IIPlus, RESET did not affect BSR).
+
+RAMRD - choose between read main or aux
+RAMWRT - choose between write main or aux
+
+with 80STORE on, then PAGE2 selects main or aux memory. with HIRES off, the memory switched by PAGE2 is Text Page 1.
+with HIRES on, PAGE2 switches both Text Page 1 and HIRES Page 1.
+If you use both AUX-RAM switches (RAMRD/RAMWRT) and the display page controls, the display page controls take priority.
+If 80STORE is off, RAMRD and RAMWRT work for the entire memory space from $0200 - $BFFF.
+If 80STORE is on, RAMRD and RAMWRT have no effect on the display page.
+
+So let's linearize this:
+
+1. set $02 - $03, $08 - $1F, $40 - $BF based on RAMRD
+1. set $02 - $03, $08 - $1F, $40 - $BF based on RAMWRT
+1. set $00, $01, $D0 - $FF based on ALTZP and set D0 - FF more specifically based on BSR registers
+1. IF 80STORE ON,
+   1. IF HIRES OFF,
+      1. set $04 - $07 based on PAGE2; set $20 - $3F based on RAMRD/RAMWRT
+   1. IF HIRES ON,
+      1. set $04 - $07, $20 - $3F based on PAGE2
+1. IF 80STORE OFF,
+   1. set $04 - $07, $20 - $3F based on RAMRD
+   1. set $04 - $07, $20 - $3F based on RAMWRT
+
+Now it might be easier from a compositional view, to perform:
+Paint ALTZP
+Paint RAMRD/RAMWRT
+then overwrite as needed with 80STORE
+
+AH, or what we can compose is derivative flags:
+
+ZP: main or alt
+TEXT1: main or alt
+HIRES1: main or alt
+ALL: main or alt (ALL is whatever is left over after subtracting the above)
+
+When composing, keep track of OLD and NEW values (e.g. oldZP and newZP) and only change the page table entries that need to change. i.e. if old and new are same value, don't do anything.
+
+Whenever HIRES or PAGE2 switches change, IIe Memory needs to know. So, that thing where it takes over those switches? What if we just overwrite the existing settings, and ensure IIeMemory always comes after Display in the systemconfig? Side-effect hell, but, simple and effective.
+
+[ ] I think the video scanner draws from main memory no matter the settings of RAMRD/RAMWRT etc. This implies we have to change the code in HGR etc. to lookup base_memory instead of pulling the page table entry. Which it seems they are doing, though I am unsure why, I thought I used mmu->read in places.. check it out anyway.
+
+When 80STORE is on, PAGE2 should NOT change video page. Video settings should be set to PAGE1 even though PAGE2 flag is set.
+
+interesting tidbit from Scott:
+```
+Although AN3 (aka: FRCTXT, aka: DHIRES) doesn't activate double-resolution graphics when 80COLUMN is off, it *does* alter the display of both LORES and HIRES graphics. A Prince Of Persia forum has an whole thread discussing this behavior at https://forum.princed.org/viewtopic.php?f=63&t=4450
+```
+
+ok I have the languagecard code ported over to iie_memory. What's lacking is a way to return to default ROM. Taking a break...
+
+self test is failing now with "ROM:E8" which is ROM from C100 to DFFF I think. There is code around $C549 that is checksumming and skips specifically $C400 in the calculation. $C400 is the checksum. Our checksum was 09 and C400 contains 1B. Hunh.
+Algo is:
+iterate from C100 - DFFF skipping C400.
+start with A = 0. CLC. Add ($00),Y. iterate.
+I suppose I should somehow verify this checksum myself. 
+
+
+
+Here is the Apple IIe checklist:
+[ ] 128K memory management  
+[ ] 80 column text
+[ ] dlgr  
+[ ] dhgr  
+[ ] Alternate character set (I implemented the switch but don't act on it yet)  
+[ ] display must read video memory from absolute memory, not from page table
+[ ] have "default to rom" concept in mmu.  
+
+## Jun 24, 2025
+
+So:
+```
+C007:0
+1500<C500.C7FFM
+1564:0 (or breakpoint)
+156C:0 (or breakpoint)
+
+if you hit 1564, the checksum did not match
+if you hit 156C, the checksum -did- match.
+
+ah ha! the error is CFFF. CFFF should return the value from the ROM underneath, but right now we are returning EE!
+So what the CFFF check does in the MMU_II is: set_default_rom_map. Apparently INTCXROM overrides this. 
+C800-CFFF that CFFF resets, is part of "slot rom". ALL "slot rom" is overridden by INTCXROM.
+
+alright, the self-test passes but this is really all bad right now.
+
+
+Slot devices register their SLOT ROM with mmu.
+Then MMU is responsible for composing the memory map, instead of various parts of the system.
+We could have a couple different mmu routines to "update" the map.
+C100-CFFF
+
+[ ] open question: does CFFF function go away when INTCXROM is ON ? or does it also remove the C8-CF mapped area?  
+[ ] open question: memexp card, slot 7 - if I access C700 does it activate C8-CF ROM for that under the INTCX? I am guessing not.. though it may not matter.  
+
+maybe move INTCXROM handling to the mmu itself? Then I know the things (inside mmu).. checking..
+
+ok. so mmu will directly record:
+io_pages(C1 .. CF)
+
+set_slot_rom sets those. also need the same to handle mockingboard memory-mapped I/O.
+
+Then a routine to compose based on:
+
+if INTCXROM set
+   use internal CX ROM C1 - CF
+else
+   use SLOT ROM from C100 - CFFF (which includes C800 handling)
+
+if SLOTC3ROM is set
+   use SLOT rom from C300-C3FF
+else
+   use INTERNAL ROM from C300-C3FF
+
+it either pulls from the slot_rom ptes (15 of them, kept just like regular PTEs), or, configures PTE from INTCXROM.
+
+ALL slot cards manage the "slot rom pte" via these APIs:
+
+set_slot_rom
+set_slot_rom_etc
+c800_handler
+
+whenever these run, we run the compose_c1_cf routine which will install actual PTEs based on switch settings.
+
+lets review the cards we have with firmware and/or C8:
+* disk ii. (tested)
+* memexp (tested)
+* thunderclock (ok)
+* pdclock (tested)
+* pdblock2 (tested)
+* videx (not working, needs to be updated)
+
+The II Plus version of compose_c1_cf is simple: just put slot_rom_pte in place. IIe version does the composition.
+
+So, SLOTC3ROM default seems to be internal rom. and status 1 = slot rom, 0 = internal rom. (based on apple2ts).
+duh the switch is called SLOTC3ROM. 
+
+What does this mean..
+"When SLOTCROM is on, the 256-byte ROM area at sc300 is
+available to a peripheral card in slot 3, which is the slot normally
+used for a terminal interface. If a card is installed in the auxiliary
+slot when you turn on the power or reset the Apple lle, the
+SLOTROM switch is turned off."
+
+is this "turned off" done in software or hardware? In any event I had the sense of INTCXROM backwards; the original IIe manual doesn't even call it that. It calls it SLOTCXROM.
+
+iie tech ref claims on reset or powerup the BSR switches are set for bank 2, read rom, write ram.
+
+"When you initiate a reset, hardware in the Apple IIe sets the memory-controlling soft switches to normal: main board RAM and ROM are enabled; if there is an 80 column card in the aux slot, expansion slot 3 is allocated to the built-in 80 column firmware. auxiliary ram is disabled and the BSR is set up to read ROM and write RAM, bank 2. (hardware)
+
+Then the reset routine sets display softswitch to: 40 column text page 1 using primary character set. (software)
+

@@ -41,6 +41,14 @@ MMU_II::MMU_II(int page_table_size, int ram_amount, uint8_t *rom_pointer) : MMU(
     // initialize memory map
     init_map();
     set_default_C8xx_map();
+    // initialize the slot rom page table.
+    for (int i = 0; i < 15; i++) {
+        slot_rom_ptable[i].read_p = nullptr;
+        slot_rom_ptable[i].write_p = nullptr;
+        slot_rom_ptable[i].read_h = {nullptr, nullptr};
+        slot_rom_ptable[i].write_h = {nullptr, nullptr};
+        slot_rom_ptable[i].shadow_h = {nullptr, nullptr};
+    }
 }
 
 MMU_II::~MMU_II() {
@@ -51,14 +59,101 @@ MMU_II::~MMU_II() {
 }
 
 /**
+  * Routines to provide mapping of pages in 0xC1.
+  * For II,II+, semantics are the same as for calling
+  * MMU::map_page_both. But, this only sets the special c1-cf page table.
+  */
+
+void MMU_II::map_c1cf_page_both(uint8_t page, uint8_t *data, const char *read_d) {
+    if (page < 0xC1 || page > 0xCF) {
+        return;
+    }
+    page_table_entry_t *pte = &slot_rom_ptable[page - 0xC1];
+
+    pte->read_p = data;
+    pte->write_p = data;
+    pte->read_h = {nullptr, nullptr};
+    pte->write_h = {nullptr, nullptr};
+    pte->read_d = read_d;
+    pte->write_d = read_d;
+}
+
+void MMU_II::map_c1cf_page_read_only(page_t page, uint8_t *data, const char *read_d) {
+    if (page < 0xC1 || page > 0xCF) {
+        return;
+    }
+    page_table_entry_t *pte = &slot_rom_ptable[page - 0xC1];
+
+    pte->read_p = data;
+    pte->write_p = nullptr;
+    pte->read_d = read_d;
+    pte->write_d = nullptr;
+}
+
+// TODO: don't do compose every time. But should we rely on caller to do it? OTOH it's very fast.
+void MMU_II::map_c1cf_page_read_h(page_t page, read_handler_t handler, const char *read_d) {
+    if (page < 0xC1 || page > 0xCF) {
+        return;
+    }
+    page_table_entry_t *pte = &slot_rom_ptable[page - 0xC1];
+
+    pte->read_h = handler;
+    pte->read_d = read_d;
+    compose_c1cf();
+}
+
+void MMU_II::map_c1cf_page_write_h(page_t page, write_handler_t handler, const char *write_d) {
+    if (page < 0xC1 || page > 0xCF) {
+        return;
+    }
+    page_table_entry_t *pte = &slot_rom_ptable[page - 0xC1];
+
+    pte->write_h = handler;
+    pte->write_d = write_d;
+    compose_c1cf();
+}
+
+/**
  * sets default C800 - CFFF map.
  * Called with location CFFF hit, or, on reset.
  */
 void MMU_II::set_default_C8xx_map() {
     C8xx_slot = 0xFF;
     for (uint8_t page = 0; page < 8; page++) {
-        //map_page_read_only(page + 0xC8, main_io_4 + (page + 0x08) * 0x100, M_IO);
-        map_page_both(page + 0xC8, nullptr, "NONE"); // 
+        //map_page_both(page + 0xC8, nullptr, "NONE");
+        map_c1cf_page_both(page + 0xC8, nullptr, "NONE");
+    }
+    compose_c1cf();
+}
+
+ // TODO: determine if we should use this, and if so take a read_d here.
+void MMU_II::set_slot_rom(SlotType_t slot, uint8_t *rom, const char *name) {
+    if (slot < 1 || slot >= 8) {
+        return;
+    }
+    map_c1cf_page_read_only(0xC0 + slot, rom, name);
+    //map_page_read_only(0xC0 + slot, rom, name);
+    compose_c1cf();
+}
+
+// the handlers must only use functions in this area, to set slot-parameters.
+void MMU_II::set_C8xx_handler(SlotType_t slot, void (*handler)(void *context, SlotType_t slot), void *context) {
+    C8xx_handlers[slot].handler = handler;
+    C8xx_handlers[slot].context = context;
+}
+
+void MMU_II::call_C8xx_handler(SlotType_t slot) {
+    if (C8xx_handlers[slot].handler != nullptr) {
+        C8xx_handlers[slot].handler(C8xx_handlers[slot].context, slot);
+    }
+    C8xx_slot = slot;
+    compose_c1cf();
+}
+
+void MMU_II::compose_c1cf() {
+    // only thing we do is set based on this. IIe expands on this.
+    for (int i = 0; i < 15; i++) {
+        page_table[0xC1 + i] = slot_rom_ptable[i];
     }
 }
 
@@ -129,18 +224,6 @@ void MMU_II::write(uint32_t address, uint8_t value) {
     /* MMU::write(address, value); */
 }
 
-void MMU_II::set_C8xx_handler(SlotType_t slot, void (*handler)(void *context, SlotType_t slot), void *context) {
-    C8xx_handlers[slot].handler = handler;
-    C8xx_handlers[slot].context = context;
-}
-
-void MMU_II::call_C8xx_handler(SlotType_t slot) {
-    if (C8xx_handlers[slot].handler != nullptr) {
-        C8xx_handlers[slot].handler(C8xx_handlers[slot].context, slot);
-    }
-    C8xx_slot = slot;
-}
-
 void MMU_II::set_C0XX_read_handler(uint16_t address, read_handler_t handler) {
     if (address < C0X0_BASE || address >= C0X0_BASE + C0X0_SIZE) {
         return;
@@ -157,14 +240,6 @@ void MMU_II::set_C0XX_write_handler(uint16_t address, write_handler_t handler) {
 
 uint8_t *MMU_II::get_rom_base() {
     return main_rom_D0;
-}
-
- // TODO: determine if we should use this, and if so take a read_d here.
-void MMU_II::set_slot_rom(SlotType_t slot, uint8_t *rom, const char *name) {
-    if (slot < 1 || slot >= 8) {
-        return;
-    }
-    map_page_read_only(0xC0 + slot, rom, name);
 }
 
 void MMU_II::reset() {

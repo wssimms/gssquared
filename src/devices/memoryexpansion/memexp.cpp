@@ -108,14 +108,15 @@ void memexp_write_C0x3(void *context, uint16_t addr, uint8_t data) {
 }
 
 void map_rom_memexp(void *context, SlotType_t slot) {
-    cpu_state *cpu = (cpu_state *)context;
+    //cpu_state *cpu = (cpu_state *)context;
     //memexp_data * memexp_d = (memexp_data *)get_module_state(cpu, MODULE_MEMEXP);
-    memexp_data * memexp_d = (memexp_data *)get_slot_state(cpu, slot);
+    //memexp_data * memexp_d = (memexp_data *)get_slot_state(cpu, slot);
+    memexp_data * memexp_d = (memexp_data *)context;
 
     uint8_t *dp = memexp_d->rom->get_data();
     for (uint8_t page = 0; page < 8; page++) {
-        //memory_map_page_both(cpu, page + 0xC8, dp + 0x800 + (page * 0x100), MEM_IO);
-        cpu->mmu->map_page_read_only(page + 0xC8, dp + 0x800 + (page * 0x100), "MEMEXP_ROM");
+        //memexp_d->mmu->map_page_read_only(page + 0xC8, dp + 0x800 + (page * 0x100), "MEMEXP_ROM");
+        memexp_d->mmu->map_c1cf_page_read_only(page + 0xC8, dp + 0x800 + (page * 0x100), "MEMEXP_ROM");
     }
     if (DEBUG(DEBUG_MEMEXP)) {
         printf("mapped in memexp $C800-$CFFF\n");
@@ -126,6 +127,8 @@ void init_slot_memexp(computer_t *computer, SlotType_t slot) {
     cpu_state *cpu = computer->cpu;
     
     memexp_data * memexp_d = new memexp_data;
+    memexp_d->mmu = computer->mmu;
+
     // set in CPU so we can reference later
     memexp_d->id = DEVICE_ID_MEM_EXPANSION;
     memexp_d->data = new uint8_t[MEMEXP_SIZE];
@@ -179,5 +182,5 @@ void init_slot_memexp(computer_t *computer, SlotType_t slot) {
     }
  */
     /* register_C8xx_handler(cpu, slot, map_rom_memexp); */
-    computer->mmu->set_C8xx_handler(slot, map_rom_memexp, cpu);
+    computer->mmu->set_C8xx_handler(slot, map_rom_memexp, memexp_d);
 }

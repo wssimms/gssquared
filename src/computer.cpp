@@ -9,6 +9,7 @@
 #include "util/EventTimer.hpp"
 #include "videosystem.hpp"
 #include "util/mount.hpp"
+#include "platforms.hpp"
 
 computer_t::computer_t() {
     // lots of stuff is going to need this.
@@ -87,9 +88,9 @@ void computer_t::reset(bool cold_start) {
 
     if (cold_start) {
         // force a cold start reset
-        cpu->mmu->write(0x3f2, 0x00);
-        cpu->mmu->write(0x3f3, 0x00);
-        cpu->mmu->write(0x3f4, 0x00);
+        mmu->write(0x3f2, 0x00);
+        mmu->write(0x3f3, 0x00);
+        mmu->write(0x3f4, 0x00);
     }
 
     cpu->reset();

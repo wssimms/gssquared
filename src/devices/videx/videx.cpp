@@ -58,29 +58,28 @@ void map_rom_videx(void *context, SlotType_t slot) {
 
     uint8_t *dp = videx_d->rom->get_data();
 
-    videx_d->mmu->map_page_read_only(0xC8, dp + 0x000, "VIDEXROM");
-    videx_d->mmu->map_page_read_only(0xC9, dp + 0x100, "VIDEXROM");
-    videx_d->mmu->map_page_read_only(0xCA, dp + 0x200, "VIDEXROM");
-    videx_d->mmu->map_page_read_only(0xCB, dp + 0x300, "VIDEXROM");
-    videx_d->mmu->map_page_both(0xCC, nullptr, "NONE");
-    videx_d->mmu->map_page_both(0xCD, nullptr, "NONE");
-    videx_d->mmu->map_page_both(0xCE, nullptr, "NONE");
-    videx_d->mmu->map_page_both(0xCF, nullptr, "NONE");
+    videx_d->mmu->map_c1cf_page_read_only(0xC8, dp + 0x000, "VIDEXROM");
+    videx_d->mmu->map_c1cf_page_read_only(0xC9, dp + 0x100, "VIDEXROM");
+    videx_d->mmu->map_c1cf_page_read_only(0xCA, dp + 0x200, "VIDEXROM");
+    videx_d->mmu->map_c1cf_page_read_only(0xCB, dp + 0x300, "VIDEXROM");
+    videx_d->mmu->map_c1cf_page_both(0xCC, nullptr, "NONE");
+    videx_d->mmu->map_c1cf_page_both(0xCD, nullptr, "NONE");
+    videx_d->mmu->map_c1cf_page_both(0xCE, nullptr, "NONE");
+    videx_d->mmu->map_c1cf_page_both(0xCF, nullptr, "NONE");
 
 
-    videx_d->mmu->set_page_write_h(0xCC, { videx_memory_write2, videx_d }, "VIDEXRAM");
-    videx_d->mmu->set_page_write_h(0xCD, { videx_memory_write2, videx_d }, "VIDEXRAM");
-    videx_d->mmu->set_page_read_h(0xCC, { videx_memory_read2, videx_d }, "VIDEXRAM");
-    videx_d->mmu->set_page_read_h(0xCD, { videx_memory_read2, videx_d }, "VIDEXRAM");
+    videx_d->mmu->map_c1cf_page_write_h(0xCC, { videx_memory_write2, videx_d }, "VIDEXRAM");
+    videx_d->mmu->map_c1cf_page_write_h(0xCD, { videx_memory_write2, videx_d }, "VIDEXRAM");
+    videx_d->mmu->map_c1cf_page_read_h(0xCC, { videx_memory_read2, videx_d }, "VIDEXRAM");
+    videx_d->mmu->map_c1cf_page_read_h(0xCD, { videx_memory_read2, videx_d }, "VIDEXRAM");
     videx_d->mmu->dump_page_table(0xC8,0xCF);
     
     //if (DEBUG(DEBUG_VIDEX)) fprintf(stdout, "mapped in videx $C800-$CFFF\n");
 }
 
 void update_videx_screen_memory(videx_data * videx_d) {
-    videx_d->mmu->map_page_read_only(0xCC, videx_d->screen_memory + (videx_d->selected_page * 2) * 0x100, "VIDEXRAM");
-    videx_d->mmu->map_page_read_only(0xCD, videx_d->screen_memory + (videx_d->selected_page * 2) * 0x100 + 0x100, "VIDEXRAM");
-
+    videx_d->mmu->map_c1cf_page_read_only(0xCC, videx_d->screen_memory + (videx_d->selected_page * 2) * 0x100, "VIDEXRAM");
+    videx_d->mmu->map_c1cf_page_read_only(0xCD, videx_d->screen_memory + (videx_d->selected_page * 2) * 0x100 + 0x100, "VIDEXRAM");
 }
 
 uint8_t videx_read_C0xx(void *context, uint16_t addr) {

@@ -17,7 +17,9 @@
 
 #pragma once
 
-#include "cpu.hpp"
+#include <cstdint>
+
+//#include "cpu.hpp"
 
 struct cpu_state; // forward declaration
 
@@ -37,7 +39,7 @@ typedef struct {
 
 extern clock_mode_info_t clock_mode_info[NUM_CLOCK_MODES];
 
-void emulate_clock_cycle(cpu_state *cpu) ;
+//void emulate_clock_cycle(cpu_state *cpu) ;
 
 #define incr_cycles(cpu) cpu->cycles++;
 //inline void incr_cycles(cpu_state *cpu) { cpu->cycles++; };

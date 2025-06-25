@@ -19,7 +19,6 @@
 
 #include <cstdint>
 #include <stddef.h>
-#include "cpu.hpp"
 #include "clock.hpp"
 #include "util/ResourceFile.hpp"
 
@@ -37,7 +36,7 @@ typedef enum MMU_Type_t {
 } MMU_Type_t;
 
 struct platform_info {
-    const PlatformId_t id;               // Human readable name
+    const PlatformId_t id;       
     const char* name;           // Human readable name
     const char* rom_dir;        // Directory under roms/
     uint16_t rom_base_addr;    // Base address for the roms

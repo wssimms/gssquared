@@ -31,6 +31,7 @@
 #include "devices/videx/videx.hpp"
 #include "devices/mockingboard/mb.hpp"
 #include "devices/annunciator/annunciator.hpp"
+#include "devices/iiememory/iiememory.hpp"
 
 Device_t NoDevice = {
         DEVICE_ID_END,
@@ -151,6 +152,13 @@ Device_t Devices[NUM_DEVICE_IDS] = {
         "Annunciator",
         false,
         init_annunciator,
+        NULL
+    },
+    {
+        DEVICE_ID_IIE_MEMORY,
+        "IIe Memory",
+        false,
+        init_iiememory,
         NULL
     }
 };

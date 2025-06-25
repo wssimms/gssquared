@@ -41,6 +41,7 @@ typedef struct memexp_data: public SlotData {
     };
     uint8_t *data;
     ResourceFile *rom;
+    MMU_II *mmu;
 } memexp_data;
 
 void init_slot_memexp(computer_t *computer, SlotType_t slot);
