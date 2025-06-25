@@ -43,6 +43,7 @@ class MMU_IIe : public MMU_II {
         void call_C8xx_handler(SlotType_t slot);
         uint8_t *get_rom_base(); */
         void init_map() override;
+        void reset() override;
      /*    void set_default_C8xx_map();
         void set_slot_rom(SlotType_t slot, uint8_t *rom, const char *name);
         void reset();

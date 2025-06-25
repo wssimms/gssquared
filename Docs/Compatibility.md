@@ -116,6 +116,8 @@ boots and is working, but, disk drive continues running inappropriately.
 ## Classic Concentration
 
 Dies during game load with gazillions of unknown opcodes. last instructions before crash are sta c003 sta c005 - looks like a //e 128k game.
+With current state of IIe, it now boots, loads, plays music. But it is a double hi-res program, so the display isn't right yet.
+
 
 ## Karateka (Brutal Deluxe crack)
 
@@ -152,6 +154,7 @@ Requires speech synthesis support for Mockingboard.
 ## Total Replay
 
 boots up detects 64K and mockingboard and then thinks "and it talks!" . uh. wrong. but lots of the games on it work, including Rescue Raiders.
+Correctly detects 128K + joystick in apple //e mode, but then hangs waiting for VBL to appear.
 
 ## Carrier Aviation 
 
@@ -177,3 +180,12 @@ looks like requires //e 80 column card.
 ## Jumpman
 
 crashes after loading a few tracks of data; then it has also gone back to C600 and jumps again to $0801 which is an RTS which then wreaks various havoc, gets to a BRK, and ends up in monitor.
+
+## Ultima IV
+
+Works and supports Mockingboard on II Plus.
+Runs on IIe but Mockingboard not working.
+
+## Ultima V
+
+Is now booting on IIe emulation with 128K. I should stick a Mockingboard in it and see if it works! It doesn't. ha!

@@ -26,46 +26,57 @@
 /**
  * First, handling the "language card" portion or what the IIe manual calls the "Bank Switch RAM".
  * 
+ * ROM: C1-CF     ROM + 0x0100 
+ * ROM: D0-DF     ROM + 0x1000
+ * ROM: E0-FF     ROM + 0x2000 (- 0x3FFF)
+ * RAM: D0-DF     Bank 1:  RAM + 0xC000
+ * RAM: D0-DF     Bank 2:  RAM + 0xD000
+ * RAM: E0-FF              RAM + 0xE000
+ * ALT RAM:       add 0x10000 to address 
  */
-
 
 void bsr_map_memory(iiememory_state_t *lc) {
 
-    uint32_t bank12offset = (lc->FF_BANK_1 == 1) ? 0xC000 : 0xD000;
+    uint32_t bankd0offset = (lc->FF_BANK_1 == 1) ? 0xC000 : 0xD000;
     uint32_t banke0offset = 0xE000;
-    if (lc->f_altzp) bank12offset += 0x1'0000; // alternate bank!
-    if (lc->f_altzp) banke0offset += 0x1'0000; // alternate bank!
+    if (lc->f_altzp) {
+        bankd0offset += 0x1'0000; // alternate bank!
+        banke0offset += 0x1'0000; // alternate bank!
+    }
 
     //uint8_t *bank = (lc->FF_BANK_1 == 1) ? lc->ram : lc->ram + 0x1000;
-    uint8_t *bank12 = lc->ram + bank12offset;
+    uint8_t *bankd0 = lc->ram + bankd0offset;
     uint8_t *banke0 = lc->ram + banke0offset;
+    uint8_t *rom = lc->mmu->get_rom_base();
 
     const char *bank_d = (lc->FF_BANK_1 == 1) ? "LC_BANK1" : "LC_BANK2";
 
+    /* Map D0 - DF */
     for (int i = 0; i < 16; i++) {
         if (lc->FF_READ_ENABLE) {
-            lc->mmu->map_page_read(i + 0xD0, bank12 + (i*GS2_PAGE_SIZE), bank_d);
+            lc->mmu->map_page_read(i + 0xD0, bankd0 + (i*GS2_PAGE_SIZE), bank_d);
         } else { // reads == READ_ROM
         // TODO: this is wrong - needs to somehow know to return to ROM D0/etc wherever that may be.
         // right now hard-code to what we know about the iie rom.
-            lc->mmu->map_page_read(i + 0xD0, lc->mmu->get_rom_base() + 0x1000 + (i*GS2_PAGE_SIZE), "SYS_ROM");
+            lc->mmu->map_page_read(i + 0xD0, rom + 0x1000 + (i*GS2_PAGE_SIZE), "SYS_ROM");
         }
 
         if (!lc->_FF_WRITE_ENABLE) {
-            lc->mmu->map_page_write(i+0xD0, bank12 + (i*GS2_PAGE_SIZE), bank_d);
+            lc->mmu->map_page_write(i+0xD0, bankd0 + (i*GS2_PAGE_SIZE), bank_d);
 
         } else { // writes == WRITE_NONE - set it to the ROM and can_write = 0
             lc->mmu->map_page_write(i+0xD0, nullptr, "NONE"); // much simpler actually.. no write enable means null write pointer.
         }
     }
 
+    /* Map E0 - FF */
     for (int i = 0; i < 32; i++) {
         if (lc->FF_READ_ENABLE) {
             lc->mmu->map_page_read(i+0xE0, banke0 + (i * GS2_PAGE_SIZE), "LC RAM");
 
         } else { // reads == READ_ROM
             // TODO: this is wrong - needs to somehow know to return to ROM D0/etc wherever that may be.
-            lc->mmu->map_page_read(i+0xE0, lc->mmu->get_rom_base() + 0x2000 + (i * GS2_PAGE_SIZE), "LC RAM");
+            lc->mmu->map_page_read(i+0xE0, rom + 0x2000 + (i * GS2_PAGE_SIZE), "SYS_ROM");
         }
 
         if (!lc->_FF_WRITE_ENABLE) {
@@ -75,7 +86,7 @@ void bsr_map_memory(iiememory_state_t *lc) {
         }
     }
 
-    if (DEBUG(DEBUG_LANGCARD)) {
+    if (1 || DEBUG(DEBUG_LANGCARD)) {
         lc->mmu->dump_page_table(0xD0, 0xD0);
         lc->mmu->dump_page_table(0xE0, 0xE0);
     }
@@ -225,8 +236,10 @@ void update_display_flags(iiememory_state_t *iiememory_d) {
 }
 
 void iiememory_debug(iiememory_state_t *iiememory_d) {
-    printf("IIe Memory: m_zp: %d, m_text1_r: %d, m_text1_w: %d, m_hires1_r: %d, m_hires1_w: %d, m_all_r: %d, m_all_w: %d\n", 
-        iiememory_d->m_zp, iiememory_d->m_text1_r, iiememory_d->m_text1_w, iiememory_d->m_hires1_r, iiememory_d->m_hires1_w, iiememory_d->m_all_r, iiememory_d->m_all_w);
+    // CX debug
+    iiememory_d->mmu->dump_page_table(0xC2, 0xC3);
+    /* printf("IIe Memory: m_zp: %d, m_text1_r: %d, m_text1_w: %d, m_hires1_r: %d, m_hires1_w: %d, m_all_r: %d, m_all_w: %d\n", 
+        iiememory_d->m_zp, iiememory_d->m_text1_r, iiememory_d->m_text1_w, iiememory_d->m_hires1_r, iiememory_d->m_hires1_w, iiememory_d->m_all_r, iiememory_d->m_all_w); */
 }
 
 void iiememory_compose_map(iiememory_state_t *iiememory_d) {
@@ -272,10 +285,10 @@ void iiememory_compose_map(iiememory_state_t *iiememory_d) {
         uint32_t altoffset = n_zp ? 0x1'0000 : 0x0'0000;
 
         // call iiememory_map_langcard()
-        iiememory_d->mmu->map_page_read(0, memory_base + altoffset + (0 * GS2_PAGE_SIZE), n_text1_r ? TAG_ALT : TAG_MAIN);
-        iiememory_d->mmu->map_page_read(1, memory_base + altoffset + (1 * GS2_PAGE_SIZE), n_text1_r ? TAG_ALT : TAG_MAIN);
-        iiememory_d->mmu->map_page_write(0, memory_base + altoffset + (0 * GS2_PAGE_SIZE), n_text1_r ? TAG_ALT : TAG_MAIN);
-        iiememory_d->mmu->map_page_write(1, memory_base + altoffset + (1 * GS2_PAGE_SIZE), n_text1_r ? TAG_ALT : TAG_MAIN);
+        iiememory_d->mmu->map_page_read(0, memory_base + altoffset + (0 * GS2_PAGE_SIZE), n_zp ? TAG_ALT : TAG_MAIN);
+        iiememory_d->mmu->map_page_read(1, memory_base + altoffset + (1 * GS2_PAGE_SIZE), n_zp ? TAG_ALT : TAG_MAIN);
+        iiememory_d->mmu->map_page_write(0, memory_base + altoffset + (0 * GS2_PAGE_SIZE), n_zp ? TAG_ALT : TAG_MAIN);
+        iiememory_d->mmu->map_page_write(1, memory_base + altoffset + (1 * GS2_PAGE_SIZE), n_zp ? TAG_ALT : TAG_MAIN);
 
         bsr_map_memory(iiememory_d); // handle the 'language card' portion.
     }
@@ -295,16 +308,16 @@ void iiememory_compose_map(iiememory_state_t *iiememory_d) {
     }
     if (n_hires1_r != iiememory_d->m_hires1_r) {
         // change $20 - $3F
-        uint32_t altoffset = n_text1_r ? 0x1'0000 : 0x0'0000;
+        uint32_t altoffset = n_hires1_r ? 0x1'0000 : 0x0'0000;
         for (int i = 0x20; i <= 0x3F; i++) {
-            iiememory_d->mmu->map_page_read(i, memory_base + altoffset + (i * GS2_PAGE_SIZE), n_text1_r ? TAG_ALT : TAG_MAIN);
+            iiememory_d->mmu->map_page_read(i, memory_base + altoffset + (i * GS2_PAGE_SIZE), n_hires1_r ? TAG_ALT : TAG_MAIN);
         }
     }
     if (n_hires1_w != iiememory_d->m_hires1_w) {
         // change $20 - $3F
-        uint32_t altoffset = n_text1_w ? 0x1'0000 : 0x0'0000;
+        uint32_t altoffset = n_hires1_w ? 0x1'0000 : 0x0'0000;
         for (int i = 0x20; i <= 0x3F; i++) {
-            iiememory_d->mmu->map_page_write(i, memory_base + altoffset + (i * GS2_PAGE_SIZE), n_text1_r ? TAG_ALT : TAG_MAIN);
+            iiememory_d->mmu->map_page_write(i, memory_base + altoffset + (i * GS2_PAGE_SIZE), n_hires1_r ? TAG_ALT : TAG_MAIN);
         }
     }
     if (n_all_r != iiememory_d->m_all_r) {  
@@ -379,12 +392,12 @@ void iiememory_write_C00X(void *context, uint16_t address, uint8_t data) {
         case 0xC009: // ALTZPON
             iiememory_d->f_altzp = true;
             break;
-        case 0xC00A: // SLOTC3ROMOFF
+        /* case 0xC00A: // SLOTC3ROMOFF
             iiememory_d->f_slotc3rom = false;
             break;
         case 0xC00B: // SLOTC3ROMON
             iiememory_d->f_slotc3rom = true;
-            break;
+            break; */
         case 0xC00C: // 80COLOFF
             iiememory_d->f_80col = false;
             break;
@@ -555,7 +568,7 @@ void init_iiememory(computer_t *computer, SlotType_t slot) {
     }
 
     /**
-     * set up the "BSR" state.
+     * set up the "BSR" state.0
      */
     /** At power up, the RAM card is disabled for reading and enabled for writing.
     * the pre-write flip-flop is reset, and bank 2 is selected. 

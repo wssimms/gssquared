@@ -43,8 +43,9 @@ void MMU_IIe::compose_c1cf() {
         for (int i = 0; i < 15; i++) {
             page_table[0xC1 + i] = slot_rom_ptable[i];
         }
-        if (f_slotc3rom) { // this has effect in A2Ts only if intcxrom is off.
-            page_table[0xC3] = slot_rom_ptable[2];
+        if (!f_slotc3rom) { // this has effect in A2Ts only if intcxrom is off.
+            //page_table[0xC3] = slot_rom_ptable[2];
+            map_page_read_only(0xC3, main_rom_D0 + 0x0300, "SYS_ROM");
         }
     } else {
         for (int i = 1; i < 16; i++) {
@@ -57,9 +58,12 @@ void MMU_IIe::compose_c1cf() {
  * main board RAM and ROM are enabled; if there is an 80 column card in the aux slot, expansion slot 3 is allocated 
  * to the built-in 80 column firmware. auxiliary ram is disabled and the BSR is set up to read ROM and write RAM, bank 2. (hardware)
 */
-/* void MMU_IIe::reset() {
-    // needs ti set f_intcxrom appropriately.
-} */
+void MMU_IIe::reset() {
+    MMU_II::reset();
+    f_intcxrom = false;
+    f_slotc3rom = false;
+    compose_c1cf();
+}
 
 void iie_mmu_handle_C00X_write(void *context, uint16_t address, uint8_t value) {
     MMU_IIe *mmu = (MMU_IIe *)context;
@@ -241,6 +245,17 @@ void MMU_IIe::dump_C0XX_handlers() {
 }
 #endif
 
+void iie_map_rom_slot3(void *context, SlotType_t slot) {
+    MMU_IIe *mmu = (MMU_IIe *)context;
+
+    uint8_t *rom = mmu->get_rom_base();
+
+    // our virtual slot 3 also gets to map in C8-CF to internal ROM regardless of intcxrom if C3XX is accessed.
+    for (uint8_t page = 0; page < 8; page++) {
+        mmu->map_c1cf_page_read_only(page + 0xC8, rom + 0x800 + (page * 0x100), "SYS_ROM");
+    }
+}
+
 
 MMU_IIe::MMU_IIe(int page_table_size, int ram_amount, uint8_t *rom_pointer) : MMU_II(page_table_size, ram_amount, rom_pointer) {
     //main_rom_D0 = rom_pointer + 0x1000;
@@ -264,6 +279,7 @@ MMU_IIe::MMU_IIe(int page_table_size, int ram_amount, uint8_t *rom_pointer) : MM
     set_C0XX_write_handler(0xC00A, {iie_mmu_handle_C00X_write, this});
     set_C0XX_write_handler(0xC00B, {iie_mmu_handle_C00X_write, this});
 
+    set_C8xx_handler(SLOT_3, iie_map_rom_slot3, this );
 }
 
 MMU_IIe::~MMU_IIe() {

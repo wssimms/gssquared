@@ -4974,3 +4974,35 @@ iie tech ref claims on reset or powerup the BSR switches are set for bank 2, rea
 
 Then the reset routine sets display softswitch to: 40 column text page 1 using primary character set. (software)
 
+add "debug" command to monitor to set the debug flag.
+
+Sather IIe:
+"if 80col was the RAM addressing input, then there would be only one displayable page of DOUBLE-RES raphics. This though is not the case. By resetting 80STORE and setting PAGE2, a programmer can select the $800-$BFF area for TEXT/LORES display or the $4000-$5FFF area for HIRES display, even in the double-res modes. If 80STORE is set, the secondary pages cannot be displayed."
+
+So, you CAN use Page2 of 80-col/dhgr.
+
+Ah, Sather to the rescue:
+You will find, how-ever, that it is possible for motherboard ROM to steal response to $C800-$CFFF without setting
+INTCX ROM. The $C800-$CFFF range is assigned to motherboard ROM (INTernal) anytime SLOT-C3ROM is reset and an access is made to $C3XX.
+
+
+I have some issue with the LC RAM space, because ProDOS isn't successfully booting. The II+ LC test does work though.
+
+so somehow I'm ending back up in the diskII boot rom c600.. because intcx is 0 and I'm reading all EE's.
+prodos called C311, which is EEEE..
+
+slotc3 is 0. which means it's supposed to be internal slot 3 rom. and, as we discovered, that means also we should be pulling in the C3 and C8 internal ROM!
+
+So for the IIe, we'll just say: 80 col card device MUST be in slot 3, no exceptions. Then we register a slot 3 c800 callback handler to also enable C8-CF internal ROM.
+
+Progress!
+
+So on a IIe, Total Replay detects joystick and 128k, but, hangs waiting on Vertical Blank.
+
+So what issues now. OK, I don't have working flash or inverse? hm flash works, but not inverse. 
+
+0x00-0x7F are inverse characters. 0x80 to 0xFF are normal. (The rom of course has pixels inverted).
+
+This differs markedly from the Apple IIplus ROM. The II plus ROM has all pixels "normal". logic must make inverted. (And, the hi bit set indicates a flashing character I think). In my current 40 col code I manually invert 0-3F. So I am double-inverting. I need to leave the char data inverted for 0-3F. OK, that works for now. But having to manually process the rom differently depending on rom file and platform is kind of icky.
+
+Mockingboard not working in the IIe.
