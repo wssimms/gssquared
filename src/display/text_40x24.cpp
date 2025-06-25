@@ -57,9 +57,10 @@ void pre_calculate_font (rom_data *rd) {
     if (rd->char_rom_file->size() == 4096) {
         for (int row = 0; row < 256 * 8; row++) {
             uint8_t rowBits = (*rd->char_rom_data)[row];
+            if (row < 0x40*8) rowBits ^= 0xFF; // invert pixels for 0-3F. 
             for (int col = 0; col < 7; col++) {
                 bool pixel = rowBits & (1 << col);
-                pixel = !pixel;
+                pixel = !pixel; // leave inversion for 0-3F. 
                 uint32_t color = pixel ? fg_color : bg_color;
                 APPLE2_FONT_32[pos_index] = color;
                 APPLE2_FONT_8[pos_index] = pixel ? 0xFF : 0x00; // calculate both fonts
