@@ -101,8 +101,9 @@ void VideoScannerII::video_cycle()
     if (hcount == 65) {
         hcount = 0;
         vcount += 1;
-        if (vcount == 262)
+        if (vcount == 262) {
             vcount = 0;
+        }
     }
 
     uint16_t address = (*(video_addresses))[65*vcount+hcount];

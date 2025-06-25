@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <cstdlib>
 
-#include "computer.hpp"
+#include "display/display.hpp"
 
 #pragma pack(push, 1)  // Ensure no padding between struct members
 
@@ -74,6 +74,6 @@ struct ClipboardImage {
 
 
     ClipboardImage( );
-    void Clip(computer_t *computer);
+    void Clip(Display *display);
 };
 

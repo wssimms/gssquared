@@ -36,6 +36,7 @@
 #include "util/soundeffects.hpp"
 #include "ModalContainer.hpp"
 #include "util/strndup.h"
+#include "videosystem.hpp"
 
 // we need to use data passed to us, and pass it to the ShowOpenFileDialog, so when the file select event
 // comes back later, we know which drive this was for.
@@ -139,37 +140,43 @@ void unidisk_button_click(void *userdata) {
 }
 
 void set_color_display_ntsc(void *data) {
+    /*
     cpu_state *cpu = (cpu_state *)data;
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     //printf("set_color_display_ntsc %p\n", data);
     ds->video_system->set_display_engine(DM_ENGINE_NTSC);
+    */
 }
 
 void set_color_display_rgb(void *data) {
+    /*
     cpu_state *cpu = (cpu_state *)data;
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     //printf("set_color_display_rgb %p\n", data);
     ds->video_system->set_display_engine(DM_ENGINE_RGB);
+    */
 }
 
 void set_mono_display(cpu_state *cpu, display_mono_color_t mono_color) {
+    /*
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     ds->video_system->set_display_engine(DM_ENGINE_MONO);
     ds->video_system->set_display_mono_color(mono_color);
+    */
 }
 
 void set_green_display(void *data) {
-    set_mono_display((cpu_state *)data, DM_MONO_GREEN);
+    //set_mono_display((cpu_state *)data, DM_MONO_GREEN);
     //printf("set_green_display %p\n", data);
 }
 
 void set_amber_display(void *data) {
-    set_mono_display((cpu_state *)data, DM_MONO_AMBER);
+    //set_mono_display((cpu_state *)data, DM_MONO_AMBER);
     //printf("set_green_display %p\n", data);
 }
 
 void set_white_display(void *data) {
-    set_mono_display((cpu_state *)data, DM_MONO_WHITE);
+    //set_mono_display((cpu_state *)data, DM_MONO_WHITE);
     //printf("set_green_display %p\n", data);
 }
 

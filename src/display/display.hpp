@@ -17,9 +17,11 @@
 
 #pragma once
 
-#include "gs2.hpp"
+#include "SDL3/SDL_render.h"
 #include "cpu.hpp"
-#include "videosystem.hpp"
+#include "devices/displaypp/RGBA.hpp"
+
+struct video_system_t;
 
 #define SCALE_X 2
 #define SCALE_Y 4
@@ -28,20 +30,9 @@
 #define BORDER_WIDTH 30
 #define BORDER_HEIGHT 20
 
-typedef class display_state_t {
-
-public:
-    display_state_t();
-    ~display_state_t();
-
-    void make_flipped();
-    void make_text40_bits();
-    void make_hgr_bits();
-    void make_lgr_bits();
-
-    SDL_Texture* screenTexture;
-
-    bool flash_state;
+class Display
+{
+protected:
     int flash_counter;
 
     // LUTs mapping video data bytes to video signal bits
@@ -50,19 +41,36 @@ public:
     uint16_t hgr_bits[256];
     uint16_t text40_bits[256];
 
-    // variable set by newProcessAppleIIFrame functions
+    RGBA_t *buffer = nullptr;
+    computer_t *computer = nullptr;
+    EventQueue *event_queue = nullptr;
+    video_system_t *video_system = nullptr;
+
+    SDL_Texture* screenTexture;
+
     bool kill_color;
 
-    uint8_t *buffer = nullptr;
-    EventQueue *event_queue;
-    video_system_t *video_system;
+    void make_flipped();
+    void make_text40_bits();
+    void make_hgr_bits();
+    void make_lgr_bits();
 
-} display_state_t;
+public:
+    Display(computer_t *computer);
+    ~Display();
 
-void update_flash_state(cpu_state *cpu);
-void init_mb_device_display(computer_t *computer, SlotType_t slot);
+    virtual bool update_display(cpu_state *cpu);
+
+    inline uint8_t flash_mask() { return (flash_counter >= 15) ? 0xFF : 0; }
+
+    inline EventQueue * get_event_queue() { return event_queue; }
+    inline SDL_Texture * get_texture() { return screenTexture; }
+
+    void get_buffer(uint8_t    *buffer,
+                    uint32_t   *width,
+                    uint32_t   *height);
+};
 
 void display_dump_hires_page(cpu_state *cpu, int page);
 void display_dump_text_page(cpu_state *cpu, int page);
-
-void display_engine_get_buffer(computer_t *computer, uint8_t *buffer, uint32_t *width, uint32_t *height);
+bool handle_display_event(Display *ds, const SDL_Event &event);

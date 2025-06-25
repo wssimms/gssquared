@@ -12,6 +12,7 @@ video_system_t::video_system_t(computer_t *computer) {
         fprintf(stderr, "Error initializing SDL: %s\n", SDL_GetError());
     }
 
+    this->computer = computer;
     clip = new ClipboardImage();
 
     display_color_engine = DM_ENGINE_NTSC;
@@ -99,7 +100,8 @@ video_system_t::video_system_t(computer_t *computer) {
             return true;
         }
         if (key == SDLK_PRINTSCREEN) {
-            clip->Clip(computer);
+            Display * dsp = displays.begin()->second;
+            clip->Clip(dsp);
             printf("click!\n");
         }
         return false;
@@ -278,16 +280,14 @@ void video_system_t::flip_display_scale_mode() {
     set_full_frame_redraw();
 }
 
-void video_system_t::register_frame_processor(int weight, FrameHandler handler) {
-    frame_handlers.insert({weight, handler});
+void video_system_t::register_display(int weight, Display * display) {
+    displays.insert({weight, display});
 }
 
 void video_system_t::update_display() {
     clear(); // clear the backbuffer.
 
-    for (const auto& pair : frame_handlers) {
-        if (pair.second()) {
-            break; // Stop processing if handler returns true
-        }
+    for (const auto& pair : displays) {
+        pair.second->update_display(computer->cpu);
     }
 }

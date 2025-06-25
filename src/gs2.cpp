@@ -356,7 +356,6 @@ void run_cpus(computer_t *computer) {
         current_time = SDL_GetTicksNS();
         if (must_check_time == false || (current_time - last_event_update > 16667000))
         {
-            update_flash_state(cpu); // TODO: this goes into display.cpp frame handler.
             computer->video_system->update_display();    
             osd->render();
             computer->debug_window->render();
@@ -588,7 +587,7 @@ int main(int argc, char *argv[]) {
 
     printf("After reset\n"); fflush(stdout);
 
-    printf("in gs2 cpu->video scanner: %p\n", computer->cpu->video_scanner); fflush(stdout);
+    //printf("in gs2 cpu->video scanner: %p\n", computer->cpu->video_scanner); fflush(stdout);
 
     // mount disks - AFTER device init.
     while (!disks_to_mount.empty()) {

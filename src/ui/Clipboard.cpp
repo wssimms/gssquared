@@ -26,12 +26,11 @@ const void *clip_callback(void *userdata, const char *mime_type, size_t *size) {
     return clip->clip_buffer;
 }
 
-void ClipboardImage::Clip(computer_t *computer) {
+void ClipboardImage::Clip(Display * display) {
     uint32_t width, height;
     const char *mime_types[] = { "image/bmp" };
 
-    //display_engine_get_buffer(uint8_t *buffer, uint32_t *width, uint32_t *height);
-    display_engine_get_buffer(computer, clip_buffer + sizeof(BMPHeader), &width, &height);
+    display->get_buffer(clip_buffer + sizeof(BMPHeader), &width, &height);
 
     if (header != nullptr) {
         delete header;

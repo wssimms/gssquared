@@ -217,7 +217,7 @@ add_library(gs2_devices_memexp     src/devices/memoryexpansion/memexp.cpp )
 
 add_library(gs2_devices_parallel     src/devices/parallel/parallel.cpp )
 
-add_library(gs2_devices_videx     src/devices/videx/videx.cpp src/devices/videx/videx_80x24.cpp )
+#add_library(gs2_devices_videx     src/devices/videx/videx.cpp src/devices/videx/videx_80x24.cpp )
 
 add_library(gs2_devices_mockingboard     src/devices/mockingboard/mb.cpp )
 
@@ -248,7 +248,8 @@ add_library(gs2_ui src/ui/AssetAtlas.cpp src/ui/Container.cpp src/ui/DiskII_Butt
 
 add_library(gs2_displaypp src/devices/displaypp/frame/frame_bit.cpp src/devices/displaypp/frame/frame_byte.cpp src/devices/displaypp/CharRom.cpp)
 
-add_library(gs2_ntsc src/display/ntsc.cpp src/display/Matrix3x3.cpp src/display/OEVector.cpp src/display/filters.cpp )
+#add_library(gs2_ntsc src/display/ntsc.cpp src/display/Matrix3x3.cpp src/display/OEVector.cpp src/display/filters.cpp )
+add_library(gs2_ntsc src/display/Matrix3x3.cpp src/display/OEVector.cpp src/display/filters.cpp )
 
 add_library(gs2_message_bus src/mbus/MessageBus.cpp)
 
@@ -261,8 +262,7 @@ target_link_libraries(gs2_computer SDL3_ttf::SDL3_ttf-shared)
 
 # Add the executable
 add_executable(GSSquared src/gs2.cpp src/clock.cpp src/debug.cpp  src/opcodes.cpp 
-    src/display/VideoScannerII.cpp src/display/display.cpp
-    src/display/displayng.cpp
+    src/display/VideoScannerII.cpp src/display/display.cpp src/display/DisplayComposite.cpp
     src/devices/diskii/diskii.cpp
     src/platforms.cpp
     src/event_poll.cpp
@@ -294,7 +294,7 @@ target_link_libraries(GSSquared
     gs2_devices_game
     gs2_devices_memexp
     gs2_devices_parallel
-    gs2_devices_videx
+    #gs2_devices_videx
     gs2_devices_pdblock2
     gs2_devices_mockingboard
     gs2_devices_annunciator
@@ -322,7 +322,7 @@ add_subdirectory(apps/montest)
 
 add_subdirectory(apps/cycletest)
 
-add_subdirectory(apps/dpp)
+#add_subdirectory(apps/dpp)
 
 ################################################################################
 #### Packaging targets per platform

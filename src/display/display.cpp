@@ -18,19 +18,40 @@
 #include <SDL3/SDL.h>
 
 #include "cpu.hpp"
-#include "gs2.hpp"
+//#include "gs2.hpp"
 //#include "debug.hpp"
 
 #include "display.hpp"
 //#include "platforms.hpp"
 #include "event_poll.hpp"
-#include "display/displayng.hpp"
 #include "display/ntsc.hpp"
-//#include "devices/videx/videx.hpp"
-//#include "devices/videx/videx_80x24.hpp"
-//#include "devices/annunciator/annunciator.hpp"
 #include "videosystem.hpp"
 
+bool Display::update_display(cpu_state *cpu)
+{
+    flash_counter += 1;
+    if (flash_counter == 30)
+        flash_counter = 0;
+
+    cpu->get_video_scanner()->end_video_cycle();
+
+    void* pixels;
+    int pitch;
+
+    if (!SDL_LockTexture(screenTexture, NULL, &pixels, &pitch)) {
+        fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
+        return false;
+    }
+    printf("pixels:%p, this:%p, buffer:%p\n", pixels, this, buffer); fflush(stdout);
+    memcpy(pixels, buffer, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA_t)); // load all buffer into texture
+    SDL_UnlockTexture(screenTexture);
+
+    video_system->render_frame(screenTexture);
+
+    return true;
+}
+
+#if 0
 /**
  * This is effectively a "redraw the entire screen each frame" method now.
  */
@@ -73,20 +94,9 @@ bool new_update_display_apple2(cpu_state *cpu) {
 
     return true;
 }
+#endif
 
-void update_flash_state(cpu_state *cpu) {
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-
-    // 2 times per second (every 30 frames), the state of flashing characters (those matching 0b01xxxxxx) must be reversed.
-    
-    if (++(ds->flash_counter) < 15) {
-        return;
-    }
-    ds->flash_counter = 0;
-    ds->flash_state = !ds->flash_state;
-}
-
-void display_state_t::make_flipped() {
+void Display::make_flipped() {
     for (int n = 0; n < 256; ++n) {
         uint8_t byte = (uint8_t)n;
         uint8_t flipped_byte = byte >> 7; // leave high bit as high bit
@@ -98,7 +108,7 @@ void display_state_t::make_flipped() {
     }
 }
 
-void display_state_t::make_text40_bits() {
+void Display::make_text40_bits() {
     for (uint16_t n = 0; n < 256; ++n) {
         uint16_t textbits = n;
         uint16_t video_bits = 0;
@@ -111,7 +121,7 @@ void display_state_t::make_text40_bits() {
     }   
 }
 
-void display_state_t::make_hgr_bits() {
+void Display::make_hgr_bits() {
     for (uint16_t n = 0; n < 256; ++n) {
         uint8_t  byte = flipped[n];
         uint16_t hgrbits = 0;
@@ -126,7 +136,7 @@ void display_state_t::make_hgr_bits() {
     }
 }
 
-void display_state_t::make_lgr_bits() {
+void Display::make_lgr_bits() {
     for (int n = 0; n < 16; ++n) {
 
         uint8_t pattern = flipped[n];
@@ -154,9 +164,9 @@ void display_state_t::make_lgr_bits() {
 }
 
 /**
- * display_state_t Class Implementation
+ * Display Class Implementation
  */
-display_state_t::display_state_t() {
+Display::Display(computer_t * computer) {
     //debug_set_level(DEBUG_DISPLAY);
 
     make_flipped();
@@ -164,23 +174,43 @@ display_state_t::display_state_t() {
     make_lgr_bits();
     make_text40_bits();
 
-    flash_state = false;
+    this->computer = computer;
+    event_queue = computer->event_queue;
+    video_system = computer->video_system;
+
     flash_counter = 0;
 
     kill_color = false;
 
-    buffer = new uint8_t[BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA_t)];
-    memset(buffer, 0, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA_t)); // TODO: maybe start it with apple logo?
+    buffer = new RGBA_t[BASE_WIDTH * BASE_HEIGHT];
+    memset(buffer, 0, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA_t));
+    // TODO: maybe start it with apple logo?
+
+    // Create the screen texture
+    screenTexture = SDL_CreateTexture(video_system->renderer,
+        PIXEL_FORMAT,
+        SDL_TEXTUREACCESS_STREAMING,
+        BASE_WIDTH, BASE_HEIGHT);
+
+    if (!screenTexture) {
+        fprintf(stderr, "Error creating screen texture: %s\n", SDL_GetError());
+    }
+
+    SDL_SetTextureBlendMode(screenTexture, SDL_BLENDMODE_NONE);
+    // LINEAR gets us appropriately blurred pixels.
+    // NEAREST gets us sharp pixels.
+    SDL_SetTextureScaleMode(screenTexture, SDL_SCALEMODE_LINEAR);
 }
 
-display_state_t::~display_state_t() {
+Display::~Display() {
     delete[] buffer;
 }
 
-
-bool handle_display_event(display_state_t *ds, const SDL_Event &event) {
+bool handle_display_event(Display *ds, const SDL_Event &event) {
     SDL_Keymod mod = event.key.mod;
     SDL_Keycode key = event.key.key;
+
+    return false;
 
     if ((key == SDLK_KP_PLUS || key == SDLK_KP_MINUS)) {
         printf("key: %x, mod: %x\n", key, mod);
@@ -195,11 +225,10 @@ bool handle_display_event(display_state_t *ds, const SDL_Event &event) {
             if (config.videoSaturation > 1.0f) config.videoSaturation = 1.0f;
         }
         //init_hgr_LUT();
-        //force_display_update(ds);
-        //ds->video_system->set_full_frame_redraw();
+
         static char msgbuf[256];
         snprintf(msgbuf, sizeof(msgbuf), "Hue set to: %f, Saturation to: %f\n", config.videoHue, config.videoSaturation);
-        ds->event_queue->addEvent(new Event(EVENT_SHOW_MESSAGE, 0, msgbuf));
+        ds->get_event_queue()->addEvent(new Event(EVENT_SHOW_MESSAGE, 0, msgbuf));
         return true;
     }
     return false;
@@ -208,14 +237,13 @@ bool handle_display_event(display_state_t *ds, const SDL_Event &event) {
 /** Called by Clipboard to return current display buffer.
  * doubles scanlines and returns 2* the "native" height. */
  
-void display_engine_get_buffer(computer_t *computer, uint8_t *buffer, uint32_t *width, uint32_t *height) {
-    display_state_t *ds = (display_state_t *)get_module_state(computer->cpu, MODULE_DISPLAY);
+void Display::get_buffer(uint8_t *buffer, uint32_t *width, uint32_t *height) {
     // pass back the size.
     *width = BASE_WIDTH;
     *height = BASE_HEIGHT * 2;
     // BMP files have the last scanline first. What? 
     // Copy RGB values without alpha channel
-    RGBA_t *src = (RGBA_t *)ds->buffer;
+    RGBA_t *src = (RGBA_t *)buffer;
     uint8_t *dst = buffer;
     for (int scanline = BASE_HEIGHT - 1; scanline >= 0; scanline--) {
         for (int i = 0; i < BASE_WIDTH; i++) {
@@ -233,53 +261,6 @@ void display_engine_get_buffer(computer_t *computer, uint8_t *buffer, uint32_t *
     static char msgbuf[256];
     snprintf(msgbuf, sizeof(msgbuf), "Screen snapshot taken");
     computer->event_queue->addEvent(new Event(EVENT_SHOW_MESSAGE, 0, msgbuf));
-}
-
-void init_mb_device_display(computer_t *computer, SlotType_t slot) {
-    cpu_state *cpu = computer->cpu;
-    
-    // alloc and init display state
-    display_state_t *ds = new display_state_t;
-    video_system_t *vs = computer->video_system;
-    ds->video_system = vs;
-    printf("ds->video_system:%p\n", ds->video_system); fflush(stdout);
-    ds->event_queue = computer->event_queue;
-
-    // Create the screen texture
-    ds->screenTexture = SDL_CreateTexture(vs->renderer,
-        PIXEL_FORMAT,
-        SDL_TEXTUREACCESS_STREAMING,
-        BASE_WIDTH, BASE_HEIGHT);
-
-    if (!ds->screenTexture) {
-        fprintf(stderr, "Error creating screen texture: %s\n", SDL_GetError());
-    }
-
-    SDL_SetTextureBlendMode(ds->screenTexture, SDL_BLENDMODE_NONE); /* GRRRRRRR. This was defaulting to SDL_BLENDMODE_BLEND. */
-    // LINEAR gets us appropriately blurred pixels.
-    // NEAREST gets us sharp pixels.
-    SDL_SetTextureScaleMode(ds->screenTexture, SDL_SCALEMODE_LINEAR);
-
-    init_displayng();
-
-    // set in CPU so we can reference later
-    set_module_state(cpu, MODULE_DISPLAY, ds);
-
-    computer->sys_event->registerHandler(SDL_EVENT_KEY_DOWN, [ds](const SDL_Event &event) {
-        return handle_display_event(ds, event);
-    });
-
-    computer->register_shutdown_handler([ds]() {
-        SDL_DestroyTexture(ds->screenTexture);
-        deinit_displayng();
-        delete ds;
-        return true;
-    });
-
-    vs->register_frame_processor(0, [cpu]() -> bool {
-        return new_update_display_apple2(cpu);
-    });
-
 }
 
 void display_dump_file(cpu_state *cpu, const char *filename, uint16_t base_addr, uint16_t sizer) {

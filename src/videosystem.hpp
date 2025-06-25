@@ -5,8 +5,8 @@
 #include <map>
 #include "computer.hpp"
 #include "util/EventQueue.hpp"
-#include "display/types.hpp"
 #include "ui/Clipboard.hpp"
+#include "display/display.hpp"
 #include "devices/displaypp/RGBA.hpp"
 
 #define BORDER_WIDTH 30
@@ -43,9 +43,8 @@ typedef enum {
 
 
 struct video_system_t {
-    using FrameHandler = std::function<bool()>;
-
-    std::multimap<int, FrameHandler, std::greater<int>> frame_handlers;
+    computer_t *computer;
+    std::multimap<int, Display *, std::greater<int>> displays;
 
     SDL_Window *window; // primary emulated display window
     SDL_Renderer* renderer;
@@ -96,7 +95,7 @@ struct video_system_t {
     void set_display_engine(display_color_engine_t mode);
     void set_display_mono_color(display_mono_color_t mode);
     void flip_display_scale_mode();
-    void register_frame_processor(int weight, FrameHandler handler);
+    void register_display(int weight, Display * handler);
     void update_display();
     RGBA_t get_mono_color() { return mono_color_table[display_mono_color]; };
 };

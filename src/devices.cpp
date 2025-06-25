@@ -17,9 +17,10 @@
 
 #include "devices.hpp"
 
+#include "Device_ID.hpp"
 #include "devices/keyboard/keyboard.hpp"
 #include "devices/speaker/speaker.hpp"
-#include "display/display.hpp"
+#include "display/DisplayComposite.hpp"
 #include "display/VideoScannerII.hpp"
 #include "devices/game/gamecontroller.hpp"
 #include "devices/languagecard/languagecard.hpp"
@@ -64,10 +65,10 @@ Device_t Devices[NUM_DEVICE_IDS] = {
         NULL
     },
     {
-        DEVICE_ID_DISPLAY,
+        DEVICE_ID_DISPLAY_COMPOSITE,
         "Display",
         false,
-        init_mb_device_display,
+        init_mb_display_composite,
         NULL
     },
     {
@@ -133,6 +134,7 @@ Device_t Devices[NUM_DEVICE_IDS] = {
         init_slot_parallel,
         NULL
     },
+    /*
     {
         DEVICE_ID_VIDEX,
         "Videx VideoTerm",
@@ -140,6 +142,7 @@ Device_t Devices[NUM_DEVICE_IDS] = {
         init_slot_videx,
         NULL
     },
+    */
     {
         DEVICE_ID_MOCKINGBOARD,
         "Mockingboard",
