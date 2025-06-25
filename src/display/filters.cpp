@@ -1,6 +1,5 @@
 #include "OEVector.h"
-
-#include "ntsc.hpp"
+#include "filters.hpp"
 
 typedef enum
 {
@@ -30,7 +29,7 @@ struct DisplayConfiguration {
 
 DisplayConfiguration displayConfiguration;
 
-extern ntsc_config config ;
+ntsc_config config;
 
 void init_display_configuration() {
     displayConfiguration.videoBandwidth = 4'500'000.0f;

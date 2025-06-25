@@ -20,7 +20,8 @@
 #include "Device_ID.hpp"
 #include "devices/keyboard/keyboard.hpp"
 #include "devices/speaker/speaker.hpp"
-#include "display/DisplayComposite.hpp"
+#include "display/DisplayTV.hpp"
+#include "display/DisplayMono.hpp"
 #include "display/VideoScannerII.hpp"
 #include "devices/game/gamecontroller.hpp"
 #include "devices/languagecard/languagecard.hpp"
@@ -65,10 +66,17 @@ Device_t Devices[NUM_DEVICE_IDS] = {
         NULL
     },
     {
-        DEVICE_ID_DISPLAY_COMPOSITE,
+        DEVICE_ID_DISPLAY_TV,
         "Display",
         false,
-        init_mb_display_composite,
+        init_mb_display_tv,
+        NULL
+    },
+    {
+        DEVICE_ID_DISPLAY_MONO,
+        "Display",
+        false,
+        init_mb_display_mono,
         NULL
     },
     {
@@ -167,5 +175,8 @@ Device_t Devices[NUM_DEVICE_IDS] = {
 };
 
 Device_t *get_device(device_id id) {
-    return &Devices[id-1];
+    for (int i = 0; i < (sizeof Devices / sizeof Devices[0]); ++i)
+        if (id == Devices[i].id)
+            return Devices + i;
+    return 0;
 }

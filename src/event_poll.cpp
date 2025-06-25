@@ -27,7 +27,6 @@
 #include "devices/speaker/speaker.hpp"
 #include "devices/loader.hpp"
 #include "devices/diskii/diskii.hpp"
-#include "display/ntsc.hpp"
 
 // Loops until there are no events in queue waiting to be read.
 

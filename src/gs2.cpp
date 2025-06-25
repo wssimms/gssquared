@@ -562,14 +562,17 @@ int main(int argc, char *argv[]) {
     printf("computer->video_system:%p\n", computer->video_system); fflush(stdout);
 
     for (int i = 0; system_config->device_map[i].id != DEVICE_ID_END; i++) {
-        printf("initialize ID %d\n", i);
         DeviceMap_t dm = system_config->device_map[i];
 
+        printf("initialize ID %d (%d)\n", dm.id, i); fflush(stdout);
+
         Device_t *device = get_device(dm.id);
+
         if (device->power_on == nullptr) {
-            printf("Device has no poweron, not found: %d", dm.id);
+            printf("Device has no poweron, not found: %d\n", dm.id);
             continue;
-        } 
+        }
+        
         device->power_on(computer, dm.slot);
         if (dm.slot != SLOT_NONE) {
             slot_manager->register_slot(device, dm.slot);

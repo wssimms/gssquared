@@ -280,8 +280,15 @@ void video_system_t::flip_display_scale_mode() {
     set_full_frame_redraw();
 }
 
-void video_system_t::register_display(int weight, Display * display) {
-    displays.insert({weight, display});
+void video_system_t::register_display(int id, Display * display) {
+    displays.insert({id, display});
+}
+
+void video_system_t::unregister_display(int id) {
+    auto it = displays.find(id);
+    if (it != displays.end()) {
+        it = displays.erase(it);
+    }
 }
 
 void video_system_t::update_display() {
@@ -291,3 +298,4 @@ void video_system_t::update_display() {
         pair.second->update_display(computer->cpu);
     }
 }
+

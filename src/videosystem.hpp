@@ -95,7 +95,8 @@ struct video_system_t {
     void set_display_engine(display_color_engine_t mode);
     void set_display_mono_color(display_mono_color_t mode);
     void flip_display_scale_mode();
-    void register_display(int weight, Display * handler);
+    void register_display(int id, Display * handler);
+    void unregister_display(int id);
     void update_display();
     RGBA_t get_mono_color() { return mono_color_table[display_mono_color]; };
 };

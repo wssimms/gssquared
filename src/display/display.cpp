@@ -24,8 +24,9 @@
 #include "display.hpp"
 //#include "platforms.hpp"
 #include "event_poll.hpp"
-#include "display/ntsc.hpp"
+#include "display/filters.hpp"
 #include "videosystem.hpp"
+#include "util/EventDispatcher.hpp"
 
 bool Display::update_display(cpu_state *cpu)
 {
@@ -50,51 +51,6 @@ bool Display::update_display(cpu_state *cpu)
 
     return true;
 }
-
-#if 0
-/**
- * This is effectively a "redraw the entire screen each frame" method now.
- */
-bool new_update_display_apple2(cpu_state *cpu) {
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    video_system_t *vs = ds->video_system;
-
-    static RGBA_t p_white = { 0xFF, 0xFF, 0xFF, 0xFF };
-
-    switch (vs->display_color_engine) {
-        case DM_ENGINE_NTSC:
-            if (ds->kill_color) {
-                newProcessAppleIIFrame_Mono(cpu, (RGBA_t *)(ds->buffer), p_white);
-            }
-            else {
-                newProcessAppleIIFrame_NTSC(cpu, (RGBA_t *)(ds->buffer));
-            }
-            break;
-
-        case DM_ENGINE_RGB:         
-            newProcessAppleIIFrame_RGB(cpu, (RGBA_t *)(ds->buffer));               
-            break;
-
-        default:
-            newProcessAppleIIFrame_Mono(cpu, (RGBA_t *)(ds->buffer), vs->get_mono_color());
-            break;
-    }
-
-    void* pixels;
-    int pitch;
-
-    if (!SDL_LockTexture(ds->screenTexture, NULL, &pixels, &pitch)) {
-        fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
-        return false;
-    }
-    memcpy(pixels, ds->buffer, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA_t)); // load all buffer into texture
-    SDL_UnlockTexture(ds->screenTexture);
-
-    vs->render_frame(ds->screenTexture);
-
-    return true;
-}
-#endif
 
 void Display::make_flipped() {
     for (int n = 0; n < 256; ++n) {
@@ -180,8 +136,6 @@ Display::Display(computer_t * computer) {
 
     flash_counter = 0;
 
-    kill_color = false;
-
     buffer = new RGBA_t[BASE_WIDTH * BASE_HEIGHT];
     memset(buffer, 0, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA_t));
     // TODO: maybe start it with apple logo?
@@ -204,6 +158,21 @@ Display::Display(computer_t * computer) {
 
 Display::~Display() {
     delete[] buffer;
+}
+
+void Display::register_display_device(computer_t *computer, device_id id)
+{
+    computer->sys_event->registerHandler(SDL_EVENT_KEY_DOWN, [this](const SDL_Event &event) {
+        return handle_display_event(this, event);
+    });
+
+    computer->register_shutdown_handler([this]() {
+        SDL_DestroyTexture(this->get_texture());
+        delete this;
+        return true;
+    });
+
+    computer->video_system->register_display(id, this);
 }
 
 bool handle_display_event(Display *ds, const SDL_Event &event) {

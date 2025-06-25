@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include "Device_ID.hpp"
 #include "SDL3/SDL_render.h"
 #include "cpu.hpp"
 #include "devices/displaypp/RGBA.hpp"
@@ -48,8 +49,6 @@ protected:
 
     SDL_Texture* screenTexture;
 
-    bool kill_color;
-
     void make_flipped();
     void make_text40_bits();
     void make_hgr_bits();
@@ -60,6 +59,7 @@ public:
     ~Display();
 
     virtual bool update_display(cpu_state *cpu);
+    void register_display_device(computer_t *computer, device_id id);
 
     inline uint8_t flash_mask() { return (flash_counter >= 15) ? 0xFF : 0; }
 
