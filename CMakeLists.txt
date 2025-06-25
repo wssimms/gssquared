@@ -262,7 +262,8 @@ target_link_libraries(gs2_computer SDL3_ttf::SDL3_ttf-shared)
 
 # Add the executable
 add_executable(GSSquared src/gs2.cpp src/clock.cpp src/debug.cpp  src/opcodes.cpp 
-    src/display/VideoScannerII.cpp src/display/display.cpp src/display/DisplayComposite.cpp
+    src/display/VideoScannerII.cpp src/display/display.cpp
+    src/display/DisplayComposite.cpp src/display/DisplayTV.cpp src/display/DisplayMono.cpp
     src/devices/diskii/diskii.cpp
     src/platforms.cpp
     src/event_poll.cpp
