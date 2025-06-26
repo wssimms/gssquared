@@ -100,8 +100,7 @@ video_system_t::video_system_t(computer_t *computer) {
             return true;
         }
         if (key == SDLK_PRINTSCREEN) {
-            Display * dsp = displays.begin()->second;
-            clip->Clip(dsp);
+            clip->Clip(active_display);
             printf("click!\n");
         }
         return false;
@@ -281,21 +280,31 @@ void video_system_t::flip_display_scale_mode() {
 }
 
 void video_system_t::register_display(int id, Display * display) {
-    displays.insert({id, display});
+    registered_displays.insert({id, display});
+    active_display = display;
 }
 
-void video_system_t::unregister_display(int id) {
-    auto it = displays.find(id);
-    if (it != displays.end()) {
-        it = displays.erase(it);
-    }
+Display * video_system_t::find_display(int id) {
+    auto it = registered_displays.find(id);
+    if (it == registered_displays.end()) return nullptr;
+    return it->second;
+}
+
+Display * video_system_t::get_active_display () {
+    return active_display;
+}
+
+void video_system_t::set_active_display (int id) {
+    active_display = find_display(id);
 }
 
 void video_system_t::update_display() {
     clear(); // clear the backbuffer.
-
-    for (const auto& pair : displays) {
+    active_display->update_display(computer->cpu);
+    /*
+    for (const auto& pair : registered_displays) {
         pair.second->update_display(computer->cpu);
     }
+    */
 }
 

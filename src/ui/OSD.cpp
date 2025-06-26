@@ -21,6 +21,7 @@
 #include <SDL3/SDL_render.h>
 #include <SDL3_image/SDL_image.h>
 
+#include "Device_ID.hpp"
 #include "cpu.hpp"
 #include "computer.hpp"
 #include "DiskII_Button.hpp"
@@ -31,6 +32,7 @@
 #include "Style.hpp"
 #include "MainAtlas.hpp"
 #include "OSD.hpp"
+#include "display/DisplayMono.hpp"
 #include "display/display.hpp"
 #include "util/mount.hpp"
 #include "util/soundeffects.hpp"
@@ -140,44 +142,34 @@ void unidisk_button_click(void *userdata) {
 }
 
 void set_color_display_ntsc(void *data) {
-    /*
-    cpu_state *cpu = (cpu_state *)data;
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    //printf("set_color_display_ntsc %p\n", data);
-    ds->video_system->set_display_engine(DM_ENGINE_NTSC);
-    */
+    video_system_t *vs = (video_system_t *)data;
+    vs->set_active_display(DEVICE_ID_DISPLAY_TV);
 }
 
 void set_color_display_rgb(void *data) {
-    /*
-    cpu_state *cpu = (cpu_state *)data;
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    //printf("set_color_display_rgb %p\n", data);
-    ds->video_system->set_display_engine(DM_ENGINE_RGB);
-    */
-}
-
-void set_mono_display(cpu_state *cpu, display_mono_color_t mono_color) {
-    /*
-    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    ds->video_system->set_display_engine(DM_ENGINE_MONO);
-    ds->video_system->set_display_mono_color(mono_color);
-    */
+    video_system_t *vs = (video_system_t *)data;
+    vs->set_active_display(DEVICE_ID_DISPLAY_RGB);
 }
 
 void set_green_display(void *data) {
-    //set_mono_display((cpu_state *)data, DM_MONO_GREEN);
-    //printf("set_green_display %p\n", data);
+    video_system_t *vs = (video_system_t *)data;
+    vs->set_active_display(DEVICE_ID_DISPLAY_MONO);
+    DisplayMono * dm = dynamic_cast<DisplayMono *>(vs->get_active_display());
+    dm->set_color_green();
 }
 
 void set_amber_display(void *data) {
-    //set_mono_display((cpu_state *)data, DM_MONO_AMBER);
-    //printf("set_green_display %p\n", data);
+    video_system_t *vs = (video_system_t *)data;
+    vs->set_active_display(DEVICE_ID_DISPLAY_MONO);
+    DisplayMono * dm = dynamic_cast<DisplayMono *>(vs->get_active_display());
+    dm->set_color_amber();
 }
 
 void set_white_display(void *data) {
-    //set_mono_display((cpu_state *)data, DM_MONO_WHITE);
-    //printf("set_green_display %p\n", data);
+    video_system_t *vs = (video_system_t *)data;
+    vs->set_active_display(DEVICE_ID_DISPLAY_MONO);
+    DisplayMono * dm = dynamic_cast<DisplayMono *>(vs->get_active_display());
+    dm->set_color_white();
 }
 
 void set_mhz_1_0(void *data) {
@@ -378,11 +370,11 @@ OSD::OSD(computer_t *computer, cpu_state *cpu, SDL_Renderer *rendererp, SDL_Wind
     Button_t *mc4 = new Button_t(aa, AmberDisplayButton, CB);
     Button_t *mc5 = new Button_t(aa, WhiteDisplayButton, CB);
     //display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
-    mc1->set_click_callback(set_color_display_ntsc, cpu);
-    mc2->set_click_callback(set_color_display_rgb,cpu);
-    mc3->set_click_callback(set_green_display, cpu);
-    mc4->set_click_callback(set_amber_display, cpu);
-    mc5->set_click_callback(set_white_display, cpu);
+    mc1->set_click_callback(set_color_display_ntsc, computer->video_system);
+    mc2->set_click_callback(set_color_display_rgb,computer->video_system);
+    mc3->set_click_callback(set_green_display, computer->video_system);
+    mc4->set_click_callback(set_amber_display, computer->video_system);
+    mc5->set_click_callback(set_white_display, computer->video_system);
     mon_color_con->add_tile(mc1, 0);
     mon_color_con->add_tile(mc2, 1);
     mon_color_con->add_tile(mc3, 2);

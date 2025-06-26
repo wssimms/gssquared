@@ -21,6 +21,7 @@
 #include "devices/keyboard/keyboard.hpp"
 #include "devices/speaker/speaker.hpp"
 #include "display/DisplayTV.hpp"
+#include "display/DisplayRGB.hpp"
 #include "display/DisplayMono.hpp"
 #include "display/VideoScannerII.hpp"
 #include "devices/game/gamecontroller.hpp"
@@ -67,14 +68,21 @@ Device_t Devices[NUM_DEVICE_IDS] = {
     },
     {
         DEVICE_ID_DISPLAY_TV,
-        "Display",
+        "Color TV",
         false,
         init_mb_display_tv,
         NULL
     },
     {
+        DEVICE_ID_DISPLAY_RGB,
+        "RGB Display",
+        false,
+        init_mb_display_rgb,
+        NULL
+    },
+    {
         DEVICE_ID_DISPLAY_MONO,
-        "Display",
+        "Monochrome Composite",
         false,
         init_mb_display_mono,
         NULL

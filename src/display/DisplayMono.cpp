@@ -4,6 +4,22 @@
 
 DisplayMono::DisplayMono(computer_t * computer) : DisplayComposite(computer)
 {
+    phosphor_color = p_white;
+}
+
+void DisplayMono::set_color_white()
+{
+    phosphor_color = p_white;
+}
+
+void DisplayMono::set_color_amber()
+{
+    phosphor_color = p_amber;
+}
+
+void DisplayMono::set_color_green()
+{
+    phosphor_color = p_green;
 }
 
 bool DisplayMono::update_display(cpu_state *cpu)
@@ -23,7 +39,7 @@ bool DisplayMono::update_display(cpu_state *cpu)
 
         for (int i = 14; i; --i) {
             if (rawbits & 1)
-                *output++ = p_white;
+                *output++ = phosphor_color;
             else
                 *output++ = p_black;
             rawbits >>= 1; 

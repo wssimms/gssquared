@@ -6,6 +6,8 @@ class DisplayComposite : public Display
 {
 protected:
     constexpr static RGBA_t p_white = {.a=0xFF, .b=0xFF, .g=0xFF, .r=0xFF};
+    constexpr static RGBA_t p_green = {.a=0xFF, .b=0x4A, .g=0xFF, .r=0x00};
+    constexpr static RGBA_t p_amber = {.a=0xFF, .b=0x00, .g=0xBF, .r=0xFF};
     constexpr static RGBA_t p_black = {.a=0xFF, .b=0x00, .g=0x00, .r=0x00};
 
     unsigned text_count;
