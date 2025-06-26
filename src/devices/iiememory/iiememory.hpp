@@ -7,7 +7,7 @@
 
 struct iiememory_state_t {
     uint8_t switch_state;
-    display_state_t *display_state;
+    //display_state_t *display_state;
     computer_t *computer;
     uint8_t *ram;
     MMU_II *mmu;

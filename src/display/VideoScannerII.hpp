@@ -89,4 +89,22 @@ public:
     inline bool is_graf()   { return graf; }
 };
 
+uint8_t vs_bus_read_C050(void *context, uint16_t address);
+uint8_t vs_bus_read_C051(void *context, uint16_t address);
+uint8_t vs_bus_read_C052(void *context, uint16_t address);
+uint8_t vs_bus_read_C053(void *context, uint16_t address);
+uint8_t vs_bus_read_C054(void *context, uint16_t address);
+uint8_t vs_bus_read_C055(void *context, uint16_t address);
+uint8_t vs_bus_read_C056(void *context, uint16_t address);
+uint8_t vs_bus_read_C057(void *context, uint16_t address);
+
+void vs_bus_write_C050(void *context, uint16_t address, uint8_t value);
+void vs_bus_write_C051(void *context, uint16_t address, uint8_t value);
+void vs_bus_write_C052(void *context, uint16_t address, uint8_t value);
+void vs_bus_write_C053(void *context, uint16_t address, uint8_t value);
+void vs_bus_write_C054(void *context, uint16_t address, uint8_t value);
+void vs_bus_write_C055(void *context, uint16_t address, uint8_t value);
+void vs_bus_write_C056(void *context, uint16_t address, uint8_t value);
+void vs_bus_write_C057(void *context, uint16_t address, uint8_t value);
+
 void init_mb_video_scanner(computer_t *computer, SlotType_t slot);

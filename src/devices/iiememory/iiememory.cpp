@@ -20,6 +20,7 @@
 
 #include "iiememory.hpp"
 #include "Module_ID.hpp"
+#include "display/VideoScannerII.hpp"
 #include "display/display.hpp"
 #include "devices/languagecard/languagecard.hpp" // to get bit flag names
 
@@ -227,12 +228,12 @@ uint8_t bsr_read_C012(void *context, uint16_t address) {
 
 
 void update_display_flags(iiememory_state_t *iiememory_d) {
-    display_state_t *ds = (display_state_t *)iiememory_d->computer->get_module_state(MODULE_DISPLAY);
-    iiememory_d->s_text = ds->display_mode == TEXT_MODE;
-    iiememory_d->s_hires = ds->display_graphics_mode == HIRES_MODE;
+    VideoScannerII *vs = iiememory_d->computer->video_scanner;
+    iiememory_d->s_text = vs->is_text();
+    iiememory_d->s_hires = vs->is_hires();
     // if 80STORE is off, get page2 from display; otherwise just keep our local version, as display version is always set to page 1.
-    if (!iiememory_d->f_80store) iiememory_d->s_page2 = ds->display_page_num == DISPLAY_PAGE_2;
-    iiememory_d->s_mixed = ds->display_split_mode == SPLIT_SCREEN;
+    if (!iiememory_d->f_80store) iiememory_d->s_page2 = vs->is_page_2();
+    iiememory_d->s_mixed = vs->is_mixed();
 }
 
 void iiememory_debug(iiememory_state_t *iiememory_d) {
@@ -362,8 +363,7 @@ void iiememory_compose_map(iiememory_state_t *iiememory_d) {
 void iiememory_write_C00X(void *context, uint16_t address, uint8_t data) {
     iiememory_state_t *iiememory_d = (iiememory_state_t *)context;
     uint8_t *main_rom = iiememory_d->mmu->get_rom_base();
-    display_state_t *ds = (display_state_t *)iiememory_d->computer->get_module_state(MODULE_DISPLAY);
-
+    
     switch (address) {
 
         case 0xC000: // 80STOREOFF
@@ -471,36 +471,36 @@ uint8_t iiememory_read_C01X(void *context, uint16_t address) {
 
 uint8_t iiememory_read_display(void *context, uint16_t address) {
     iiememory_state_t *iiememory_d = (iiememory_state_t *)context;
-    display_state_t *ds = (display_state_t *)iiememory_d->computer->get_module_state(MODULE_DISPLAY);
+    VideoScannerII *vs = iiememory_d->computer->video_scanner;
 
     // call down to the old display device handlers for these..
     uint8_t retval = 0x00;
     switch (address) {
         case 0xC050: // TEXTOFF
-            retval = txt_bus_read_C050(ds, address);
+            retval = vs_bus_read_C050(vs, address);
             break;
         case 0xC051: // TEXTON
-            retval = txt_bus_read_C051(ds, address);
+            retval = vs_bus_read_C051(vs, address);
             break;
         case 0xC052: // MIXEDOFF
-            retval = txt_bus_read_C052(ds, address);
+            retval = vs_bus_read_C052(vs, address);
             break;
         case 0xC053: // MIXEDON
-            retval = txt_bus_read_C053(ds, address);
+            retval = vs_bus_read_C053(vs, address);
             break;
         case 0xC054: // PAGE2OFF
-            if (!iiememory_d->f_80store) retval = txt_bus_read_C054(ds, address);
+            if (!iiememory_d->f_80store) retval = vs_bus_read_C054(vs, address);
             else iiememory_d->s_page2 = false;
             break;
         case 0xC055: // PAGE2ON
-            if (!iiememory_d->f_80store) retval = txt_bus_read_C055(ds, address);
+            if (!iiememory_d->f_80store) retval = vs_bus_read_C055(vs, address);
             else iiememory_d->s_page2 = true;
             break;
         case 0xC056: // HIRESOFF
-            retval = txt_bus_read_C056(ds, address);
+            retval = vs_bus_read_C056(vs, address);
             break;
         case 0xC057: // HIRESON
-            retval = txt_bus_read_C057(ds, address);
+            retval = vs_bus_read_C057(vs, address);
             break;
     }
     // recompose the memory map

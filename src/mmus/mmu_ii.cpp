@@ -22,13 +22,6 @@ void MMU_II::init_map() {
     }   
 }
 
-void MMU_II::set_slot_rom(SlotType_t slot, uint8_t *rom, const char *name) {
-    if (slot < 1 || slot >= 8) {
-        return;
-    }
-    map_page_read_only(0xC0 + slot, rom, name);
-}
-
 void MMU_II::power_on_randomize(uint8_t *ram, int ram_size) {
     for (int i = 0; i < ram_size; i+=4) {
         ram[i] = 0xFF;

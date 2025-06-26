@@ -183,7 +183,6 @@ void vs_bus_write_C051(void *context, uint16_t address, uint8_t value) {
     vs_bus_read_C051(context, address);
 }
 
-
 uint8_t vs_bus_read_C052(void *context, uint16_t address)
 {
     VideoScannerII *vs = (VideoScannerII *)context;
