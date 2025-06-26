@@ -8,6 +8,7 @@
 #include "util/EventDispatcher.hpp"
 #include "util/EventQueue.hpp"
 #include "util/DeviceFrameDispatcher.hpp"
+#include "platforms.hpp"
 
 struct cpu_state;
 struct debug_window_t; // don't bring in debugwindow.hpp, it would create a depedence on SDL.
@@ -31,6 +32,7 @@ struct computer_t {
     cpu_state *cpu = nullptr;
     MMU_II *mmu = nullptr;
     VideoScannerII *video_scanner = nullptr;
+    platform_info *platform = nullptr;
 
     EventDispatcher *sys_event = nullptr;
     EventDispatcher *dispatch = nullptr;
@@ -55,6 +57,7 @@ struct computer_t {
     computer_t();
     ~computer_t();
     void set_mmu(MMU_II *mmu) { this->mmu = mmu; }
+    void set_platform(platform_info *platform) { this->platform = platform; }
     void reset(bool cold_start);
 
     void register_reset_handler(ResetHandler handler);

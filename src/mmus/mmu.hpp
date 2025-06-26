@@ -109,7 +109,8 @@ class MMU {
         void dump_page_table();
         void dump_page_table(page_t start_page, page_t end_page);
         void dump_page(page_t page);
-
+        void get_page_table_entry(page_t page, page_table_entry_t *pte);
+        void set_page_table_entry(page_t page, page_table_entry_t *pte);
     protected:
         cpu_state *cpu;
         int num_pages = 0;

@@ -21,5 +21,6 @@ typedef enum device_id {
     DEVICE_ID_MOCKINGBOARD,
     DEVICE_ID_ANNUNCIATOR,
     DEVICE_ID_VIDEO_SCANNER,
+    DEVICE_ID_IIE_MEMORY,
     NUM_DEVICE_IDS
 } device_id;

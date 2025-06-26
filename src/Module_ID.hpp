@@ -15,5 +15,6 @@ typedef enum {
     MODULE_VIDEX,
     //MODULE_MB,
     MODULE_ANNUNCIATOR,
+    MODULE_IIEMEMORY,
     MODULE_NUM_MODULES
 } module_id_t;

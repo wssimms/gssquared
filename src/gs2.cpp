@@ -509,7 +509,8 @@ int main(int argc, char *argv[]) {
 // load platform roms - this info should get stored in the 'computer'
     platform_info* platform = get_platform(platform_id);
     print_platform_info(platform);
-
+    computer->set_platform(platform);
+    
     rom_data *rd = load_platform_roms(platform);
     if (!rd) {
         system_failure("Failed to load platform roms, exiting.");
@@ -608,7 +609,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Error setting render target: %s\n", SDL_GetError());
         return 1;
     }
-
+    computer->mmu->dump_page_table(0x00, 0x0f);
     computer->video_system->update_display(); // check for events 60 times per second.
 
     run_cpus(computer);

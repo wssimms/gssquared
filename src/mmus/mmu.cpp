@@ -239,3 +239,11 @@ const char *MMU::get_read_d(page_t page) {
 const char *MMU::get_write_d(page_t page) {
     return page_table[page].write_d;
 }
+
+void MMU::get_page_table_entry(page_t page, page_table_entry_t *pte) {
+    *pte = page_table[page];
+}
+
+void MMU::set_page_table_entry(page_t page, page_table_entry_t *pte) {
+    page_table[page] = *pte;
+}

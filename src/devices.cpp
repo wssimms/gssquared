@@ -35,6 +35,7 @@
 #include "devices/videx/videx.hpp"
 #include "devices/mockingboard/mb.hpp"
 #include "devices/annunciator/annunciator.hpp"
+#include "devices/iiememory/iiememory.hpp"
 
 Device_t NoDevice = {
         DEVICE_ID_END,
@@ -178,6 +179,13 @@ Device_t Devices[NUM_DEVICE_IDS] = {
         "Video Scanner",
         false,
         init_mb_video_scanner,
+        NULL
+    },
+    {
+        DEVICE_ID_IIE_MEMORY,
+        "IIe Memory",
+        false,
+        init_iiememory,
         NULL
     }
 };

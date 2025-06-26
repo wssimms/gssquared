@@ -232,6 +232,103 @@ void Display::get_buffer(uint8_t *buffer, uint32_t *width, uint32_t *height) {
     computer->event_queue->addEvent(new Event(EVENT_SHOW_MESSAGE, 0, msgbuf));
 }
 
+// Implement the switch, but text display doesn't use it yet.
+void display_write_switches(void *context, uint16_t address, uint8_t value) {
+    display_state_t *ds = (display_state_t *)context;
+    switch (address) {
+        case 0xC00E:
+            ds->display_alt_charset = false;
+            break;
+        case 0xC00F:
+            ds->display_alt_charset = true;
+            break;
+    }
+}
+
+uint8_t display_read_C01E(void *context, uint16_t address) {
+    display_state_t *ds = (display_state_t *)context;
+    return (ds->display_alt_charset) ? 0x80 : 0x00;
+}
+
+void init_mb_device_display(computer_t *computer, SlotType_t slot) {
+    cpu_state *cpu = computer->cpu;
+    
+    // alloc and init display state
+    display_state_t *ds = new display_state_t;
+    video_system_t *vs = computer->video_system;
+    ds->video_system = vs;
+    ds->event_queue = computer->event_queue;
+    ds->computer = computer;
+    MMU_II *mmu = computer->mmu;
+    ds->mmu = mmu;
+
+    // Create the screen texture
+    ds->screenTexture = SDL_CreateTexture(vs->renderer,
+        PIXEL_FORMAT,
+        SDL_TEXTUREACCESS_STREAMING,
+        BASE_WIDTH, BASE_HEIGHT);
+
+    if (!ds->screenTexture) {
+        fprintf(stderr, "Error creating screen texture: %s\n", SDL_GetError());
+    }
+
+    SDL_SetTextureBlendMode(ds->screenTexture, SDL_BLENDMODE_NONE); /* GRRRRRRR. This was defaulting to SDL_BLENDMODE_BLEND. */
+    // LINEAR gets us appropriately blurred pixels.
+    // NEAREST gets us sharp pixels.
+    SDL_SetTextureScaleMode(ds->screenTexture, SDL_SCALEMODE_LINEAR);
+
+    init_displayng();
+
+    // set in CPU so we can reference later
+    set_module_state(cpu, MODULE_DISPLAY, ds);
+    
+    mmu->set_C0XX_read_handler(0xC050, { txt_bus_read_C050, ds });
+    mmu->set_C0XX_write_handler(0xC050, { txt_bus_write_C050, ds });
+    mmu->set_C0XX_read_handler(0xC051, { txt_bus_read_C051, ds });
+    mmu->set_C0XX_read_handler(0xC052, { txt_bus_read_C052, ds });
+    mmu->set_C0XX_write_handler(0xC051, { txt_bus_write_C051, ds });
+    mmu->set_C0XX_write_handler(0xC052, { txt_bus_write_C052, ds });
+    mmu->set_C0XX_read_handler(0xC053, { txt_bus_read_C053, ds });
+    mmu->set_C0XX_write_handler(0xC053, { txt_bus_write_C053, ds });
+    mmu->set_C0XX_read_handler(0xC054, { txt_bus_read_C054, ds });
+    mmu->set_C0XX_write_handler(0xC054, { txt_bus_write_C054, ds });
+    mmu->set_C0XX_read_handler(0xC055, { txt_bus_read_C055, ds });
+    mmu->set_C0XX_write_handler(0xC055, { txt_bus_write_C055, ds });
+    mmu->set_C0XX_read_handler(0xC056, { txt_bus_read_C056, ds });
+    mmu->set_C0XX_write_handler(0xC056, { txt_bus_write_C056, ds });
+    mmu->set_C0XX_read_handler(0xC057, { txt_bus_read_C057, ds });
+    mmu->set_C0XX_write_handler(0xC057, { txt_bus_write_C057, ds });
+
+    for (int i = 0x04; i <= 0x0B; i++) {
+        mmu->set_page_shadow(i, { txt_memory_write, cpu });
+    }
+    for (int i = 0x20; i <= 0x5F; i++) {
+        mmu->set_page_shadow(i, { hgr_memory_write, cpu });
+    }
+
+    computer->sys_event->registerHandler(SDL_EVENT_KEY_DOWN, [ds](const SDL_Event &event) {
+        return handle_display_event(ds, event);
+    });
+
+    computer->register_shutdown_handler([ds]() {
+        SDL_DestroyTexture(ds->screenTexture);
+        deinit_displayng();
+        delete ds;
+        return true;
+    });
+
+    vs->register_frame_processor(0, [cpu]() -> bool {
+        return update_display_apple2(cpu);
+    });
+
+    if (computer->platform->id == PLATFORM_APPLE_IIE) {
+        ds->display_alt_charset = false;
+        mmu->set_C0XX_write_handler(0xC00E, { display_write_switches, ds });
+        mmu->set_C0XX_write_handler(0xC00F, { display_write_switches, ds });
+        mmu->set_C0XX_read_handler(0xC01E, { display_read_C01E, ds });
+    }
+}
+
 void display_dump_file(cpu_state *cpu, const char *filename, uint16_t base_addr, uint16_t sizer) {
     FILE *fp = fopen(filename, "wb");
     if (fp == NULL) {

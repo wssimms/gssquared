@@ -223,6 +223,8 @@ add_library(gs2_devices_mockingboard     src/devices/mockingboard/mb.cpp )
 
 add_library(gs2_devices_annunciator     src/devices/annunciator/annunciator.cpp )
 
+add_library(gs2_devices_iiememory src/devices/iiememory/iiememory.cpp)
+
 add_library(gs2_debugger src/debugger/trace.cpp src/debugger/trace_opcodes.cpp src/debugger/debugwindow.cpp src/debugger/MonitorCommand.cpp 
     src/debugger/ExecuteCommand.cpp src/debugger/MemoryWatch.cpp src/debugger/disasm.cpp)
 
@@ -299,6 +301,7 @@ target_link_libraries(GSSquared
     gs2_devices_pdblock2
     gs2_devices_mockingboard
     gs2_devices_annunciator
+    gs2_devices_iiememory
     gs2_debugger
     gs2_util
     gs2_ui
@@ -324,6 +327,8 @@ add_subdirectory(apps/montest)
 add_subdirectory(apps/cycletest)
 
 #add_subdirectory(apps/dpp)
+
+add_subdirectory(apps/iieromcsum)
 
 ################################################################################
 #### Packaging targets per platform

@@ -162,13 +162,12 @@ void init_slot_thunderclock(computer_t *computer, SlotType_t slot) {
     /* for (int i = 0; i < 256; i++) {
         raw_memory_write(cpu, 0xC000 + (slot * 0x0100) + i, rom_data[i]);
     } */
-    MMU_II *mmuii = dynamic_cast<MMU_II *>(cpu->mmu);
-    if (mmuii) {
-        mmuii->set_slot_rom(slot, rom_data, "TCP_ROM");
-        mmuii->set_C0XX_read_handler(thunderclock_cmd_reg, { thunderclock_read_register, cpu });
-        mmuii->set_C0XX_write_handler(thunderclock_cmd_reg, { thunderclock_write_register, cpu });
-        mmuii->set_C8xx_handler(slot, map_rom_thunderclock, cpu );
-    }
+    computer->mmu->set_slot_rom(slot, rom_data, "TCP_ROM");
+
+    computer->mmu->set_C0XX_read_handler(thunderclock_cmd_reg, { thunderclock_read_register, cpu });
+    computer->mmu->set_C0XX_write_handler(thunderclock_cmd_reg, { thunderclock_write_register, cpu });
+
+    computer->mmu->set_C8xx_handler(slot, map_rom_thunderclock, cpu );
 
 
     /* register_C0xx_memory_read_handler(thunderclock_cmd_reg, thunderclock_read_register);
