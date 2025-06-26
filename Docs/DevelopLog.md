@@ -4882,13 +4882,16 @@ I suppose I should somehow verify this checksum myself.
 
 
 Here is the Apple IIe checklist:
-[ ] 128K memory management  
-[ ] 80 column text
+[x] 128K memory management  
+[ ] 80 column text  
 [ ] dlgr  
 [ ] dhgr  
+[ ] VBL  
 [ ] Alternate character set (I implemented the switch but don't act on it yet)  
-[ ] display must read video memory from absolute memory, not from page table
+[x] display must read video memory from absolute memory, not from page table
 [ ] have "default to rom" concept in mmu.  
+[ ] modifier keys mapped to open-apple and closed-apple  
+
 
 ## Jun 24, 2025
 
@@ -5006,3 +5009,11 @@ So what issues now. OK, I don't have working flash or inverse? hm flash works, b
 This differs markedly from the Apple IIplus ROM. The II plus ROM has all pixels "normal". logic must make inverted. (And, the hi bit set indicates a flashing character I think). In my current 40 col code I manually invert 0-3F. So I am double-inverting. I need to leave the char data inverted for 0-3F. OK, that works for now. But having to manually process the rom differently depending on rom file and platform is kind of icky.
 
 Mockingboard not working in the IIe.
+
+[x] Bug: PAGE2 not working in IIe mode. 80ST is acting like it's always set in the monitor when I'm setting page 2.
+
+There is lots of the firmware flipping between C055/C054 and 80STORE. However, when the monitor does get around to reading c055 for me, page2 does come on. ok..
+The next C055 is back in the firmware. BUT 80Store is on! I had an extraneous "set video page to page 1" whenever I turned off 80store. huh. fixed.
+
+I've patched the video routines to pull directly from video memory instead of two incorrect methods (asking page table, and using mmu->read). Now gets ram base and looks up video pages directly.
+

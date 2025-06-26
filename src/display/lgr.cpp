@@ -94,17 +94,18 @@ void render_lgrng_scanline(cpu_state *cpu, int y)
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     const int pixelsPerScanline = 40 * CELL_WIDTH;
     uint8_t *lgrdata = NULL;
+    uint16_t offset = loresMapIndex[y];
+    uint8_t *ram = ds->mmu->get_memory_base();
 
     if (ds->display_page_num == DISPLAY_PAGE_1) {
         //lgrdata = cpu->memory->pages_read[0x04];
-        lgrdata = cpu->mmu->get_page_base_address(0x04);
+        lgrdata = ram + 0x0400; //cpu->mmu->get_page_base_address(0x04);
     } else if (ds->display_page_num == DISPLAY_PAGE_2) {
         //lgrdata = cpu->memory->pages_read[0x08];
-        lgrdata = cpu->mmu->get_page_base_address(0x08);
+        lgrdata = ram + 0x0800; //cpu->mmu->get_page_base_address(0x08);
     } else {
         return;
     }
-    int offset = loresMapIndex[y];
     size_t outputOffset = y * pixelsPerScanline * 8;
 
     // Generate the bitstream for the lores line

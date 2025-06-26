@@ -576,6 +576,9 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     video_system_t *vs = computer->video_system;
     ds->video_system = vs;
     ds->event_queue = computer->event_queue;
+    ds->computer = computer;
+    MMU_II *mmu = computer->mmu;
+    ds->mmu = mmu;
 
     // Create the screen texture
     ds->screenTexture = SDL_CreateTexture(vs->renderer,
@@ -597,28 +600,28 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     // set in CPU so we can reference later
     set_module_state(cpu, MODULE_DISPLAY, ds);
     
-    computer->mmu->set_C0XX_read_handler(0xC050, { txt_bus_read_C050, ds });
-    computer->mmu->set_C0XX_write_handler(0xC050, { txt_bus_write_C050, ds });
-    computer->mmu->set_C0XX_read_handler(0xC051, { txt_bus_read_C051, ds });
-    computer->mmu->set_C0XX_write_handler(0xC051, { txt_bus_write_C051, ds });
-    computer->mmu->set_C0XX_read_handler(0xC052, { txt_bus_read_C052, ds });
-    computer->mmu->set_C0XX_write_handler(0xC052, { txt_bus_write_C052, ds });
-    computer->mmu->set_C0XX_read_handler(0xC053, { txt_bus_read_C053, ds });
-    computer->mmu->set_C0XX_write_handler(0xC053, { txt_bus_write_C053, ds });
-    computer->mmu->set_C0XX_read_handler(0xC054, { txt_bus_read_C054, ds });
-    computer->mmu->set_C0XX_write_handler(0xC054, { txt_bus_write_C054, ds });
-    computer->mmu->set_C0XX_read_handler(0xC055, { txt_bus_read_C055, ds });
-    computer->mmu->set_C0XX_write_handler(0xC055, { txt_bus_write_C055, ds });
-    computer->mmu->set_C0XX_read_handler(0xC056, { txt_bus_read_C056, ds });
-    computer->mmu->set_C0XX_write_handler(0xC056, { txt_bus_write_C056, ds });
-    computer->mmu->set_C0XX_read_handler(0xC057, { txt_bus_read_C057, ds });
-    computer->mmu->set_C0XX_write_handler(0xC057, { txt_bus_write_C057, ds });
+    mmu->set_C0XX_read_handler(0xC050, { txt_bus_read_C050, ds });
+    mmu->set_C0XX_write_handler(0xC050, { txt_bus_write_C050, ds });
+    mmu->set_C0XX_read_handler(0xC051, { txt_bus_read_C051, ds });
+    mmu->set_C0XX_read_handler(0xC052, { txt_bus_read_C052, ds });
+    mmu->set_C0XX_write_handler(0xC051, { txt_bus_write_C051, ds });
+    mmu->set_C0XX_write_handler(0xC052, { txt_bus_write_C052, ds });
+    mmu->set_C0XX_read_handler(0xC053, { txt_bus_read_C053, ds });
+    mmu->set_C0XX_write_handler(0xC053, { txt_bus_write_C053, ds });
+    mmu->set_C0XX_read_handler(0xC054, { txt_bus_read_C054, ds });
+    mmu->set_C0XX_write_handler(0xC054, { txt_bus_write_C054, ds });
+    mmu->set_C0XX_read_handler(0xC055, { txt_bus_read_C055, ds });
+    mmu->set_C0XX_write_handler(0xC055, { txt_bus_write_C055, ds });
+    mmu->set_C0XX_read_handler(0xC056, { txt_bus_read_C056, ds });
+    mmu->set_C0XX_write_handler(0xC056, { txt_bus_write_C056, ds });
+    mmu->set_C0XX_read_handler(0xC057, { txt_bus_read_C057, ds });
+    mmu->set_C0XX_write_handler(0xC057, { txt_bus_write_C057, ds });
 
     for (int i = 0x04; i <= 0x0B; i++) {
-        computer->mmu->set_page_shadow(i, { txt_memory_write, cpu });
+        mmu->set_page_shadow(i, { txt_memory_write, cpu });
     }
     for (int i = 0x20; i <= 0x5F; i++) {
-        computer->mmu->set_page_shadow(i, { hgr_memory_write, cpu });
+        mmu->set_page_shadow(i, { hgr_memory_write, cpu });
     }
 
     computer->sys_event->registerHandler(SDL_EVENT_KEY_DOWN, [ds](const SDL_Event &event) {
@@ -638,9 +641,9 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
 
     if (computer->platform->id == PLATFORM_APPLE_IIE) {
         ds->display_alt_charset = false;
-        computer->mmu->set_C0XX_write_handler(0xC00E, { display_write_switches, ds });
-        computer->mmu->set_C0XX_write_handler(0xC00F, { display_write_switches, ds });
-        computer->mmu->set_C0XX_read_handler(0xC01E, { display_read_C01E, ds });
+        mmu->set_C0XX_write_handler(0xC00E, { display_write_switches, ds });
+        mmu->set_C0XX_write_handler(0xC00F, { display_write_switches, ds });
+        mmu->set_C0XX_read_handler(0xC01E, { display_read_C01E, ds });
     }
 }
 

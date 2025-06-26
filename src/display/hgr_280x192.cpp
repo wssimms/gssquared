@@ -35,6 +35,7 @@ void render_hgr_scanline(cpu_state *cpu, int y, void *pixels, int pitch) {
     display_page_t *display_page = ds->display_page_table;
     uint16_t *HGR_PAGE_TABLE = display_page->hgr_page_table;
     uint8_t composite = true; // set to true if we are in composite mode.
+    uint8_t *ram = ds->mmu->get_memory_base();
 
     int pitchoff = pitch / 4;
 
@@ -55,7 +56,8 @@ void render_hgr_scanline(cpu_state *cpu, int y, void *pixels, int pitch) {
 
             uint16_t address = HGR_PAGE_TABLE[y] + (row * 0x0400) + x;
             //uint8_t character = raw_memory_read(cpu, address);
-            uint8_t character = cpu->mmu->read_raw(address);
+            //uint8_t character = cpu->mmu->read_raw(address);
+            uint8_t character = ram[address];
             uint8_t ch_D7 = (character & 0x80) >> 7;
 
             // color choice is two variables: odd or even pixel column. And D7 bit.

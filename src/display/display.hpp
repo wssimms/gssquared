@@ -124,7 +124,8 @@ public:
     uint8_t *buffer = nullptr;
     EventQueue *event_queue;
     video_system_t *video_system;
-
+    MMU_II *mmu;
+    computer_t *computer;
 } display_state_t;
 
 

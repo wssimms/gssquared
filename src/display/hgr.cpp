@@ -127,13 +127,14 @@ void render_hgrng_scanline(cpu_state *cpu, int y, uint8_t *pixels)
 {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     uint8_t *hgrdata = NULL;
+    uint8_t *ram = ds->mmu->get_memory_base();
 
     if (ds->display_page_num == DISPLAY_PAGE_1) {
         //hgrdata = cpu->memory->pages_read[0x20];
-        hgrdata = cpu->mmu->get_page_base_address(0x20);
+        hgrdata = ram + 0x2000; //cpu->mmu->get_page_base_address(0x20);
     } else if (ds->display_page_num == DISPLAY_PAGE_2) {
         //hgrdata = cpu->memory->pages_read[0x40];
-        hgrdata = cpu->mmu->get_page_base_address(0x40);
+        hgrdata = ram + 0x4000; //cpu->mmu->get_page_base_address(0x40);
     } else {
         return;
     }

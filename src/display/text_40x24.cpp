@@ -26,6 +26,36 @@
 #include "displayng.hpp"
 
 
+int textMapIndex[24] =
+  {   // text page 1 line addresses
+            0x0000,
+            0x0080,
+            0x0100,
+            0x0180,
+            0x0200,
+            0x0280,
+            0x0300,
+            0x0380,
+
+            0x0028,
+            0x00A8,
+            0x0128,
+            0x01A8,
+            0x0228,
+            0x02A8,
+            0x0328,
+            0x03A8,
+
+            0x0050,
+            0x00D0,
+            0x0150,
+            0x01D0,
+            0x0250,
+            0x02D0,
+            0x0350,
+            0x03D0,
+        };
+
 // Apple II+ Character Set (7x8 pixels)
 // Characters 0x20 through 0x7F
 #define CHAR_GLYPHS_COUNT 256
@@ -99,12 +129,13 @@ void render_text_scanline(cpu_state *cpu, int y, void *pixels, int pitch) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     uint32_t color_value;  
     uint16_t *TEXT_PAGE_TABLE = ds->display_page_table->text_page_table;
+    uint8_t *ram = ds->mmu->get_memory_base();
 
     color_value = 0xFFFFFFFF;
     
     for (int x = 0; x < 40; x++) {
 
-        uint8_t character = cpu->mmu->read_raw(TEXT_PAGE_TABLE[y] + x);
+        uint8_t character = ram[TEXT_PAGE_TABLE[y] + x];
 
         // Calculate font offset (8 bytes per character, starting at 0x20)
         const uint32_t* charPixels = &APPLE2_FONT_32[character * 56];
@@ -155,49 +186,22 @@ void render_text_scanline(cpu_state *cpu, int y, void *pixels, int pitch) {
     }
 }
 
-int textMapIndex[24] =
-  {   // text page 1 line addresses
-            0x0000,
-            0x0080,
-            0x0100,
-            0x0180,
-            0x0200,
-            0x0280,
-            0x0300,
-            0x0380,
-
-            0x0028,
-            0x00A8,
-            0x0128,
-            0x01A8,
-            0x0228,
-            0x02A8,
-            0x0328,
-            0x03A8,
-
-            0x0050,
-            0x00D0,
-            0x0150,
-            0x01D0,
-            0x0250,
-            0x02D0,
-            0x0350,
-            0x03D0,
-        };
-
 void render_text_scanline_ng(cpu_state *cpu, int y) {
 
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     uint8_t *textdata = NULL;
 
     uint8_t *output = frameBuffer + (y * 8 * 560);
+    uint8_t *ram = ds->mmu->get_memory_base();
 
     if (ds->display_page_num == DISPLAY_PAGE_1) {
         //textdata = cpu->memory->pages_read[0x04];
-        textdata = cpu->mmu->get_page_base_address(0x04);
+        //textdata = cpu->mmu->get_page_base_address(0x04);
+        textdata = ram + 0x0400;
     } else if (ds->display_page_num == DISPLAY_PAGE_2) {
         //textdata = cpu->memory->pages_read[0x08];
-        textdata = cpu->mmu->get_page_base_address(0x08);
+        //textdata = cpu->mmu->get_page_base_address(0x08);
+        textdata = ram + 0x0800;
     } else {
         return;
     }
@@ -260,8 +264,8 @@ void update_flash_state(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     display_page_t *display_page = ds->display_page_table;
     uint16_t *TEXT_PAGE_TABLE = display_page->text_page_table;
-
-    // 2 times per second (every 30 frames), the state of flashing characters (those matching 0b01xxxxxx) must be reversed.
+    
+       // 2 times per second (every 30 frames), the state of flashing characters (those matching 0b01xxxxxx) must be reversed.
     // according to a web site it's every 27.5 frames. 
     if (++(ds->flash_counter) < 14) {
         return;
@@ -269,12 +273,14 @@ void update_flash_state(cpu_state *cpu) {
     ds->flash_counter = 0;
     ds->flash_state = !ds->flash_state;
 
+    uint8_t *ram = ds->mmu->get_memory_base();
+
     for (int y = 0; y < 24; y++) {
         // TODO: can change this to grab 64 bits at a time and check for flash chars by & 0xC0C0C0C0C0C0C0C0 and comparing to 0x4040... 
         for (int x = 0; x < 40; x++) {
             uint16_t addr = TEXT_PAGE_TABLE[y] + x;
-            //uint8_t character = raw_memory_read(cpu, addr);
-            uint8_t character = cpu->mmu->read_raw(addr);
+
+            uint8_t character = ram[addr];
             if ((character & 0b11000000) == 0x40) {
                 ds->dirty_line[y] = 1;
                 break;                           // stop after we find any flash char on a line.

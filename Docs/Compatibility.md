@@ -162,7 +162,7 @@ seems to work. don't know how to play :)
 
 ## Shufflepuck
 
-we don't have mouse support yet
+needs: Mouse; VBL; 
 
 ## Cybernoid Music Disk
 
@@ -189,3 +189,20 @@ Runs on IIe but Mockingboard not working.
 ## Ultima V
 
 Is now booting on IIe emulation with 128K. I should stick a Mockingboard in it and see if it works! It doesn't. ha!
+
+## AppleWorks 1.3
+
+on 2mg disk. Boots right up, but, needs 80col support.
+
+## ProTerm 2.2 on 143K
+
+boots prodos, but crashes to a brk at 8ab0. Might require enhanced IIe.
+
+## Zork I
+
+works great. uppercase only.
+
+## Hitchhiker's Guide to the Galaxy
+
+works, asks if you want 80col mode. Would probably provide lowercase then.
+

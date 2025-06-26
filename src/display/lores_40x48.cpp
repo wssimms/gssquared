@@ -46,10 +46,11 @@ void render_lores_scanline(cpu_state *cpu, int y, void *pixels, int pitch) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     display_page_t *display_page = ds->display_page_table;
     uint16_t *TEXT_PAGE_TABLE = display_page->text_page_table;
+    uint8_t *ram = ds->mmu->get_memory_base();
 
     for (int x = 0; x < 40; x++) {
         //uint8_t character = raw_memory_read(cpu, TEXT_PAGE_TABLE[y] + x);
-        uint8_t character = cpu->mmu->read_raw(TEXT_PAGE_TABLE[y] + x);
+        uint8_t character = ram[TEXT_PAGE_TABLE[y] + x];
 
         // look up color key for top and bottom block
         RGBA_t color_top = lores_color_table[character & 0x0F];
