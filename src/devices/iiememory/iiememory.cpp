@@ -371,7 +371,6 @@ void iiememory_write_C00X(void *context, uint16_t address, uint8_t data) {
             break;
         case 0xC001: // 80STOREON
             iiememory_d->f_80store = true;
-            txt_bus_read_C054(ds, address); // force video scanner to page 1.
             break;
         case 0xC002: // RAMRDOFF
             iiememory_d->f_ramrd = false;
@@ -440,7 +439,6 @@ uint8_t iiememory_read_C01X(void *context, uint16_t address) {
 
         case 0xC018: // 80STORE
             return (iiememory_d->f_80store) ? 0x80 : 0x00;
-
 
         // TODO: these need to go to the display device.
         case 0xC019: // VERTBLANK
