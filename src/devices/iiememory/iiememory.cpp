@@ -20,8 +20,8 @@
 
 #include "iiememory.hpp"
 #include "Module_ID.hpp"
-#include "display/VideoScannerII.hpp"
-#include "display/display.hpp"
+#include "display/VideoScannerIIe.hpp"
+//#include "display/display.hpp"
 #include "devices/languagecard/languagecard.hpp" // to get bit flag names
 
 /**
@@ -227,13 +227,16 @@ uint8_t bsr_read_C012(void *context, uint16_t address) {
 
 
 
-void update_display_flags(iiememory_state_t *iiememory_d) {
+void update_display_flags(iiememory_state_t *iiememory_d)
+{
     VideoScannerII *vs = iiememory_d->computer->video_scanner;
-    iiememory_d->s_text = vs->is_text();
-    iiememory_d->s_hires = vs->is_hires();
+
+    //iiememory_d->s_text = vs->is_text();
+    //iiememory_d->s_hires = vs->is_hires();
+    //iiememory_d->s_mixed = vs->is_mixed();
+
     // if 80STORE is off, get page2 from display; otherwise just keep our local version, as display version is always set to page 1.
     if (!iiememory_d->f_80store) iiememory_d->s_page2 = vs->is_page_2();
-    iiememory_d->s_mixed = vs->is_mixed();
 }
 
 void iiememory_debug(iiememory_state_t *iiememory_d) {
@@ -248,6 +251,7 @@ void iiememory_compose_map(iiememory_state_t *iiememory_d) {
     const char *TAG_ALT = "ALT";
     
     update_display_flags(iiememory_d);
+    VideoScannerII *vs = iiememory_d->computer->video_scanner;
     
     bool n_zp = false; // this is both read and write.
     bool n_text1_r = false; // 
@@ -261,7 +265,8 @@ void iiememory_compose_map(iiememory_state_t *iiememory_d) {
     n_all_w = iiememory_d->f_ramwrt;
     n_zp = iiememory_d->f_altzp;
     if (iiememory_d->f_80store) {
-        if (iiememory_d->s_hires) {
+//      if (iiememory_d->s_hires) {
+        if (vs->is_hires()) {
             n_text1_r = iiememory_d->s_page2;
             n_text1_w = iiememory_d->s_page2;
             n_hires1_r = iiememory_d->s_page2;
@@ -363,6 +368,7 @@ void iiememory_compose_map(iiememory_state_t *iiememory_d) {
 void iiememory_write_C00X(void *context, uint16_t address, uint8_t data) {
     iiememory_state_t *iiememory_d = (iiememory_state_t *)context;
     uint8_t *main_rom = iiememory_d->mmu->get_rom_base();
+    VideoScannerIIe *vs = (VideoScannerIIe *)(iiememory_d->computer->video_scanner);
     
     switch (address) {
 
@@ -391,17 +397,20 @@ void iiememory_write_C00X(void *context, uint16_t address, uint8_t data) {
         case 0xC009: // ALTZPON
             iiememory_d->f_altzp = true;
             break;
-        /* case 0xC00A: // SLOTC3ROMOFF
+#if 0
+        case 0xC00A: // SLOTC3ROMOFF
             iiememory_d->f_slotc3rom = false;
             break;
         case 0xC00B: // SLOTC3ROMON
             iiememory_d->f_slotc3rom = true;
-            break; */
+            break;
         case 0xC00C: // 80COLOFF
             iiememory_d->f_80col = false;
+            vs->reset_80col();
             break;
         case 0xC00D: // 80COLON
             iiememory_d->f_80col = true;
+            vs->set_80col();
             break;
         case 0xC00E: // ALTCHARSETOFF
             iiememory_d->f_altcharset = false;
@@ -409,6 +418,7 @@ void iiememory_write_C00X(void *context, uint16_t address, uint8_t data) {
         case 0xC00F: // ALTCHARSETON
             iiememory_d->f_altcharset = true;
             break;
+#endif
     }
     iiememory_compose_map(iiememory_d);
 
@@ -439,7 +449,7 @@ uint8_t iiememory_read_C01X(void *context, uint16_t address) {
 
         case 0xC018: // 80STORE
             return (iiememory_d->f_80store) ? 0x80 : 0x00;
-
+#if 0
         // TODO: these need to go to the display device.
         case 0xC019: // VERTBLANK
             return 0x00;
@@ -449,10 +459,10 @@ uint8_t iiememory_read_C01X(void *context, uint16_t address) {
 
         case 0xC01B: // MIXED
             return (iiememory_d->s_mixed) ? 0x80 : 0x00;
-
+#endif
         case 0xC01C: // PAGE2
             return (iiememory_d->s_page2) ? 0x80 : 0x00;
-
+#if 0
         case 0xC01D:  // HIRES
             return (iiememory_d->s_hires) ? 0x80 : 0x00;
 
@@ -461,7 +471,7 @@ uint8_t iiememory_read_C01X(void *context, uint16_t address) {
 
         case 0xC01F:  // 80COL
             return (iiememory_d->f_80col) ? 0x80 : 0x00;
-
+#endif
         default:
             return 0x00;
             break;
@@ -469,6 +479,47 @@ uint8_t iiememory_read_C01X(void *context, uint16_t address) {
     return 0xEE;
 }
 
+// It is necessary to take over the page2 switch from the video scanner because
+// with 80store on, page2 switches between main and auxiliary memory.
+uint8_t iiememory_read_C054(void *context, uint16_t address) {
+    iiememory_state_t *iiememory_d = (iiememory_state_t *)context;
+    VideoScannerII *vs = iiememory_d->computer->video_scanner;
+
+    if (iiememory_d->f_80store)
+        iiememory_d->s_page2 = false;
+    else
+        vs_bus_read_C054(vs, address);
+
+    // recompose the memory map
+    iiememory_compose_map(iiememory_d);
+
+    return vs->get_video_byte();
+}
+
+uint8_t iiememory_read_C055(void *context, uint16_t address) {
+    iiememory_state_t *iiememory_d = (iiememory_state_t *)context;
+    VideoScannerII *vs = iiememory_d->computer->video_scanner;
+
+    if (iiememory_d->f_80store)
+        iiememory_d->s_page2 = true;
+    else
+        vs_bus_read_C055(vs, address);
+
+    // recompose the memory map
+    iiememory_compose_map(iiememory_d);
+
+    return vs->get_video_byte();
+}
+
+void iiememory_write_C054(void *context, uint16_t address, uint8_t data) {
+    iiememory_read_C054(context, address);
+}
+
+void iiememory_write_C055(void *context, uint16_t address, uint8_t data) {
+    iiememory_read_C055(context, address);
+}
+
+#if 0
 uint8_t iiememory_read_display(void *context, uint16_t address) {
     iiememory_state_t *iiememory_d = (iiememory_state_t *)context;
     VideoScannerII *vs = iiememory_d->computer->video_scanner;
@@ -513,6 +564,7 @@ void iiememory_write_display(void *context, uint16_t address, uint8_t data) {
     iiememory_state_t *iiememory_d = (iiememory_state_t *)context;
     iiememory_read_display(context, address);
 }
+#endif
 
 /*
  * When you initiate a reset, hardware in the Apple IIe sets the memory-controlling soft switches to normal: 
@@ -549,21 +601,37 @@ void init_iiememory(computer_t *computer, SlotType_t slot) {
     
     computer->set_module_state(MODULE_IIEMEMORY, iiememory_d);
     
-    for (int i = 0xC000; i <= 0xC00F; i++) {
+    for (int i = 0xC000; i <= 0xC009; i++) {
         if (i == 0xC006 || i == 0xC007) continue; // INTCXROM is handled by the MMU.
         computer->mmu->set_C0XX_write_handler(i, { iiememory_write_C00X, iiememory_d });
     }
 
-    for (uint16_t i = 0xC011; i <= 0xC01F; i++) {
-        if (i == 0xC015) continue; // INTCXROM is handled by the MMU.
-        computer->mmu->set_C0XX_read_handler(i, { iiememory_read_C01X, iiememory_d });
-    }
+    computer->mmu->set_C0XX_read_handler(0xC011, { iiememory_read_C01X, iiememory_d });
+    computer->mmu->set_C0XX_read_handler(0xC012, { iiememory_read_C01X, iiememory_d });
+    computer->mmu->set_C0XX_read_handler(0xC013, { iiememory_read_C01X, iiememory_d });
+    computer->mmu->set_C0XX_read_handler(0xC014, { iiememory_read_C01X, iiememory_d });
+    // C015 (INTCXROM) is handled by the MMU.
+    computer->mmu->set_C0XX_read_handler(0xC016, { iiememory_read_C01X, iiememory_d });
+    computer->mmu->set_C0XX_read_handler(0xC017, { iiememory_read_C01X, iiememory_d });
+    computer->mmu->set_C0XX_read_handler(0xC018, { iiememory_read_C01X, iiememory_d });
+    // C019, C01A, C01B are handled by the video scanner
+    computer->mmu->set_C0XX_read_handler(0xC01C, { iiememory_read_C01X, iiememory_d });
+    // C01D, C01E, C01F are handled by the video scanner
 
+    /*
     // Override the display device handlers for these..
     for (uint16_t i = 0xC050; i <= 0xC057; i++) {
         computer->mmu->set_C0XX_read_handler(i, { iiememory_read_display, iiememory_d });
         computer->mmu->set_C0XX_write_handler(i, { iiememory_write_display, iiememory_d });
     }
+    */
+
+    // It is necessary to take over the page2 switch from the video scanner because
+    // with 80store on, page2 switches between main and auxiliary memory.
+    computer->mmu->set_C0XX_read_handler(0xC054, { iiememory_read_C054, iiememory_d });
+    computer->mmu->set_C0XX_read_handler(0xC055, { iiememory_read_C055, iiememory_d });
+    computer->mmu->set_C0XX_write_handler(0xC054, { iiememory_write_C054, iiememory_d });
+    computer->mmu->set_C0XX_write_handler(0xC055, { iiememory_write_C055, iiememory_d });
 
     /**
      * set up the "BSR" state.0

@@ -7,17 +7,19 @@
 
 typedef enum {
     VM_TEXT40 = 0,
-    VM_TEXT80,
     VM_LORES,
-    VM_DLORES,
     VM_HIRES,
+    VM_LORES_MIXED,
+    VM_HIRES_MIXED,
+    VM_TEXT80,
+    VM_HIRES_MIXED80,
+    VM_LORES_MIXED80,
+    VM_DLORES,
     VM_DHIRES,
+    VM_DLORES_MIXED,
+    VM_DHIRES_MIXED,
     VM_SHR320,
     VM_SHR640,
-    VM_LORES_MIXED,
-    VM_DLORES_MIXED,
-    VM_HIRES_MIXED,
-    VM_DHIRES_MIXED,
     VM_PALETTE_DATA,
     VM_BORDER_COLOR
 } video_mode_t;
@@ -36,7 +38,12 @@ protected:
     uint16_t (*video_addresses)[65*262];
     
     // video mode/memory data
-    uint8_t   video_data[2*40*192];
+    // 5*40*200: 40*200 video states for SHR, 1 mode byte + 4 data bytes for each state
+    // 2*13*200: 13*200 horz border states, 1 mode byte + 1 data byte for each state
+    // 2*53*40   53*40  vert border states, 1 mode byte + 1 data byte for each state
+    // 33*200    200 SHR palettes, 1 mode byte + 32 data bytes per palette
+    static const int video_data_max = 5*40*200 + 2*13*20 + 2*53*40 + 33*200;
+    uint8_t   video_data[video_data_max];
     int       video_data_size;
 
     // floating bus video data
@@ -52,7 +59,7 @@ protected:
 
     video_mode_t video_mode;
 
-    MMU * mmu;
+    MMU_II * mmu;
 
     virtual void set_video_mode();
 
@@ -67,7 +74,7 @@ public:
     inline uint8_t   get_video_byte()      { return video_byte; }
     inline uint8_t * get_video_data()      { return video_data; }
 
-    inline bool is_hbl()     { return hcount < 25; }
+    inline bool is_hbl()     { return hcount < 25;   }
     inline bool is_vbl()     { return vcount >= 192; }
 
     inline void set_page_1() { page2 = false; set_video_mode(); }
@@ -80,13 +87,13 @@ public:
     inline void set_graf()   { graf  = true;  set_video_mode(); }
 
     inline bool is_page_1() { return !page2; }
-    inline bool is_page_2() { return page2; }
+    inline bool is_page_2() { return  page2; }
     inline bool is_full()   { return !mixed; }
-    inline bool is_mixed()  { return mixed; }
+    inline bool is_mixed()  { return  mixed; }
     inline bool is_lores()  { return !hires; }
-    inline bool is_hires()  { return hires; }
-    inline bool is_text()   { return !graf; }
-    inline bool is_graf()   { return graf; }
+    inline bool is_hires()  { return  hires; }
+    inline bool is_text()   { return !graf;  }
+    inline bool is_graf()   { return  graf;  }
 };
 
 uint8_t vs_bus_read_C050(void *context, uint16_t address);

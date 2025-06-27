@@ -8,6 +8,7 @@
 #include "util/HexDecode.hpp"
 #include "computer.hpp"
 #include "videosystem.hpp"
+#include "display/VideoScannerIIe.hpp"
 #include "ui/Container.hpp"
 #include "ui/Button.hpp"
 #include "ui/TextInput.hpp"
@@ -364,13 +365,14 @@ void debug_window_t::render_pane_memory() {
     //
     iiememory_state_t *iiem = (iiememory_state_t *)computer->get_module_state(MODULE_IIEMEMORY);
     if (iiem) {
+        VideoScannerIIe *vs = (VideoScannerIIe *)(iiem->computer->video_scanner);
         // dump the page table
         snprintf(buffer,255,"80ST: %1d RAMR: %1d RAMW: %1d ALTZP: %1d SLOTC3: %1d 80COL: %1d ALTCHAR: %1d",
-            iiem->f_80store, iiem->f_ramrd, iiem->f_ramwrt, iiem->f_altzp, iiem->f_slotc3rom, iiem->f_80col, iiem->f_altcharset);
+            iiem->f_80store, iiem->f_ramrd, iiem->f_ramwrt, iiem->f_altzp, iiem->f_slotc3rom, vs->is_80col(), vs->is_altchrset());
         draw_text(DEBUG_PANEL_MEMORY, x, base_line + line, buffer);
         line++;
         snprintf(buffer,255,"INTCX: %1d ALTCHR: %1d LC [ BNK1: %1d READ: %1d WRT: %1d ]",
-            1, iiem->f_altcharset, iiem->FF_BANK_1, iiem->FF_READ_ENABLE, !iiem->_FF_WRITE_ENABLE);
+            1, vs->is_altchrset(), iiem->FF_BANK_1, iiem->FF_READ_ENABLE, !iiem->_FF_WRITE_ENABLE);
         draw_text(DEBUG_PANEL_MEMORY, x, base_line + line, buffer);
         line++;
     }

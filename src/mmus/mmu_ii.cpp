@@ -227,7 +227,9 @@ void MMU_II::write(uint32_t address, uint8_t value) {
     // if there is a write handler, call it instead of writing directly.
     page_table_entry_t *pte = &page_table[page];
     if (pte->write_h.write != nullptr) pte->write_h.write(pte->write_h.context, address, value);
-    else if (pte->write_p) pte->write_p[address & 0xFF] = value;
+    else if (pte->write_p) {
+        pte->write_p[address & 0xFF] = value;
+    }
     if (pte->shadow_h.write != nullptr) pte->shadow_h.write(pte->shadow_h.context, address, value);
 
     /* MMU::write(address, value); */

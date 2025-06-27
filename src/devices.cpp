@@ -23,7 +23,7 @@
 #include "display/DisplayTV.hpp"
 #include "display/DisplayRGB.hpp"
 #include "display/DisplayMono.hpp"
-#include "display/VideoScannerII.hpp"
+#include "display/VideoScannerIIe.hpp"
 #include "devices/game/gamecontroller.hpp"
 #include "devices/languagecard/languagecard.hpp"
 #include "devices/prodos_clock/prodos_clock.hpp"
@@ -176,9 +176,16 @@ Device_t Devices[NUM_DEVICE_IDS] = {
     },
     {
         DEVICE_ID_VIDEO_SCANNER,
-        "Video Scanner",
+        "Video Scanner II",
         false,
         init_mb_video_scanner,
+        NULL
+    },
+    {
+        DEVICE_ID_VIDEO_SCANNER_IIE,
+        "Video Scanner IIe",
+        false,
+        init_mb_video_scanner_iie,
         NULL
     },
     {

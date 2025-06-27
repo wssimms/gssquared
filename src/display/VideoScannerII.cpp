@@ -3,6 +3,8 @@
 
 void VideoScannerII::init_video_addresses()
 {
+    printf("II+ init_video_addresses()\n"); fflush(stdout);
+
     uint32_t hcount = 0;     // beginning of right border
     uint32_t vcount = 0x100; // first scanline at top of screen
 
@@ -60,7 +62,6 @@ void VideoScannerII::init_video_addresses()
 void VideoScannerII::set_video_mode()
 {
     // Set combined mode and video address LUT
-
     // assume text/lores addresses until proven otherwise
     if (page2) {
         video_addresses = &(lores_p2_addresses);
@@ -108,7 +109,9 @@ void VideoScannerII::video_cycle()
 
     uint16_t address = (*(video_addresses))[65*vcount+hcount];
 
-    video_byte = mmu->read_raw(address);
+    //video_byte = mmu->read_raw(address);
+    uint8_t * ram = mmu->get_memory_base();
+    video_byte = ram[address];
 
     if (is_vbl() || is_hbl()) return;
 
@@ -118,7 +121,7 @@ void VideoScannerII::video_cycle()
 
 VideoScannerII::VideoScannerII(MMU * mmu)
 {
-    this->mmu = mmu;
+    this->mmu = dynamic_cast<MMU_II *>(mmu);
     init_video_addresses();
 
     // set initial video mode: text, lores, not mixed, page 1
@@ -151,15 +154,6 @@ VideoScannerII::VideoScannerII(MMU * mmu)
     top border.
     */
 }
-
-/* This is for VideoScannerIIe *//*
-uint8_t vs_bus_read_C019(void *context, uint16_t address) {
-    VideoScannerII *vs = (VideoScannerII *)context;
-    // This is IIe. IIgs is opposite
-    uint8_t vblbit = vs->is_vbl() ? 0 : 0x80;
-    return vblbit | (vs->get_video_byte() & 0x7F);
-}
-*/
 
 uint8_t vs_bus_read_C050(void *context, uint16_t address)
 {

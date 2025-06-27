@@ -258,6 +258,7 @@ void iie_map_rom_slot3(void *context, SlotType_t slot) {
 
 
 MMU_IIe::MMU_IIe(int page_table_size, int ram_amount, uint8_t *rom_pointer) : MMU_II(page_table_size, ram_amount, rom_pointer) {
+
     //main_rom_D0 = rom_pointer + 0x1000;
     MMU_IIe::init_map();
     power_on_randomize(main_ram, ram_amount);

@@ -43,7 +43,7 @@ bool Display::update_display(cpu_state *cpu)
         fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
         return false;
     }
-    printf("pixels:%p, this:%p, buffer:%p\n", pixels, this, buffer); fflush(stdout);
+    //printf("pixels:%p, this:%p, buffer:%p\n", pixels, this, buffer); fflush(stdout);
     memcpy(pixels, buffer, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA_t)); // load all buffer into texture
     SDL_UnlockTexture(screenTexture);
 
@@ -232,6 +232,7 @@ void Display::get_buffer(uint8_t *buffer, uint32_t *width, uint32_t *height) {
     computer->event_queue->addEvent(new Event(EVENT_SHOW_MESSAGE, 0, msgbuf));
 }
 
+#if 0
 // Implement the switch, but text display doesn't use it yet.
 void display_write_switches(void *context, uint16_t address, uint8_t value) {
     display_state_t *ds = (display_state_t *)context;
@@ -328,6 +329,7 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
         mmu->set_C0XX_read_handler(0xC01E, { display_read_C01E, ds });
     }
 }
+#endif
 
 void display_dump_file(cpu_state *cpu, const char *filename, uint16_t base_addr, uint16_t sizer) {
     FILE *fp = fopen(filename, "wb");
