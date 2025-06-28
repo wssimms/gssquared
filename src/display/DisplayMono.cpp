@@ -22,18 +22,45 @@ void DisplayMono::set_color_green()
     phosphor_color = p_green;
 }
 
+
+bool DisplayMono::update_display(cpu_state *cpu)
+{
+    output = buffer;
+
+    begin_video_bits(cpu);
+    for (vcount = 0; vcount < 192; ++vcount)
+    {
+        build_scanline(cpu);
+
+        for (int n = 0; n < 81; ++n) {
+            uint8_t video_bits = scanline[n];
+            for (int i = 7; i; --i) {
+                if (video_bits & 1)
+                    *output++ = phosphor_color;
+                else
+                    *output++ = p_black;
+                video_bits >>= 1; 
+            }
+        }
+    }
+
+    return Display::update_display(cpu);
+}
+
+#if 0
 bool DisplayMono::update_display(cpu_state *cpu)
 {
     uint16_t rawbits = 0;
-    RGBA_t * output = buffer;
+    output = buffer;
 
     hcount = 0;
     vcount = 0;
 
-    uint16_t video_bits = first_video_bits(cpu);
-
+    begin_video_bits(cpu);
     while (more_video_bits())
-    {
+    {   
+        uint16_t video_bits = next_video_bits(cpu);
+
         // carryover from HGR shifted bytes
         rawbits = rawbits | video_bits;
 
@@ -50,12 +77,10 @@ bool DisplayMono::update_display(cpu_state *cpu)
             rawbits = 0;
             ++vcount;
         }
-
-        video_bits = next_video_bits(cpu);
     }
-
     return Display::update_display(cpu);
 }
+#endif
 
 void init_mb_display_mono(computer_t *computer, SlotType_t slot) {
     // alloc and init Display

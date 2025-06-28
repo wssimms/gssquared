@@ -19,9 +19,9 @@ protected:
 
     inline bool kill_color() { return text_count >= 4; }
 
-    uint16_t first_video_bits(cpu_state *cpu);
-    uint16_t next_video_bits(cpu_state *cpu);
-    bool     more_video_bits();
+    uint8_t scanline[81]; // 81*7 == 567 pixels across
+    void build_scanline(cpu_state *cpu);
+    void begin_video_bits(cpu_state *cpu);
 
 public:
     DisplayComposite(computer_t * computer);

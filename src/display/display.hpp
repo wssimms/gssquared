@@ -26,7 +26,7 @@ struct video_system_t;
 
 #define SCALE_X 2
 #define SCALE_Y 4
-#define BASE_WIDTH 560
+#define BASE_WIDTH 567
 #define BASE_HEIGHT 192
 #define BORDER_WIDTH 30
 #define BORDER_HEIGHT 20
@@ -42,6 +42,7 @@ protected:
     uint16_t hgr_bits[256];
     uint16_t text40_bits[256];
 
+    RGBA_t *output = nullptr;
     RGBA_t *buffer = nullptr;
     computer_t *computer = nullptr;
     EventQueue *event_queue = nullptr;

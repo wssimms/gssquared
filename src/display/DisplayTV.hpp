@@ -13,7 +13,6 @@ private:
 
 public:
     DisplayTV(computer_t * computer);
-
     bool update_display(cpu_state *cpu) override;
 };
 

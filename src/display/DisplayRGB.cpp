@@ -68,7 +68,7 @@ bool DisplayRGB::update_display(cpu_state *cpu)
     uint32_t hcount = 0;
     uint8_t  last_byte = 0;
     uint8_t  last_shift = 0;
-    RGBA_t * output = buffer;
+    output = buffer;
 
     uint8_t * video_data = vs->get_video_data();
     int video_data_size = vs->get_video_data_size();

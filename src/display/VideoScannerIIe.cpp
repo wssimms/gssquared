@@ -74,7 +74,10 @@ void VideoScannerIIe::set_video_mode()
         if (hires) {
             if (mixed) {
                 if (sw80col) {
-                    video_mode = VM_HIRES_MIXED80;
+                    if (altchrset)
+                        video_mode = VM_HIRES_ALT_MIXED80;
+                    else
+                        video_mode = VM_HIRES_MIXED80;
                 } else {
                     video_mode = VM_HIRES_MIXED;
                 }
@@ -93,17 +96,29 @@ void VideoScannerIIe::set_video_mode()
             }
         } else if (mixed) {
             if (sw80col) {
-                video_mode = VM_LORES_MIXED80;
+                if (altchrset)
+                    video_mode = VM_LORES_ALT_MIXED80;
+                else
+                    video_mode = VM_LORES_MIXED80;
             } else {
-                video_mode = VM_LORES_MIXED;
+                if (altchrset)
+                    video_mode = VM_LORES_ALT_MIXED;
+                else
+                    video_mode = VM_LORES_MIXED;
             }
         } else {
             video_mode = VM_LORES;
         }
     } else if (sw80col) {
-        video_mode = VM_TEXT80;
+        if (altchrset)
+            video_mode = VM_ALT_TEXT80;
+        else
+            video_mode = VM_TEXT80;
     } else {
-        video_mode = VM_TEXT40;
+        if (altchrset)
+            video_mode = VM_ALT_TEXT40;
+        else
+            video_mode = VM_TEXT40;
     }
 }
 
@@ -130,7 +145,8 @@ void VideoScannerIIe::video_cycle()
     // I don't really like this.
     bool aux_text = video_mode >= VM_TEXT80 && video_mode <= VM_DHIRES_MIXED && address < 0x2000;
     bool aux_graf = video_mode >= VM_DLORES && video_mode <= VM_DHIRES_MIXED && address >= 0x2000;
-    if (video_mode == VM_LORES_MIXED80 && vcount < 160) aux_text = false;
+    if ((video_mode == VM_LORES_MIXED80 || video_mode == VM_LORES_ALT_MIXED80) && vcount < 160)
+        aux_text = false;
 
     video_data[video_data_size++] = (uint8_t)video_mode;
 
@@ -151,11 +167,13 @@ VideoScannerIIe::VideoScannerIIe(MMU * mmu) : VideoScannerII(mmu)
 
 void vs_bus_write_C00C(void *context, uint16_t address, uint8_t data) {
     VideoScannerIIe *vs = (VideoScannerIIe *)context;
+    //printf("--80COL\n"); 
     vs->reset_80col();
 }
 
 void vs_bus_write_C00D(void *context, uint16_t address, uint8_t data) {
     VideoScannerIIe *vs = (VideoScannerIIe *)context;
+    //printf("++80COL\n");
     vs->set_80col();
 }
 
@@ -201,8 +219,10 @@ uint8_t vs_bus_read_C01E(void *context, uint16_t address) {
 
 uint8_t vs_bus_read_C01F(void *context, uint16_t address) {
     VideoScannerIIe *vs = (VideoScannerIIe *)context;
-    uint8_t hibit = vs->is_80col() ? 0x80 : 0;
-    return hibit | (vs->get_video_byte() & 0x7F);
+    uint8_t retval = vs->is_80col() ? 0x80 : 0;
+    retval |= (vs->get_video_byte() & 0x7F);
+    //printf("??80COL: %2.2x\n", retval); 
+    return retval;
 }
 
 void init_mb_video_scanner_iie(computer_t *computer, SlotType_t slot)

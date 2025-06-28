@@ -205,84 +205,64 @@ DisplayTV::DisplayTV(computer_t * computer) : DisplayComposite(computer)
 
 bool DisplayTV::update_display(cpu_state *cpu)
 {
-    uint16_t rawbits = 0;
     uint32_t ntscidx = 0;
     uint32_t phase = 0;
-    uint32_t bitcount = 0;
-    RGBA_t * output = buffer;
 
-    hcount = 0;
-    vcount = 0;
+    output = buffer;
 
-    uint16_t video_bits = first_video_bits(cpu);
-
-    while (more_video_bits())
+    begin_video_bits(cpu);
+    for (vcount = 0; vcount < 192; ++vcount)
     {
-        // carryover from HGR shifted bytes
-        rawbits = rawbits | video_bits;
+        phase = 1;
+        build_scanline(cpu);
 
         if (kill_color()) {
-            for (int i = 14; i; --i) {
-                if (rawbits & 1)
-                    *output++ = p_white;
-                else
-                    *output++ = p_black;
-                rawbits >>= 1; 
-            }
-            
-            if (++hcount == 40) {
-                hcount = 0;
-                rawbits = 0;
-                ++vcount;
+            for (int n = 0; n < 81; ++n) {
+                uint8_t video_bits = scanline[n];
+                for (int i = 7; i; --i) {
+                    if (video_bits & 1)
+                        *output++ = p_white;
+                    else
+                        *output++ = p_black;
+                    video_bits >>= 1; 
+                }
             }
         }
         else {
-            bitcount = 14;
+            ntscidx = 0;
 
-            // initialize NTSC LUT index at the beginning of each scan line
-            if (hcount == 0) {
-                for (int i = NUM_TAPS; i; --i)
-                {
-                    ntscidx = ntscidx >> 1;
-                    if (rawbits & 1)
-                        ntscidx = ntscidx | (1 << ((NUM_TAPS*2)));
-                    rawbits = rawbits >> 1;
-                    --bitcount;
-                }
-            }
-
-            // this section produces the indices for the NTSC LUT, uses them
-            // to grab RGB pixels, and stores the RGB pixels in the output texture
-            for ( ; bitcount; --bitcount)
+            // For now I am relying on the concidence that NUM_TAPS == 7
+            // and # of signal bits in one byte of the scanline also == 7
+            uint8_t video_bits = scanline[0];
+            for (int i = NUM_TAPS; i; --i)
             {
                 ntscidx = ntscidx >> 1;
-                if (rawbits & 1)
+                if (video_bits & 1)
                     ntscidx = ntscidx | (1 << ((NUM_TAPS*2)));
-                rawbits = rawbits >> 1;
-
-                //  Use the phase and the bits as the index
-                *output++ = ntsc_lut[phase][ntscidx];
-                phase = (phase+1) & 3;
+                video_bits = video_bits >> 1;
             }
 
-            if (++hcount == 40) {
-                // output trailing pixels at the end of each line
-                for (int count = NUM_TAPS; count; --count) {
+            for (int n = 1; n < 81; ++n) {
+                uint8_t video_bits = scanline[n];
+                for (int i = 7; i; --i) {
                     ntscidx = ntscidx >> 1;
+                    if (video_bits & 1)
+                        ntscidx = ntscidx | (1 << ((NUM_TAPS*2)));
+                    video_bits = video_bits >> 1;
+
+                    //  Use the phase and the bits as the index
                     *output++ = ntsc_lut[phase][ntscidx];
                     phase = (phase+1) & 3;
                 }
+            }
 
-                // reset values for the beginning of the next line
-                hcount = 0;
-                rawbits = 0;
-                ntscidx = 0;
-
-                ++vcount;
+            // output trailing pixels at the end of each line
+            for (int count = NUM_TAPS; count; --count) {
+                ntscidx = ntscidx >> 1;
+                *output++ = ntsc_lut[phase][ntscidx];
+                phase = (phase+1) & 3;
             }
         }
-
-        video_bits = next_video_bits(cpu);
     }
 
     return Display::update_display(cpu);

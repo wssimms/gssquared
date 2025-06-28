@@ -1,5 +1,6 @@
 
 #include "VideoScannerII.hpp"
+#include "cpu.hpp"
 
 void VideoScannerII::init_video_addresses()
 {
@@ -109,7 +110,6 @@ void VideoScannerII::video_cycle()
 
     uint16_t address = (*(video_addresses))[65*vcount+hcount];
 
-    //video_byte = mmu->read_raw(address);
     uint8_t * ram = mmu->get_memory_base();
     video_byte = ram[address];
 

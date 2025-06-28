@@ -22,6 +22,7 @@ public:
     inline void set_80col()       { sw80col   = true;  set_video_mode(); }
     inline void set_80store()     { sw80store = true;  set_video_mode(); }
     inline void set_altchrset()   { altchrset = true;  set_video_mode(); }
+    
     inline void reset_80col()     { sw80col   = false; set_video_mode(); }
     inline void reset_80store()   { sw80store = false; set_video_mode(); }
     inline void reset_altchrset() { altchrset = false; set_video_mode(); }
