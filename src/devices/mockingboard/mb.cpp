@@ -1287,8 +1287,8 @@ void init_slot_mockingboard(computer_t *computer, SlotType_t slot) {
     mb_d->stream = stream;
 
     //set_slot_state(cpu, slot, mb_d);
-    computer->mmu->set_page_write_h(0xC0 + slot, { mb_write_Cx00, mb_d }, "MB_IO");
-    computer->mmu->set_page_read_h(0xC0 + slot, { mb_read_Cx00, mb_d }, "MB_IO");
+    computer->mmu->map_c1cf_page_write_h(0xC0 + slot, { mb_write_Cx00, mb_d }, "MB_IO");
+    computer->mmu->map_c1cf_page_read_h(0xC0 + slot, { mb_read_Cx00, mb_d }, "MB_IO");
 
     insert_empty_mockingboard_frame(mb_d);
 

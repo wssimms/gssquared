@@ -180,6 +180,8 @@ void handle_keydown_iie(const SDL_Event &event, keyboard_state_t *kb_state) {
 
         if (mapped == SDLK_LEFT) { kb_key_pressed(kb_state, 0x08); return; }
         if (mapped == SDLK_RIGHT) { kb_key_pressed(kb_state, 0x15); return; }
+        if (mapped == SDLK_UP) { kb_key_pressed(kb_state, 0x0B); return; }
+        if (mapped == SDLK_DOWN) { kb_key_pressed(kb_state, 0x0A); return; }
         //if (mapped >= 'a' && mapped <= 'z') mapped = mapped - 'a' + 'A'; IIe allows lowercase!
         if (mapped < 128) {
             kb_key_pressed(kb_state, mapped);

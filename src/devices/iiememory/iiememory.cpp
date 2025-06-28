@@ -87,7 +87,7 @@ void bsr_map_memory(iiememory_state_t *lc) {
         }
     }
 
-    if (1 || DEBUG(DEBUG_LANGCARD)) {
+    if (DEBUG(DEBUG_LANGCARD)) {
         lc->mmu->dump_page_table(0xD0, 0xD0);
         lc->mmu->dump_page_table(0xE0, 0xE0);
     }
