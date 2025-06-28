@@ -521,7 +521,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Error setting render target: %s\n", SDL_GetError());
         return 1;
     }
-    computer->mmu->dump_page_table(0x00, 0x0f);
+    //computer->mmu->dump_page_table(0x00, 0x0f);
     computer->video_system->update_display(); // check for events 60 times per second.
 
     run_cpus(computer);
