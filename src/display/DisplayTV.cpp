@@ -209,58 +209,59 @@ bool DisplayTV::update_display(cpu_state *cpu)
     uint32_t phase = 0;
 
     output = buffer;
-
     begin_video_bits(cpu);
-    for (vcount = 0; vcount < 192; ++vcount)
-    {
-        phase = 1;
-        build_scanline(cpu);
+    if (video_data_size > 0) {
+        for (vcount = 0; vcount < 192; ++vcount)
+        {
+            phase = 1;
+            build_scanline(cpu);
 
-        if (kill_color()) {
-            for (int n = 0; n < 81; ++n) {
-                uint8_t video_bits = scanline[n];
-                for (int i = 7; i; --i) {
-                    if (video_bits & 1)
-                        *output++ = p_white;
-                    else
-                        *output++ = p_black;
-                    video_bits >>= 1; 
+            if (kill_color()) {
+                for (int n = 0; n < 81; ++n) {
+                    uint8_t video_bits = scanline[n];
+                    for (int i = 7; i; --i) {
+                        if (video_bits & 1)
+                            *output++ = p_white;
+                        else
+                            *output++ = p_black;
+                        video_bits >>= 1; 
+                    }
                 }
             }
-        }
-        else {
-            ntscidx = 0;
+            else {
+                ntscidx = 0;
 
-            // For now I am relying on the concidence that NUM_TAPS == 7
-            // and # of signal bits in one byte of the scanline also == 7
-            uint8_t video_bits = scanline[0];
-            for (int i = NUM_TAPS; i; --i)
-            {
-                ntscidx = ntscidx >> 1;
-                if (video_bits & 1)
-                    ntscidx = ntscidx | (1 << ((NUM_TAPS*2)));
-                video_bits = video_bits >> 1;
-            }
-
-            for (int n = 1; n < 81; ++n) {
-                uint8_t video_bits = scanline[n];
-                for (int i = 7; i; --i) {
+                // For now I am relying on the concidence that NUM_TAPS == 7
+                // and # of signal bits in one byte of the scanline also == 7
+                uint8_t video_bits = scanline[0];
+                for (int i = NUM_TAPS; i; --i)
+                {
                     ntscidx = ntscidx >> 1;
                     if (video_bits & 1)
                         ntscidx = ntscidx | (1 << ((NUM_TAPS*2)));
                     video_bits = video_bits >> 1;
+                }
 
-                    //  Use the phase and the bits as the index
+                for (int n = 1; n < 81; ++n) {
+                    uint8_t video_bits = scanline[n];
+                    for (int i = 7; i; --i) {
+                        ntscidx = ntscidx >> 1;
+                        if (video_bits & 1)
+                            ntscidx = ntscidx | (1 << ((NUM_TAPS*2)));
+                        video_bits = video_bits >> 1;
+
+                        //  Use the phase and the bits as the index
+                        *output++ = ntsc_lut[phase][ntscidx];
+                        phase = (phase+1) & 3;
+                    }
+                }
+
+                // output trailing pixels at the end of each line
+                for (int count = NUM_TAPS; count; --count) {
+                    ntscidx = ntscidx >> 1;
                     *output++ = ntsc_lut[phase][ntscidx];
                     phase = (phase+1) & 3;
                 }
-            }
-
-            // output trailing pixels at the end of each line
-            for (int count = NUM_TAPS; count; --count) {
-                ntscidx = ntscidx >> 1;
-                *output++ = ntsc_lut[phase][ntscidx];
-                phase = (phase+1) & 3;
             }
         }
     }

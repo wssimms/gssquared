@@ -27,7 +27,8 @@ typedef enum {
     VM_SHR320,
     VM_SHR640,
     VM_PALETTE_DATA,
-    VM_BORDER_COLOR
+    VM_BORDER_COLOR,
+    VM_LAST_HBL
 } video_mode_t;
 
 class VideoScannerII
@@ -48,7 +49,8 @@ protected:
     // 2*13*200: 13*200 horz border states, 1 mode byte + 1 data byte for each state
     // 2*53*40   53*40  vert border states, 1 mode byte + 1 data byte for each state
     // 33*200    200 SHR palettes, 1 mode byte + 32 data bytes per palette
-    static const int video_data_max = 5*40*200 + 2*13*20 + 2*53*40 + 33*200;
+    // 2*192     192 lines in legacy modes, 1 mode byte + 1 last HBL data byte for each line
+    static const int video_data_max = 5*40*200 + 2*13*20 + 2*53*40 + 33*200 + 2*192;
     uint8_t   video_data[video_data_max];
     int       video_data_size;
 

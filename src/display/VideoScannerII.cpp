@@ -113,10 +113,17 @@ void VideoScannerII::video_cycle()
     uint8_t * ram = mmu->get_memory_base();
     video_byte = ram[address];
 
-    if (is_vbl() || is_hbl()) return;
+    if (is_vbl()) return;
+    if (hcount < 24) return;
 
-    video_data[video_data_size++] = (uint8_t)video_mode;
-    video_data[video_data_size++] = video_byte;
+    if (hcount == 24) {
+        video_data[video_data_size++] = (uint8_t)VM_LAST_HBL;
+        video_data[video_data_size++] = video_byte;
+    }
+    else {
+        video_data[video_data_size++] = (uint8_t)video_mode;
+        video_data[video_data_size++] = video_byte;
+    }
 }
 
 VideoScannerII::VideoScannerII(MMU * mmu)

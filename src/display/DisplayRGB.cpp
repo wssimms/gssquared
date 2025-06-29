@@ -85,6 +85,12 @@ bool DisplayRGB::update_display(cpu_state *cpu)
         video_mode_t video_mode = (video_mode_t)(video_data[i++]);
         uint8_t video_byte = video_data[i++];
 
+        if (video_mode == VM_LAST_HBL) {
+            // ignore this
+            video_mode = (video_mode_t)(video_data[i++]);
+            video_byte = video_data[i++];
+        }
+
         switch (video_mode)
         {
         case VM_LORES_MIXED:
@@ -289,7 +295,6 @@ bool DisplayRGB::update_display(cpu_state *cpu)
             video_byte = video_data[i++]; // skip aux byte
             goto output_hires;
             break;
-
         }
 
         if (++hcount == 40) {

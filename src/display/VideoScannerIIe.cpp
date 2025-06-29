@@ -140,7 +140,14 @@ void VideoScannerIIe::video_cycle()
     uint8_t aux_byte = ram[address + 0x10000];
     video_byte = ram[address];
 
-    if (is_vbl() || is_hbl()) return;
+    if (is_vbl()) return;
+    if (hcount < 24) return;
+
+    if (hcount == 24) {
+        video_data[video_data_size++] = (uint8_t)VM_LAST_HBL;
+        video_data[video_data_size++] = video_byte;
+        return;
+    }
 
     // I don't really like this.
     bool aux_text = video_mode >= VM_TEXT80 && video_mode <= VM_DHIRES_MIXED && address < 0x2000;

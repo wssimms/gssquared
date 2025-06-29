@@ -8,12 +8,21 @@ void DisplayComposite::build_scanline(cpu_state *cpu)
     uint8_t video_byte;
     uint8_t video_rom_data;
     uint16_t video_bits;
+    uint16_t last_hgr_bit;
 
-    uint16_t last_hgr_bit = 0;
+    video_mode_t video_mode = (video_mode_t)(video_data[idx++]);
+
+    if (video_mode != VM_LAST_HBL) {
+        printf("OH NO! There isn't a VM_LAST_HBL byte before this scanline.\n");
+    }
+    else {
+        video_byte = video_data[idx++];
+        last_hgr_bit = (video_byte >> 6) & 1;
+    }
 
     int nbytes = 0;
     while (nbytes < 80) {
-        video_mode_t video_mode = (video_mode_t)(video_data[idx++]);
+        video_mode = (video_mode_t)(video_data[idx++]);
 
         switch (video_mode)
         {
@@ -164,8 +173,10 @@ void DisplayComposite::build_scanline(cpu_state *cpu)
                 scanline[nbytes++] = 0;
             
             video_byte = video_data[idx++];
-            video_bits = hgr_bits[video_byte] | last_hgr_bit;
-            last_hgr_bit = video_bits >> 14;
+            video_bits = hgr_bits[video_byte];
+            if (video_byte & 0x80)
+                video_bits = video_bits | last_hgr_bit;
+            last_hgr_bit = (video_bits >> 13) & 1;
             scanline[nbytes++] = video_bits & 0x7F;
             scanline[nbytes++] = (video_bits >> 7) & 0x7F;
             break;
