@@ -131,6 +131,7 @@ void cpu_state::set_processor(int processor_type) {
 
 void cpu_state::reset() {
     halt = 0; // if we were STPed etc.
+    I = 1; // set interrupt flag.
     pc = read_word(RESET_VECTOR);
 }
 
