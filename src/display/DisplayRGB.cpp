@@ -61,7 +61,7 @@ bool DisplayRGB::update_display(cpu_state *cpu)
 {
     VideoScannerII *vs = cpu->get_video_scanner();
 
-    uint8_t  video_idx;
+    uint8_t  video_rom_data;
     uint16_t video_bits;
     uint16_t rawbits = 0;
     uint32_t vcount = 0;
@@ -76,6 +76,9 @@ bool DisplayRGB::update_display(cpu_state *cpu)
     int i = 0;
     while (i < video_data_size)
     {
+        if (hcount == 0)
+            output += 7;
+
         // This section builds a 14/15 bit wide video_bits for each byte of
         // video memory, based on the video_mode associated with each byte
 
@@ -86,39 +89,141 @@ bool DisplayRGB::update_display(cpu_state *cpu)
         {
         case VM_LORES_MIXED:
             if (vcount >= 160)
-                goto output_text;
+                goto output_text40;
+            goto output_lores;
+
+        case VM_LORES_ALT_MIXED:
+            if (vcount >= 160)
+                goto output_alt_text40;
             goto output_lores;
 
         case VM_HIRES_MIXED:
             if (vcount >= 160)
-                goto output_text;
+                goto output_text40;
             goto output_hires;
+
+        case VM_HIRES_ALT_MIXED:
+            if (vcount >= 160)
+                goto output_alt_text40;
+            goto output_hires;
+
+        case VM_LORES_MIXED80:
+            if (vcount >= 160)
+                goto output_text80;
+            goto output_lores;
+
+        case VM_LORES_ALT_MIXED80:
+            if (vcount >= 160)
+                goto output_alt_text80;
+            goto output_lores;
+
+        case VM_HIRES_MIXED80:
+            if (vcount >= 160)
+                goto output_text80;
+            goto output_hires;
+
+        case VM_HIRES_ALT_MIXED80:
+            if (vcount >= 160)
+                goto output_alt_text80;
+            goto output_hires;
+
+        case VM_DLORES_MIXED:
+            if (vcount >= 160)
+                goto output_text80;
+            goto output_dlores;
+
+        case VM_DHIRES_MIXED:
+            if (vcount >= 160)
+                goto output_text80;
+            goto output_dhires;
 
         default:
         case VM_TEXT40:
-        output_text:
-            video_idx = (*cpu->rd->char_rom_data)[8 * video_byte + (vcount & 7)];
+        output_text40:
+            video_rom_data = (*cpu->rd->char_rom_data)[8 * video_byte + (vcount & 7)];
 
-            // for inverse, xor the pixels with 0xFF to invert them.
-            if ((video_byte & 0xC0) == 0) {  // inverse
-                video_idx ^= 0xFF;
-            } else if (((video_byte & 0xC0) == 0x40)) {  // flash
-                video_idx ^= flash_mask();
+            if (computer->platform->id < PLATFORM_APPLE_IIE) {
+                // for inverse, xor the pixels with 0xFF to invert them.
+                if ((video_byte & 0xC0) == 0) {  // inverse
+                    video_rom_data ^= 0xFF;
+                } else if (((video_byte & 0xC0) == 0x40)) {  // flash
+                    video_rom_data ^= flash_mask();
+                }
+                video_bits = text40_bits[video_rom_data];
             }
+            else {
+                video_rom_data ^= 0xFF;
+                if ((video_byte & 0xC0) == 0x40) {  // flash
+                    video_rom_data ^= flash_mask();
+                }
 
-            video_bits = text40_bits[video_idx];
-
+                video_bits = 0;
+                for (int i = 0; i < 7; ++i) {
+                    video_bits = (video_bits >> 1) | ((video_rom_data & 1) << 13);
+                    video_bits = (video_bits >> 1) | ((video_rom_data & 1) << 13);
+                    video_rom_data >>= 1;
+                }
+            }
             for (int i = 14; i; --i) {
                 *output++ = iigs_color_table[(16 - (video_bits & 1)) & 15];
                 video_bits >>= 1;
             }
             break;
 
+        case VM_ALT_TEXT40:
+        output_alt_text40:
+            video_rom_data = 0xFF ^ (*cpu->rd->char_rom_data)[8 * video_byte + (vcount & 7)];
+            video_bits = 0;
+            for (int i = 0; i < 7; ++i) {
+                video_bits = (video_bits >> 1) | ((video_rom_data & 1) << 13);
+                video_bits = (video_bits >> 1) | ((video_rom_data & 1) << 13);
+                video_rom_data >>= 1;
+            }
+            for (int i = 14; i; --i) {
+                *output++ = iigs_color_table[(16 - (video_bits & 1)) & 15];
+                video_bits >>= 1;
+            }
+            break;
+
+        case VM_TEXT80:
+        output_text80:
+            video_rom_data = 0xFF ^ (*cpu->rd->char_rom_data)[8 * video_byte + (vcount & 7)];
+            if ((video_byte & 0xC0) == 0x40)
+                video_rom_data ^= flash_mask();
+            for (int i = 7; i; --i) {
+                *output++ = iigs_color_table[(16 - (video_rom_data & 1)) & 15];
+                video_rom_data >>= 1;
+            }
+            video_byte = video_data[i++];
+            video_rom_data = 0xFF ^ (*cpu->rd->char_rom_data)[8 * video_byte + (vcount & 7)];
+            if ((video_byte & 0xC0) == 0x40)
+                video_rom_data ^= flash_mask();
+            for (int i = 7; i; --i) {
+                *output++ = iigs_color_table[(16 - (video_rom_data & 1)) & 15];
+                video_rom_data >>= 1;
+            }
+            break;
+
+        case VM_ALT_TEXT80:
+        output_alt_text80:
+            video_rom_data = 0xFF ^ (*cpu->rd->char_rom_data)[8 * video_byte + (vcount & 7)];
+            for (int i = 7; i; --i) {
+                *output++ = iigs_color_table[(16 - (video_rom_data & 1)) & 15];
+                video_rom_data >>= 1;
+            }
+            video_byte = video_data[i++];
+            video_rom_data = 0xFF ^ (*cpu->rd->char_rom_data)[8 * video_byte + (vcount & 7)];
+            for (int i = 7; i; --i) {
+                *output++ = iigs_color_table[(16 - (video_rom_data & 1)) & 15];
+                video_rom_data >>= 1;
+            }
+            break;
+
         case VM_LORES:
         output_lores:
-            video_idx = (video_byte >> (vcount & 4)) & 0x0F;  // hi or lo nibble
+            video_byte = (video_byte >> (vcount & 4)) & 0x0F;  // hi or lo nibble
             for (int i = 14; i; --i)
-                *output++ = iigs_color_table[video_idx];
+                *output++ = iigs_color_table[video_byte];
             break;
 
         case VM_HIRES:
@@ -172,6 +277,18 @@ bool DisplayRGB::update_display(cpu_state *cpu)
                 last_shift = video_byte & 0x80;
                 break;
             }
+
+        case VM_DLORES:
+        output_dlores:
+            video_byte = video_data[i++]; // skip aux byte
+            goto output_lores;
+            break;
+
+        case VM_DHIRES:
+        output_dhires:
+            video_byte = video_data[i++]; // skip aux byte
+            goto output_hires;
+            break;
 
         }
 
