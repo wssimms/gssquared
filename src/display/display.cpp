@@ -251,13 +251,33 @@ uint8_t display_read_C01E(void *context, uint16_t address) {
     return (ds->display_alt_charset) ? 0x80 : 0x00;
 }
 
+uint8_t display_read_C01F(void *context, uint16_t address) {
+    display_state_t *ds = (display_state_t *)context;
+    return (ds->f_80col) ? 0x80 : 0x00;
+}
+
+uint8_t display_read_C05EF(void *context, uint16_t address) {
+    display_state_t *ds = (display_state_t *)context;
+    ds->f_double_graphics = (address & 0x1); // this is inverted sense
+    update_line_mode(ds);
+    ds->video_system->set_full_frame_redraw();
+    return 0;
+}
+
+void display_write_C05EF(void *context, uint16_t address, uint8_t value) {
+    display_state_t *ds = (display_state_t *)context;
+    ds->f_double_graphics = (address & 0x1); // this is inverted sense
+    update_line_mode(ds);
+    ds->video_system->set_full_frame_redraw();
+}
+
 void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     cpu_state *cpu = computer->cpu;
     
     // alloc and init display state
     display_state_t *ds = new display_state_t;
     video_system_t *vs = computer->video_system;
-    ds->cpu = cpu;
+
     ds->video_system = vs;
     ds->event_queue = computer->event_queue;
     ds->computer = computer;
@@ -356,6 +376,8 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
 
     if (computer->platform->id == PLATFORM_APPLE_IIE) {
         ds->display_alt_charset = false;
+        mmu->set_C0XX_write_handler(0xC00C, { ds_bus_write_C00X, ds });
+        mmu->set_C0XX_write_handler(0xC00D, { ds_bus_write_C00X, ds });
         mmu->set_C0XX_write_handler(0xC00E, { display_write_switches, ds });
         mmu->set_C0XX_write_handler(0xC00F, { display_write_switches, ds });
         mmu->set_C0XX_read_handler(0xC01E, { display_read_C01E, ds });

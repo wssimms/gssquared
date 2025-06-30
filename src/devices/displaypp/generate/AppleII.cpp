@@ -125,18 +125,12 @@ public:
             for (x = 0; x < 40; x++) {
                 uint8_t tchar = textpage[char_addr];
 
-                if ((tchar & 0xC0) == 0) {
-                    invert = true;
-                    /* pixel_on = 0;
-                    pixel_off = 1; */
-                } else if (((tchar & 0xC0) == 0x40)) {
+                if (((tchar & 0xC0) == 0x40)) {
                     invert = flash_state;
                     /* pixel_on = flash_state;
                     pixel_off = !flash_state; */
                 } else {
                     invert = false;
-                    /* pixel_on = 1;
-                    pixel_off = 0; */
                 }
 
                 uint8_t cdata = char_rom.get_char_scanline(tchar, y + altbase);
@@ -248,12 +242,12 @@ public:
                 uint8_t byteM = m[x];
                 uint8_t byteA = a[x];
                 for (int i = 0; i < 7; i++ ) {
-                    f->push((byteM & 0x01) ? 1 : 0);
-                    byteM >>= 1;
-                }
-                for (int i = 0; i < 7; i++ ) {
                     f->push((byteA & 0x01) ? 1 : 0);
                     byteA >>= 1;
+                }
+                for (int i = 0; i < 7; i++ ) {
+                    f->push((byteM & 0x01) ? 1 : 0);
+                    byteM >>= 1;
                 }
             }
             m += 0x400; // go to next line

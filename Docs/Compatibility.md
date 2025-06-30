@@ -117,7 +117,7 @@ boots and is working, but, disk drive continues running inappropriately.
 
 Dies during game load with gazillions of unknown opcodes. last instructions before crash are sta c003 sta c005 - looks like a //e 128k game.
 With current state of IIe, it now boots, loads, plays music. But it is a double hi-res program, so the display isn't right yet.
-
+getting there, but still wrong. 
 
 ## Karateka (Brutal Deluxe crack)
 
@@ -195,7 +195,7 @@ Is now booting on IIe emulation with 128K. I should stick a Mockingboard in it a
 
 ## AppleWorks 1.3
 
-on 2mg disk. Boots right up, but, needs 80col support.
+on 2mg disk. Boots right up, but, needs 80col support. There is now 80 col support and it now works! (0.35+)
 
 ## ProTerm 2.2 on 143K
 
@@ -209,3 +209,6 @@ works great. uppercase only.
 
 works, asks if you want 80col mode. Would probably provide lowercase then.
 
+## Nox Archaist
+
+Nox Archaist Demo hdv from the apple2ts source tree boots - but then hangs on C019 waiting for a VBL that will never come..

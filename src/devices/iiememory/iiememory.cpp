@@ -397,21 +397,6 @@ void iiememory_write_C00X(void *context, uint16_t address, uint8_t data) {
         case 0xC009: // ALTZPON
             iiememory_d->f_altzp = true;
             break;
-#if 0
-        case 0xC00A: // SLOTC3ROMOFF
-            iiememory_d->f_slotc3rom = false;
-            break;
-        case 0xC00B: // SLOTC3ROMON
-            iiememory_d->f_slotc3rom = true;
-            break;
-        case 0xC00C: // 80COLOFF
-            iiememory_d->f_80col = false;
-            vs->reset_80col();
-            break;
-        case 0xC00D: // 80COLON
-            iiememory_d->f_80col = true;
-            vs->set_80col();
-            break;
         case 0xC00E: // ALTCHARSETOFF
             iiememory_d->f_altcharset = false;
             break;
@@ -603,6 +588,7 @@ void init_iiememory(computer_t *computer, SlotType_t slot) {
     
     for (int i = 0xC000; i <= 0xC009; i++) {
         if (i == 0xC006 || i == 0xC007) continue; // INTCXROM is handled by the MMU.
+        if (i == 0xC00C || i == 0xC00D) continue; // 80COL is handled by the display device.
         computer->mmu->set_C0XX_write_handler(i, { iiememory_write_C00X, iiememory_d });
     }
 

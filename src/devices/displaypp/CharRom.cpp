@@ -25,10 +25,14 @@ CharRom::CharRom(const char *filename) {
         return;
     }
 
-    // if size == 2048, it's an Apple II Plus Char ROM, and we need to reverse the bits.
+    // if size == 2048, it's an Apple II Plus Char ROM, and we need to reverse AND 
+    // also invert bits for the inverse characters.
     if (size == 2048) {
         for (int i = 0; i < 2048; i++) {
             data[i] = reverse_bits(data[i]);
+            if (i < (0x40 * 8)) { // invert chars 0x00 - 0x3F.
+                data[i] = invert_bits(data[i]);
+            }
         }
     } else { // iie and on roms, we need to invert the bits
         for (int i = 0; i < size; i++) {
