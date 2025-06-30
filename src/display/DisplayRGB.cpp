@@ -17,9 +17,11 @@ void RGB_shift_color (uint16_t vbits, RGBA_t* outputImage)
         case 8:  col1 = col2 = 0;  break; /* black */
         case 9:  col1 = col2 = 0;  break; /* black */
         case 10: col1 = col2 = 6;  break; /* blue */
-        case 11: col1 = 15; col2 = 0;  break; /* white, black */
+        //case 11: col1 = 15; col2 = 0;  break; /* white, black */
+        case 11: col1 = 15; col2 = 6;  break; /* white, blue */
         case 12: col1 = 0;  col2 = 15; break; /* black, white */
-        case 13: col1 = 0;  col2 = 15; break; /* black, white */
+        //case 13: col1 = 0;  col2 = 15; break; /* black, white */
+        case 13: col1 = 9;  col2 = 15; break; /* orange, white */
         case 14: col1 = col2 = 15; break; /* white */
         case 15: col1 = col2 = 15; break; /* white */
     }
@@ -45,9 +47,11 @@ void RGB_noshift_color (uint16_t vbits, RGBA_t* outputImage)
         case 8:  col1 = col2 = 0;  break; /* black */
         case 9:  col1 = col2 = 0;  break; /* black */
         case 10: col1 = col2 = 3; break; /* purple */
-        case 11: col1 = 15; col2 = 0;  break; /* white, black */
+        //case 11: col1 = 15; col2 = 0;  break; /* white, black */
+        case 11: col1 = 15; col2 = 3;  break; /* white, purple */
         case 12: col1 = 0;  col2 = 15; break; /* black, white */
-        case 13: col1 = 0;  col2 = 15; break; /* black, white */
+        //case 13: col1 = 0;  col2 = 15; break; /* black, white */
+        case 13: col1 = 12;  col2 = 15; break; /* green, white */
         case 14: col1 = col2 = 15; break; /* white */
         case 15: col1 = col2 = 15; break; /* white */
     }
@@ -67,7 +71,6 @@ bool DisplayRGB::update_display(cpu_state *cpu)
     uint32_t vcount = 0;
     uint32_t hcount = 0;
     uint8_t  last_byte = 0;
-    uint8_t  last_shift = 0;
     output = buffer;
 
     uint8_t * video_data = vs->get_video_data();
@@ -76,8 +79,9 @@ bool DisplayRGB::update_display(cpu_state *cpu)
     int i = 0;
     while (i < video_data_size)
     {
-        if (hcount == 0)
+        if (hcount == 0) {
             output += 7;
+        }
 
         // This section builds a 14/15 bit wide video_bits for each byte of
         // video memory, based on the video_mode associated with each byte
@@ -266,12 +270,6 @@ bool DisplayRGB::update_display(cpu_state *cpu)
                     }
                 }
                 else {
-                    if (last_shift) {
-                        RGB_shift_color(vbits & 15, output);
-                        vbits >>= 2;
-                        output += 4;
-                        --count;
-                    }
                     for (int i = count; i; --i) {
                         RGB_noshift_color(vbits & 15, output);
                         vbits >>= 2;
@@ -280,7 +278,6 @@ bool DisplayRGB::update_display(cpu_state *cpu)
                 }
 
                 last_byte = video_byte & 0x7F;
-                last_shift = video_byte & 0x80;
                 break;
             }
 
