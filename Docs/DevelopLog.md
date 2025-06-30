@@ -4889,9 +4889,9 @@ Here is the Apple IIe checklist:
 [ ] VBL  
 [ ] Alternate character set (I implemented the switch but don't act on it yet)  
 [x] display must read video memory from absolute memory, not from page table
-[ ] have "default to rom" concept in mmu.  
+[x] have "default to rom" concept in mmu. (mostly resolved by moving switches into mmu)  
 [ ] modifier keys mapped to open-apple and closed-apple  
-
+[x] up and down arrow keys  
 
 ## Jun 24, 2025
 
@@ -5017,3 +5017,48 @@ The next C055 is back in the firmware. BUT 80Store is on! I had an extraneous "s
 
 I've patched the video routines to pull directly from video memory instead of two incorrect methods (asking page table, and using mmu->read). Now gets ram base and looks up video pages directly.
 
+## Jun 26, 2025
+
+I'm tempted to throw in 80-col text just for fun and to have something to show off in a video. And then might as well do dhgr, it's so easy. dlgr maybe too. Going to be bringing in Wm's code shortly.
+
+## Jun 28, 2025
+
+mb doesn't implement writing to T2CL/H. oops. let's see what uses it.. nothing that I can see. Well, I implemented on the basis of the doc and the T1 counter/interrupt. SHould work, maybe..
+
+## Jun 29, 2025
+
+went ahead and implemented hires and double hires methods for dpp. Quite simple. Also modified the instrumentation - displays the average per frame for the last 300 frames. color modes run around 250-300us, and monochrome mode runs around 100-110us. Remember this is for full frame redraw. Of course, text is very unsatisfactory in ntsc or in rgb. rgb will have to special-case for text. So how will we know whether to run the text or the color decoding routine? Well we can just check the linemode. I will also need to know if a line is 80 mode so as to pass in the phase offset and draw the left border pixels as needed.
+
+Wm's code has its tendrils fairly deep in the code. I might want to reorg it, and it will take some time in any event. And in the meantime, use the dpp display code to be able to cut an Apple IIe with 80-col and dhgr.
+
+So if we have 560 plus 7 on the left, I'm not sure how this will affect performance (if at all?). But test in dpp! 
+
+OK, issues!
+1. Rendering is supposed to be full frame because it is supposed to represent a monitor. However:
+   1. in rgb, we want full text to be rendered using Mono and white. [fixed]
+   1. in rgb, mixed mode we want graphics lines rendered using RGB and text lines rendered using Mono/white.
+   1. in ntsc, we want full text to be rendered using mono and white; (otherwise all as ntsc, that's easy..) [fixed]
+   1. but, the bottom text needs to be rendered Mono and white and we don't have that option since we only do full frames.
+   1. will have to break it up.. or the Frame classes can have a color killer flag (or mode) per line, which the RGB module would respect and then just emit output like mono.
+1. There are some defects in the RGB rendering in graphics. Stuff that should be white is colored; ladders in certain spots on Lode Runner are wrong color (should be white!).
+1. I didn't implement flash; it just sets the whole line to inverse? [fixed]
+1. inverse doesn't work right on iie.
+1. in all modes there is a white block at the end of the first line (line 0). 
+1. I think the text is like one scanline off. 40 column there is a empty scanline at top of chars; 80 column there is not.
+1. Wms cycle-accurate will have to generate its own output frame, and just not use my renderers, because of the same problem as in number 1-2 and 1-3 above.
+1. I'm scrunching the 580 texture into 560 when video_system displays it.
+
+ok, I tied flash state into a2_display. But the whole line is flashing. oops. ah it was not setting back to a default state for values of pixel_on and pixel_off.
+I think that text code can be better. since we're just pushing 1 and 0, maybe we should just have:
+bit <- data from the char rom
+invert <- bit is set to 1
+push(bit ^ invert )
+
+Now. If we just redraw the entire screen every time, we can: get rid of the text and hgr shadow handlers; get rid of the thing that scans the text page for flash update.
+
+Practically speaking I like my original RGB routine. But, this new RGB is definitely more like the IIgs.
+
+OK, I'm a stone's throw from 80-column support now.
+
+So on an NTSC display, whether the colorburst is present at the start of a scanline will control the entire line. So "per scanline-ish" color killer is accurate.
+in RGB, that doesn't really apply. But we can use the same flag to determine whether to render using rgb algo or monochrome.

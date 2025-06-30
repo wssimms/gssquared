@@ -29,6 +29,11 @@
 #define BORDER_WIDTH 30
 #define BORDER_HEIGHT 20
 
+#include "devices/displaypp/render/Monochrome560.hpp"
+#include "devices/displaypp/render/NTSC560.hpp"
+#include "devices/displaypp/render/GSRGB560.hpp"
+#include "devices/displaypp/generate/AppleII.cpp"
+
 // Graphics vs Text, C050 / C051
 typedef enum {
     TEXT_MODE = 0,
@@ -50,7 +55,10 @@ typedef enum {
 typedef enum {
     LM_TEXT_MODE    = 0,
     LM_LORES_MODE   = 1,
-    LM_HIRES_MODE   = 2
+    LM_HIRES_MODE   = 2,
+    LM_TEXT80_MODE  = 3,
+    LM_LORES80_MODE = 4,
+    LM_HIRES80_MODE = 5,
 } line_mode_t;
 
 /** Display Modes */
@@ -111,7 +119,8 @@ public:
     display_graphics_mode_t display_graphics_mode;
     display_page_number_t display_page_num;
     display_page_t *display_page_table;
-    
+    bool f_80col = false;
+
     // for iie
     bool display_alt_charset;
 
@@ -126,6 +135,13 @@ public:
     video_system_t *video_system;
     MMU_II *mmu;
     computer_t *computer;
+
+    AppleII_Display *a2_display;
+    Frame560     *frame_bits;
+    Frame560RGBA *frame_rgba;
+    Monochrome560 mon_mono;
+    NTSC560 mon_ntsc;
+    GSRGB560 mon_rgb;
 } display_state_t;
 
 

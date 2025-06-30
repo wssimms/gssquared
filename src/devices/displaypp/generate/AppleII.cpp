@@ -88,6 +88,10 @@ public:
         this->altbase = alt_char_set ? 2048 : 0;
     }
 
+    void set_flash_state(bool flash_state) {
+        this->flash_state = flash_state;
+    }
+
     /** delayEnabled is true for any Apple II model except Apple II Rev 0. */
     void buildHires40Font(bool delayEnabled)
     {
@@ -109,8 +113,9 @@ public:
     void generate_text40(uint8_t *textpage, Frame560 *f, uint16_t linegroup) {
         uint16_t scanline = linegroup * 8;
         uint16_t x = 0;
-        bool pixel_on = 1;
-        bool pixel_off = 0;
+       /*  bool pixel_on = 1;
+        bool pixel_off = 0; */
+        bool invert = false;
 
         for (uint16_t y = 0; y < 8; y++) {
             uint16_t char_addr = A2_textMap[linegroup];
@@ -121,35 +126,41 @@ public:
                 uint8_t tchar = textpage[char_addr];
 
                 if ((tchar & 0xC0) == 0) {
-                    pixel_on = 0;
-                    pixel_off = 1;
+                    invert = true;
+                    /* pixel_on = 0;
+                    pixel_off = 1; */
                 } else if (((tchar & 0xC0) == 0x40)) {
-                     pixel_on = flash_state;
-                     pixel_off = !flash_state;
+                    invert = flash_state;
+                    /* pixel_on = flash_state;
+                    pixel_off = !flash_state; */
+                } else {
+                    invert = false;
+                    /* pixel_on = 1;
+                    pixel_off = 0; */
                 }
 
                 uint8_t cdata = char_rom.get_char_scanline(tchar, y + altbase);
 
-                f->push(cdata & 1 ? pixel_on : pixel_off); 
-                f->push(cdata & 1 ? pixel_on : pixel_off); 
+                f->push((cdata & 1) ^ invert); 
+                f->push((cdata & 1) ^ invert); 
                 cdata>>=1;
-                f->push(cdata & 1 ? pixel_on : pixel_off); 
-                f->push(cdata & 1 ? pixel_on : pixel_off); 
+                f->push((cdata & 1) ^ invert); 
+                f->push((cdata & 1) ^ invert); 
                 cdata>>=1;
-                f->push(cdata & 1 ? pixel_on : pixel_off); 
-                f->push(cdata & 1 ? pixel_on : pixel_off); 
+                f->push((cdata & 1) ^ invert); 
+                f->push((cdata & 1) ^ invert); 
                 cdata>>=1;
-                f->push(cdata & 1 ? pixel_on : pixel_off); 
-                f->push(cdata & 1 ? pixel_on : pixel_off); 
+                f->push((cdata & 1) ^ invert); 
+                f->push((cdata & 1) ^ invert); 
                 cdata>>=1;
-                f->push(cdata & 1 ? pixel_on : pixel_off); 
-                f->push(cdata & 1 ? pixel_on : pixel_off); 
+                f->push((cdata & 1) ^ invert); 
+                f->push((cdata & 1) ^ invert); 
                 cdata>>=1;
-                f->push(cdata & 1 ? pixel_on : pixel_off); 
-                f->push(cdata & 1 ? pixel_on : pixel_off); 
+                f->push((cdata & 1) ^ invert); 
+                f->push((cdata & 1) ^ invert); 
                 cdata>>=1;
-                f->push(cdata & 1 ? pixel_on : pixel_off); 
-                f->push(cdata & 1 ? pixel_on : pixel_off); 
+                f->push((cdata & 1) ^ invert); 
+                f->push((cdata & 1) ^ invert); 
 
                 char_addr++;
             }

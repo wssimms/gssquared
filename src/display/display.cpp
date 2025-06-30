@@ -36,6 +36,8 @@
 #include "devices/videx/videx_80x24.hpp"
 #include "devices/annunciator/annunciator.hpp"
 #include "videosystem.hpp"
+#include "devices/displaypp/CharRom.hpp"
+#include "devices/iiememory/iiememory.hpp"
 
 display_page_t display_pages[NUM_DISPLAY_PAGES] = {
     {
@@ -182,6 +184,7 @@ void init_display_font(rom_data *rd) {
     pre_calculate_font(rd);
 }
 
+#if 0
 /**
  * This is effectively a "redraw the entire screen each frame" method now.
  * With an optimization only update dirty lines.
@@ -227,6 +230,102 @@ bool update_display_apple2(cpu_state *cpu) {
     vs->render_frame(ds->screenTexture);
     return true;
 }
+#else
+
+/**
+ * This is effectively a "redraw the entire screen each frame" method now.
+ * With an optimization only update dirty lines.
+ */
+bool update_display_apple2(cpu_state *cpu) {
+    display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
+    video_system_t *vs = ds->video_system;
+
+    // first push flash state into AppleII_Display
+    ds->a2_display->set_flash_state(ds->flash_state);
+
+    // the backbuffer must be cleared each frame. The docs state this clearly
+    // but I didn't know what the backbuffer was. Also, I assumed doing it once
+    // at startup was enough. NOPE. (oh, it's buffer flipping).
+    uint8_t *ram = ds->mmu->get_memory_base();
+    uint8_t *text_page;
+    uint8_t *hgr_page;
+    uint8_t *alt_text_page;
+    uint8_t *alt_hgr_page;
+    if (ds->display_page_num == DISPLAY_PAGE_1) {
+        text_page = ram + 0x0400;
+        hgr_page = ram + 0x2000;
+        alt_text_page = ram + 0x10800;
+        alt_hgr_page = ram + 0x14000;
+    } else {
+        text_page = ram + 0x0800;
+        hgr_page = ram + 0x4000;
+        alt_text_page = ram + 0x10400;
+        alt_hgr_page = ram + 0x12000;
+    }
+
+    int updated = 0;
+    for (uint16_t line = 0; line < 24; line++) {
+        if (vs->force_full_frame_redraw || ds->dirty_line[line]) {
+            switch (ds->line_mode[line]) {
+                case LM_TEXT_MODE:
+                    ds->a2_display->generate_text40(text_page, ds->frame_bits, line);
+                    break;
+                case LM_LORES_MODE:
+                    ds->a2_display->generate_lores40(text_page, ds->frame_bits, line);
+                    break;
+                case LM_HIRES_MODE:
+                    ds->a2_display->generate_hires40(hgr_page, ds->frame_bits, line);
+                    break;
+                case LM_TEXT80_MODE:
+                    ds->a2_display->generate_text80(text_page, alt_text_page, ds->frame_bits, line);
+                    break;
+                case LM_LORES80_MODE:
+                    ds->a2_display->generate_lores80(text_page, alt_text_page, ds->frame_bits, line);
+                    break;
+                case LM_HIRES80_MODE:
+                    ds->a2_display->generate_hires80(hgr_page, alt_hgr_page, ds->frame_bits, line);
+                    break;
+            }
+            ds->dirty_line[line] = 0;
+            updated = 1;
+        }
+    }
+
+    if (updated) { // only reload texture if we updated any lines.
+        // do a switch on display engine later..
+        switch (vs->display_color_engine) {
+            case DM_ENGINE_NTSC:
+                if (ds->display_mode == TEXT_MODE) {
+                    ds->mon_mono.render(ds->frame_bits, ds->frame_rgba, (RGBA_t){.a = 0xFF, .b = 0xFF, .g = 0xFF, .r = 0xFF});
+                } else {
+                    ds->mon_ntsc.render(ds->frame_bits, ds->frame_rgba, (RGBA_t){.a = 0xFF, .b = 0x00, .g = 0xFF, .r = 0x00}, 1);
+                }
+                break;
+            case DM_ENGINE_RGB:
+                ds->mon_rgb.render(ds->frame_bits, ds->frame_rgba, (RGBA_t){.a = 0xFF, .b = 0x00, .g = 0xFF, .r = 0x00}, 1);
+                break;
+            case DM_ENGINE_MONO:
+                ds->mon_mono.render(ds->frame_bits, ds->frame_rgba, (RGBA_t){.a = 0xFF, .b = 0x00, .g = 0xFF, .r = 0x00});
+                break;
+            default:
+                break; // never happens
+        }
+
+        void* pixels;
+        int pitch;
+        if (!SDL_LockTexture(ds->screenTexture, NULL, &pixels, &pitch)) {
+            fprintf(stderr, "Failed to lock texture: %s\n", SDL_GetError());
+            return true;
+        }
+        memcpy(pixels, ds->frame_rgba->data(), (BASE_WIDTH+20) * BASE_HEIGHT * sizeof(RGBA_t)); // load all buffer into texture
+        SDL_UnlockTexture(ds->screenTexture);
+    }
+    vs->force_full_frame_redraw = false;
+    vs->render_frame(ds->screenTexture);
+    return true;
+}
+
+#endif
 
 /* void update_display(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
@@ -253,12 +352,17 @@ void force_display_update(display_state_t *ds) {
 }
 
 void update_line_mode(display_state_t *ds) {
+    iiememory_state_t *iiememory_d = (iiememory_state_t *)get_module_state(ds->cpu, MODULE_IIEMEMORY);
 
     line_mode_t top_mode;
     line_mode_t bottom_mode;
 
     if (ds->display_mode == TEXT_MODE) {
-        top_mode = LM_TEXT_MODE;
+        if (iiememory_d->f_80col) {
+            top_mode = LM_TEXT80_MODE;
+        } else {
+            top_mode = LM_TEXT_MODE;
+        }
     } else {
         if (ds->display_graphics_mode == LORES_MODE) {
             top_mode = LM_LORES_MODE;
@@ -468,6 +572,15 @@ void txt_bus_write_C057(void *context, uint16_t address, uint8_t value) {
     txt_bus_read_C057(context, address);
 }
 
+void ds_bus_write_C00X(void *context, uint16_t address, uint8_t value) {
+    display_state_t *ds = (display_state_t *)context;
+    switch (address) {
+        case 0xC00C:
+            ds->f_80col = (value & 0x80) != 0;
+            break;
+    }
+}
+
 /**
  * display_state_t Class Implementation
  */
@@ -574,12 +687,43 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     // alloc and init display state
     display_state_t *ds = new display_state_t;
     video_system_t *vs = computer->video_system;
+    ds->cpu = cpu;
     ds->video_system = vs;
     ds->event_queue = computer->event_queue;
     ds->computer = computer;
     MMU_II *mmu = computer->mmu;
     ds->mmu = mmu;
 
+#if 1
+    // new display engine setup
+    CharRom *charrom = nullptr;
+    if (computer->platform->id == PLATFORM_APPLE_IIE) {
+        charrom = new CharRom("assets/roms/apple2e/char.rom");
+    } else if (computer->platform->id == PLATFORM_APPLE_II_PLUS) {
+        charrom = new CharRom("assets/roms/apple2_plus/char.rom");
+    }
+    ds->a2_display = new AppleII_Display(*charrom);
+    uint16_t f_w = BASE_WIDTH+20;
+    uint16_t f_h = BASE_HEIGHT;
+    ds->frame_rgba = new(std::align_val_t(64)) Frame560RGBA(f_w, f_h);
+    ds->frame_bits = new(std::align_val_t(64)) Frame560(f_w, f_h);
+
+    // Create the screen texture
+    ds->screenTexture = SDL_CreateTexture(vs->renderer,
+        PIXEL_FORMAT,
+        SDL_TEXTUREACCESS_STREAMING,
+        BASE_WIDTH+20, BASE_HEIGHT);
+
+    if (!ds->screenTexture) {
+        fprintf(stderr, "Error creating screen texture: %s\n", SDL_GetError());
+    }
+
+    SDL_SetTextureBlendMode(ds->screenTexture, SDL_BLENDMODE_NONE); /* GRRRRRRR. This was defaulting to SDL_BLENDMODE_BLEND. */
+    // LINEAR gets us appropriately blurred pixels.
+    // NEAREST gets us sharp pixels.
+    SDL_SetTextureScaleMode(ds->screenTexture, SDL_SCALEMODE_LINEAR);
+
+#else
     // Create the screen texture
     ds->screenTexture = SDL_CreateTexture(vs->renderer,
         PIXEL_FORMAT,
@@ -596,6 +740,7 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     SDL_SetTextureScaleMode(ds->screenTexture, SDL_SCALEMODE_LINEAR);
 
     init_displayng();
+#endif
 
     // set in CPU so we can reference later
     set_module_state(cpu, MODULE_DISPLAY, ds);

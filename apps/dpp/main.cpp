@@ -281,6 +281,8 @@ int main(int argc, char **argv) {
     int render_mode = 1;
     int sharpness = 0;
     bool exiting = false;
+    bool flash_state = false;
+    int flash_count = 0;
 
     while (++framecnt && !exiting)  {
         SDL_Event event;
@@ -325,6 +327,12 @@ int main(int argc, char **argv) {
 
         start = SDL_GetTicksNS();
         int phaseoffset = 1; // now that I start normal (40) display at pixel 7, its phase is 1 also. So, both 40 and 80 display start at phase 1 now.
+
+        if (flash_count++ > 14) {
+            flash_state = !flash_state;
+            flash_count = 0;
+            display_iiplus.set_flash_state(flash_state);
+        }
 
         for (int l = 0; l < 24; l++) {
             switch (generate_mode) {

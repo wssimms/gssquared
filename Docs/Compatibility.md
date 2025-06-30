@@ -138,6 +138,7 @@ if there's a Videx, wizardry (aka Pascal) turns it on. Then all you see is the V
 ## Epyx Preview Disk
 
 baseball ok. Winter Games, something's not right, is it trying to double-buffer and it isn't triggering correctly?
+Is now working ok in IIe mode.
 
 ## Skyfox
 
@@ -166,7 +167,9 @@ needs: Mouse; VBL;
 
 ## Cybernoid Music Disk
 
-works, but has lowercase. For iie.
+works, but has lowercase. 4.0 version is Prodos 2.0.3 needs enhanced apple iie.
+"DOS3.3" is Cybernoid 5.0, works. wants a mockingboard.
+Mixing is not great.
 
 ## Apple Cider Spider - 4am crack
 
@@ -180,15 +183,15 @@ looks like requires //e 80 column card.
 ## Jumpman
 
 crashes after loading a few tracks of data; then it has also gone back to C600 and jumps again to $0801 which is an RTS which then wreaks various havoc, gets to a BRK, and ends up in monitor.
+Boots now, and "plays", but there may be an issue with the joystick. only seems to be able to go up and left.
 
 ## Ultima IV
 
-Works and supports Mockingboard on II Plus.
-Runs on IIe but Mockingboard not working.
+Works and supports Mockingboard on II Plus. Now works with Mockingboard on IIe.
 
 ## Ultima V
 
-Is now booting on IIe emulation with 128K. I should stick a Mockingboard in it and see if it works! It doesn't. ha!
+Is now booting on IIe emulation with 128K. I should stick a Mockingboard in it and see if it works! It doesn't. ha! Fixed a bug in MB with new mmu routines for c1cf, still doesn't work.
 
 ## AppleWorks 1.3
 

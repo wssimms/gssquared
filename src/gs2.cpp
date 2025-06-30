@@ -458,28 +458,23 @@ int main(int argc, char *argv[]) {
         case MMU_MMU_II:
             mmu_ii = new MMU_II(256, 48*1024, (uint8_t *) rd->main_rom_data);
             computer->cpu->set_mmu(mmu_ii);
-            computer->set_mmu(mmu_ii); // TODO: this is ugly. Should use an interface or something like that. This may not even work if I add methods..
+            computer->set_mmu(mmu_ii);
             break;
         case MMU_MMU_IIE:
             mmu_iie = new MMU_IIe(256, 128*1024, (uint8_t *) rd->main_rom_data);
             computer->cpu->set_mmu(mmu_iie);
-            computer->set_mmu(mmu_iie); // TODO: this is ugly. Should use an interface or something like that. This may not even work if I add methods..
+            computer->set_mmu(mmu_iie);
             break;
         default:
             printf("Unknown MMU type: %d\n", platform->mmu_type);
             break;
     }
 
-    //computer->cpu->set_mmu(mmu);
-    //computer->set_mmu(mmu); // TODO: this is ugly. Should use an interface or something like that. This may not even work if I add methods..
-
     // need to tell the MMU about our ROM somehow.
     // need a function in MMU to "reset page to default".
 
     computer->cpu->set_processor(platform->processor_type);
-    computer->mounts = new Mounts(computer->cpu); // TODO: this should happen in a CPU constructor.
-
-    //computer->cpu->set_video_system(computer->video_system);
+    computer->mounts = new Mounts(computer->cpu);
 
     init_display_font(rd);
 
