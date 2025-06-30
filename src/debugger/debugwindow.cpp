@@ -487,7 +487,7 @@ bool debug_window_t::handle_event(SDL_Event &event) {
                     cpu->instructions_left = 0;
                     view_position = 0;
                 }
-                if (event.key.key == SDLK_KP_ENTER && event.key.mod & SDL_KMOD_CTRL) {
+                if (event.key.key == SDLK_RETURN && event.key.mod & SDL_KMOD_CTRL) {
                     if (window_open) {
                         set_closed();
                     } else {
@@ -530,7 +530,7 @@ bool debug_window_t::handle_event(SDL_Event &event) {
         }
         return true;
     } else {
-        if (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_KP_ENTER && event.key.mod & SDL_KMOD_CTRL) {
+        if (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_RETURN && event.key.mod & SDL_KMOD_CTRL) {
             if (window_open) {
                 set_closed();
             } else {
