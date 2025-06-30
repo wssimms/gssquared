@@ -61,7 +61,7 @@ int hiresMap[24] = {
             0x03D0,
         };
 
-int hiresMapIndex(int y) {
+inline int hiresMapIndex(int y) {
     int row1 = y / 8;
     int row2 = y % 8;
     return hiresMap[row1] + row2 * 0x400;
