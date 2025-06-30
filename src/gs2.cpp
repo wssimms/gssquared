@@ -542,9 +542,6 @@ int main(int argc, char *argv[]) {
             break;
     }
 
-    //computer->cpu->set_mmu(mmu);
-    //computer->set_mmu(mmu); // TODO: this is ugly. Should use an interface or something like that. This may not even work if I add methods..
-
     // need to tell the MMU about our ROM somehow.
     // need a function in MMU to "reset page to default".
 

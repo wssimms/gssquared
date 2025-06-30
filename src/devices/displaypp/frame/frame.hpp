@@ -33,7 +33,8 @@ public:
         scanline = line;
         hloc = 0;
     }
-
+    inline uint16_t width() { return f_width; }
+    inline uint16_t height() { return f_height; }
     void clear();
     
     // Getters for template parameters

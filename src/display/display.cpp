@@ -257,12 +257,43 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     // alloc and init display state
     display_state_t *ds = new display_state_t;
     video_system_t *vs = computer->video_system;
+    ds->cpu = cpu;
     ds->video_system = vs;
     ds->event_queue = computer->event_queue;
     ds->computer = computer;
     MMU_II *mmu = computer->mmu;
     ds->mmu = mmu;
 
+#if 1
+    // new display engine setup
+    CharRom *charrom = nullptr;
+    if (computer->platform->id == PLATFORM_APPLE_IIE) {
+        charrom = new CharRom("assets/roms/apple2e/char.rom");
+    } else if (computer->platform->id == PLATFORM_APPLE_II_PLUS) {
+        charrom = new CharRom("assets/roms/apple2_plus/char.rom");
+    }
+    ds->a2_display = new AppleII_Display(*charrom);
+    uint16_t f_w = BASE_WIDTH+20;
+    uint16_t f_h = BASE_HEIGHT;
+    ds->frame_rgba = new(std::align_val_t(64)) Frame560RGBA(f_w, f_h);
+    ds->frame_bits = new(std::align_val_t(64)) Frame560(f_w, f_h);
+
+    // Create the screen texture
+    ds->screenTexture = SDL_CreateTexture(vs->renderer,
+        PIXEL_FORMAT,
+        SDL_TEXTUREACCESS_STREAMING,
+        BASE_WIDTH+20, BASE_HEIGHT);
+
+    if (!ds->screenTexture) {
+        fprintf(stderr, "Error creating screen texture: %s\n", SDL_GetError());
+    }
+
+    SDL_SetTextureBlendMode(ds->screenTexture, SDL_BLENDMODE_NONE); /* GRRRRRRR. This was defaulting to SDL_BLENDMODE_BLEND. */
+    // LINEAR gets us appropriately blurred pixels.
+    // NEAREST gets us sharp pixels.
+    SDL_SetTextureScaleMode(ds->screenTexture, SDL_SCALEMODE_LINEAR);
+
+#else
     // Create the screen texture
     ds->screenTexture = SDL_CreateTexture(vs->renderer,
         PIXEL_FORMAT,
@@ -279,6 +310,7 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     SDL_SetTextureScaleMode(ds->screenTexture, SDL_SCALEMODE_LINEAR);
 
     init_displayng();
+#endif
 
     // set in CPU so we can reference later
     set_module_state(cpu, MODULE_DISPLAY, ds);

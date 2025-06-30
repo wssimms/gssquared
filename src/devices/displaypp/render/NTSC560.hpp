@@ -18,6 +18,8 @@ public:
 
     void render(Frame560 *frame_byte, Frame560RGBA *frame_rgba, RGBA_t color, uint16_t phaseoffset) {
         // Process each scanline
+        uint16_t framewidth = frame_byte->width();
+
         for (uint16_t y = 0; y < 192; y++)
         {
             uint32_t bits = 0;
@@ -36,10 +38,10 @@ public:
             }
             
             // Process the scanline
-            for (uint16_t x = 0; x < config.width; x++)
+            for (uint16_t x = 0; x < framewidth; x++)
             {
                 bits = bits >> 1;
-                if ((x < config.width-NUM_TAPS) && (frame_byte->pull() != 0)) // at end of line insert 0s
+                if ((x < framewidth-NUM_TAPS) && (frame_byte->pull() != 0)) // at end of line insert 0s
                     bits = bits | (1 << ((NUM_TAPS*2)));
 
                 uint32_t phase = (phaseoffset + x) % 4;
