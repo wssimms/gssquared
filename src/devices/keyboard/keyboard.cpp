@@ -174,6 +174,11 @@ void handle_keydown_iie(const SDL_Event &event, keyboard_state_t *kb_state) {
             /* if (DEBUG(DEBUG_KEYBOARD)) fprintf(stdout, "control key pressed: %08X\n", key); */
         }
     }  else {
+        // we need to map backspace to 0x7F because SDL maps backspace/delete to 0x08 (not what we want)
+        if (event.key.scancode == SDL_SCANCODE_BACKSPACE) {
+            kb_key_pressed(kb_state, 0x7F);
+            return;
+        }
         // map the scancode + mods to a sensible keycode
         SDL_Keycode mapped = SDL_GetKeyFromScancode(event.key.scancode, event.key.mod, false);
         if (DEBUG(DEBUG_KEYBOARD)) printf("mapped key: %08X\n", mapped);
