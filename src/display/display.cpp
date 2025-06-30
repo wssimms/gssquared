@@ -254,13 +254,13 @@ bool update_display_apple2(cpu_state *cpu) {
     if (ds->display_page_num == DISPLAY_PAGE_1) {
         text_page = ram + 0x0400;
         hgr_page = ram + 0x2000;
-        alt_text_page = ram + 0x10800;
-        alt_hgr_page = ram + 0x14000;
+        alt_text_page = ram + 0x10400;
+        alt_hgr_page = ram + 0x12000;
     } else {
         text_page = ram + 0x0800;
         hgr_page = ram + 0x4000;
-        alt_text_page = ram + 0x10400;
-        alt_hgr_page = ram + 0x12000;
+        alt_text_page = ram + 0x10800;
+        alt_hgr_page = ram + 0x14000;
     }
 
     int updated = 0;
@@ -352,13 +352,12 @@ void force_display_update(display_state_t *ds) {
 }
 
 void update_line_mode(display_state_t *ds) {
-    iiememory_state_t *iiememory_d = (iiememory_state_t *)get_module_state(ds->cpu, MODULE_IIEMEMORY);
 
     line_mode_t top_mode;
     line_mode_t bottom_mode;
 
     if (ds->display_mode == TEXT_MODE) {
-        if (iiememory_d->f_80col) {
+        if (ds->f_80col) {
             top_mode = LM_TEXT80_MODE;
         } else {
             top_mode = LM_TEXT_MODE;
@@ -372,7 +371,11 @@ void update_line_mode(display_state_t *ds) {
     }
 
     if (ds->display_split_mode == SPLIT_SCREEN) {
-        bottom_mode = LM_TEXT_MODE;
+        if (ds->f_80col) {
+            bottom_mode = LM_TEXT80_MODE;
+        } else {
+            bottom_mode = LM_TEXT_MODE;
+        }
     } else {
         bottom_mode = top_mode;
     }
@@ -576,9 +579,13 @@ void ds_bus_write_C00X(void *context, uint16_t address, uint8_t value) {
     display_state_t *ds = (display_state_t *)context;
     switch (address) {
         case 0xC00C:
-            ds->f_80col = (value & 0x80) != 0;
+            ds->f_80col = false;
+            break;
+        case 0xC00D:
+            ds->f_80col = true;
             break;
     }
+    update_line_mode(ds);
 }
 
 /**
@@ -681,13 +688,18 @@ uint8_t display_read_C01E(void *context, uint16_t address) {
     return (ds->display_alt_charset) ? 0x80 : 0x00;
 }
 
+uint8_t display_read_C01F(void *context, uint16_t address) {
+    display_state_t *ds = (display_state_t *)context;
+    return (ds->f_80col) ? 0x80 : 0x00;
+}
+
 void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     cpu_state *cpu = computer->cpu;
     
     // alloc and init display state
     display_state_t *ds = new display_state_t;
     video_system_t *vs = computer->video_system;
-    ds->cpu = cpu;
+
     ds->video_system = vs;
     ds->event_queue = computer->event_queue;
     ds->computer = computer;
@@ -786,9 +798,17 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
 
     if (computer->platform->id == PLATFORM_APPLE_IIE) {
         ds->display_alt_charset = false;
+        mmu->set_C0XX_write_handler(0xC00C, { ds_bus_write_C00X, ds });
+        mmu->set_C0XX_write_handler(0xC00D, { ds_bus_write_C00X, ds });
         mmu->set_C0XX_write_handler(0xC00E, { display_write_switches, ds });
         mmu->set_C0XX_write_handler(0xC00F, { display_write_switches, ds });
         mmu->set_C0XX_read_handler(0xC01E, { display_read_C01E, ds });
+        mmu->set_C0XX_read_handler(0xC01F, { display_read_C01F, ds });
+        computer->register_reset_handler([ds]() {
+            ds->f_80col = false;
+            update_line_mode(ds);
+            return true;
+        });
     }
 }
 
