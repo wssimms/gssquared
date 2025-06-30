@@ -5044,7 +5044,7 @@ OK, issues!
 1. I didn't implement flash; it just sets the whole line to inverse? [fixed]
 1. inverse doesn't work right on iie.
 1. in all modes there is a white block at the end of the first line (line 0). 
-1. I think the text is like one scanline off. 40 column there is a empty scanline at top of chars; 80 column there is not.
+1. I think the text is like one scanline off. 40 column there is a empty scanline at top of chars; 80 column there is not. Investigate.
 1. Wms cycle-accurate will have to generate its own output frame, and just not use my renderers, because of the same problem as in number 1-2 and 1-3 above.
 1. I'm scrunching the 580 texture into 560 when video_system displays it.
 
@@ -5062,3 +5062,14 @@ OK, I'm a stone's throw from 80-column support now.
 
 So on an NTSC display, whether the colorburst is present at the start of a scanline will control the entire line. So "per scanline-ish" color killer is accurate.
 in RGB, that doesn't really apply. But we can use the same flag to determine whether to render using rgb algo or monochrome.
+
+btw I'm still seeing the "window doesn't update right when we're close to screen edge".
+
+I've got double lo-res in and tested now. Now I need to test double hi-res. What to do it with.. 
+
+[ ] I think I am missing a memory management soft-switch to reset on a RESET, esp with stuff that wants to do 80-col, dlgr, dhgr.  
+[ ] need vbl c019 support  
+[ ] open-apple and closed-apple  
+
+OA-CA can go into the game controller. it can just call SDL to see if the appropriate modifiers are being pressed.
+

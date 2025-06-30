@@ -22,6 +22,8 @@
 
 ## Release 0.4
 
+[ ] Apple IIe support  
+[ ] 80-column / double lo-res / double hi-res  
 [ ] put common controls in hover-over on main page - reset, restart, power-off, open debugger
 [ ] Refactor CPU to be more cycle-accurate including false/phantom reads/writes  
 [ ] Implement new optimized audio code  

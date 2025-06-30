@@ -242,12 +242,12 @@ public:
                 uint8_t byteM = m[x];
                 uint8_t byteA = a[x];
                 for (int i = 0; i < 7; i++ ) {
-                    f->push((byteM & 0x01) ? 1 : 0);
-                    byteM >>= 1;
-                }
-                for (int i = 0; i < 7; i++ ) {
                     f->push((byteA & 0x01) ? 1 : 0);
                     byteA >>= 1;
+                }
+                for (int i = 0; i < 7; i++ ) {
+                    f->push((byteM & 0x01) ? 1 : 0);
+                    byteM >>= 1;
                 }
             }
             m += 0x400; // go to next line

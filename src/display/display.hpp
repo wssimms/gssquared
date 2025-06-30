@@ -126,6 +126,7 @@ public:
 
     bool flash_state;
     int flash_counter;
+    bool f_double_graphics = true;
 
     uint32_t dirty_line[24];
     line_mode_t line_mode[24] = {LM_TEXT_MODE}; // 0 = TEXT, 1 = LO RES GRAPHICS, 2 = HI RES GRAPHICS

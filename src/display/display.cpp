@@ -252,15 +252,15 @@ bool update_display_apple2(cpu_state *cpu) {
     uint8_t *alt_text_page;
     uint8_t *alt_hgr_page;
     if (ds->display_page_num == DISPLAY_PAGE_1) {
-        text_page = ram + 0x0400;
-        hgr_page = ram + 0x2000;
+        text_page     = ram + 0x0400;
         alt_text_page = ram + 0x10400;
-        alt_hgr_page = ram + 0x12000;
+        hgr_page      = ram + 0x2000;
+        alt_hgr_page  = ram + 0x12000;
     } else {
-        text_page = ram + 0x0800;
-        hgr_page = ram + 0x4000;
+        text_page     = ram + 0x0800;
         alt_text_page = ram + 0x10800;
-        alt_hgr_page = ram + 0x14000;
+        hgr_page      = ram + 0x4000;
+        alt_hgr_page  = ram + 0x14000;
     }
 
     int updated = 0;
@@ -364,9 +364,17 @@ void update_line_mode(display_state_t *ds) {
         }
     } else {
         if (ds->display_graphics_mode == LORES_MODE) {
-            top_mode = LM_LORES_MODE;
+            if (!ds->f_double_graphics) {
+                top_mode = LM_LORES80_MODE;
+            } else {
+                top_mode = LM_LORES_MODE;
+            }
         } else {
-            top_mode = LM_HIRES_MODE;
+            if (!ds->f_double_graphics) {
+                top_mode = LM_HIRES80_MODE;
+            } else {
+                top_mode = LM_HIRES_MODE;
+            }
         }
     }
 
@@ -693,6 +701,21 @@ uint8_t display_read_C01F(void *context, uint16_t address) {
     return (ds->f_80col) ? 0x80 : 0x00;
 }
 
+uint8_t display_read_C05EF(void *context, uint16_t address) {
+    display_state_t *ds = (display_state_t *)context;
+    ds->f_double_graphics = (address & 0x1); // this is inverted sense
+    update_line_mode(ds);
+    ds->video_system->set_full_frame_redraw();
+    return 0;
+}
+
+void display_write_C05EF(void *context, uint16_t address, uint8_t value) {
+    display_state_t *ds = (display_state_t *)context;
+    ds->f_double_graphics = (address & 0x1); // this is inverted sense
+    update_line_mode(ds);
+    ds->video_system->set_full_frame_redraw();
+}
+
 void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     cpu_state *cpu = computer->cpu;
     
@@ -804,8 +827,13 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
         mmu->set_C0XX_write_handler(0xC00F, { display_write_switches, ds });
         mmu->set_C0XX_read_handler(0xC01E, { display_read_C01E, ds });
         mmu->set_C0XX_read_handler(0xC01F, { display_read_C01F, ds });
+        mmu->set_C0XX_read_handler(0xC05E, { display_read_C05EF, ds });
+        mmu->set_C0XX_write_handler(0xC05E, { display_write_C05EF, ds });
+        mmu->set_C0XX_read_handler(0xC05F, { display_read_C05EF, ds });
+        mmu->set_C0XX_write_handler(0xC05F, { display_write_C05EF, ds });
         computer->register_reset_handler([ds]() {
             ds->f_80col = false;
+            ds->f_double_graphics = true;
             update_line_mode(ds);
             return true;
         });

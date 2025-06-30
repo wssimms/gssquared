@@ -58,6 +58,7 @@ DeviceMap_t DeviceMap_IIE[] = {
     {DEVICE_ID_PD_BLOCK2, SLOT_5},
     {DEVICE_ID_DISK_II, SLOT_6},
     {DEVICE_ID_MOCKINGBOARD, SLOT_4},
+    //{DEVICE_ID_ANNUNCIATOR, SLOT_NONE}, // no annunciator because these are overridden by display - maybe have a IIe annunciator with less registers.
     {DEVICE_ID_END, SLOT_NONE}
 };
 
