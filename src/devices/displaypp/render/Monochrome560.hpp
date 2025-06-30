@@ -10,7 +10,8 @@ public:
         for (int l = 0; l < 192; l++) {
             frame_rgba->set_line(l);
             frame_byte->set_line(l);
-            for (int i = 0; i < 560; i++) {
+            uint16_t fw = frame_byte->width();
+            for (int i = 0; i < fw; i++) {
                 frame_rgba->push(frame_byte->pull() ? color : (RGBA_t){.rgba = 0x00000000});
             }
         }

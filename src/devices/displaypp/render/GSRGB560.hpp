@@ -100,8 +100,6 @@ public:
         return val & 0x0F;
     }
 
-
-
     uint8_t barrel_shift_left(uint8_t phase, uint8_t val) {
         uint8_t inval = val;
         for (uint8_t i = 0; i < phase; i++) {
@@ -113,7 +111,7 @@ public:
         return val & 0x0F;
     }
 
-    void render(Frame560 *frame_byte, Frame560RGBA *frame_rgba, RGBA_t color, uint16_t phaseoffset) {
+    void render_old(Frame560 *frame_byte, Frame560RGBA *frame_rgba, RGBA_t color, uint16_t phaseoffset) {
 
         for (uint16_t y = 0; y < 192; y++)
         {
@@ -133,7 +131,8 @@ public:
 
             frame_byte->set_line(y);
             frame_rgba->set_line(y);
-            for (uint16_t x = 0; x < 560; x++) {
+            uint16_t framewidth = frame_byte->width();
+            for (uint16_t x = 0; x < framewidth; x++) {
                 // PRE-Clock
 
                 bool INP = frame_byte->pull();
@@ -205,7 +204,9 @@ end of the line.. dlgr is passable. I need to see what dlgr looks like on the GS
 need to test against hi-res.
 text looks like a** in it. */
 
-    void render2(Frame560 *frame_byte, Frame560RGBA *frame_rgba, RGBA_t color, uint16_t phaseoffset) {
+    void render(Frame560 *frame_byte, Frame560RGBA *frame_rgba, RGBA_t color, uint16_t phaseoffset)
+    {
+        uint16_t framewidth = frame_byte->width();
 
         for (uint16_t y = 0; y < 192; y++)
         {
@@ -223,26 +224,26 @@ text looks like a** in it. */
             bool JK44 = 0;
             bool JK44_J = 0;
             bool JK44_K = 0;
-bool INP;
+            bool INP;
 
             frame_byte->set_line(y);
             frame_rgba->set_line(y);
 
-             INP = frame_byte->pull(); // preload the shift register for lookahead
-             phase = (phase + 1) % 4;
+            INP = frame_byte->pull(); // preload the shift register for lookahead
+            phase = (phase + 1) % 4;
             ShiftReg = ((ShiftReg << 1) | INP) & 0xF;
-             INP = frame_byte->pull();
-             phase = (phase + 1) % 4;
+            INP = frame_byte->pull();
+            phase = (phase + 1) % 4;
             ShiftReg = ((ShiftReg << 1) | INP) & 0xF;
-             INP = frame_byte->pull();
-             phase = (phase + 1) % 4;
+            INP = frame_byte->pull();
+            phase = (phase + 1) % 4;
             ShiftReg = ((ShiftReg << 1) | INP) & 0xF;
-             INP = frame_byte->pull();
-             phase = (phase + 1) % 4;
+            INP = frame_byte->pull();
+            phase = (phase + 1) % 4;
             ShiftReg = ((ShiftReg << 1) | INP) & 0xF;
             LatchOut = barrel_shifter[3][ShiftReg];
 
-            for (uint16_t x = 4; x < 560; x++) {
+            for (uint16_t x = 4; x < framewidth; x++) {
                 // PRE-Clock
                 //phase = x % 4;
 
@@ -270,8 +271,8 @@ bool INP;
                 //LatchOut = MuxOut;
             }
             // need to run out the rest of the line of pixels
-            for (uint16_t x = 561; x <= 564; x++) {
-                
+            // pretend 561 to 564
+            for (uint16_t x = 1; x <= 4; x++) {
                 frame_rgba->push(gs_rgb_colors[LatchOut]);
             }
         }
