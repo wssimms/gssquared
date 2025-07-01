@@ -155,7 +155,7 @@ void VideoScannerIIe::set_video_mode()
             video_mode = VM_TEXT40;
     }
 
-    printf("Video Mode: %d\n", video_mode);
+    //printf("Video Mode: %d\n", video_mode);
 }
 
 void VideoScannerIIe::video_cycle()

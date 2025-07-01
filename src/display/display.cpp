@@ -47,7 +47,7 @@ bool Display::update_display(cpu_state *cpu)
     memcpy(pixels, buffer, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA_t)); // load all buffer into texture
     SDL_UnlockTexture(screenTexture);
 
-    video_system->render_frame(screenTexture);
+    video_system->render_frame(screenTexture, -7.0f);
 
     return true;
 }

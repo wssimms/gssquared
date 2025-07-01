@@ -21,13 +21,17 @@ static int RGB_shifted_color_2[16] = {
     0,0,6,6,15,15,15,15
 };
 
+static int dblres_rotate[16] = {
+    0, 2, 4, 6, 8, 10, 12, 14,
+    1, 3, 5, 7, 9, 11, 13, 15
+};
+
 bool DisplayRGB::update_display(cpu_state *cpu)
 {
     VideoScannerII *vs = cpu->get_video_scanner();
 
     uint8_t  video_rom_data;
     uint16_t video_bits;
-    uint16_t rawbits = 0;
     uint32_t vcount = 0;
     uint32_t hcount = 0;
     uint8_t  last_byte = 0;
@@ -50,7 +54,7 @@ bool DisplayRGB::update_display(cpu_state *cpu)
         uint8_t video_byte = video_data[i++];
 
         if (video_mode == VM_LAST_HBL) {
-            // ignore this
+            // ignore the VM_LAST_HBL data
             video_mode = (video_mode_t)(video_data[i++]);
             video_byte = video_data[i++];
         }
@@ -286,14 +290,56 @@ bool DisplayRGB::update_display(cpu_state *cpu)
 
         case VM_DHIRES:
         output_dhires:
-            video_byte = video_data[i++]; // skip aux byte
-            goto output_hires;
+            {
+                uint8_t main_byte = (video_data[i++] & 0x7F);
+
+                video_mode_t next_mode = (video_mode_t)(video_data[i]);
+                uint16_t next_byte = video_data[i+1];
+                uint16_t idx = 0;
+
+                bool next_is_dhgr = false;
+                if (next_mode == VM_DHIRES) next_is_dhgr = true;
+                else if (next_mode == VM_DHIRES_MIXED80) next_is_dhgr = true;
+                else if (next_mode == VM_DHIRES_ALT_MIXED80) next_is_dhgr = true;
+
+                if (hcount & 1) {
+                    video_bits = main_byte;
+                    video_bits = (video_bits << 7) | (video_byte & 0x7F);
+                    video_bits = (video_bits << 2) | ((last_byte >> 5) & 3);
+                    output -= 2;
+                    for (int count = 4; count; --count) {
+                        idx = dblres_rotate[video_bits & 15];
+                        //idx = 0;
+                        *output++ = iigs_color_table[idx];
+                        *output++ = iigs_color_table[idx];
+                        *output++ = iigs_color_table[idx];
+                        *output++ = iigs_color_table[idx];
+                        video_bits >>= 4;
+                    }
+                }
+                else {
+                    video_bits = main_byte;
+                    video_bits = (video_bits << 7) | (video_byte & 0x7F);
+                    if (next_is_dhgr)
+                        video_bits = video_bits | (next_byte << 14);
+                    for (int count = 4; count; --count) {
+                        idx = dblres_rotate[video_bits & 15];
+                        //idx = 0;
+                        *output++ = iigs_color_table[idx];
+                        *output++ = iigs_color_table[idx];
+                        *output++ = iigs_color_table[idx];
+                        *output++ = iigs_color_table[idx];
+                        video_bits >>= 4;
+                    }
+                    output -= 2;
+                }
+                last_byte = main_byte & 0x7F;
+            }
             break;
         }
 
         if (++hcount == 40) {
             hcount = 0;
-            rawbits = 0;
             last_byte = 0;
             ++vcount;
         }
