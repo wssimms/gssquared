@@ -81,6 +81,16 @@ bool DisplayRGB::update_display(cpu_state *cpu)
                 goto output_alt_text40;
             goto output_hires;
 
+        case VM_HIRES_NOSHIFT_MIXED:
+            if (vcount >= 160)
+                goto output_text40;
+            goto output_hires_noshift;
+
+        case VM_HIRES_NOSHIFT_ALT_MIXED:
+            if (vcount >= 160)
+                goto output_alt_text40;
+            goto output_hires_noshift;
+
         case VM_LORES_MIXED80:
             if (vcount >= 160)
                 goto output_text80;
@@ -202,11 +212,17 @@ bool DisplayRGB::update_display(cpu_state *cpu)
 
         case VM_HIRES:
         output_hires:
+        case VM_HIRES_NOSHIFT:
+        output_hires_noshift:
             {
                 int col1, col2;
 
                 uint16_t video_bits = 0;
                 uint8_t shift = video_byte & 0x80;
+                
+                if (video_mode == VM_HIRES_NOSHIFT) shift = 0;
+                if (video_mode == VM_HIRES_NOSHIFT_MIXED) shift = 0;
+                if (video_mode == VM_HIRES_NOSHIFT_ALT_MIXED) shift = 0;
 
                 video_mode_t next_mode = (video_mode_t)(video_data[i]);
                 uint16_t next_byte = video_data[i+1];
