@@ -3,7 +3,7 @@
 #include "display/display.hpp"
 #include "platforms.hpp"
 
-void DisplayComposite::build_scanline(cpu_state *cpu)
+void DisplayComposite::build_scanline(cpu_state *cpu, unsigned vcount)
 {
     uint8_t video_byte;
     uint8_t video_rom_data;
@@ -46,6 +46,16 @@ void DisplayComposite::build_scanline(cpu_state *cpu)
                 goto output_alt_text40;
             goto output_hires;
 
+        case VM_HIRES_NOSHIFT_MIXED:
+            if (vcount >= 160)
+                goto output_text40;
+            goto output_hires_noshift;
+
+        case VM_HIRES_NOSHIFT_ALT_MIXED:
+            if (vcount >= 160)
+                goto output_alt_text40;
+            goto output_hires_noshift;
+
         case VM_LORES_MIXED80:
             if (vcount >= 160)
                 goto output_text80;
@@ -66,14 +76,24 @@ void DisplayComposite::build_scanline(cpu_state *cpu)
                 goto output_alt_text80;
             goto output_hires;
 
-        case VM_DLORES_MIXED:
+        case VM_DLORES_MIXED80:
             if (vcount >= 160)
                 goto output_text80;
             goto output_dlores;
 
-        case VM_DHIRES_MIXED:
+        case VM_DLORES_ALT_MIXED80:
+            if (vcount >= 160)
+                goto output_alt_text80;
+            goto output_dlores;
+
+        case VM_DHIRES_MIXED80:
             if (vcount >= 160)
                 goto output_text80;
+            goto output_dhires;
+
+        case VM_DHIRES_ALT_MIXED80:
+            if (vcount >= 160)
+                goto output_alt_text80;
             goto output_dhires;
 
         case VM_TEXT40:
@@ -181,22 +201,34 @@ void DisplayComposite::build_scanline(cpu_state *cpu)
             scanline[nbytes++] = (video_bits >> 7) & 0x7F;
             break;
 
+        case VM_HIRES_NOSHIFT:
+        output_hires_noshift:
+            text_count = 0;
+            if ((nbytes & 1) == 0)
+                scanline[nbytes++] = 0;
+            
+            video_byte = video_data[idx++];
+            video_bits = hgr_bits[video_byte & 0x7F];
+            scanline[nbytes++] = video_bits & 0x7F;
+            scanline[nbytes++] = (video_bits >> 7) & 0x7F;
+            break;
+
         case VM_DLORES:
         output_dlores:
             text_count = 0;
+            // aux byte
             video_byte = video_data[idx++];
             video_byte = (video_byte >> (vcount & 4)) & 0x0F;  // hi or lo nibble
-            video_byte = (video_byte << 1) | (hcount & 1); // even/odd columns
+            video_byte = (video_byte << 1) | ((nbytes >> 1) & 1); // even/odd columns
             video_bits = lgr_bits[video_byte];
-            // is this check necessary? maybe nbytes & 1 is always 0.
-            if (nbytes & 1) {
-                scanline[nbytes++] = (video_bits >> 7) & 0x7F;
-                scanline[nbytes++] = video_bits & 0x7F;
-            }
-            else {
-                scanline[nbytes++] = video_bits & 0x7F;
-                scanline[nbytes++] = (video_bits >> 7) & 0x7F;
-            }
+            scanline[nbytes++] = video_bits & 0x7F;
+            //scanline[nbytes++] = (video_bits >> 7) & 0x7F;
+            // main byte
+            video_byte = video_data[idx++];
+            video_byte = (video_byte >> (vcount & 4)) & 0x0F;  // hi or lo nibble
+            video_byte = (video_byte << 1) | ((nbytes >> 1) & 1); // even/odd columns
+            video_bits = lgr_bits[video_byte];
+            scanline[nbytes++] = video_bits & 0x7F;
             break;
 
         case VM_DHIRES:

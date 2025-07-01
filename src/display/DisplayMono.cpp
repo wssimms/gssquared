@@ -30,7 +30,7 @@ bool DisplayMono::update_display(cpu_state *cpu)
     begin_video_bits(cpu);
     for (vcount = 0; vcount < 192; ++vcount)
     {
-        build_scanline(cpu);
+        build_scanline(cpu, vcount);
 
         for (int n = 0; n < 81; ++n) {
             uint8_t video_bits = scanline[n];

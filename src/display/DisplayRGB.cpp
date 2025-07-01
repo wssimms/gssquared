@@ -97,12 +97,12 @@ bool DisplayRGB::update_display(cpu_state *cpu)
                 goto output_alt_text80;
             goto output_hires;
 
-        case VM_DLORES_MIXED:
+        case VM_DLORES_MIXED80:
             if (vcount >= 160)
                 goto output_text80;
             goto output_dlores;
 
-        case VM_DHIRES_MIXED:
+        case VM_DHIRES_MIXED80:
             if (vcount >= 160)
                 goto output_text80;
             goto output_dhires;

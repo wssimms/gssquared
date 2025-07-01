@@ -214,7 +214,7 @@ bool DisplayTV::update_display(cpu_state *cpu)
         for (vcount = 0; vcount < 192; ++vcount)
         {
             phase = 1;
-            build_scanline(cpu);
+            build_scanline(cpu, vcount);
 
             if (kill_color()) {
                 for (int n = 0; n < 81; ++n) {

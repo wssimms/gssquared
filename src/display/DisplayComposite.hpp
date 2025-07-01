@@ -20,7 +20,7 @@ protected:
     inline bool kill_color() { return text_count >= 4; }
 
     uint8_t scanline[81]; // 81*7 == 567 pixels across
-    void build_scanline(cpu_state *cpu);
+    void build_scanline(cpu_state *cpu, unsigned vcount);
     void begin_video_bits(cpu_state *cpu);
 
 public:

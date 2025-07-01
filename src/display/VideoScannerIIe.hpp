@@ -9,6 +9,7 @@ protected:
     bool sw80col;
     bool sw80store;
     bool altchrset;
+    bool dblres;
 
     virtual void set_video_mode() override;
 
@@ -18,14 +19,17 @@ public:
     inline bool is_80col()        { return sw80col;   }
     inline bool is_80store()      { return sw80store; }
     inline bool is_altchrset()    { return altchrset; }
+    inline bool is_dblres()       { return altchrset; }
 
     inline void set_80col()       { sw80col   = true;  set_video_mode(); }
     inline void set_80store()     { sw80store = true;  set_video_mode(); }
     inline void set_altchrset()   { altchrset = true;  set_video_mode(); }
+    inline void set_dblres()      { dblres    = true;  set_video_mode(); }
     
     inline void reset_80col()     { sw80col   = false; set_video_mode(); }
     inline void reset_80store()   { sw80store = false; set_video_mode(); }
     inline void reset_altchrset() { altchrset = false; set_video_mode(); }
+    inline void reset_dblres()    { dblres    = false; set_video_mode(); }
 
     virtual void video_cycle() override;
     virtual void init_video_addresses() override;

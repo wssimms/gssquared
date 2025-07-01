@@ -74,12 +74,23 @@ void VideoScannerIIe::set_video_mode()
         if (hires) {
             if (mixed) {
                 if (sw80col) {
-                    if (altchrset)
-                        video_mode = VM_HIRES_ALT_MIXED80;
-                    else
-                        video_mode = VM_HIRES_MIXED80;
+                    if (dblres) {
+                        if (altchrset)
+                            video_mode = VM_DHIRES_ALT_MIXED80;
+                        else
+                            video_mode = VM_DHIRES_MIXED80;
+                    }
+                    else {
+                        if (altchrset)
+                            video_mode = VM_HIRES_ALT_MIXED80;
+                        else
+                            video_mode = VM_HIRES_MIXED80;
+                    }
                 } else {
-                    video_mode = VM_HIRES_MIXED;
+                    if (dblres)
+                        video_mode = VM_HIRES_NOSHIFT_MIXED;
+                    else
+                        video_mode = VM_HIRES_MIXED;
                 }
                 if (page2 && !sw80store) {
                     video_addresses = &(mixed_p2_addresses);
@@ -87,7 +98,14 @@ void VideoScannerIIe::set_video_mode()
                     video_addresses = &(mixed_p1_addresses);
                 }
             } else {
-                video_mode = VM_HIRES;
+                if (dblres) {
+                    if (sw80col)
+                        video_mode = VM_DHIRES;
+                    else
+                        video_mode = VM_HIRES_NOSHIFT;
+                }
+                else
+                    video_mode = VM_HIRES;
                 if (page2 && !sw80store) {
                     video_addresses = &(hires_p2_addresses);
                 } else {
@@ -96,10 +114,18 @@ void VideoScannerIIe::set_video_mode()
             }
         } else if (mixed) {
             if (sw80col) {
-                if (altchrset)
-                    video_mode = VM_LORES_ALT_MIXED80;
-                else
-                    video_mode = VM_LORES_MIXED80;
+                if (dblres) {
+                    if (altchrset)
+                        video_mode = VM_DLORES_ALT_MIXED80;
+                    else
+                        video_mode = VM_DLORES_MIXED80;
+                }
+                else {
+                    if (altchrset)
+                        video_mode = VM_LORES_ALT_MIXED80;
+                    else
+                        video_mode = VM_LORES_MIXED80;
+                }
             } else {
                 if (altchrset)
                     video_mode = VM_LORES_ALT_MIXED;
@@ -107,7 +133,15 @@ void VideoScannerIIe::set_video_mode()
                     video_mode = VM_LORES_MIXED;
             }
         } else {
-            video_mode = VM_LORES;
+            if (dblres) {
+                if (sw80col)
+                    video_mode = VM_DLORES;
+                else
+                    video_mode = VM_LORES; // is there a "noshift" lores?
+            }
+            else {
+                video_mode = VM_LORES;
+            }
         }
     } else if (sw80col) {
         if (altchrset)
@@ -120,6 +154,8 @@ void VideoScannerIIe::set_video_mode()
         else
             video_mode = VM_TEXT40;
     }
+
+    printf("Video Mode: %d\n", video_mode);
 }
 
 void VideoScannerIIe::video_cycle()
@@ -150,8 +186,8 @@ void VideoScannerIIe::video_cycle()
     }
 
     // I don't really like this.
-    bool aux_text = video_mode >= VM_TEXT80 && video_mode <= VM_DHIRES_MIXED && address < 0x2000;
-    bool aux_graf = video_mode >= VM_DLORES && video_mode <= VM_DHIRES_MIXED && address >= 0x2000;
+    bool aux_text = video_mode >= VM_TEXT80 && video_mode <= VM_DHIRES_ALT_MIXED80 && address < 0x2000;
+    bool aux_graf = video_mode >= VM_DHIRES && video_mode <= VM_DHIRES_ALT_MIXED80 && address >= 0x2000;
     if ((video_mode == VM_LORES_MIXED80 || video_mode == VM_LORES_ALT_MIXED80) && vcount < 160)
         aux_text = false;
 
@@ -170,6 +206,7 @@ VideoScannerIIe::VideoScannerIIe(MMU * mmu) : VideoScannerII(mmu)
     sw80col   = false;
     sw80store = false;
     altchrset = false;
+    dblres    = false;
 }
 
 void vs_bus_write_C00C(void *context, uint16_t address, uint8_t data) {
@@ -232,6 +269,26 @@ uint8_t vs_bus_read_C01F(void *context, uint16_t address) {
     return retval;
 }
 
+uint8_t vs_bus_read_C05E(void *context, uint16_t address) {
+    VideoScannerIIe *vs = (VideoScannerIIe *)context;
+    vs->set_dblres();
+    return vs->get_video_byte();
+}
+
+uint8_t vs_bus_read_C05F(void *context, uint16_t address) {
+    VideoScannerIIe *vs = (VideoScannerIIe *)context;
+    vs->reset_dblres();
+    return vs->get_video_byte();
+}
+
+void vs_bus_write_C05E(void *context, uint16_t address, uint8_t data) {
+    vs_bus_read_C05E(context, address);
+}
+
+void vs_bus_write_C05F(void *context, uint16_t address, uint8_t data) {
+    vs_bus_read_C05F(context, address);
+}
+
 void init_mb_video_scanner_iie(computer_t *computer, SlotType_t slot)
 {
     cpu_state *cpu = computer->cpu;
@@ -270,4 +327,10 @@ void init_mb_video_scanner_iie(computer_t *computer, SlotType_t slot)
     // C054, C055 (PAGE2) alter the page2 switch, and are handled by iiememory
     computer->mmu->set_C0XX_write_handler(0xC056, { vs_bus_write_C056, vs });
     computer->mmu->set_C0XX_write_handler(0xC057, { vs_bus_write_C057, vs });
+
+    // AN3 (double res graphics)
+    computer->mmu->set_C0XX_read_handler(0xC05E, { vs_bus_read_C05E, vs });
+    computer->mmu->set_C0XX_read_handler(0xC05F, { vs_bus_read_C05F, vs });
+    computer->mmu->set_C0XX_write_handler(0xC05E, { vs_bus_write_C05E, vs });
+    computer->mmu->set_C0XX_write_handler(0xC05F, { vs_bus_write_C05F, vs });
 }

@@ -505,53 +505,6 @@ void iiememory_write_C055(void *context, uint16_t address, uint8_t data) {
     iiememory_read_C055(context, address);
 }
 
-#if 0
-uint8_t iiememory_read_display(void *context, uint16_t address) {
-    iiememory_state_t *iiememory_d = (iiememory_state_t *)context;
-    VideoScannerII *vs = iiememory_d->computer->video_scanner;
-
-    // call down to the old display device handlers for these..
-    uint8_t retval = 0x00;
-    switch (address) {
-        case 0xC050: // TEXTOFF
-            retval = vs_bus_read_C050(vs, address);
-            break;
-        case 0xC051: // TEXTON
-            retval = vs_bus_read_C051(vs, address);
-            break;
-        case 0xC052: // MIXEDOFF
-            retval = vs_bus_read_C052(vs, address);
-            break;
-        case 0xC053: // MIXEDON
-            retval = vs_bus_read_C053(vs, address);
-            break;
-        case 0xC054: // PAGE2OFF
-            if (!iiememory_d->f_80store) retval = vs_bus_read_C054(vs, address);
-            else iiememory_d->s_page2 = false;
-            break;
-        case 0xC055: // PAGE2ON
-            if (!iiememory_d->f_80store) retval = vs_bus_read_C055(vs, address);
-            else iiememory_d->s_page2 = true;
-            break;
-        case 0xC056: // HIRESOFF
-            retval = vs_bus_read_C056(vs, address);
-            break;
-        case 0xC057: // HIRESON
-            retval = vs_bus_read_C057(vs, address);
-            break;
-    }
-    // recompose the memory map
-    iiememory_compose_map(iiememory_d);
-    return retval;
-}
-
-// write - do same as read but disregard return value.
-void iiememory_write_display(void *context, uint16_t address, uint8_t data) {
-    iiememory_state_t *iiememory_d = (iiememory_state_t *)context;
-    iiememory_read_display(context, address);
-}
-#endif
-
 /*
  * When you initiate a reset, hardware in the Apple IIe sets the memory-controlling soft switches to normal: 
  * main board RAM and ROM are enabled; if there is an 80 column card in the aux slot, expansion slot 3 is allocated 
