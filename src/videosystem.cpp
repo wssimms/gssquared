@@ -118,9 +118,16 @@ void video_system_t::present() {
     SDL_RenderPresent(renderer);
 }
 
-void video_system_t::render_frame(SDL_Texture *texture) {
+void video_system_t::render_frame(SDL_Texture *texture, float offset) {
     float w,h;
     SDL_GetTextureSize(texture, &w, &h);
+    float nw = w, nh = h;
+
+    float xoffset = (offset/2.0f) * scale_x;
+    if (nw == 640) { // TODO: kind of a cheesy hack to say "scale into the base display area"
+        nw = BASE_WIDTH;
+        nh = BASE_HEIGHT;
+    }
     if (display_pixel_mode == DM_PIXEL_FUZZ) {
         SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_LINEAR);
     } else {
@@ -128,10 +135,12 @@ void video_system_t::render_frame(SDL_Texture *texture) {
     }
 
     SDL_FRect dstrect = {
-        (float)border_width,
+        (float)border_width + xoffset,
         (float)border_height,
-        (float)BASE_WIDTH, 
-        (float)BASE_HEIGHT
+       // (float)BASE_WIDTH, 
+        //(float)BASE_HEIGHT
+        nw, // should be minus 7 for Display, but no change for videx/GS.
+        nh
     };
     SDL_FRect srcrect = {
         (float)0.0,
@@ -185,6 +194,8 @@ void video_system_t::window_resize(const SDL_Event &event) {
     printf("handle_window_resize: new_w: %d, new_h: %d new scale: %f, %f, border w: %d, h: %d\n", new_w, new_h, new_scale_x, new_scale_y, border_width, border_height);
 
     SDL_SetRenderScale(renderer, new_scale_x, new_scale_y);
+    scale_x = new_scale_x;
+    scale_y = new_scale_y;
 }
 
 display_fullscreen_mode_t video_system_t::get_window_fullscreen() {

@@ -58,7 +58,9 @@ struct video_system_t {
     int border_width = BORDER_WIDTH;
     int border_height = BORDER_HEIGHT;
     float aspect_ratio = 0.0;
-
+    float scale_x = 2.0f;
+    float scale_y = 4.0f;
+    
     EventQueue *event_queue = nullptr;
 
     bool force_full_frame_redraw = false;
@@ -85,7 +87,7 @@ struct video_system_t {
     void set_window_fullscreen(display_fullscreen_mode_t mode);
     display_fullscreen_mode_t get_window_fullscreen();
     void sync_window();
-    void render_frame(SDL_Texture *texture);
+    void render_frame(SDL_Texture *texture, float offset);
     void clear();
     void present();
     void display_capture_mouse(bool capture);

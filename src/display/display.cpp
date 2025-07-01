@@ -297,6 +297,8 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     uint16_t f_h = BASE_HEIGHT;
     ds->frame_rgba = new(std::align_val_t(64)) Frame560RGBA(f_w, f_h);
     ds->frame_bits = new(std::align_val_t(64)) Frame560(f_w, f_h);
+    ds->frame_rgba->clear(); // clear the frame buffers at startup.
+    ds->frame_bits->clear();
 
     // Create the screen texture
     ds->screenTexture = SDL_CreateTexture(vs->renderer,

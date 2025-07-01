@@ -5056,7 +5056,7 @@ push(bit ^ invert )
 
 Now. If we just redraw the entire screen every time, we can: get rid of the text and hgr shadow handlers; get rid of the thing that scans the text page for flash update.
 
-Practically speaking I like my original RGB routine. But, this new RGB is definitely more like the IIgs.
+Practically speaking I like my original RGB routine. But, this new RGB is definitely more like the IIgs. Wm's is going to work pretty good too.
 
 OK, I'm a stone's throw from 80-column support now.
 
@@ -5069,7 +5069,15 @@ I've got double lo-res in and tested now. Now I need to test double hi-res. What
 
 [ ] I think I am missing a memory management soft-switch to reset on a RESET, esp with stuff that wants to do 80-col, dlgr, dhgr.  
 [ ] need vbl c019 support  
-[ ] open-apple and closed-apple  
+[x] open-apple and closed-apple  
 
 OA-CA can go into the game controller. it can just call SDL to see if the appropriate modifiers are being pressed.
+
+[ ] Broke original Apple II model.  crashes in update_apple2_display.  
+
+## Jul 1, 2025
+
+working out what open apple and closed apple need to be. Right now I am using LGUI and RGUI. On my desktop Mac, this is ALT (which is a PC keyboard where I have personally reversed GUI and ALT keys because I like ALT better for "Command"). on my laptop, Command is LGUI. This means on a PC/Linux/Windows keyboard, it will not be the ALT keys, but the Windows keys. I might have to switch these checks to ALT on Linux/PC.
+
+And, implemented in the game controller module.
 

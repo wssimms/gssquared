@@ -23,6 +23,9 @@
 #include <algorithm>
 
 #include <SDL3/SDL.h>
+#include "SDL3/SDL_keyboard.h"
+#include "SDL3/SDL_keycode.h"
+#include "SDL3/SDL_oldnames.h"
 #include "gs2.hpp"
 #include "cpu.hpp"
 #include "debug.hpp"
@@ -208,6 +211,9 @@ uint8_t read_game_switch_0(void *context, uint16_t address) {
     } else {
         ds->game_switch_0 = (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_MASK(SDL_BUTTON_LEFT)) != 0;
     }
+    if (SDL_GetModState() & SDL_KMOD_LGUI) { // TODO: restrict to Apple IIe
+        ds->game_switch_0 = 1;
+    }
     return ds->game_switch_0 ? 0x80 : 0x00;
 }
 
@@ -226,6 +232,9 @@ uint8_t read_game_switch_1(void *context, uint16_t address) {
         }
     } else {
         ds->game_switch_1 = (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_MASK(SDL_BUTTON_RIGHT)) != 0;
+    }
+    if (SDL_GetModState() & SDL_KMOD_RGUI) { // TODO: restrict to Apple IIe
+        ds->game_switch_1 = 1;
     }
     return ds->game_switch_1 ? 0x80 : 0x00;
 }
