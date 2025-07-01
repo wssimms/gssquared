@@ -21,7 +21,7 @@
 //#include "gs2.hpp"
 //#include "debug.hpp"
 
-#include "display.hpp"
+#include "DisplayBase.hpp"
 //#include "platforms.hpp"
 #include "event_poll.hpp"
 #include "display/filters.hpp"
