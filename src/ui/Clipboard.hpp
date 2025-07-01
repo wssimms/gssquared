@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <cstdlib>
 
-#include "display/display.hpp"
+#include "display/DisplayBase.hpp"
 
 #pragma pack(push, 1)  // Ensure no padding between struct members
 

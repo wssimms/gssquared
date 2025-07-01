@@ -21,7 +21,7 @@
 #include "iiememory.hpp"
 #include "Module_ID.hpp"
 #include "display/VideoScannerIIe.hpp"
-//#include "display/display.hpp"
+//#include "display/DisplayBase.hpp"
 #include "devices/languagecard/languagecard.hpp" // to get bit flag names
 
 /**

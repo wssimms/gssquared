@@ -27,7 +27,7 @@
 #include "paths.hpp"
 #include "cpu.hpp"
 #include "clock.hpp"
-#include "display/display.hpp"
+#include "display/DisplayBase.hpp"
 #include "event_poll.hpp"
 #include "devices/speaker/speaker.hpp"
 #include "platforms.hpp"

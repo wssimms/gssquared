@@ -18,7 +18,7 @@
 #include "cpu.hpp"
 #include "videx.hpp"
 #include "videx_80x24.hpp"
-#include "display/display.hpp"
+#include "display/DisplayBase.hpp"
 #include "display/types.hpp"
 #include "videosystem.hpp"
 #include "devices/displaypp/RGBA.hpp"

@@ -1,6 +1,6 @@
 
 #include "display/DisplayComposite.hpp"
-#include "display/display.hpp"
+#include "display/DisplayBase.hpp"
 #include "platforms.hpp"
 
 void DisplayComposite::build_scanline(cpu_state *cpu, unsigned vcount)

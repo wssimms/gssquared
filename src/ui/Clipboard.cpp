@@ -5,7 +5,7 @@
 #include <SDL3/SDL_clipboard.h>
 
 #include "computer.hpp"
-#include "display/display.hpp"
+#include "display/DisplayBase.hpp"
 #include "Clipboard.hpp"
 
 #define MAX_CLIP_WIDTH (640)

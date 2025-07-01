@@ -1,7 +1,7 @@
 //#include "gs2.hpp"
 #include "computer.hpp"
 #include "videosystem.hpp"
-#include "display/display.hpp"
+#include "display/DisplayBase.hpp"
 #include "ui/Clipboard.hpp"
 
 video_system_t::video_system_t(computer_t *computer) {

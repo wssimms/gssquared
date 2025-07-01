@@ -28,7 +28,7 @@
 #include "cpu.hpp"
 #include "clock.hpp"
 #include "memory.hpp"
-#include "display/display.hpp"
+#include "display/DisplayBase.hpp"
 #include "opcodes.hpp"
 #include "debug.hpp"
 #include "test.hpp"

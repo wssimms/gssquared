@@ -19,7 +19,7 @@
 #include "cpu.hpp"
 #include "videx.hpp"
 #include "debug.hpp"
-#include "display/display.hpp"
+#include "display/DisplayBase.hpp"
 #include "videx_80x24.hpp"
 #include "videosystem.hpp"
 #include "devices/annunciator/annunciator.hpp"

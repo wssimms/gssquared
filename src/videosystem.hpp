@@ -6,7 +6,7 @@
 #include "computer.hpp"
 #include "util/EventQueue.hpp"
 #include "ui/Clipboard.hpp"
-#include "display/display.hpp"
+#include "display/DisplayBase.hpp"
 #include "devices/displaypp/RGBA.hpp"
 
 #define BORDER_WIDTH 30

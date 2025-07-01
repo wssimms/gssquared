@@ -1,6 +1,6 @@
 #pragma once
 
-#include "display/display.hpp"
+#include "display/DisplayBase.hpp"
 
 static RGBA_t iigs_color_table[16] = {
     { .a=0xFF, .b=0x00, .g=0x00, .r=0x00 },

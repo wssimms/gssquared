@@ -1,6 +1,6 @@
 #include "mmu_ii.hpp"
 #include "display/VideoScannerII.hpp"
-#include "display/display.hpp"
+#include "display/DisplayBase.hpp"
 
 /**
  * Sets base memory map without any specificity for various devices.

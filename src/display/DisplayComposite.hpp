@@ -1,6 +1,6 @@
 #pragma once
 
-#include "display/display.hpp"
+#include "display/DisplayBase.hpp"
 
 class DisplayComposite : public Display
 {

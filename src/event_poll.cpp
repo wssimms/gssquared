@@ -21,7 +21,7 @@
 #include "cpu.hpp"
 #include "computer.hpp"
 #include "devices/keyboard/keyboard.hpp"
-#include "display/display.hpp"
+#include "display/DisplayBase.hpp"
 #include "devices/game/mousewheel.hpp"
 #include "devices/game/gamecontroller.hpp"
 #include "devices/speaker/speaker.hpp"

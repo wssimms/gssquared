@@ -33,7 +33,7 @@
 #include "MainAtlas.hpp"
 #include "OSD.hpp"
 #include "display/DisplayMono.hpp"
-#include "display/display.hpp"
+#include "display/DisplayBase.hpp"
 #include "util/mount.hpp"
 #include "util/soundeffects.hpp"
 #include "ModalContainer.hpp"
