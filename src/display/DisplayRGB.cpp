@@ -1,65 +1,25 @@
 
 #include "display/DisplayRGB.hpp"
 
-void RGB_shift_color (uint16_t vbits, RGBA_t* outputImage)
-{
-    int col1 = 0;
-    int col2 = 0;
-    switch (vbits) {
-        case 0:  col1 = col2 = 0;  break; /* black */
-        case 1:  col1 = col2 = 0;  break; /* black */
-        case 2:  col1 = col2 = 6;  break; /* blue */
-        case 3:  col1 = 15; col2 = 0; break; /* white, black */
-        case 4:  col1 = col2 = 9;  break; /* orange */
-        case 5:  col1 = col2 = 9;  break; /* orange */
-        case 6:  col1 = col2 = 15; break; /* white */
-        case 7:  col1 = col2 = 15; break; /* white */
-        case 8:  col1 = col2 = 0;  break; /* black */
-        case 9:  col1 = col2 = 0;  break; /* black */
-        case 10: col1 = col2 = 6;  break; /* blue */
-        //case 11: col1 = 15; col2 = 0;  break; /* white, black */
-        case 11: col1 = 15; col2 = 6;  break; /* white, blue */
-        case 12: col1 = 0;  col2 = 15; break; /* black, white */
-        //case 13: col1 = 0;  col2 = 15; break; /* black, white */
-        case 13: col1 = 9;  col2 = 15; break; /* orange, white */
-        case 14: col1 = col2 = 15; break; /* white */
-        case 15: col1 = col2 = 15; break; /* white */
-    }
-    *outputImage++ = iigs_color_table[col1];
-    *outputImage++ = iigs_color_table[col1];
-    *outputImage++ = iigs_color_table[col2];
-    *outputImage++ = iigs_color_table[col2];
-}
+static int RGB_unshifted_color_1[16] = {
+    0,0,3,15,12,12,15,15,
+    0,0,3,15,0,12,15,15
+};
 
-void RGB_noshift_color (uint16_t vbits, RGBA_t* outputImage)
-{
-    int col1 = 0;
-    int col2 = 0;
-    switch (vbits) {
-        case 0:  col1 = col2 = 0;  break; /* black */
-        case 1:  col1 = col2 = 0;  break; /* black */
-        case 2:  col1 = col2 = 3; break; /* purple */
-        case 3:  col1 = 15; col2 = 0; break; /* white, black */
-        case 4:  col1 = col2 = 12;  break; /* green */
-        case 5:  col1 = col2 = 12;  break; /* green */
-        case 6:  col1 = col2 = 15; break; /* white */
-        case 7:  col1 = col2 = 15; break; /* white */
-        case 8:  col1 = col2 = 0;  break; /* black */
-        case 9:  col1 = col2 = 0;  break; /* black */
-        case 10: col1 = col2 = 3; break; /* purple */
-        //case 11: col1 = 15; col2 = 0;  break; /* white, black */
-        case 11: col1 = 15; col2 = 3;  break; /* white, purple */
-        case 12: col1 = 0;  col2 = 15; break; /* black, white */
-        //case 13: col1 = 0;  col2 = 15; break; /* black, white */
-        case 13: col1 = 12;  col2 = 15; break; /* green, white */
-        case 14: col1 = col2 = 15; break; /* white */
-        case 15: col1 = col2 = 15; break; /* white */
-    }
-    *outputImage++ = iigs_color_table[col1];
-    *outputImage++ = iigs_color_table[col1];
-    *outputImage++ = iigs_color_table[col2];
-    *outputImage++ = iigs_color_table[col2];
-}
+static int RGB_unshifted_color_2[16] = {
+    0,0,3,0,12,12,15,15,
+    0,0,3,3,15,15,15,15
+};
+
+static int RGB_shifted_color_1[16] = {
+    0,0,6,15,9,9,15,15,
+    0,0,6,15,0,9,15,15
+};
+
+static int RGB_shifted_color_2[16] = {
+    0,0,6,0,9,9,15,15,
+    0,0,6,6,15,15,15,15
+};
 
 bool DisplayRGB::update_display(cpu_state *cpu)
 {
@@ -239,47 +199,84 @@ bool DisplayRGB::update_display(cpu_state *cpu)
         case VM_HIRES:
         output_hires:
             {
-                uint8_t  shift = video_byte & 0x80;
-                uint16_t vbits = video_byte;
-                int col1  = 0;
-                int col2  = 0;
-                int count = 0;
+                int col1, col2;
+
+                uint16_t video_bits = 0;
+                uint8_t shift = video_byte & 0x80;
+
+                video_mode_t next_mode = (video_mode_t)(video_data[i]);
+                uint16_t next_byte = video_data[i+1];
+
+                bool next_is_hgr = false;
+                if (next_mode == VM_HIRES) next_is_hgr = true;
+                else if (next_mode == VM_HIRES_MIXED) next_is_hgr = true;
+                else if (next_mode == VM_HIRES_MIXED80) next_is_hgr = true;
+                else if (next_mode == VM_HIRES_ALT_MIXED) next_is_hgr = true;
+                else if (next_mode == VM_HIRES_ALT_MIXED80) next_is_hgr = true;
+
+                video_byte = video_byte & 0x7F;
+
+                if (hcount == 0) {
+                    video_bits = video_byte;
+                    video_bits = video_bits << 1;
+                    if (next_is_hgr)
+                        video_bits = video_bits | (next_byte << 8);
+                }
+                else if (hcount & 1) {
+                    video_bits = video_byte;
+                    video_bits = video_bits << 2;
+                    video_bits = video_bits | (last_byte >> 5);
+                    if (next_is_hgr)
+                        video_bits = video_bits | (next_byte << 9);
+                }
+                else {
+                    video_bits = video_byte;
+                    video_bits = video_bits << 1;
+                    video_bits = video_bits | (last_byte >> 6);
+                    if (next_is_hgr)
+                        video_bits = video_bits | (next_byte << 8);
+                }
 
                 if (hcount & 1) {
-                    vbits = (vbits << 2) | (last_byte >> 5);
-                    count = 3;
-                    if (hcount == 39)
-                        count = 4;
-                }
-                else {
-                    if (hcount) {
-                        vbits = (vbits << 3) | (last_byte >> 4);
-                        count = 4;
-                    }
-                    else {
-                        vbits = (vbits << 1);
-                        count = 3;
-                    }
-                }
-
-                if (shift) {
-                    for (int i = count; i; --i) {
-                        RGB_shift_color(vbits & 15, output);
-                        vbits >>= 2;
-                        output += 4;
+                    output -= 2;
+                    for (int count = 4; count; --count) {
+                        if (shift) {
+                            col1 = RGB_shifted_color_1[video_bits & 15];
+                            col2 = RGB_shifted_color_2[video_bits & 15];
+                        }
+                        else {
+                            col1 = RGB_unshifted_color_1[video_bits & 15];
+                            col2 = RGB_unshifted_color_2[video_bits & 15];
+                        }
+                        *output++ = iigs_color_table[col1];
+                        *output++ = iigs_color_table[col1];
+                        *output++ = iigs_color_table[col2];
+                        *output++ = iigs_color_table[col2];
+                        video_bits = video_bits >> 2;
                     }
                 }
                 else {
-                    for (int i = count; i; --i) {
-                        RGB_noshift_color(vbits & 15, output);
-                        vbits >>= 2;
-                        output += 4;
+                    for (int count = 4; count; --count) {
+                        if (shift) {
+                            col1 = RGB_shifted_color_1[video_bits & 15];
+                            col2 = RGB_shifted_color_2[video_bits & 15];
+                        }
+                        else {
+                            col1 = RGB_unshifted_color_1[video_bits & 15];
+                            col2 = RGB_unshifted_color_2[video_bits & 15];
+                        }
+                        *output++ = iigs_color_table[col1];
+                        *output++ = iigs_color_table[col1];
+                        *output++ = iigs_color_table[col2];
+                        *output++ = iigs_color_table[col2];
+                        video_bits = video_bits >> 2;
                     }
+                    output -= 2;
                 }
 
                 last_byte = video_byte & 0x7F;
-                break;
             }
+            break;
 
         case VM_DLORES:
         output_dlores:

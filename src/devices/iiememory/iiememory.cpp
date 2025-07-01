@@ -397,6 +397,7 @@ void iiememory_write_C00X(void *context, uint16_t address, uint8_t data) {
         case 0xC009: // ALTZPON
             iiememory_d->f_altzp = true;
             break;
+#if 0
         case 0xC00E: // ALTCHARSETOFF
             iiememory_d->f_altcharset = false;
             break;
