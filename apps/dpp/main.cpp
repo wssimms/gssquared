@@ -354,7 +354,8 @@ int main(int argc, char **argv) {
                     display_iiplus.generate_hires40(testhgrpic, frame_byte, l);
                     break;
                 case 6:
-                    display_iiplus.generate_hires80(testdhgrpic, testdhgrpic+0x2000, frame_byte, l);
+                    // saved dhgr files are aux memory first, then main memory.
+                    display_iiplus.generate_hires80(testdhgrpic+0x2000, testdhgrpic, frame_byte, l);
                     phaseoffset = 1;
                     break;
             }
