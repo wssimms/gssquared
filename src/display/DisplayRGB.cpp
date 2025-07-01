@@ -284,8 +284,13 @@ bool DisplayRGB::update_display(cpu_state *cpu)
 
         case VM_DLORES:
         output_dlores:
-            video_byte = video_data[i++]; // skip aux byte
-            goto output_lores;
+            video_byte = (video_byte >> (vcount & 4)) & 0x0F;  // hi or lo nibble
+            for (int i = 7; i; --i)
+                *output++ = iigs_color_table[dblres_rotate[video_byte]];
+            video_byte = video_data[i++];
+            video_byte = (video_byte >> (vcount & 4)) & 0x0F;  // hi or lo nibble
+            for (int i = 7; i; --i)
+                *output++ = iigs_color_table[video_byte];
             break;
 
         case VM_DHIRES:
