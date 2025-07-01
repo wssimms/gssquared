@@ -321,7 +321,7 @@ bool update_display_apple2(cpu_state *cpu) {
         SDL_UnlockTexture(ds->screenTexture);
     }
     vs->force_full_frame_redraw = false;
-    vs->render_frame(ds->screenTexture);
+    vs->render_frame(ds->screenTexture, -7.0f);
     return true;
 }
 
@@ -650,7 +650,8 @@ bool handle_display_event(display_state_t *ds, const SDL_Event &event) {
 
 /** Called by Clipboard to return current display buffer.
  * doubles scanlines and returns 2* the "native" height. */
- 
+
+#if 0
 void display_engine_get_buffer(computer_t *computer, uint8_t *buffer, uint32_t *width, uint32_t *height) {
     display_state_t *ds = (display_state_t *)get_module_state(computer->cpu, MODULE_DISPLAY);
     // pass back the size.
@@ -677,6 +678,46 @@ void display_engine_get_buffer(computer_t *computer, uint8_t *buffer, uint32_t *
     snprintf(msgbuf, sizeof(msgbuf), "Screen snapshot taken");
     computer->event_queue->addEvent(new Event(EVENT_SHOW_MESSAGE, 0, msgbuf));
 }
+#else
+void display_engine_get_buffer(computer_t *computer, uint8_t *buffer, uint32_t *width, uint32_t *height) {
+    display_state_t *ds = (display_state_t *)get_module_state(computer->cpu, MODULE_DISPLAY);
+    // pass back the size.
+    uint32_t w = BASE_WIDTH+7;
+    *width = w;
+    *height = BASE_HEIGHT * 2;
+    // BMP files have the last scanline first. What? 
+    // Copy RGB values without alpha channel
+    //RGBA_t *src = (RGBA_t *)ds->buffer;
+    uint8_t *dst = buffer;
+    for (int scanline = BASE_HEIGHT - 1; scanline >= 0; scanline--) {
+        ds->frame_rgba->set_line(scanline);
+        for (int i = 0; i < w; i++) {
+            RGBA_t pix = ds->frame_rgba->pull();
+            *dst++ = pix.b;
+            *dst++ = pix.g;
+            *dst++ = pix.r;
+        }
+        // add one extra pixel to make it a multiple of 4.
+        *dst++ = 0;
+        *dst++ = 0;
+        *dst++ = 0;
+        // do it again - scanline double
+        ds->frame_rgba->set_line(scanline);
+        for (int i = 0; i < w; i++) {
+            RGBA_t pix = ds->frame_rgba->pull();
+            *dst++ = pix.b;
+            *dst++ = pix.g;
+            *dst++ = pix.r;
+        }
+        *dst++ = 0;
+        *dst++ = 0;
+        *dst++ = 0;
+    }
+    static char msgbuf[256];
+    snprintf(msgbuf, sizeof(msgbuf), "Screen snapshot taken");
+    computer->event_queue->addEvent(new Event(EVENT_SHOW_MESSAGE, 0, msgbuf));
+}
+#endif
 
 // Implement the switch, but text display doesn't use it yet.
 void display_write_switches(void *context, uint16_t address, uint8_t value) {
@@ -742,6 +783,8 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     uint16_t f_h = BASE_HEIGHT;
     ds->frame_rgba = new(std::align_val_t(64)) Frame560RGBA(f_w, f_h);
     ds->frame_bits = new(std::align_val_t(64)) Frame560(f_w, f_h);
+    ds->frame_rgba->clear(); // clear the frame buffers at startup.
+    ds->frame_bits->clear();
 
     // Create the screen texture
     ds->screenTexture = SDL_CreateTexture(vs->renderer,
