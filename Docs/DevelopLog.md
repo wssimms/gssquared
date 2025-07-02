@@ -4888,7 +4888,7 @@ C007:0
 1500<C500.C7FFM
 1564:0 (or breakpoint)
 156C:0 (or breakpoint)
-
+```
 if you hit 1564, the checksum did not match
 if you hit 156C, the checksum -did- match.
 
@@ -5082,3 +5082,17 @@ nox archaist crashing: this is dying after boot screen and playing music. It tur
 
 the boot screen will display pre-packaged IIs. When you hover, you also get a text box somewhere towards the bottom that explains what's in that package. There are the built-in ones. You can also choose Load (to load a previously saved template), or Custom, to create a new template. I've got room for 8 tiles, if I use one of the spaces for the info box.
 
+going to try keyboard capture along with mouse capture. Linux ctrl-win-reset seems to work. if I only hit windows, it goes to linux. so, that seems to be working ok.
+
+Character set magic
+
+This is a great reference:
+
+https://retrocomputing.stackexchange.com/questions/8652/why-did-the-original-apple-e-have-two-sets-of-inverse-video-characters
+
+in the Apple II, there are only 64 glyphs, repeated 4 times basically. (In the ROM we see them mostly repeat but with minor differences e.g. the flashing char area has the hi-bit set in the bytes). 0-3f inverse; 40-7f flash; 80-bf normal; c0-ff repeat of 80-bf.
+
+On IIe, what we have is this in the alt character set: 0-1f inverse uppercase letters; 20-3f inverse symbols; (same as II);
+40-5f: inverse uppercase letters, 
+
+So what we need is a character map that is built, depending on character mode. ok, see Apple IIe Doc.

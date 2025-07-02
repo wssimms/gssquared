@@ -28,6 +28,17 @@ CharRom::CharRom(const char *filename) {
     // if size == 2048, it's an Apple II Plus Char ROM, and we need to reverse AND 
     // also invert bits for the inverse characters.
     if (size == 2048) {
+        for (uint16_t i = 0; i < 256; i++) {
+            char_mode_t cmode;
+
+            num_char_sets=1; // TODO: international ROMs may have more than 1.
+            char_sets[0].set[i].screen_code = i;
+            if ((i & 0xC0) == 0x40) cmode = CHAR_MODE_FLASH;
+            else if (i < 0x80) cmode = CHAR_MODE_INVERSE;
+            else cmode = CHAR_MODE_NORMAL;
+            char_sets[0].set[i].mode = cmode;
+            char_sets[0].set[i].pos = i * 8;
+        }
         for (int i = 0; i < 2048; i++) {
             data[i] = reverse_bits(data[i]);
             if (i < (0x40 * 8)) { // invert chars 0x00 - 0x3F.
@@ -35,6 +46,32 @@ CharRom::CharRom(const char *filename) {
             }
         }
     } else { // iie and on roms, we need to invert the bits
+        // iie - 0-255 are normal char set, 256-511 are graphics, then 512-767 are alt char set.
+        // need to create two character sets.
+        for (uint16_t i = 0; i < 256; i++) {
+            char_mode_t cmode;
+
+            num_char_sets=2; // TODO: international ROMs may have more than 1.
+            char_sets[0].set[i].screen_code = i;
+            char_sets[1].set[i].screen_code = i;
+
+            // Normal character set
+            if ((i & 0xC0) == 0x40) cmode = CHAR_MODE_FLASH;
+            else if (i < 0x80) cmode = CHAR_MODE_INVERSE;
+            else cmode = CHAR_MODE_NORMAL;
+            if (cmode == CHAR_MODE_FLASH) {
+                char_sets[0].set[i].pos = (i - 0x40) * 8; // put flash down there.
+            } else {
+                char_sets[0].set[i].pos = i * 8;
+            }
+            char_sets[0].set[i].mode = cmode;
+
+            // Alternate character set
+            if (i & 0x80) cmode = CHAR_MODE_NORMAL;
+            else cmode = CHAR_MODE_INVERSE;
+            char_sets[1].set[i].pos = i * 8;
+            char_sets[1].set[i].mode = cmode;
+        }
         for (int i = 0; i < size; i++) {
             data[i] = invert_bits(data[i]);
         }
