@@ -19,7 +19,6 @@ class MMU_II : public MMU {
 
         read_handler_t C0xx_memory_read_handlers[C0X0_SIZE] = { nullptr };          // Table of memory read handlers
         write_handler_t C0xx_memory_write_handlers[C0X0_SIZE] = { nullptr };        // Table of memory write handlers
-        bool f_intcxrom = false;
 
         int8_t C8xx_slot;
         C8XX_handler_t C8xx_handlers[8] = {nullptr};
@@ -28,6 +27,8 @@ class MMU_II : public MMU {
         virtual void power_on_randomize(uint8_t *ram, int ram_size);
         
     public:
+        bool f_intcxrom = false;
+
         MMU_II(int page_table_size, int ram_amount, uint8_t *rom_pointer);
         MMU_II();
         virtual ~MMU_II();

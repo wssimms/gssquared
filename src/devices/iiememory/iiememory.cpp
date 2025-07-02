@@ -24,6 +24,11 @@
 //#include "display/DisplayBase.hpp"
 #include "devices/languagecard/languagecard.hpp" // to get bit flag names
 
+#include "mmus/mmu_iie.hpp"
+
+#include "mbus/KeyboardMessage.hpp"
+#include "mbus/MessageBus.hpp"
+
 /**
  * First, handling the "language card" portion or what the IIe manual calls the "Bank Switch RAM".
  * 
@@ -205,14 +210,23 @@ uint8_t bsr_read_C011(void *context, uint16_t address) {
     iiememory_state_t *lc = (iiememory_state_t *)context;
 
     if (DEBUG(DEBUG_LANGCARD)) printf("languagecard_read_C011 %04X FF_BANK_1: %d\n", address, lc->FF_BANK_1);
-   return (lc->FF_BANK_1 == 0) ? 0x80 : 0x00;
+    uint8_t fl = (lc->FF_BANK_1 == 0) ? 0x80 : 0x00;
+    
+    KeyboardMessage *keymsg = (KeyboardMessage *)lc->mbus->read(MESSAGE_TYPE_KEYBOARD);
+    uint8_t kbv = (keymsg ? keymsg->mk->last_key_val : 0xEE) & 0x7F;
+    return kbv | fl;
 }
 
 uint8_t bsr_read_C012(void *context, uint16_t address) {
     iiememory_state_t *lc = (iiememory_state_t *)context;
 
     if (DEBUG(DEBUG_LANGCARD)) printf("languagecard_read_C012 %04X FF_READ_ENABLE: %d\n", address, lc->FF_READ_ENABLE);
-    return (lc->FF_READ_ENABLE != 0) ? 0x80 : 0x00; /* << 7; */
+
+    uint8_t fl = (lc->FF_READ_ENABLE != 0) ? 0x80 : 0x00; /* << 7; */
+
+    KeyboardMessage *keymsg = (KeyboardMessage *)lc->mbus->read(MESSAGE_TYPE_KEYBOARD);
+    uint8_t kbv = (keymsg ? keymsg->mk->last_key_val : 0xEE) & 0x7F;
+    return kbv | fl;
 }
 
 
@@ -253,17 +267,17 @@ void iiememory_compose_map(iiememory_state_t *iiememory_d) {
     update_display_flags(iiememory_d);
     VideoScannerII *vs = iiememory_d->computer->video_scanner;
     
-    bool n_zp = false; // this is both read and write.
-    bool n_text1_r = false; // 
-    bool n_text1_w = false; // 
-    bool n_hires1_r = false; // 
-    bool n_hires1_w = false; // 
-    bool n_all_r = false; // 
-    bool n_all_w = false; // 
+    bool n_zp; 
+    bool n_text1_r;
+    bool n_text1_w;
+    bool n_hires1_r;
+    bool n_hires1_w;
+    bool n_all_r;
+    bool n_all_w;
 
+    n_zp = iiememory_d->f_altzp;
     n_all_r = iiememory_d->f_ramrd;
     n_all_w = iiememory_d->f_ramwrt;
-    n_zp = iiememory_d->f_altzp;
     if (iiememory_d->f_80store) {
 //      if (iiememory_d->s_hires) {
         if (vs->is_hires()) {
@@ -286,16 +300,16 @@ void iiememory_compose_map(iiememory_state_t *iiememory_d) {
 
     uint8_t *memory_base = iiememory_d->ram;
 
-    if (n_zp != iiememory_d->m_zp) {
+    if (n_zp != iiememory_d->m_zp) { // this is both read and write.
         // change $00, $01, $D0 - $FF
         uint32_t altoffset = n_zp ? 0x1'0000 : 0x0'0000;
 
-        // call iiememory_map_langcard()
-        iiememory_d->mmu->map_page_read(0, memory_base + altoffset + (0 * GS2_PAGE_SIZE), n_zp ? TAG_ALT : TAG_MAIN);
-        iiememory_d->mmu->map_page_read(1, memory_base + altoffset + (1 * GS2_PAGE_SIZE), n_zp ? TAG_ALT : TAG_MAIN);
-        iiememory_d->mmu->map_page_write(0, memory_base + altoffset + (0 * GS2_PAGE_SIZE), n_zp ? TAG_ALT : TAG_MAIN);
-        iiememory_d->mmu->map_page_write(1, memory_base + altoffset + (1 * GS2_PAGE_SIZE), n_zp ? TAG_ALT : TAG_MAIN);
-
+        iiememory_d->mmu->map_page_read(0x00, memory_base + altoffset + 0x0000, n_zp ? TAG_ALT : TAG_MAIN);
+        iiememory_d->mmu->map_page_write(0x00, memory_base + altoffset + 0x0000, n_zp ? TAG_ALT : TAG_MAIN);
+        iiememory_d->mmu->map_page_read(0x01, memory_base + altoffset + 0x0100, n_zp ? TAG_ALT : TAG_MAIN);
+        iiememory_d->mmu->map_page_write(0x01, memory_base + altoffset + 0x0100, n_zp ? TAG_ALT : TAG_MAIN);
+        
+        // handle mapping the "language card" portion.
         bsr_map_memory(iiememory_d); // handle the 'language card' portion.
     }
     if (n_text1_r != iiememory_d->m_text1_r) {
@@ -397,14 +411,6 @@ void iiememory_write_C00X(void *context, uint16_t address, uint8_t data) {
         case 0xC009: // ALTZPON
             iiememory_d->f_altzp = true;
             break;
-#if 0
-        case 0xC00E: // ALTCHARSETOFF
-            iiememory_d->f_altcharset = false;
-            break;
-        case 0xC00F: // ALTCHARSETON
-            iiememory_d->f_altcharset = true;
-            break;
-#endif
     }
     iiememory_compose_map(iiememory_d);
 
@@ -413,56 +419,54 @@ void iiememory_write_C00X(void *context, uint16_t address, uint8_t data) {
 uint8_t iiememory_read_C01X(void *context, uint16_t address) {
     iiememory_state_t *iiememory_d = (iiememory_state_t *)context;
     update_display_flags(iiememory_d);
-    
+    uint8_t fl = 0x00;
+    MMU_IIe *mmu = (MMU_IIe *)iiememory_d->mmu;
+
     switch (address) {
         case 0xC011: // BSRBANK2
-            return (!iiememory_d->FF_BANK_1) ? 0x80 : 0x00;
-
-        case 0xC012: // BSRREADRAM
-            return (iiememory_d->FF_READ_ENABLE) ? 0x80 : 0x00;
-
-        case 0xC013: // RAMRD
-            return (iiememory_d->f_ramrd) ? 0x80 : 0x00;
-
-        case 0xC014: // RAMWRT
-            return (iiememory_d->f_ramwrt) ? 0x80 : 0x00;
-
-        case 0xC016: // ALTZP
-            return (iiememory_d->f_altzp) ? 0x80 : 0x00;
-
-        case 0xC017: // SLOTC3ROM
-            return (iiememory_d->f_slotc3rom) ? 0x80 : 0x00;
-
-        case 0xC018: // 80STORE
-            return (iiememory_d->f_80store) ? 0x80 : 0x00;
-#if 0
-        // TODO: these need to go to the display device.
-        case 0xC019: // VERTBLANK
-            return 0x00;
-
-        case 0xC01A: // TEXT
-            return (iiememory_d->s_text) ? 0x80 : 0x00;
-
-        case 0xC01B: // MIXED
-            return (iiememory_d->s_mixed) ? 0x80 : 0x00;
-#endif
-        case 0xC01C: // PAGE2
-            return (iiememory_d->s_page2) ? 0x80 : 0x00;
-#if 0
-        case 0xC01D:  // HIRES
-            return (iiememory_d->s_hires) ? 0x80 : 0x00;
-
-        case 0xC01E:  // ALTCHARSET
-            return (iiememory_d->f_altcharset) ? 0x80 : 0x00;
-
-        case 0xC01F:  // 80COL
-            return (iiememory_d->f_80col) ? 0x80 : 0x00;
-#endif
-        default:
-            return 0x00;
+            fl = (!iiememory_d->FF_BANK_1) ? 0x80 : 0x00;
             break;
+        case 0xC012: // BSRREADRAM
+            fl = (iiememory_d->FF_READ_ENABLE) ? 0x80 : 0x00;
+            break;
+        case 0xC013: // RAMRD
+            fl = (iiememory_d->f_ramrd) ? 0x80 : 0x00;
+            break;
+        case 0xC014: // RAMWRT
+            fl = (iiememory_d->f_ramwrt) ? 0x80 : 0x00;
+            break;
+        case 0xC015: // INTCXROM
+            fl = (mmu->f_intcxrom) ? 0x80 : 0x00;
+            break;
+        case 0xC016: // ALTZP
+            fl = (iiememory_d->f_altzp) ? 0x80 : 0x00;
+            break;
+        case 0xC017: // SLOTC3ROM
+            fl =  (mmu->f_slotc3rom) ? 0x80 : 0x00;
+            break;
+        case 0xC018: // 80STORE
+            fl =  (iiememory_d->f_80store) ? 0x80 : 0x00;
+            break;
+        case 0xC01A: // TEXT
+            fl =  (iiememory_d->s_text) ? 0x80 : 0x00;
+            break;
+        case 0xC01B: // MIXED
+            fl =  (iiememory_d->s_mixed) ? 0x80 : 0x00;
+            break;
+        case 0xC01C: // PAGE2
+            fl =  (iiememory_d->s_page2) ? 0x80 : 0x00;
+            break;
+        case 0xC01D:  // HIRES
+            fl =  (iiememory_d->s_hires) ? 0x80 : 0x00;
+            break;
+        // C01E and C01F are handled by display. (altcharset and 80col)
+        default:
+            fl =  0x00;
     }
-    return 0xEE;
+    KeyboardMessage *keymsg = (KeyboardMessage *)iiememory_d->mbus->read(MESSAGE_TYPE_KEYBOARD);
+    uint8_t kbv = (keymsg ? keymsg->mk->last_key_val : 0xEE) & 0x7F;
+    return kbv | fl;
+    //return iie_kb_read_strobe(iiememory_d->computer) | fl;
 }
 
 // It is necessary to take over the page2 switch from the video scanner because
@@ -523,9 +527,7 @@ void reset_iiememory(iiememory_state_t *lc) {
     lc->f_80store = false;
     lc->f_ramrd = false;
     lc->f_ramwrt = false;
-    lc->f_altzp = false;
-    lc->f_slotc3rom = false;
-    //lc->f_80col = false;
+    lc->f_altzp = false;    
 
     bsr_map_memory(lc);
     iiememory_compose_map(lc);
@@ -537,12 +539,14 @@ void init_iiememory(computer_t *computer, SlotType_t slot) {
     iiememory_d->computer = computer;
     iiememory_d->mmu = computer->mmu;
     iiememory_d->ram = computer->mmu->get_memory_base();
-    
+    iiememory_d->mbus = computer->mbus;
+
     computer->set_module_state(MODULE_IIEMEMORY, iiememory_d);
     
     for (int i = 0xC000; i <= 0xC009; i++) {
         if (i == 0xC006 || i == 0xC007) continue; // INTCXROM is handled by the MMU.
-        if (i == 0xC00C || i == 0xC00D) continue; // 80COL is handled by the display device.
+        // C00A-C00b: handled by mmu
+        //if (i == 0xC00C || i == 0xC00D) continue; // 80COL is handled by the display device.
         computer->mmu->set_C0XX_write_handler(i, { iiememory_write_C00X, iiememory_d });
     }
 
@@ -559,6 +563,12 @@ void init_iiememory(computer_t *computer, SlotType_t slot) {
     // C01D, C01E, C01F are handled by the video scanner
 
     /*
+    for (uint16_t i = 0xC011; i <= 0xC01D; i++) {
+        //if (i == 0xC015) continue; // INTCXROM is handled by the MMU.
+        if (i == 0xC019) continue; // VBL is handled by the display device.
+        computer->mmu->set_C0XX_read_handler(i, { iiememory_read_C01X, iiememory_d });
+    }
+
     // Override the display device handlers for these..
     for (uint16_t i = 0xC050; i <= 0xC057; i++) {
         computer->mmu->set_C0XX_read_handler(i, { iiememory_read_display, iiememory_d });

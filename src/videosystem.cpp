@@ -240,6 +240,7 @@ void video_system_t::toggle_fullscreen() {
 
 
 void video_system_t::display_capture_mouse(bool capture) {
+    SDL_SetWindowKeyboardGrab(window, capture);
     SDL_SetWindowRelativeMouseMode(window, capture);
 }
 

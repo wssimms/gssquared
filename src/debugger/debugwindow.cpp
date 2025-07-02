@@ -16,6 +16,7 @@
 #include "debugger/MonitorCommand.hpp"
 #include "debugger/disasm.hpp"
 #include "devices/iiememory/iiememory.hpp"
+#include "mmus/mmu_iie.hpp"
 
 debug_window_t::debug_window_t(computer_t *computer) {
     this->computer = computer;
@@ -363,25 +364,27 @@ void debug_window_t::render_pane_memory() {
         index = 0;
     }
     //
-    iiememory_state_t *iiem = (iiememory_state_t *)computer->get_module_state(MODULE_IIEMEMORY);
-    if (iiem) {
-        VideoScannerIIe *vs = (VideoScannerIIe *)(iiem->computer->video_scanner);
-        // dump the page table
-        snprintf(buffer,255,"80ST: %1d RAMR: %1d RAMW: %1d ALTZP: %1d SLOTC3: %1d 80COL: %1d ALTCHAR: %1d",
-            iiem->f_80store, iiem->f_ramrd, iiem->f_ramwrt, iiem->f_altzp, iiem->f_slotc3rom, vs->is_80col(), vs->is_altchrset());
-        draw_text(DEBUG_PANEL_MEMORY, x, base_line + line, buffer);
-        line++;
-        snprintf(buffer,255,"INTCX: %1d ALTCHR: %1d LC [ BNK1: %1d READ: %1d WRT: %1d ]",
-            1, vs->is_altchrset(), iiem->FF_BANK_1, iiem->FF_READ_ENABLE, !iiem->_FF_WRITE_ENABLE);
-        draw_text(DEBUG_PANEL_MEMORY, x, base_line + line, buffer);
-        line++;
+    if (computer->platform->id == PLATFORM_APPLE_IIE) {
+        iiememory_state_t *iiem = (iiememory_state_t *)computer->get_module_state(MODULE_IIEMEMORY);
+        MMU_IIe *mmu = (MMU_IIe *)computer->mmu;
+        if (iiem) {
+            VideoScannerIIe *vs = (VideoScannerIIe *)(iiem->computer->video_scanner);
+            // dump the page table
+            snprintf(buffer,255,"80ST: %1d RAMR: %1d RAMW: %1d ALTZP: %1d SLOTC3: %1d 80COL: %1d",
+                iiem->f_80store, iiem->f_ramrd, iiem->f_ramwrt, iiem->f_altzp, vs->is_altchrset(), vs->is_80col());
+            draw_text(DEBUG_PANEL_MEMORY, x, base_line + line, buffer);
+            line++;
+            snprintf(buffer,255,"INTCX: %1d ALTCHR: %1d LC [ BNK1: %1d READ: %1d WRT: %1d ]",
+                mmu->f_intcxrom, vs->is_altchrset(), mmu->f_slotc3rom, iiem->FF_READ_ENABLE, !iiem->_FF_WRITE_ENABLE);
+            draw_text(DEBUG_PANEL_MEMORY, x, base_line + line, buffer);
+            line++;
+        }
     }
-
 }
-    bool FF_BANK_1;
+   /*  bool FF_BANK_1;
     bool FF_READ_ENABLE;
     bool FF_PRE_WRITE;
-    bool _FF_WRITE_ENABLE;
+    bool _FF_WRITE_ENABLE; */
 
 void debug_window_t::render() {
     char buffer[256];

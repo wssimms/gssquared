@@ -10,6 +10,7 @@
 #include "videosystem.hpp"
 #include "util/mount.hpp"
 #include "platforms.hpp"
+#include "mbus/MessageBus.hpp"
 
 computer_t::computer_t() {
     // lots of stuff is going to need this.
@@ -20,6 +21,9 @@ computer_t::computer_t() {
     }
 
     event_timer = new EventTimer();
+
+    mbus = new MessageBus();
+
     sys_event = new EventDispatcher(); // different queue for "system" events that get processed first.
     dispatch = new EventDispatcher(); // has to be very first thing, devices etc are going to immediately register handlers.
     device_frame_dispatcher = new DeviceFrameDispatcher();
@@ -92,8 +96,9 @@ void computer_t::reset(bool cold_start) {
         mmu->write(0x3f4, 0x00);
     }
 
+    mmu->reset(); // this first, so when CPU fetches PC from RESET it will be based on main memory/rom.
     cpu->reset();
-    mmu->reset();
+    
 //    mmu->init_map(); // changed to reset() above.
 
     /* for (reset_handler_rec rec : reset_handlers) {

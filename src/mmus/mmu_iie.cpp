@@ -94,20 +94,6 @@ void iie_mmu_handle_C00X_write(void *context, uint16_t address, uint8_t value) {
     }
 }
 
-uint8_t iie_mmu_handle_C01X_read(void *context, uint16_t address) {
-    MMU_IIe *mmu = (MMU_IIe *)context;
-
-    switch (address) {
-        case 0xC015: // INTCXROM 
-            return (mmu->f_intcxrom) ? 0x80 : 0x00;
-        case 0xC017: // SLOTC3ROM
-            return (mmu->f_slotc3rom) ? 0x80 : 0x00;
-        default:
-            break;
-    }
-    return 0xEE;
-}
-
 /**
  * sets default C800 - CFFF map.
  * Called with location CFFF hit, or, on reset.
@@ -262,19 +248,7 @@ MMU_IIe::MMU_IIe(int page_table_size, int ram_amount, uint8_t *rom_pointer) : MM
     //main_rom_D0 = rom_pointer + 0x1000;
     MMU_IIe::init_map();
     power_on_randomize(main_ram, ram_amount);
-    /* //ram_pages = ram_amount / GS2_PAGE_SIZE;
-    ram_pages = 48; // initially map lower 48K of RAM into page table.
-    main_ram = new uint8_t[ram_amount];
-    power_on_randomize(main_ram, ram_amount);
-    
-    //main_io_4 = new uint8_t[IO_KB]; // TODO: we're not using this..
-    main_rom_D0 = rom_pointer;
 
-    // initialize memory map
-    init_map();
-    set_default_C8xx_map(); */
-    set_C0XX_read_handler(0xC015, {iie_mmu_handle_C01X_read, this});
-    set_C0XX_read_handler(0xC017, {iie_mmu_handle_C01X_read, this});
     set_C0XX_write_handler(0xC006, {iie_mmu_handle_C00X_write, this});
     set_C0XX_write_handler(0xC007, {iie_mmu_handle_C00X_write, this});
     set_C0XX_write_handler(0xC00A, {iie_mmu_handle_C00X_write, this});
