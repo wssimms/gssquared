@@ -12,6 +12,6 @@ struct diskii_disk_status_t {
 
 class DiskIIMessage : public Message {
     public:
-        DiskIIMessage(uint32_t instance, diskii_disk_status_t *status) : Message(MESSAGE_CLASS_DISKII, instance) {}
+        DiskIIMessage(uint32_t instance, diskii_disk_status_t *status) : Message(MESSAGE_TYPE_DISKII, instance) {}
         diskii_disk_status_t *status;
 };

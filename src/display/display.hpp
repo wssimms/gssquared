@@ -119,10 +119,12 @@ public:
     display_graphics_mode_t display_graphics_mode;
     display_page_number_t display_page_num;
     display_page_t *display_page_table;
+    bool f_altcharset = false;
     bool f_80col = false;
+    uint64_t vbl_cycle_count = 0;
 
     // for iie
-    bool display_alt_charset;
+   // bool display_alt_charset;
 
     bool flash_state;
     int flash_counter;
@@ -143,6 +145,7 @@ public:
     Monochrome560 mon_mono;
     NTSC560 mon_ntsc;
     GSRGB560 mon_rgb;
+    MessageBus *mbus;
 } display_state_t;
 
 

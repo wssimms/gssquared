@@ -9,6 +9,7 @@
 #include "util/EventQueue.hpp"
 #include "util/DeviceFrameDispatcher.hpp"
 #include "platforms.hpp"
+#include "mbus/MessageBus.hpp"
 
 struct cpu_state;
 struct debug_window_t; // don't bring in debugwindow.hpp, it would create a depedence on SDL.
@@ -31,6 +32,7 @@ struct computer_t {
     cpu_state *cpu = nullptr;
     MMU_II *mmu = nullptr;
     platform_info *platform = nullptr;
+    MessageBus *mbus = nullptr;
 
     EventDispatcher *sys_event = nullptr;
     EventDispatcher *dispatch = nullptr;

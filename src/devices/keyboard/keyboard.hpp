@@ -21,6 +21,7 @@
 #include "gs2.hpp"
 #include "cpu.hpp"
 #include "computer.hpp"
+#include "mbus/KeyboardMessage.hpp"
 
 #define KB_LATCH_ADDRESS 0xC000
 #define KB_CLEAR_LATCH_ADDRESS 0xC010
@@ -28,6 +29,7 @@
 struct keyboard_state_t {
     uint8_t kb_key_strobe = 0x41; 
     std::string paste_buffer;
+    message_keyboard_t *mk = nullptr;
 } ;
 
 /* uint8_t kb_memory_read(uint16_t address);
@@ -36,3 +38,4 @@ void kb_key_pressed(keyboard_state_t *kb_state, uint8_t key);
 void handle_keydown_iiplus(cpu_state *cpu, const SDL_Event &event);
 void init_mb_iiplus_keyboard(computer_t *computer, SlotType_t slot);
 void init_mb_iie_keyboard(computer_t *computer, SlotType_t slot);
+uint8_t iie_kb_read_strobe(computer_t *computer);

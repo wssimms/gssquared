@@ -37,7 +37,8 @@
 #include "devices/annunciator/annunciator.hpp"
 #include "videosystem.hpp"
 #include "devices/displaypp/CharRom.hpp"
-#include "devices/iiememory/iiememory.hpp"
+#include "mbus/MessageBus.hpp"
+#include "mbus/KeyboardMessage.hpp"
 
 display_page_t display_pages[NUM_DISPLAY_PAGES] = {
     {
@@ -240,6 +241,8 @@ bool update_display_apple2(cpu_state *cpu) {
     display_state_t *ds = (display_state_t *)get_module_state(cpu, MODULE_DISPLAY);
     video_system_t *vs = ds->video_system;
 
+    ds->vbl_cycle_count = cpu->cycles;
+
     // first push flash state into AppleII_Display
     ds->a2_display->set_flash_state(ds->flash_state);
 
@@ -292,6 +295,8 @@ bool update_display_apple2(cpu_state *cpu) {
     }
 
     if (updated) { // only reload texture if we updated any lines.
+        RGBA_t mono_color_value = vs->get_mono_color();
+        
         // do a switch on display engine later..
         switch (vs->display_color_engine) {
             case DM_ENGINE_NTSC:
@@ -305,7 +310,7 @@ bool update_display_apple2(cpu_state *cpu) {
                 ds->mon_rgb.render(ds->frame_bits, ds->frame_rgba, (RGBA_t){.a = 0xFF, .b = 0x00, .g = 0xFF, .r = 0x00}, 1);
                 break;
             case DM_ENGINE_MONO:
-                ds->mon_mono.render(ds->frame_bits, ds->frame_rgba, (RGBA_t){.a = 0xFF, .b = 0x00, .g = 0xFF, .r = 0x00});
+                ds->mon_mono.render(ds->frame_bits, ds->frame_rgba, mono_color_value);
                 break;
             default:
                 break; // never happens
@@ -724,22 +729,30 @@ void display_write_switches(void *context, uint16_t address, uint8_t value) {
     display_state_t *ds = (display_state_t *)context;
     switch (address) {
         case 0xC00E:
-            ds->display_alt_charset = false;
+            ds->f_altcharset = false;
             break;
         case 0xC00F:
-            ds->display_alt_charset = true;
+            ds->f_altcharset = true;
             break;
     }
 }
 
 uint8_t display_read_C01E(void *context, uint16_t address) {
     display_state_t *ds = (display_state_t *)context;
-    return (ds->display_alt_charset) ? 0x80 : 0x00;
+    uint8_t fl = (ds->f_altcharset) ? 0x80 : 0x00;
+    
+    KeyboardMessage *keymsg = (KeyboardMessage *)ds->mbus->read(MESSAGE_TYPE_KEYBOARD);
+    uint8_t kbv = (keymsg ? keymsg->mk->last_key_val : 0xEE) & 0x7F;
+    return kbv | fl;
 }
 
 uint8_t display_read_C01F(void *context, uint16_t address) {
     display_state_t *ds = (display_state_t *)context;
-    return (ds->f_80col) ? 0x80 : 0x00;
+    uint8_t fl = (ds->f_80col) ? 0x80 : 0x00;
+
+    KeyboardMessage *keymsg = (KeyboardMessage *)ds->mbus->read(MESSAGE_TYPE_KEYBOARD);
+    uint8_t kbv = (keymsg ? keymsg->mk->last_key_val : 0xEE) & 0x7F;
+    return kbv | fl;
 }
 
 uint8_t display_read_C05EF(void *context, uint16_t address) {
@@ -757,6 +770,18 @@ void display_write_C05EF(void *context, uint16_t address, uint8_t value) {
     ds->video_system->set_full_frame_redraw();
 }
 
+uint8_t display_read_vbl(void *context, uint16_t address) {
+    // This is enough to get basic VBL working. Total Replay boots anyway.
+    display_state_t *ds = (display_state_t *)context;
+    uint8_t fl = (ds->computer->cpu->cycles - ds->vbl_cycle_count) < 4550 ? 0x00 : 0x80;
+
+    KeyboardMessage *keymsg = (KeyboardMessage *)ds->mbus->read(MESSAGE_TYPE_KEYBOARD);
+    uint8_t kbv = (keymsg ? keymsg->mk->last_key_val : 0xEE) & 0x7F;
+    return kbv | fl;
+
+    //return iie_kb_read_strobe(ds->computer) | fl;
+}
+
 void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     cpu_state *cpu = computer->cpu;
     
@@ -764,6 +789,7 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     display_state_t *ds = new display_state_t;
     video_system_t *vs = computer->video_system;
 
+    ds->mbus = computer->mbus;
     ds->video_system = vs;
     ds->event_queue = computer->event_queue;
     ds->computer = computer;
@@ -863,7 +889,7 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
     });
 
     if (computer->platform->id == PLATFORM_APPLE_IIE) {
-        ds->display_alt_charset = false;
+        ds->f_altcharset = false;
         mmu->set_C0XX_write_handler(0xC00C, { ds_bus_write_C00X, ds });
         mmu->set_C0XX_write_handler(0xC00D, { ds_bus_write_C00X, ds });
         mmu->set_C0XX_write_handler(0xC00E, { display_write_switches, ds });
@@ -874,6 +900,7 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
         mmu->set_C0XX_write_handler(0xC05E, { display_write_C05EF, ds });
         mmu->set_C0XX_read_handler(0xC05F, { display_read_C05EF, ds });
         mmu->set_C0XX_write_handler(0xC05F, { display_write_C05EF, ds });
+        mmu->set_C0XX_read_handler(0xC019, { display_read_vbl, ds });
         computer->register_reset_handler([ds]() {
             ds->f_80col = false;
             ds->f_double_graphics = true;

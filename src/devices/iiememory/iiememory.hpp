@@ -4,6 +4,7 @@
 
 #include "computer.hpp"
 #include "display/display.hpp"
+#include "mbus/KeyboardMessage.hpp"
 
 struct iiememory_state_t {
     uint8_t switch_state;
@@ -11,14 +12,13 @@ struct iiememory_state_t {
     computer_t *computer;
     uint8_t *ram;
     MMU_II *mmu;
+    MessageBus *mbus;
 
     bool f_80store = false;
     bool f_ramrd = false;
     bool f_ramwrt = false;
     bool f_altzp = false;
-    bool f_slotc3rom = false;
-    bool f_80col = false;
-    bool f_altcharset = false;
+    //bool f_altcharset = false;
 
     // summary memory mapping flags
     bool m_zp = false; // this is both read and write.

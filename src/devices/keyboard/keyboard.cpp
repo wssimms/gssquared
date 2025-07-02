@@ -23,16 +23,20 @@
 #include "debug.hpp"
 #include "keyboard.hpp"
 
+#include "mbus/KeyboardMessage.hpp"
+
 // Software should be able to:
 // Read keyboard from register at $C000.
 // Write to the keyboard clear latch at $C010.
 
 inline void kb_key_pressed(keyboard_state_t *kb_state, uint8_t key) {
     kb_state->kb_key_strobe = key | 0x80;
+    if (kb_state->mk) kb_state->mk->last_key_val = key;
 }
 
 inline void kb_clear_strobe(keyboard_state_t *kb_state) {
     kb_state->kb_key_strobe = kb_state->kb_key_strobe & 0x7F;
+    if (kb_state->mk) kb_state->mk->last_key_val = kb_state->kb_key_strobe;
 }
 
 uint8_t kb_read_C00X(void *context, uint16_t address) {
@@ -62,11 +66,36 @@ uint8_t kb_read_C01X(void *context, uint16_t address) {
     return 0xEE;
 }
 
+// iie only
+uint8_t kb_read_C010(void *context, uint16_t address) {
+    keyboard_state_t *kb_state = (keyboard_state_t *)context;
+
+    // Clear the keyboard latch
+    kb_clear_strobe(kb_state);
+    // AKD is "any key down". it is set instantly whenever a key is pressed.
+    // the apple ii keyboard can't report multiple keys. So, just check to see if SDL
+        // sees any key as down.
+        // alternately we can keep track of all key-down and key-up events and if there are more key down than key up, set AKD.
+    int numkeys;
+    const bool *keyarr = SDL_GetKeyboardState(&numkeys);
+    bool akd = false;
+    for (int i = 0; i < numkeys; i++) {
+        if (keyarr[i]) { akd = true; break; }
+    }
+   
+    return kb_state->kb_key_strobe | (akd ? 0x80 : 0x00);
+}
+
 void kb_write_C01X(void *context, uint16_t address, uint8_t value) {
     keyboard_state_t *kb_state = (keyboard_state_t *)context;
 
     // Clear the keyboard latch
     kb_clear_strobe(kb_state);
+}
+
+uint8_t iie_kb_read_strobe(computer_t *computer) {
+    keyboard_state_t *kb_state = (keyboard_state_t *)computer->get_module_state(MODULE_KEYBOARD);
+    return kb_state->kb_key_strobe & 0x7F;
 }
 
 void decode_key_mod(SDL_Keycode key, SDL_Keymod mod) {
@@ -212,7 +241,7 @@ void init_mb_iie_keyboard(computer_t *computer, SlotType_t slot) {
         //computer->mmu->set_C0XX_read_handler(0xC010+i, { kb_read_C01X, kb_state });
         computer->mmu->set_C0XX_write_handler(0xC010+i, { kb_write_C01X, kb_state });
     }
-    computer->mmu->set_C0XX_read_handler(0xC010, { kb_read_C01X, kb_state });
+    computer->mmu->set_C0XX_read_handler(0xC010, { kb_read_C010, kb_state });
 
     computer->dispatch->registerHandler(SDL_EVENT_KEY_DOWN, [kb_state](const SDL_Event &event) {
         if (event.key.key == SDLK_INSERT && event.key.mod & SDL_KMOD_SHIFT) {
@@ -222,4 +251,10 @@ void init_mb_iie_keyboard(computer_t *computer, SlotType_t slot) {
         handle_keydown_iie(event, kb_state);
         return false;
     });
+
+    // set up the keyboard message.
+    kb_state->mk = new message_keyboard_t;
+    Message *msg = new KeyboardMessage(kb_state->mk);
+    kb_state->mk->last_key_val = kb_state->kb_key_strobe;
+    computer->mbus->send(msg);
 }

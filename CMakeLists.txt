@@ -304,6 +304,7 @@ target_link_libraries(GSSquared
     gs2_ui
     gs2_event_dispatcher
     gs2_displaypp
+    gs2_message_bus
 )
 
 add_subdirectory(apps/nibblizer)
