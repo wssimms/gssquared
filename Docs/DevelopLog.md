@@ -5082,3 +5082,5 @@ nox archaist crashing: this is dying after boot screen and playing music. It tur
 
 the boot screen will display pre-packaged IIs. When you hover, you also get a text box somewhere towards the bottom that explains what's in that package. There are the built-in ones. You can also choose Load (to load a previously saved template), or Custom, to create a new template. I've got room for 8 tiles, if I use one of the spaces for the info box.
 
+going to try keyboard capture along with mouse capture. Linux ctrl-win-reset seems to work. if I only hit windows, it goes to linux. so, that seems to be working ok.
+
