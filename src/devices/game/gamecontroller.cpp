@@ -382,28 +382,23 @@ void init_mb_game_controller(computer_t *computer, SlotType_t slot) {
 
     if (DEBUG(DEBUG_GAME)) fprintf(stdout, "Initializing game controller\n");
 
+    // register the I/O ports
     computer->mmu->set_C0XX_read_handler(GAME_ANALOG_0, { read_game_input_0, cpu });
     computer->mmu->set_C0XX_read_handler(GAME_ANALOG_1, { read_game_input_1, cpu });
     computer->mmu->set_C0XX_read_handler(GAME_ANALOG_2, { read_game_input_2, cpu });
     computer->mmu->set_C0XX_read_handler(GAME_ANALOG_3, { read_game_input_3, cpu });
-    computer->mmu->set_C0XX_read_handler(GAME_ANALOG_RESET, { strobe_game_inputs, cpu });
-    computer->mmu->set_C0XX_write_handler(GAME_ANALOG_RESET, { strobe_game_inputs_w, cpu });
     computer->mmu->set_C0XX_read_handler(GAME_SWITCH_0, { read_game_switch_0, cpu });
     computer->mmu->set_C0XX_read_handler(GAME_SWITCH_1, { read_game_switch_1, cpu });
     computer->mmu->set_C0XX_read_handler(GAME_SWITCH_2, { read_game_switch_2, cpu }); 
 
+    // the reset strobe apparently responds at 0xC070-7F.
+    for (int i = 0x00; i < 0x10; i++) {
+        computer->mmu->set_C0XX_read_handler(GAME_ANALOG_RESET + i, { strobe_game_inputs, cpu });
+        computer->mmu->set_C0XX_write_handler(GAME_ANALOG_RESET + i, { strobe_game_inputs_w, cpu });
+    }
+
     // we need to compute on init! Otherwise we will only catch changes after boot.
     recompute_gamepads(ds);
-
-// register the I/O ports
-/*     register_C0xx_memory_read_handler(GAME_ANALOG_0, read_game_input_0);
-    register_C0xx_memory_read_handler(GAME_ANALOG_1, read_game_input_1);
-    register_C0xx_memory_read_handler(GAME_ANALOG_2, read_game_input_2);
-    register_C0xx_memory_read_handler(GAME_ANALOG_3, read_game_input_3);
-    register_C0xx_memory_read_handler(GAME_ANALOG_RESET, strobe_game_inputs);
-    register_C0xx_memory_read_handler(GAME_SWITCH_0, read_game_switch_0);
-    register_C0xx_memory_read_handler(GAME_SWITCH_1, read_game_switch_1);
-    register_C0xx_memory_read_handler(GAME_SWITCH_2, read_game_switch_2); */
 
     computer->dispatch->registerHandler(SDL_EVENT_GAMEPAD_REMOVED, [ds](const SDL_Event &event) {
         remove_gamepad(ds, event);
