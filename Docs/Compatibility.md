@@ -100,6 +100,8 @@ hard looping at $0E86. This is a tight loop BIT $C019 BMI $0E86. I.e., it's look
 
 The Apple II plus did not have the VBL register. So this software not compatible with Apple II plus!
 
+Glider now boots, but, keyboard control doesn't work - it's reading $C010 and expecting the keypress to be there.
+
 ## Wall Street
 
 reads a couple tracks then fails with:
@@ -156,6 +158,7 @@ Requires speech synthesis support for Mockingboard.
 
 boots up detects 64K and mockingboard and then thinks "and it talks!" . uh. wrong. but lots of the games on it work, including Rescue Raiders.
 Correctly detects 128K + joystick in apple //e mode, but then hangs waiting for VBL to appear.
+ok, VBL is on and Total Replay boots to menu now.
 
 ## Carrier Aviation 
 
@@ -164,6 +167,7 @@ seems to work. don't know how to play :)
 ## Shufflepuck
 
 needs: Mouse; VBL; 
+gets past VBL check, but still dies on no mouse.
 
 ## Cybernoid Music Disk
 
@@ -191,7 +195,7 @@ Works and supports Mockingboard on II Plus. Now works with Mockingboard on IIe.
 
 ## Ultima V
 
-Is now booting on IIe emulation with 128K. I should stick a Mockingboard in it and see if it works! It doesn't. ha! Fixed a bug in MB with new mmu routines for c1cf, still doesn't work.
+Is now booting on IIe emulation with 128K. I should stick a Mockingboard in it and see if it works! It doesn't. ha! Fixed a bug in MB with new mmu routines for c1cf, still doesn't work. Fully implemented T2 counter and interrupt; still no dice.
 
 ## AppleWorks 1.3
 
@@ -209,6 +213,16 @@ works great. uppercase only.
 
 works, asks if you want 80col mode. Would probably provide lowercase then.
 
-## Nox Archaist
+## Nox Archaist Demo
 
 Nox Archaist Demo hdv from the apple2ts source tree boots - but then hangs on C019 waiting for a VBL that will never come..
+The VBL has now come! Why would it care about vbl? Don't know. Gets boot screen, plays the "Nox archaist" voice, and some mockingboard music.
+Then hit a key, and it dies with the PC in ZP and ALTZP on. 
+
+Well, it stops running correctly on Apple2TS also. Maybe the Demo just stops there.
+
+## Total Replay
+
+### AirHeart
+
+crashes after doing some STA C081,X; STA C082,X; STA C083,X. that is lang card stuff.

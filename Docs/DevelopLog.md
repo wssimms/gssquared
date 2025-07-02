@@ -4880,19 +4880,6 @@ start with A = 0. CLC. Add ($00),Y. iterate.
 I suppose I should somehow verify this checksum myself. 
 
 
-
-Here is the Apple IIe checklist:
-[x] 128K memory management  
-[ ] 80 column text  
-[ ] dlgr  
-[ ] dhgr  
-[ ] VBL  
-[ ] Alternate character set (I implemented the switch but don't act on it yet)  
-[x] display must read video memory from absolute memory, not from page table
-[x] have "default to rom" concept in mmu. (mostly resolved by moving switches into mmu)  
-[ ] modifier keys mapped to open-apple and closed-apple  
-[x] up and down arrow keys  
-
 ## Jun 24, 2025
 
 So:
@@ -5080,4 +5067,18 @@ OA-CA can go into the game controller. it can just call SDL to see if the approp
 working out what open apple and closed apple need to be. Right now I am using LGUI and RGUI. On my desktop Mac, this is ALT (which is a PC keyboard where I have personally reversed GUI and ALT keys because I like ALT better for "Command"). on my laptop, Command is LGUI. This means on a PC/Linux/Windows keyboard, it will not be the ALT keys, but the Windows keys. I might have to switch these checks to ALT on Linux/PC.
 
 And, implemented in the game controller module.
+
+So VBL. The most straightforward approach is to start ticking VBL right at the start of a cpu loop. Gemini suggests VBL period is 4,550 cycles long. "a horizontal scan" takes exactly 65 cycles. A vertical scan takes "exactly 17030 machine cycles". (This might be instructive for our main loop, 17030 instead of 17000..)
+
+So for basic VBL (not doing cycle counting madness) just:
+```
+cpu->cycles % 17030 < 4550
+```
+let's just try math. Seems to work ok. Dunno about performance! This will be replaced with the videoscanner anyway, so this is fine for now.
+
+nox archaist crashing: this is dying after boot screen and playing music. It turns on ALTZP then does an RTS, and the stack has garbage on it. nothing jumping out at me with the code right now, looks ok.. oh, it dies there in a2ts also. no problem then.
+
+## Jul 2, 2025
+
+the boot screen will display pre-packaged IIs. When you hover, you also get a text box somewhere towards the bottom that explains what's in that package. There are the built-in ones. You can also choose Load (to load a previously saved template), or Custom, to create a new template. I've got room for 8 tiles, if I use one of the spaces for the info box.
 
