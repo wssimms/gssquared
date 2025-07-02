@@ -138,27 +138,7 @@ void run_cpus(computer_t *computer) {
                     case EXEC_NORMAL:
                         {
                         if (computer->debug_window->window_open) {
-/*
-                            uint64_t end_frame_cycles = cpu->cycles + cycles_for_this_burst;
-                            while (cpu->cycles < end_frame_cycles) { // 1/60th second.
-                                if (computer->event_timer->isEventPassed(cpu->cycles)) {
-                                    computer->event_timer->processEvents(cpu->cycles);
-                                }
-                                (cpu->execute_next)(cpu);
-                                if (computer->debug_window->window_open) {
-                                    if (computer->debug_window->check_breakpoint(&cpu->trace_entry)) {
-                                        cpu->execution_mode = EXEC_STEP_INTO;
-                                        cpu->instructions_left = 0;
-                                        break;
-                                    }
-                                    if (cpu->trace_entry.opcode == 0x00) { // catch a BRK and stop execution.
-                                        cpu->execution_mode = EXEC_STEP_INTO;
-                                        cpu->instructions_left = 0;
-                                        break;
-                                    }
-                                }
-                            }
-*/
+
                             cpu->cycle_duration_ns = clock_mode_info[cpu->clock_mode].cycle_duration_ns;
 
                             uint64_t before_cycles = cpu->cycles;
@@ -195,15 +175,7 @@ void run_cpus(computer_t *computer) {
                                 clock_mode_info[CLOCK_FREE_RUN].cycles_per_burst = total_cycles;
                             }
                         } else { // skip all debug checks if the window is not open - this may seem repetitioius but it saves all kinds of cycles where every cycle counts (GO FAST MODE)
-/*                            
-                            uint64_t end_frame_cycles = cpu->cycles + cycles_for_this_burst;
-                            while (cpu->cycles < end_frame_cycles) { // 1/60th second.
-                                if (computer->event_timer->isEventPassed(cpu->cycles)) {
-                                    computer->event_timer->processEvents(cpu->cycles);
-                                }
-                                (cpu->execute_next)(cpu);
-                            }
-*/
+
                             // set this because it is used in incr_cycle()
                             cpu->cycle_duration_ns = clock_mode_info[cpu->clock_mode].cycle_duration_ns;
 

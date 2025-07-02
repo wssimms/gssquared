@@ -20,7 +20,6 @@ computer_t::computer_t() {
     }
 
     event_timer = new EventTimer();
-
     sys_event = new EventDispatcher(); // different queue for "system" events that get processed first.
     dispatch = new EventDispatcher(); // has to be very first thing, devices etc are going to immediately register handlers.
     device_frame_dispatcher = new DeviceFrameDispatcher();

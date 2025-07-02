@@ -150,7 +150,8 @@ uint8_t strobe_game_inputs(void *context, uint16_t address) {
         ds->game_input_trigger_0 = x_trigger;
         ds->game_input_trigger_1 = y_trigger;
     }
-    return 0x00;
+    return cpu->video_scanner->get_video_byte();
+    //return 0x00;xs
 }
 
 void strobe_game_inputs_w(void *context, uint16_t address, uint8_t value) {
