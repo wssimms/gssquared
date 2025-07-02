@@ -16,6 +16,21 @@ The ambition for this project is large - and it will take a while to get it done
 | Linux    | Can now build Linux binary. All features working. |
 | Windows  | Not started. |
 
+## Modeled Virtual Platforms
+
+| Platform | Status |
+|----------|--------|
+| Apple II Rev 0. | ❌ |
+| Apple II  | ✅ |
+| Apple II+ | ✅ |
+| Apple II j-plus | ❌ |
+| Apple IIe | ❌ |
+| Apple IIe (enh) | ❌ |
+| Apple IIc | ❌ |
+| Apple IIc+ | ❌ |
+| Apple IIgs | ❌ |
+
+
 ## Supported Video Modes
 
 We currently have the following implemented:
@@ -23,11 +38,12 @@ We currently have the following implemented:
 | Apple II Mode | Composite | RGB | Monochrome |
 |---------------|-----------|-----|------------|
 | Text (40-col) | ✅        | ✅  | ✅         |
-| Text (80-col) | ❌        | ❌  | ❌         |
-| Videx VideoTerm (80-col) | | | ✅ |
-| LGR           | ✅        | ✅  | ❌         |
+| Text (80-col) | ✅        | ✅  | ✅         |
+| Videx VideoTerm |         |     | ✅         |
+| LGR           | ✅        | ✅  | ✅         |
 | HGR           | ✅        | ✅  | ✅         |
-| DHGR          | ❌        | ❌  | ❌         |
+| DLGR          | ✅        |     | ✅         |
+| DHGR          | ✅        | ✅  | ✅         |
 
 By "Composite" we mean DisplayNG, to accurately render composite artifacts.
 
@@ -44,7 +60,7 @@ By "Composite" we mean DisplayNG, to accurately render composite artifacts.
 | Model | Status |
 |-------|--------|
 | Apple II+ | ✅ |
-| Apple IIe | ❌ |
+| Apple IIe | ✅ |
 | Apple IIc | ❌ |
 | Apple IIgs | ❌ |
 
@@ -92,6 +108,7 @@ Additional notes: Disk II does not support quarter or half tracks.
 |--------|--------|-------|
 | Printer / parallel port | Work in progress | Right now just dumps binary data to file, no processsing or printer emulation |
 | Printer / serial port | Not started | |
+| Modem / serial port | Not started | Intend to emulate SSC and Hayes-compatible modem to telnet |
 | ImageWriter printer emulation | Not started | |
 | Joystick / paddles | ✅ Complete | Mouse emulation of Joystick; Gamepads;  |
 | Atari JoyPort | not started | |
@@ -118,6 +135,18 @@ Additional notes: Disk II does not support quarter or half tracks.
 1. EXIT key: YES. Map F12 to this.
 1. REPT key: no. But we don't need this, autorepeat driven by real keyboard.
 1. Backspace - YES. This apparently maps to same as back arrow. Got lucky.
+
+### Apple IIe
+
+1. control keys: YES
+1. shift keys: YES
+1. arrow keys: YES. All 4 arrow keys.
+1. Escape key: YES
+1. RESET key: YES. Map Control+F10 to this.
+1. EXIT key: YES. Map F12 to this.
+1. REPT key: no. But we don't need this, autorepeat driven by real keyboard.
+1. Backspace - YES. Mapped to 0x7F.
+1. OA and CA - YES. Mapped to Command on Mac, Windows on Win/Linux.
 
 ## ROMs
 

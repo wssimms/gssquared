@@ -14,10 +14,10 @@ Here is the Apple IIe checklist:
 [x] up and down arrow keys  
 [x] AKD flag  
 [x] read last key press from anywhere in C000-C01F  
-[ ] implement C040 strobe - related to game I/O  it's a strobe output unused. (?)  
+[canx] implement C040 strobe - related to game I/O  it's a strobe output unused. Doesn't make sense in emulator context. Yet.
 [x] C071-7F same as C070 (missing in apple ii+ impl also)  
 [ ] on control-oa-reset don't clear locations like on ii+  
-[ ] self-test fails mmu flag: e4:D
+[x] self-test fails mmu flag: e4:D
 
 ## Notes
 
@@ -58,3 +58,42 @@ actually, code trace seems to indicate the issue is: c00b, then c00a, then read 
 Ahh, slotc3rom wasn't working correctly. The message was wrong! it's in the mmu but iiememory was overwriting it.
 Now the self-test passes. I wonder if some recent things that weren't working will work now..
 
+
+### Character Sets
+
+And just general character set.
+
+#### normal character set
+| screen code | mode | characters | Pos in Char Rom |
+|-|-|-|-|
+| $00..$1F | Inverse | Uppercase Letters | 00 - 1F |
+| $20..$3F | Inverse | Symbols/Numbers | 20 - 3F |
+| $40..$5F | Flashing | Uppercase Letters | 00 - 1F* |
+| $60..$7F | Flashing | Symbols/Numbers | 20 - 3F* |
+| $80..$9F | Normal | Uppercase Letters | 80 - 9F |
+| $A0..$BF | Normal | Symbols/Numbers | A0 - BF |
+| $C0..$DF | Normal | Uppercase Letters | C0 - DF |
+| $E0..$FF | Normal | Symbols/Numbers | E0 - DF |
+
+#### alternate character set
+| screen code | mode | characters | Pos in Char Rom |
+|-|-|-|-|
+| $00..$1F | Inverse | Uppercase Letters | 00 - 1F |
+| $20..$3F | Inverse | Symbols/Numbers | 20 - 3F |
+| $40..$5F | Inverse | Uppercase Letters (tb mousetext)| 40-5F |
+| $60..$7F | Inverse | Lowercase letters | 60-7F |
+| $80..$9F | Normal | Uppercase Letters | 80 - 9F |
+| $A0..$BF | Normal | Symbols/Numbers | A0 - BF |
+| $C0..$DF | Normal | Uppercase Letters | C0 - DF |
+| $E0..$FF | Normal | Symbols/Numbers | E0 - DF |
+
+So a "character set" is:
+
+* index
+* mode (normal, inverse, flash)
+* map to character rom position
+
+For IIPlus: build this table 1:1 to chars in rom except populate mode=flash based on hi bit.
+For IIe: build 2 tables; 1st per "norm" above, but override 40-7F to point to 0-3F and set mode flash; 2nd table, per "alt" above.
+
+ok, so you CAN haz flash in 80 cols. And, my "detect a flashing character" routine was just modified to support looking at the 80-col page. However, it's ugly and will also match and cause update for non-flashing inverse characters when alt char set is enabled. oh, we can do is_flash against the char rom, that will take active char set into account. Even better, if altcharset is 1 we can probably just exit and not do the update_flash routine at all.

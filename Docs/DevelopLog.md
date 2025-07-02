@@ -4888,7 +4888,7 @@ C007:0
 1500<C500.C7FFM
 1564:0 (or breakpoint)
 156C:0 (or breakpoint)
-
+```
 if you hit 1564, the checksum did not match
 if you hit 156C, the checksum -did- match.
 
@@ -5084,3 +5084,15 @@ the boot screen will display pre-packaged IIs. When you hover, you also get a te
 
 going to try keyboard capture along with mouse capture. Linux ctrl-win-reset seems to work. if I only hit windows, it goes to linux. so, that seems to be working ok.
 
+Character set magic
+
+This is a great reference:
+
+https://retrocomputing.stackexchange.com/questions/8652/why-did-the-original-apple-e-have-two-sets-of-inverse-video-characters
+
+in the Apple II, there are only 64 glyphs, repeated 4 times basically. (In the ROM we see them mostly repeat but with minor differences e.g. the flashing char area has the hi-bit set in the bytes). 0-3f inverse; 40-7f flash; 80-bf normal; c0-ff repeat of 80-bf.
+
+On IIe, what we have is this in the alt character set: 0-1f inverse uppercase letters; 20-3f inverse symbols; (same as II);
+40-5f: inverse uppercase letters, 
+
+So what we need is a character map that is built, depending on character mode. ok, see Apple IIe Doc.

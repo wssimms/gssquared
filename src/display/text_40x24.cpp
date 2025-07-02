@@ -285,6 +285,13 @@ void update_flash_state(cpu_state *cpu) {
                 ds->dirty_line[y] = 1;
                 break;                           // stop after we find any flash char on a line.
             }
+            if (ds->f_80col) { // if iie and 80 col enabled, check for flash in the other page.
+                character = ram[addr + 0x1'0000];
+                if ((character & 0b11000000) == 0x40) {
+                    ds->dirty_line[y] = 1;
+                    break;                           // stop after we find any flash char on a line.
+                }
+            }
         }
     }
 }

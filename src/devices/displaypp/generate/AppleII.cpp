@@ -84,8 +84,7 @@ public:
      }
 
     void set_char_set(bool alt_char_set) {
-        this->alt_char_set = alt_char_set;
-        this->altbase = alt_char_set ? 2048 : 0;
+        char_rom.set_char_set(alt_char_set);
     }
 
     void set_flash_state(bool flash_state) {
@@ -113,9 +112,6 @@ public:
     void generate_text40(uint8_t *textpage, Frame560 *f, uint16_t linegroup) {
         uint16_t scanline = linegroup * 8;
         uint16_t x = 0;
-       /*  bool pixel_on = 1;
-        bool pixel_off = 0; */
-        bool invert = false;
 
         for (uint16_t y = 0; y < 8; y++) {
             uint16_t char_addr = A2_textMap[linegroup];
@@ -123,12 +119,12 @@ public:
             for (uint16_t pp = 0; pp < 7; pp++) f->push(0);
 
             for (x = 0; x < 40; x++) {
+                bool invert;
+
                 uint8_t tchar = textpage[char_addr];
 
-                if (((tchar & 0xC0) == 0x40)) {
+                if (char_rom.is_flash(tchar)) {
                     invert = flash_state;
-                    /* pixel_on = flash_state;
-                    pixel_off = !flash_state; */
                 } else {
                     invert = false;
                 }
@@ -174,28 +170,41 @@ public:
             f->set_line(scanline);
             
             for (x = 0; x < 40; x++) {
+                bool invert;
+
                 uint8_t tchar = alttextpage[char_addr];
 
                 uint8_t cdata = char_rom.get_char_scanline(tchar, y + altbase);
 
-                f->push(cdata & 1 ? pixel_on : pixel_off); cdata>>=1;
-                f->push(cdata & 1 ? pixel_on : pixel_off); cdata>>=1;
-                f->push(cdata & 1 ? pixel_on : pixel_off); cdata>>=1;
-                f->push(cdata & 1 ? pixel_on : pixel_off); cdata>>=1;
-                f->push(cdata & 1 ? pixel_on : pixel_off); cdata>>=1;
-                f->push(cdata & 1 ? pixel_on : pixel_off); cdata>>=1;
-                f->push(cdata & 1 ? pixel_on : pixel_off); cdata>>=1;
+                if (char_rom.is_flash(tchar)) {
+                    invert = flash_state;
+                } else {
+                    invert = false;
+                }
+
+                f->push((cdata & 1) ^ invert); cdata>>=1;
+                f->push((cdata & 1) ^ invert); cdata>>=1;
+                f->push((cdata & 1) ^ invert); cdata>>=1;
+                f->push((cdata & 1) ^ invert); cdata>>=1;
+                f->push((cdata & 1) ^ invert); cdata>>=1;
+                f->push((cdata & 1) ^ invert); cdata>>=1;
+                f->push((cdata & 1) ^ invert); cdata>>=1;
 
                 tchar = textpage[char_addr];
                 cdata = char_rom.get_char_scanline(tchar, y + altbase);
-
-                f->push(cdata & 1 ? pixel_on : pixel_off); cdata>>=1;
-                f->push(cdata & 1 ? pixel_on : pixel_off); cdata>>=1;
-                f->push(cdata & 1 ? pixel_on : pixel_off); cdata>>=1;
-                f->push(cdata & 1 ? pixel_on : pixel_off); cdata>>=1;
-                f->push(cdata & 1 ? pixel_on : pixel_off); cdata>>=1;
-                f->push(cdata & 1 ? pixel_on : pixel_off); cdata>>=1;
-                f->push(cdata & 1 ? pixel_on : pixel_off); cdata>>=1;
+                if (char_rom.is_flash(tchar)) {
+                    invert = flash_state;
+                } else {
+                    invert = false;
+                }
+                
+                f->push((cdata & 1) ^ invert); cdata>>=1;
+                f->push((cdata & 1) ^ invert); cdata>>=1;
+                f->push((cdata & 1) ^ invert); cdata>>=1;
+                f->push((cdata & 1) ^ invert); cdata>>=1;
+                f->push((cdata & 1) ^ invert); cdata>>=1;
+                f->push((cdata & 1) ^ invert); cdata>>=1;
+                f->push((cdata & 1) ^ invert); cdata>>=1;
 
                 char_addr++;
             }

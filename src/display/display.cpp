@@ -735,6 +735,7 @@ void display_write_switches(void *context, uint16_t address, uint8_t value) {
             ds->f_altcharset = true;
             break;
     }
+    ds->a2_display->set_char_set(ds->f_altcharset);
 }
 
 uint8_t display_read_C01E(void *context, uint16_t address) {
@@ -890,6 +891,7 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
 
     if (computer->platform->id == PLATFORM_APPLE_IIE) {
         ds->f_altcharset = false;
+        ds->a2_display->set_char_set(ds->f_altcharset);
         mmu->set_C0XX_write_handler(0xC00C, { ds_bus_write_C00X, ds });
         mmu->set_C0XX_write_handler(0xC00D, { ds_bus_write_C00X, ds });
         mmu->set_C0XX_write_handler(0xC00E, { display_write_switches, ds });
@@ -904,6 +906,8 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
         computer->register_reset_handler([ds]() {
             ds->f_80col = false;
             ds->f_double_graphics = true;
+            ds->f_altcharset = false;
+            ds->a2_display->set_char_set(ds->f_altcharset);
             update_line_mode(ds);
             return true;
         });
