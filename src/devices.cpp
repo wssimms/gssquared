@@ -151,15 +151,13 @@ Device_t Devices[NUM_DEVICE_IDS] = {
         init_slot_parallel,
         NULL
     },
-    /*
     {
-        DEVICE_ID_VIDEX,
+        DEVICE_ID_DISPLAY_VIDEX,
         "Videx VideoTerm",
         false,
         init_slot_videx,
         NULL
     },
-    */
     {
         DEVICE_ID_MOCKINGBOARD,
         "Mockingboard",

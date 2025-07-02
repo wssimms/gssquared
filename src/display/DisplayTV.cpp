@@ -273,5 +273,11 @@ bool DisplayTV::update_display(cpu_state *cpu)
 void init_mb_display_tv(computer_t *computer, SlotType_t slot) {
     // alloc and init Display
     DisplayTV *ds = new DisplayTV(computer);
+
+    computer->register_shutdown_handler([ds]() {
+        delete ds;
+        return true;
+    });
+    
     ds->register_display_device(computer, DEVICE_ID_DISPLAY_TV);
 }

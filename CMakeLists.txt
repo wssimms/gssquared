@@ -217,7 +217,7 @@ add_library(gs2_devices_memexp     src/devices/memoryexpansion/memexp.cpp )
 
 add_library(gs2_devices_parallel     src/devices/parallel/parallel.cpp )
 
-#add_library(gs2_devices_videx     src/devices/videx/videx.cpp src/devices/videx/videx_80x24.cpp )
+add_library(gs2_devices_videx     src/devices/videx/videx.cpp src/devices/videx/videx_80x24.cpp )
 
 add_library(gs2_devices_mockingboard     src/devices/mockingboard/mb.cpp )
 
@@ -298,7 +298,7 @@ target_link_libraries(GSSquared
     gs2_devices_game
     gs2_devices_memexp
     gs2_devices_parallel
-    #gs2_devices_videx
+    gs2_devices_videx
     gs2_devices_pdblock2
     gs2_devices_mockingboard
     gs2_devices_annunciator

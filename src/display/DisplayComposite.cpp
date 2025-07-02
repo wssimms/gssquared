@@ -253,7 +253,8 @@ void DisplayComposite::begin_video_bits(cpu_state *cpu)
         text_count += 1;
 }
 
-DisplayComposite::DisplayComposite(computer_t *computer) : Display(computer)
+DisplayComposite::DisplayComposite(computer_t *computer) :
+    Display(computer, BASE_WIDTH, BASE_HEIGHT)
 {
     text_count = 0;
 }

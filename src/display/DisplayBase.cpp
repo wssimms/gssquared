@@ -44,7 +44,7 @@ bool Display::update_display(cpu_state *cpu)
         return false;
     }
     //printf("pixels:%p, this:%p, buffer:%p\n", pixels, this, buffer); fflush(stdout);
-    memcpy(pixels, buffer, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA_t)); // load all buffer into texture
+    memcpy(pixels, buffer, width * height * sizeof(RGBA_t)); // load all buffer into texture
     SDL_UnlockTexture(screenTexture);
 
     video_system->render_frame(screenTexture, -7.0f);
@@ -122,7 +122,7 @@ void Display::make_lgr_bits() {
 /**
  * Display Class Implementation
  */
-Display::Display(computer_t * computer) {
+Display::Display(computer_t * computer, int width, int height) {
     //debug_set_level(DEBUG_DISPLAY);
 
     make_flipped();
@@ -130,21 +130,25 @@ Display::Display(computer_t * computer) {
     make_lgr_bits();
     make_text40_bits();
 
+    this->width = width;
+    this->height = height;
     this->computer = computer;
     event_queue = computer->event_queue;
     video_system = computer->video_system;
+    printf("Display video_system is: %p\n", video_system);
+    fflush(stdout);
 
     flash_counter = 0;
 
-    buffer = new RGBA_t[BASE_WIDTH * BASE_HEIGHT];
-    memset(buffer, 0, BASE_WIDTH * BASE_HEIGHT * sizeof(RGBA_t));
+    buffer = new RGBA_t[height * width];
+    memset(buffer, 0, width * height * sizeof(RGBA_t));
     // TODO: maybe start it with apple logo?
 
     // Create the screen texture
     screenTexture = SDL_CreateTexture(video_system->renderer,
         PIXEL_FORMAT,
         SDL_TEXTUREACCESS_STREAMING,
-        BASE_WIDTH, BASE_HEIGHT);
+        width, height);
 
     if (!screenTexture) {
         fprintf(stderr, "Error creating screen texture: %s\n", SDL_GetError());
@@ -157,19 +161,14 @@ Display::Display(computer_t * computer) {
 }
 
 Display::~Display() {
-    delete[] buffer;
+    SDL_DestroyTexture(screenTexture);
+    delete buffer;
 }
 
 void Display::register_display_device(computer_t *computer, device_id id)
 {
     computer->sys_event->registerHandler(SDL_EVENT_KEY_DOWN, [this](const SDL_Event &event) {
         return handle_display_event(this, event);
-    });
-
-    computer->register_shutdown_handler([this]() {
-        SDL_DestroyTexture(this->get_texture());
-        delete this;
-        return true;
     });
 
     computer->video_system->register_display(id, this);
@@ -231,161 +230,6 @@ void Display::get_buffer(uint8_t *buffer, uint32_t *width, uint32_t *height) {
     snprintf(msgbuf, sizeof(msgbuf), "Screen snapshot taken");
     computer->event_queue->addEvent(new Event(EVENT_SHOW_MESSAGE, 0, msgbuf));
 }
-
-#if 0
-// Implement the switch, but text display doesn't use it yet.
-void display_write_switches(void *context, uint16_t address, uint8_t value) {
-    display_state_t *ds = (display_state_t *)context;
-    switch (address) {
-        case 0xC00E:
-            ds->display_alt_charset = false;
-            break;
-        case 0xC00F:
-            ds->display_alt_charset = true;
-            break;
-    }
-}
-
-uint8_t display_read_C01E(void *context, uint16_t address) {
-    display_state_t *ds = (display_state_t *)context;
-    return (ds->display_alt_charset) ? 0x80 : 0x00;
-}
-
-uint8_t display_read_C01F(void *context, uint16_t address) {
-    display_state_t *ds = (display_state_t *)context;
-    return (ds->f_80col) ? 0x80 : 0x00;
-}
-
-uint8_t display_read_C05EF(void *context, uint16_t address) {
-    display_state_t *ds = (display_state_t *)context;
-    ds->f_double_graphics = (address & 0x1); // this is inverted sense
-    update_line_mode(ds);
-    ds->video_system->set_full_frame_redraw();
-    return 0;
-}
-
-void display_write_C05EF(void *context, uint16_t address, uint8_t value) {
-    display_state_t *ds = (display_state_t *)context;
-    ds->f_double_graphics = (address & 0x1); // this is inverted sense
-    update_line_mode(ds);
-    ds->video_system->set_full_frame_redraw();
-}
-
-void init_mb_device_display(computer_t *computer, SlotType_t slot) {
-    cpu_state *cpu = computer->cpu;
-    
-    // alloc and init display state
-    display_state_t *ds = new display_state_t;
-    video_system_t *vs = computer->video_system;
-
-    ds->video_system = vs;
-    ds->event_queue = computer->event_queue;
-    ds->computer = computer;
-    MMU_II *mmu = computer->mmu;
-    ds->mmu = mmu;
-
-#if 1
-    // new display engine setup
-    CharRom *charrom = nullptr;
-    if (computer->platform->id == PLATFORM_APPLE_IIE) {
-        charrom = new CharRom("assets/roms/apple2e/char.rom");
-    } else if (computer->platform->id == PLATFORM_APPLE_II_PLUS) {
-        charrom = new CharRom("assets/roms/apple2_plus/char.rom");
-    }
-    ds->a2_display = new AppleII_Display(*charrom);
-    uint16_t f_w = BASE_WIDTH+20;
-    uint16_t f_h = BASE_HEIGHT;
-    ds->frame_rgba = new(std::align_val_t(64)) Frame560RGBA(f_w, f_h);
-    ds->frame_bits = new(std::align_val_t(64)) Frame560(f_w, f_h);
-    ds->frame_rgba->clear(); // clear the frame buffers at startup.
-    ds->frame_bits->clear();
-
-    // Create the screen texture
-    ds->screenTexture = SDL_CreateTexture(vs->renderer,
-        PIXEL_FORMAT,
-        SDL_TEXTUREACCESS_STREAMING,
-        BASE_WIDTH+20, BASE_HEIGHT);
-
-    if (!ds->screenTexture) {
-        fprintf(stderr, "Error creating screen texture: %s\n", SDL_GetError());
-    }
-
-    SDL_SetTextureBlendMode(ds->screenTexture, SDL_BLENDMODE_NONE); /* GRRRRRRR. This was defaulting to SDL_BLENDMODE_BLEND. */
-    // LINEAR gets us appropriately blurred pixels.
-    // NEAREST gets us sharp pixels.
-    SDL_SetTextureScaleMode(ds->screenTexture, SDL_SCALEMODE_LINEAR);
-
-#else
-    // Create the screen texture
-    ds->screenTexture = SDL_CreateTexture(vs->renderer,
-        PIXEL_FORMAT,
-        SDL_TEXTUREACCESS_STREAMING,
-        BASE_WIDTH, BASE_HEIGHT);
-
-    if (!ds->screenTexture) {
-        fprintf(stderr, "Error creating screen texture: %s\n", SDL_GetError());
-    }
-
-    SDL_SetTextureBlendMode(ds->screenTexture, SDL_BLENDMODE_NONE); /* GRRRRRRR. This was defaulting to SDL_BLENDMODE_BLEND. */
-    // LINEAR gets us appropriately blurred pixels.
-    // NEAREST gets us sharp pixels.
-    SDL_SetTextureScaleMode(ds->screenTexture, SDL_SCALEMODE_LINEAR);
-
-    init_displayng();
-#endif
-
-    // set in CPU so we can reference later
-    set_module_state(cpu, MODULE_DISPLAY, ds);
-    
-    mmu->set_C0XX_read_handler(0xC050, { txt_bus_read_C050, ds });
-    mmu->set_C0XX_write_handler(0xC050, { txt_bus_write_C050, ds });
-    mmu->set_C0XX_read_handler(0xC051, { txt_bus_read_C051, ds });
-    mmu->set_C0XX_read_handler(0xC052, { txt_bus_read_C052, ds });
-    mmu->set_C0XX_write_handler(0xC051, { txt_bus_write_C051, ds });
-    mmu->set_C0XX_write_handler(0xC052, { txt_bus_write_C052, ds });
-    mmu->set_C0XX_read_handler(0xC053, { txt_bus_read_C053, ds });
-    mmu->set_C0XX_write_handler(0xC053, { txt_bus_write_C053, ds });
-    mmu->set_C0XX_read_handler(0xC054, { txt_bus_read_C054, ds });
-    mmu->set_C0XX_write_handler(0xC054, { txt_bus_write_C054, ds });
-    mmu->set_C0XX_read_handler(0xC055, { txt_bus_read_C055, ds });
-    mmu->set_C0XX_write_handler(0xC055, { txt_bus_write_C055, ds });
-    mmu->set_C0XX_read_handler(0xC056, { txt_bus_read_C056, ds });
-    mmu->set_C0XX_write_handler(0xC056, { txt_bus_write_C056, ds });
-    mmu->set_C0XX_read_handler(0xC057, { txt_bus_read_C057, ds });
-    mmu->set_C0XX_write_handler(0xC057, { txt_bus_write_C057, ds });
-
-    for (int i = 0x04; i <= 0x0B; i++) {
-        mmu->set_page_shadow(i, { txt_memory_write, cpu });
-    }
-    for (int i = 0x20; i <= 0x5F; i++) {
-        mmu->set_page_shadow(i, { hgr_memory_write, cpu });
-    }
-
-    computer->sys_event->registerHandler(SDL_EVENT_KEY_DOWN, [ds](const SDL_Event &event) {
-        return handle_display_event(ds, event);
-    });
-
-    computer->register_shutdown_handler([ds]() {
-        SDL_DestroyTexture(ds->screenTexture);
-        deinit_displayng();
-        delete ds;
-        return true;
-    });
-
-    vs->register_frame_processor(0, [cpu]() -> bool {
-        return update_display_apple2(cpu);
-    });
-
-    if (computer->platform->id == PLATFORM_APPLE_IIE) {
-        ds->display_alt_charset = false;
-        mmu->set_C0XX_write_handler(0xC00C, { ds_bus_write_C00X, ds });
-        mmu->set_C0XX_write_handler(0xC00D, { ds_bus_write_C00X, ds });
-        mmu->set_C0XX_write_handler(0xC00E, { display_write_switches, ds });
-        mmu->set_C0XX_write_handler(0xC00F, { display_write_switches, ds });
-        mmu->set_C0XX_read_handler(0xC01E, { display_read_C01E, ds });
-    }
-}
-#endif
 
 void display_dump_file(cpu_state *cpu, const char *filename, uint16_t base_addr, uint16_t sizer) {
     FILE *fp = fopen(filename, "wb");

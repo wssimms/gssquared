@@ -47,44 +47,14 @@ bool DisplayMono::update_display(cpu_state *cpu)
     return Display::update_display(cpu);
 }
 
-#if 0
-bool DisplayMono::update_display(cpu_state *cpu)
-{
-    uint16_t rawbits = 0;
-    output = buffer;
-
-    hcount = 0;
-    vcount = 0;
-
-    begin_video_bits(cpu);
-    while (more_video_bits())
-    {   
-        uint16_t video_bits = next_video_bits(cpu);
-
-        // carryover from HGR shifted bytes
-        rawbits = rawbits | video_bits;
-
-        for (int i = 14; i; --i) {
-            if (rawbits & 1)
-                *output++ = phosphor_color;
-            else
-                *output++ = p_black;
-            rawbits >>= 1; 
-        }
-        
-        if (++hcount == 40) {
-            hcount = 0;
-            rawbits = 0;
-            ++vcount;
-        }
-    }
-    return Display::update_display(cpu);
-}
-#endif
-
 void init_mb_display_mono(computer_t *computer, SlotType_t slot) {
     // alloc and init Display
     DisplayMono *ds = new DisplayMono(computer);
-    printf("mono disp:%p\n", ds); fflush(stdout);
+
+    computer->register_shutdown_handler([ds]() {
+        delete ds;
+        return true;
+    });
+
     ds->register_display_device(computer, DEVICE_ID_DISPLAY_MONO);
 }

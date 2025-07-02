@@ -20,6 +20,7 @@
 #include "gs2.hpp"
 #include "cpu.hpp"
 #include "computer.hpp"
+#include "display/DisplayBase.hpp"
 #include "util/ResourceFile.hpp"
 
 // Parameters
@@ -88,13 +89,20 @@ const videx_char_set_file_t videx_char_roms[VIDEX_CHAR_SET_COUNT] = {
     { "Inverse", "roms/cards/videx/videx-inverse.bin" }
 };
 
-typedef struct videx_data: public SlotData {
-    video_system_t *video_system = nullptr;
+class DisplayVidex: public Display, public SlotData {
+public:
+    DisplayVidex(computer_t *computer);
+    ~DisplayVidex();
+
+    bool update_display(cpu_state *cpu);
+    void update_display_videx(cpu_state *cpu);
+    void videx_render_line(cpu_state *cpu, int y);
+    void render_videx_scanline_80x24(cpu_state *cpu, int y, void *pixels, int pitch);
+    void videx_set_line_dirty_by_addr(uint16_t addr);
+    void videx_set_line_dirty(int line);
+
     MMU_II *mmu = nullptr;
     cpu_state *cpu = nullptr;
-    
-    SDL_Texture *videx_texture = nullptr;
-    uint8_t *buffer = nullptr; // 640x216x4
 
     uint8_t video_enabled = 0;
 
@@ -115,13 +123,10 @@ typedef struct videx_data: public SlotData {
     uint8_t *char_memory = nullptr;
     uint8_t *char_set = nullptr;
     uint8_t *alt_char_set = nullptr;
-} videx_data;
+};
 
 void init_slot_videx(computer_t *computer, SlotType_t slot);
-void deinit_slot_videx(videx_data *videx_d);
-void videx_set_line_dirty_by_addr(videx_data * videx_d, uint16_t addr);
-void videx_set_line_dirty(videx_data * videx_d, int line);
-void update_videx_screen_memory(cpu_state *cpu, videx_data * videx_d);
+void update_videx_screen_memory(cpu_state *cpu, DisplayVidex * videx_d);
 void map_rom_videx(cpu_state *cpu, SlotType_t slot);
 void update_display_videx(cpu_state *cpu);
-void videx_render_line(cpu_state *cpu, videx_data * videx_d, int y);
+void videx_render_line(cpu_state *cpu, DisplayVidex * videx_d, int y);

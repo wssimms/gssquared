@@ -293,6 +293,7 @@ void video_system_t::flip_display_scale_mode() {
 void video_system_t::register_display(int id, Display * display) {
     registered_displays.insert({id, display});
     active_display = display;
+    printf("Active display is: %p\n", active_display);
 }
 
 Display * video_system_t::find_display(int id) {
@@ -311,6 +312,7 @@ void video_system_t::set_active_display (int id) {
 
 void video_system_t::update_display() {
     clear(); // clear the backbuffer.
+    //printf("Update display: %p\n", active_display); fflush(stdout);
     active_display->update_display(computer->cpu);
     /*
     for (const auto& pair : registered_displays) {

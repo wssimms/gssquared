@@ -369,13 +369,19 @@ bool DisplayRGB::update_display(cpu_state *cpu)
     return Display::update_display(cpu);
 }
 
-DisplayRGB::DisplayRGB(computer_t *computer) : Display(computer)
+DisplayRGB::DisplayRGB(computer_t *computer) :
+    Display(computer, BASE_WIDTH, BASE_HEIGHT)
 {
 }
 
 void init_mb_display_rgb(computer_t *computer, SlotType_t slot) {
     // alloc and init Display
     DisplayRGB *ds = new DisplayRGB(computer);
-    printf("rgb disp:%p\n", ds); fflush(stdout);
+
+    computer->register_shutdown_handler([ds]() {
+        delete ds;
+        return true;
+    });
+
     ds->register_display_device(computer, DEVICE_ID_DISPLAY_RGB);
 }

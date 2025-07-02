@@ -34,6 +34,8 @@ struct video_system_t;
 class Display
 {
 protected:
+    int width;
+    int height;
     int flash_counter;
 
     // LUTs mapping video data bytes to video signal bits
@@ -56,13 +58,15 @@ protected:
     void make_lgr_bits();
 
 public:
-    Display(computer_t *computer);
+    Display(computer_t *computer, int height, int width);
     ~Display();
 
     virtual bool update_display(cpu_state *cpu);
     void register_display_device(computer_t *computer, device_id id);
 
     inline uint8_t flash_mask() { return (flash_counter >= 15) ? 0xFF : 0; }
+    inline int get_width() { return width; }
+    inline int get_height() { return height; }
 
     inline EventQueue * get_event_queue() { return event_queue; }
     inline SDL_Texture * get_texture() { return screenTexture; }
