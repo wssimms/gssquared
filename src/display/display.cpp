@@ -28,6 +28,8 @@
 #include "platforms.hpp"
 #include "event_poll.hpp"
 
+#include "util/dialog.hpp"
+
 #include "display/displayng.hpp"
 #include "display/hgr.hpp"
 #include "display/lgr.hpp"
@@ -798,11 +800,21 @@ void init_mb_device_display(computer_t *computer, SlotType_t slot) {
 #if 1
     // new display engine setup
     CharRom *charrom = nullptr;
-    if (computer->platform->id == PLATFORM_APPLE_IIE) {
-        charrom = new CharRom("assets/roms/apple2e/char.rom");
-    } else if (computer->platform->id == PLATFORM_APPLE_II_PLUS) {
-        charrom = new CharRom("assets/roms/apple2_plus/char.rom");
+    switch (computer->platform->id) {
+        case PLATFORM_APPLE_IIE:
+            charrom = new CharRom("assets/roms/apple2e/char.rom");
+            break;
+        case PLATFORM_APPLE_II_PLUS:
+            charrom = new CharRom("assets/roms/apple2_plus/char.rom");
+            break;
+        case PLATFORM_APPLE_II:
+            charrom = new CharRom("assets/roms/apple2/char.rom");
+            break;
+        default:
+            system_failure("Unsupported platform in display engine init");
+            break;
     }
+    
     ds->a2_display = new AppleII_Display(*charrom);
     uint16_t f_w = BASE_WIDTH+20;
     uint16_t f_h = BASE_HEIGHT;
