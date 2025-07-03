@@ -243,14 +243,9 @@ uint8_t bsr_read_C012(void *context, uint16_t address) {
 
 void update_display_flags(iiememory_state_t *iiememory_d)
 {
-    VideoScannerII *vs = iiememory_d->computer->video_scanner;
-
-    //iiememory_d->s_text = vs->is_text();
-    //iiememory_d->s_hires = vs->is_hires();
-    //iiememory_d->s_mixed = vs->is_mixed();
-
     // if 80STORE is off, get page2 from display; otherwise just keep our local version, as display version is always set to page 1.
-    if (!iiememory_d->f_80store) iiememory_d->s_page2 = vs->is_page_2();
+    VideoScannerII *vs = iiememory_d->computer->video_scanner;
+    if (iiememory_d->f_80store == false) iiememory_d->s_page2 = vs->is_page_2();
 }
 
 void iiememory_debug(iiememory_state_t *iiememory_d) {
@@ -279,7 +274,6 @@ void iiememory_compose_map(iiememory_state_t *iiememory_d) {
     n_all_r = iiememory_d->f_ramrd;
     n_all_w = iiememory_d->f_ramwrt;
     if (iiememory_d->f_80store) {
-//      if (iiememory_d->s_hires) {
         if (vs->is_hires()) {
             n_text1_r = iiememory_d->s_page2;
             n_text1_w = iiememory_d->s_page2;
@@ -447,19 +441,9 @@ uint8_t iiememory_read_C01X(void *context, uint16_t address) {
         case 0xC018: // 80STORE
             fl =  (iiememory_d->f_80store) ? 0x80 : 0x00;
             break;
-        case 0xC01A: // TEXT
-            fl =  (iiememory_d->s_text) ? 0x80 : 0x00;
-            break;
-        case 0xC01B: // MIXED
-            fl =  (iiememory_d->s_mixed) ? 0x80 : 0x00;
-            break;
         case 0xC01C: // PAGE2
             fl =  (iiememory_d->s_page2) ? 0x80 : 0x00;
             break;
-        case 0xC01D:  // HIRES
-            fl =  (iiememory_d->s_hires) ? 0x80 : 0x00;
-            break;
-        // C01E and C01F are handled by display. (altcharset and 80col)
         default:
             fl =  0x00;
     }
@@ -561,20 +545,6 @@ void init_iiememory(computer_t *computer, SlotType_t slot) {
     // C019, C01A, C01B are handled by the video scanner
     computer->mmu->set_C0XX_read_handler(0xC01C, { iiememory_read_C01X, iiememory_d });
     // C01D, C01E, C01F are handled by the video scanner
-
-    /*
-    for (uint16_t i = 0xC011; i <= 0xC01D; i++) {
-        //if (i == 0xC015) continue; // INTCXROM is handled by the MMU.
-        if (i == 0xC019) continue; // VBL is handled by the display device.
-        computer->mmu->set_C0XX_read_handler(i, { iiememory_read_C01X, iiememory_d });
-    }
-
-    // Override the display device handlers for these..
-    for (uint16_t i = 0xC050; i <= 0xC057; i++) {
-        computer->mmu->set_C0XX_read_handler(i, { iiememory_read_display, iiememory_d });
-        computer->mmu->set_C0XX_write_handler(i, { iiememory_write_display, iiememory_d });
-    }
-    */
 
     // It is necessary to take over the page2 switch from the video scanner because
     // with 80store on, page2 switches between main and auxiliary memory.
