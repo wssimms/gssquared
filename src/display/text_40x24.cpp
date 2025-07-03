@@ -19,7 +19,6 @@
 #include <unistd.h>
 #include <cstdlib>
 
-#include "gs2.hpp"
 #include "debug.hpp"
 #include "display.hpp"
 #include "platforms.hpp"

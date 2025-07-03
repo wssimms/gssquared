@@ -7,7 +7,7 @@ Here is the Apple IIe checklist:
 [x] dlgr  
 [x] dhgr  
 [x] VBL  
-[ ] Alternate character set (I implemented the switch but don't act on it yet)  
+[x] Alternate character set (I implemented the switch but don't act on it yet)  
 [x] display must read video memory from absolute memory, not from page table
 [x] have "default to rom" concept in mmu. (mostly resolved by moving switches into mmu)  
 [x] modifier keys mapped to open-apple and closed-apple  
@@ -26,6 +26,8 @@ Here is the Apple IIe checklist:
 we are missing: c011, c012, c015, c01e, c01f.
 
 This is ugly. This should be done using the messaging bus concept, instead of creating coupling between modules.
+
+OK this has been done, through use of the MessageBus. I'm still not entirely sure I like the approach, but, it works so far.
 
 ### AKD
 

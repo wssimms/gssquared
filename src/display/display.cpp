@@ -27,14 +27,12 @@
 #include "hgr_280x192.hpp"
 #include "platforms.hpp"
 #include "event_poll.hpp"
-#include "display/types.hpp"
+
 #include "display/displayng.hpp"
 #include "display/hgr.hpp"
 #include "display/lgr.hpp"
 #include "display/ntsc.hpp"
-#include "devices/videx/videx.hpp"
-#include "devices/videx/videx_80x24.hpp"
-#include "devices/annunciator/annunciator.hpp"
+
 #include "videosystem.hpp"
 #include "devices/displaypp/CharRom.hpp"
 #include "mbus/MessageBus.hpp"
