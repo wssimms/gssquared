@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <cstdio>
 
 enum char_mode_t {
     CHAR_MODE_NORMAL,
@@ -34,7 +33,7 @@ class CharRom {
         inline void set_char_set(uint16_t char_set) {
             selected_char_set = char_set;
         }
-        
+
         inline uint8_t get_char_scanline(uint16_t tchar, uint8_t y) {
             uint16_t pos = char_sets[selected_char_set].set[tchar].pos;
             uint16_t index = pos + y;

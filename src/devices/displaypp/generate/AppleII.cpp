@@ -1,6 +1,6 @@
 #include <cstdint>
 #include <cstring>
-#include "devices/displaypp/frame/frame.hpp"
+
 #include "devices/displaypp/frame/Frames.hpp"
 #include "devices/displaypp/CharRom.hpp"
 
@@ -197,7 +197,7 @@ public:
                 } else {
                     invert = false;
                 }
-                
+
                 f->push((cdata & 1) ^ invert); cdata>>=1;
                 f->push((cdata & 1) ^ invert); cdata>>=1;
                 f->push((cdata & 1) ^ invert); cdata>>=1;
